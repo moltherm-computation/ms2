@@ -55,14 +55,14 @@ module ms2_site
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: vsLJx(:) , vsLJy(:), vsLJz(:)
-    real(RK), pointer :: vsuLJx(:), vsuLJy(:), vsuLJz(:)
-    real(RK), pointer :: vbLJx(:) , vbLJy(:), vbLJz(:)
-    real(RK), pointer :: cLJx(:)  , cLJy(:),  cLJz(:)
-    real(RK), pointer :: tuLJx(:),  tuLJy(:),  tuLJz(:)
-    real(RK), pointer :: tlLJx(:),  tlLJy(:),  tlLJz(:)
-    real(RK), pointer :: tdLJx(:),  tdLJy(:),  tdLJz(:)
-    real(RK), pointer :: Qm0r(:,:,1)
+    real(RK), pointer, contiguous :: vsLJx(:) , vsLJy(:), vsLJz(:)
+    real(RK), pointer, contiguous :: vsuLJx(:), vsuLJy(:), vsuLJz(:)
+    real(RK), pointer, contiguous :: vbLJx(:) , vbLJy(:), vbLJz(:)
+    real(RK), pointer, contiguous :: cLJx(:)  , cLJy(:),  cLJz(:)
+    real(RK), pointer, contiguous :: tuLJx(:),  tuLJy(:),  tuLJz(:)
+    real(RK), pointer, contiguous :: tlLJx(:),  tlLJy(:),  tlLJz(:)
+    real(RK), pointer, contiguous :: tdLJx(:),  tdLJy(:),  tdLJz(:)
+    real(RK), pointer, contiguous :: Qm0r(:,:,:)
 !TRANSPORT_END
 #endif
 
@@ -111,14 +111,14 @@ module ms2_site
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: vsCx(:), vsCy(:), vsCz(:)
-    real(RK), pointer :: vsuCx(:), vsuCy(:), vsuCz(:)
-    real(RK), pointer :: vbCx(:), vbCy(:), vbCz(:)
-    real(RK), pointer :: cCx(:),  cCy(:),  cCz(:)
-    real(RK), pointer :: tuCx(:),  tuCy(:),  tuCz(:)
-    real(RK), pointer :: tlCx(:),  tlCy(:),  tlCz(:)
-    real(RK), pointer :: tdCx(:),  tdCy(:),  tdCz(:)
-    real(RK), pointer :: Qm0r(:,:,1)
+    real(RK), pointer, contiguous :: vsCx(:), vsCy(:), vsCz(:)
+    real(RK), pointer, contiguous :: vsuCx(:), vsuCy(:), vsuCz(:)
+    real(RK), pointer, contiguous :: vbCx(:), vbCy(:), vbCz(:)
+    real(RK), pointer, contiguous :: cCx(:),  cCy(:),  cCz(:)
+    real(RK), pointer, contiguous :: tuCx(:),  tuCy(:),  tuCz(:)
+    real(RK), pointer, contiguous :: tlCx(:),  tlCy(:),  tlCz(:)
+    real(RK), pointer, contiguous :: tdCx(:),  tdCy(:),  tdCz(:)
+    real(RK), pointer, contiguous :: Qm0r(:,:,:)
 !TRANSPORT_END
 #endif
 
@@ -171,14 +171,14 @@ module ms2_site
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: vsDx(:), vsDy(:), vsDz(:)
-    real(RK), pointer :: vsuDx(:), vsuDy(:), vsuDz(:)
-    real(RK), pointer :: vbDx(:), vbDy(:), vbDz(:)
-    real(RK), pointer :: cDx(:),  cDy(:),  cDz(:)
-    real(RK), pointer :: tuDx(:),  tuDy(:),  tuDz(:)
-    real(RK), pointer :: tlDx(:),  tlDy(:),  tlDz(:)
-    real(RK), pointer :: tdDx(:),  tdDy(:),  tdDz(:)
-    real(RK), pointer :: Qm0r(:,:,1)
+    real(RK), pointer, contiguous :: vsDx(:), vsDy(:), vsDz(:)
+    real(RK), pointer, contiguous :: vsuDx(:), vsuDy(:), vsuDz(:)
+    real(RK), pointer, contiguous :: vbDx(:), vbDy(:), vbDz(:)
+    real(RK), pointer, contiguous :: cDx(:),  cDy(:),  cDz(:)
+    real(RK), pointer, contiguous :: tuDx(:),  tuDy(:),  tuDz(:)
+    real(RK), pointer, contiguous :: tlDx(:),  tlDy(:),  tlDz(:)
+    real(RK), pointer, contiguous :: tdDx(:),  tdDy(:),  tdDz(:)
+    real(RK), pointer, contiguous :: Qm0r(:,:,:)
 !TRANSPORT_END
 #endif
 
@@ -231,14 +231,14 @@ module ms2_site
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: vsQx(:) , vsQy(:), vsQz(:)
-    real(RK), pointer :: vsuQx(:), vsuQy(:), vsuQz(:)
-    real(RK), pointer :: vbQx(:), vbQy(:), vbQz(:)
-    real(RK), pointer :: cQx(:) ,  cQy(:),  cQz(:)
-    real(RK), pointer :: tuQx(:),  tuQy(:),  tuQz(:)
-    real(RK), pointer :: tlQx(:),  tlQy(:),  tlQz(:)
-    real(RK), pointer :: tdQx(:),  tdQy(:),  tdQz(:)
-    real(RK), pointer :: Qm0r(:,:,1)
+    real(RK), pointer, contiguous :: vsQx(:) , vsQy(:), vsQz(:)
+    real(RK), pointer, contiguous :: vsuQx(:), vsuQy(:), vsuQz(:)
+    real(RK), pointer, contiguous :: vbQx(:), vbQy(:), vbQz(:)
+    real(RK), pointer, contiguous :: cQx(:) ,  cQy(:),  cQz(:)
+    real(RK), pointer, contiguous :: tuQx(:),  tuQy(:),  tuQz(:)
+    real(RK), pointer, contiguous :: tlQx(:),  tlQy(:),  tlQz(:)
+    real(RK), pointer, contiguous :: tdQx(:),  tdQy(:),  tdQz(:)
+    real(RK), pointer, contiguous :: Qm0r(:,:,:)
 !TRANSPORT_END
 #endif
 

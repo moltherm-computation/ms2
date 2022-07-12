@@ -217,7 +217,7 @@ contains
 
     ! Declare local variables
     integer       :: i, j
-    integer       :: ntypes
+    integer       :: ntypes, npossPartners
     character(16) :: stype
     integer       :: stat
     real(RK)      :: scalegeo, scalesig, scaleeps, scaleest

@@ -19,10 +19,6 @@
 #define MPI_VER 0
 #endif
 
-#ifndef TRANS
-#define TRANS 0
-#endif
-
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_interaction.F90...'
 #endif
@@ -42,58 +38,58 @@ module ms2_interaction
   type TInteraction
 
     ! Site-site potentials
-    type(TPotLJ126LJ126), pointer           :: PotLJ126LJ126(:, :)
-    type(TPotChargeCharge), pointer         :: PotChargeCharge(:, :)
-    type(TPotChargeDipole), pointer         :: PotChargeDipole(:, :)
-    type(TPotChargeQuadrupole), pointer     :: PotChargeQuadrupole(:, :)
-    type(TPotDipoleCharge), pointer         :: PotDipoleCharge(:, :)
-    type(TPotDipoleDipole), pointer         :: PotDipoleDipole(:, :)
-    type(TPotDipoleQuadrupole), pointer     :: PotDipoleQuadrupole(:, :)
-    type(TPotQuadrupoleCharge), pointer     :: PotQuadrupoleCharge(:, :)
-    type(TPotQuadrupoleDipole), pointer     :: PotQuadrupoleDipole(:, :)
-    type(TPotQuadrupoleQuadrupole), pointer :: PotQuadrupoleQuadrupole(:, :)
+    type(TPotLJ126LJ126), pointer, contiguous           :: PotLJ126LJ126(:, :)
+    type(TPotChargeCharge), pointer, contiguous         :: PotChargeCharge(:, :)
+    type(TPotChargeDipole), pointer, contiguous         :: PotChargeDipole(:, :)
+    type(TPotChargeQuadrupole), pointer, contiguous     :: PotChargeQuadrupole(:, :)
+    type(TPotDipoleCharge), pointer, contiguous         :: PotDipoleCharge(:, :)
+    type(TPotDipoleDipole), pointer, contiguous         :: PotDipoleDipole(:, :)
+    type(TPotDipoleQuadrupole), pointer, contiguous     :: PotDipoleQuadrupole(:, :)
+    type(TPotQuadrupoleCharge), pointer, contiguous     :: PotQuadrupoleCharge(:, :)
+    type(TPotQuadrupoleDipole), pointer, contiguous     :: PotQuadrupoleDipole(:, :)
+    type(TPotQuadrupoleQuadrupole), pointer, contiguous :: PotQuadrupoleQuadrupole(:, :)
     
     !Idf potentials
-    type(TPotBond), pointer                 :: PotBond(:)
-    type(TPotAngle), pointer                :: PotAngle(:)
-    type(TPotDihedral), pointer             :: PotDihedral(:)
+    type(TPotBond), pointer, contiguous                 :: PotBond(:)
+    type(TPotAngle), pointer, contiguous                :: PotAngle(:)
+    type(TPotDihedral), pointer, contiguous             :: PotDihedral(:)
 
     ! Potential energy
-    real(RK), pointer :: EPot(:, :), EPot1(:), EPotNew(:, :), EPotMol(:,:)
-    real(RK), pointer :: EPotTo(:), EPotAngle(:)!, EPotBond(:)
-    real(RK), pointer :: EPot1To(:), EPot1Angle(:)!, EPot1Bond(:)
-    real(RK), pointer :: EPotToNew(:), EPotAngleNew(:)!, EPotBondNew(:)   ! Bond not needed since it's contribution is included in EPotNew
+    real(RK), pointer, contiguous :: EPot(:, :), EPot1(:), EPotNew(:, :), EPotMol(:,:)
+    real(RK), pointer, contiguous :: EPotTo(:), EPotAngle(:)!, EPotBond(:)
+    real(RK), pointer, contiguous :: EPot1To(:), EPot1Angle(:)!, EPot1Bond(:)
+    real(RK), pointer, contiguous :: EPotToNew(:), EPotAngleNew(:)!, EPotBondNew(:)   ! Bond not needed since it's contribution is included in EPotNew
 
     ! Mayer f-function for second virial coefficient
-    real(RK), pointer :: MayerFFunction(:), IntFFunction(:)
-    real(RK), pointer :: MayerFFunction1(:), IntFFunction1(:)
-    real(RK), pointer :: MayerFFunction2(:), IntFFunction2(:)
+    real(RK), pointer, contiguous :: MayerFFunction(:), IntFFunction(:)
+    real(RK), pointer, contiguous :: MayerFFunction1(:), IntFFunction1(:)
+    real(RK), pointer, contiguous :: MayerFFunction2(:), IntFFunction2(:)
 
     ! Virial
-    real(RK), pointer :: Virial(:, :), Virial1(:), VirialNew(:, :), VirialMol(:,:)
+    real(RK), pointer, contiguous :: Virial(:, :), Virial1(:), VirialNew(:, :), VirialMol(:,:)
     logical           :: OptPressure
 
-    real(RK), pointer :: d2EpotdV2(:, :), d2EpotdV21(:), d2EpotdV2New(:, :), d2EpotdV2Mol(:,:)
+    real(RK), pointer, contiguous :: d2EpotdV2(:, :), d2EpotdV21(:), d2EpotdV2New(:, :), d2EpotdV2Mol(:,:)
 
     ! Arrays for center of mass cutoff
-    integer, pointer :: NInCutoff(:), CutoffPartner(:, :)!, RDFSum (:)
+    integer, pointer, contiguous :: NInCutoff(:), CutoffPartner(:, :)
 
     ! Center of mass positions
-    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
 
     ! Total dipole moments of molecules for reaction field
-    real(RK), pointer :: MueX1(:,:), MueY1(:,:), MueZ1(:,:)
-    real(RK), pointer :: MueX2(:,:), MueY2(:,:), MueZ2(:,:)
+    real(RK), pointer, contiguous :: MueX1(:,:), MueY1(:,:), MueZ1(:,:)
+    real(RK), pointer, contiguous :: MueX2(:,:), MueY2(:,:), MueZ2(:,:)
 
     ! Torques from reaction field
-    real(RK), pointer :: tRFX1(:,:), tRFY1(:,:), tRFZ1(:,:)
-    real(RK), pointer :: tRFX2(:,:), tRFY2(:,:), tRFZ2(:,:)
+    real(RK), pointer, contiguous :: tRFX1(:,:), tRFY1(:,:), tRFZ1(:,:)
+    real(RK), pointer, contiguous :: tRFX2(:,:), tRFY2(:,:), tRFZ2(:,:)
 
     ! Center of mass positions of test particles
-    real(RK), pointer :: PX1Test(:,:), PY1Test(:,:), PZ1Test(:,:)
+    real(RK), pointer, contiguous :: PX1Test(:,:), PY1Test(:,:), PZ1Test(:,:)
 
     ! Total dipole moments of test particles for reaction field
-    real(RK), pointer :: MueX1Test(:,:), MueY1Test(:,:), MueZ1Test(:,:)
+    real(RK), pointer, contiguous :: MueX1Test(:,:), MueY1Test(:,:), MueZ1Test(:,:)
 
     ! Maximum number of particles per component
     integer :: NPartMax
@@ -110,6 +106,9 @@ module ms2_interaction
 
     ! Numbers of test particles in component 1
     integer :: NTest1
+#if MPI_VER > 0
+    integer, pointer :: NTest10, NTest12
+#endif
     
     ! Number of units
     integer, pointer :: NUnit1, NUnit2
@@ -131,14 +130,18 @@ module ms2_interaction
     ! Cutoff correction to LJ-interaction
     real(RK) :: EPotCorrLJ
 
-    ! Flag for reaction field
+    ! Flag for reaction field(s)
     logical :: ReactionField
+
+    ! Extended reaction field
+    real(RK) :: DebyeLen
 
     ! (2*eps-1)/(2*eps+1)
     real(RK) :: RFConst2, RFConst3
 
-    ! Same component
+    ! Same component + w/o intramolecular nonbonded interactions
     logical :: SameComponent
+    logical :: includeIntraLJEl
 
     ! IDF
     integer,pointer :: BoPartner(:,:), BondCount(:)
@@ -147,7 +150,7 @@ module ms2_interaction
 
     ! Ewald Summation
     real(RK) :: Kappa
-    real(RK) :: DebyeLen, RFConstant
+    real(RK) :: RFConstant
     real(RK) :: lad1,lad2
     
     ! IDF
@@ -159,10 +162,10 @@ module ms2_interaction
     integer  :: NQuadrupole_U1, NQuadrupole_U2
 
 #ifdef ABL
-    real(RK),pointer :: AblS(:)
-    real(RK),pointer :: AblE(:)
-    real(RK),pointer :: AblPS(:,:)
-    real(RK),pointer :: AblPE(:,:)
+    real(RK),pointer, contiguous :: AblS(:)
+    real(RK),pointer, contiguous :: AblE(:)
+    real(RK),pointer, contiguous :: AblPS(:,:)
+    real(RK),pointer, contiguous :: AblPE(:,:)
 #endif
 
   end type TInteraction
@@ -299,6 +302,10 @@ contains
     this%NPart22 => Component2%NPart2
 #endif
     this%NTest1 = Component1%NTest
+#if MPI_VER > 0
+    this%NTest10 => Component1%NTest0
+    this%NTest12 => Component1%NTest2
+#endif
 
     ! Set number of sites
     this%N1LJ126 = Component1%Molecule%NLJ126
@@ -1041,7 +1048,7 @@ contains
   end subroutine TInteraction_Deallocate
 
 !==============================================================!
-!  Subroutine TInteraction_RDF                               !
+!  Subroutine TInteraction_RDF                                 !
 !==============================================================!
 
   subroutine TInteraction_RDF( this, RDFdr )
@@ -1102,10 +1109,10 @@ contains
 #endif
 
     ! Declare local variables
-    real(RK), pointer :: MueX1(:, :), MueY1(:, :), MueZ1(:, :)
-    real(RK), pointer :: MueX2(:, :), MueY2(:, :), MueZ2(:, :)
-    real(RK), pointer :: TX1(:, :), TY1(:, :), TZ1(:, :)
-    real(RK), pointer :: TX2(:, :), TY2(:, :), TZ2(:, :)
+    real(RK), pointer, contiguous :: MueX1(:, :), MueY1(:, :), MueZ1(:, :)
+    real(RK), pointer, contiguous :: MueX2(:, :), MueY2(:, :), MueZ2(:, :)
+    real(RK), pointer, contiguous :: TX1(:, :), TY1(:, :), TZ1(:, :)
+    real(RK), pointer, contiguous :: TX2(:, :), TY2(:, :), TZ2(:, :)
     real(RK)          :: mueXi, mueYi, mueZi, mueXj, mueYj, mueZj
     real(RK)          :: RFTX, RFTY, RFTZ
     real(RK)          :: EPotLocal, TXi, TYi, TZi
@@ -1221,7 +1228,7 @@ contains
 &               d2EpotdV2, BoxLength )
       end do
     end do
-    
+
     ! Inner Degrees of Freedom
     if ( UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1 ) then
       
@@ -1351,10 +1358,10 @@ contains
 #endif
 
     ! Declare local variables
-    real(RK), pointer :: MueX1(:, :), MueY1(:, :), MueZ1(:, :)
-    real(RK), pointer :: MueX2(:, :), MueY2(:, :), MueZ2(:, :)
-    real(RK), pointer :: TX1(:, :), TY1(:, :), TZ1(:, :)
-    real(RK), pointer :: TX2(:, :), TY2(:, :), TZ2(:, :)
+    real(RK), pointer, contiguous :: MueX1(:, :), MueY1(:, :), MueZ1(:, :)
+    real(RK), pointer, contiguous :: MueX2(:, :), MueY2(:, :), MueZ2(:, :)
+    real(RK), pointer, contiguous :: TX1(:, :), TY1(:, :), TZ1(:, :)
+    real(RK), pointer, contiguous :: TX2(:, :), TY2(:, :), TZ2(:, :)
     real(RK)          :: mueXi, mueYi, mueZi, mueXj, mueYj, mueZj
     real(RK)          :: RFTX, RFTY, RFTZ
     real(RK)          :: EPotLocal, TXi, TYi, TZi
@@ -5921,12 +5928,11 @@ end subroutine TInteraction_Energy
     ! Declare local variables
     real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
-    real(RK)          :: RijSquared
-    real(RK)          :: RCutoffSquaredScaled
+    real(RK)          :: RijSquared, RCutoff
     integer           :: i, j, NInCutoff, k, l, m, n
 
     ! Set cutoff radius
-    RCutoffSquaredScaled = this%RCutoffSquaredScaled
+    RCutoff = this%RCutoffSquaredScaled
 
     ! Assign local variables
     this%NInCutoff(:) = 0
@@ -5943,7 +5949,11 @@ end subroutine TInteraction_Energy
     ! Calculate partners within cutoff sphere
 !$OMP DO
     do k = 1, this%NUnit1
+#if MPI_VER > 0
+      do i = this%NTest10, this%NTest12
+#else
       do i = 1, this%NTest1
+#endif
         m = (i-1)*this%NUnit1+k
         PXi = PX1(i,k)
         PYi = PY1(i,k)
@@ -5961,7 +5971,7 @@ end subroutine TInteraction_Energy
             PZij = PZij - anint( PZij )
             RijSquared = PXij**2 + PYij**2 + PZij**2
 
-            if( RijSquared < RCutoffSquaredScaled ) then
+            if( RijSquared < RCutoff ) then
               NInCutoff = NInCutoff + 1
               this%CutoffPartner(NInCutoff, m) = n
             end if
