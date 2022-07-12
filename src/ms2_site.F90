@@ -41,28 +41,28 @@ module ms2_site
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK),pointer  :: r(:)
-    real(RK)          :: sig, eps
-    real(RK)          :: mass
+    real(RK)          :: r(3)
+    real(RK)          :: sig, eps, mass
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
-    real(RK), pointer :: RX(:), RY(:), RZ(:)
-    real(RK), pointer :: FX(:), FY(:), FZ(:)
-    real(RK), pointer :: PX(:), PY(:), PZ(:)
-    real(RK), pointer :: RXTest(:), RYTest(:), RZTest(:)
-    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
-    integer, pointer  :: RDFSum(:)
+    integer, pointer  :: NTest0, NTest1, NTest2
+    real(RK), pointer, contiguous :: RX(:), RY(:), RZ(:)
+    real(RK), pointer, contiguous :: FX(:), FY(:), FZ(:)
+    real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
+    real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
+    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
+    integer, pointer, contiguous  :: RDFSum(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: vsLJx(:) , vsLJy(:), vsLJz(:)
-    real(RK), pointer :: vsuLJx(:), vsuLJy(:), vsuLJz(:)
-    real(RK), pointer :: vbLJx(:) , vbLJy(:), vbLJz(:)
-    real(RK), pointer :: cLJx(:)  , cLJy(:),  cLJz(:)
-    real(RK), pointer :: tuLJx(:),  tuLJy(:),  tuLJz(:)
-    real(RK), pointer :: tlLJx(:),  tlLJy(:),  tlLJz(:)
-    real(RK), pointer :: tdLJx(:),  tdLJy(:),  tdLJz(:)
-    real(RK), pointer :: Qm0r(:,:,1)
+    real(RK), pointer, contiguous :: vsLJx(:) , vsLJy(:), vsLJz(:)
+    real(RK), pointer, contiguous :: vsuLJx(:), vsuLJy(:), vsuLJz(:)
+    real(RK), pointer, contiguous :: vbLJx(:) , vbLJy(:), vbLJz(:)
+    real(RK), pointer, contiguous :: cLJx(:)  , cLJy(:),  cLJz(:)
+    real(RK), pointer, contiguous :: tuLJx(:),  tuLJy(:),  tuLJz(:)
+    real(RK), pointer, contiguous :: tlLJx(:),  tlLJy(:),  tlLJz(:)
+    real(RK), pointer, contiguous :: tdLJx(:),  tdLJy(:),  tdLJz(:)
+    real(RK), pointer, contiguous :: Qm0r(:,:,:)
 !TRANSPORT_END
 #endif
 
@@ -97,28 +97,27 @@ module ms2_site
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK),pointer  :: r(:)
-    real(RK)          :: e
-    real(RK)          :: mass
-    real(RK)          :: shield
+    real(RK)          :: r(3)
+    real(RK)          :: e, mass, shield
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
-    real(RK), pointer :: RX(:), RY(:), RZ(:)
-    real(RK), pointer :: FX(:), FY(:), FZ(:)
-    real(RK), pointer :: PX(:), PY(:), PZ(:)
-    real(RK), pointer :: RXTest(:), RYTest(:), RZTest(:)
-    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
+    integer, pointer  :: NTest0, NTest1, NTest2
+    real(RK), pointer, contiguous :: RX(:), RY(:), RZ(:)
+    real(RK), pointer, contiguous :: FX(:), FY(:), FZ(:)
+    real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
+    real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
+    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: vsCx(:), vsCy(:), vsCz(:)
-    real(RK), pointer :: vsuCx(:), vsuCy(:), vsuCz(:)
-    real(RK), pointer :: vbCx(:), vbCy(:), vbCz(:)
-    real(RK), pointer :: cCx(:),  cCy(:),  cCz(:)
-    real(RK), pointer :: tuCx(:),  tuCy(:),  tuCz(:)
-    real(RK), pointer :: tlCx(:),  tlCy(:),  tlCz(:)
-    real(RK), pointer :: tdCx(:),  tdCy(:),  tdCz(:)
-    real(RK), pointer :: Qm0r(:,:,1)
+    real(RK), pointer, contiguous :: vsCx(:), vsCy(:), vsCz(:)
+    real(RK), pointer, contiguous :: vsuCx(:), vsuCy(:), vsuCz(:)
+    real(RK), pointer, contiguous :: vbCx(:), vbCy(:), vbCz(:)
+    real(RK), pointer, contiguous :: cCx(:),  cCy(:),  cCz(:)
+    real(RK), pointer, contiguous :: tuCx(:),  tuCy(:),  tuCz(:)
+    real(RK), pointer, contiguous :: tlCx(:),  tlCy(:),  tlCz(:)
+    real(RK), pointer, contiguous :: tdCx(:),  tdCy(:),  tdCz(:)
+    real(RK), pointer, contiguous :: Qm0r(:,:,:)
 !TRANSPORT_END
 #endif
 
@@ -154,31 +153,30 @@ module ms2_site
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK),pointer  :: r(:), or(:)
-    real(RK)          :: D
-    real(RK)          :: mass
-    real(RK)          :: shield
+    real(RK)          :: r(3), or(3)
+    real(RK)          :: D, mass, shield
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
-    real(RK), pointer :: RX(:), RY(:), RZ(:)
-    real(RK), pointer :: OX(:), OY(:), OZ(:)
-    real(RK), pointer :: FX(:), FY(:), FZ(:)
-    real(RK), pointer :: TX(:), TY(:), TZ(:)
-    real(RK), pointer :: PX(:), PY(:), PZ(:)
-    real(RK), pointer :: RXTest(:), RYTest(:), RZTest(:)
-    real(RK), pointer :: OXTest(:), OYTest(:), OZTest(:)
-    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
+    integer, pointer  :: NTest0, NTest1, NTest2
+    real(RK), pointer, contiguous :: RX(:), RY(:), RZ(:)
+    real(RK), pointer, contiguous :: OX(:), OY(:), OZ(:)
+    real(RK), pointer, contiguous :: FX(:), FY(:), FZ(:)
+    real(RK), pointer, contiguous :: TX(:), TY(:), TZ(:)
+    real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
+    real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
+    real(RK), pointer, contiguous :: OXTest(:), OYTest(:), OZTest(:)
+    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: vsDx(:), vsDy(:), vsDz(:)
-    real(RK), pointer :: vsuDx(:), vsuDy(:), vsuDz(:)
-    real(RK), pointer :: vbDx(:), vbDy(:), vbDz(:)
-    real(RK), pointer :: cDx(:),  cDy(:),  cDz(:)
-    real(RK), pointer :: tuDx(:),  tuDy(:),  tuDz(:)
-    real(RK), pointer :: tlDx(:),  tlDy(:),  tlDz(:)
-    real(RK), pointer :: tdDx(:),  tdDy(:),  tdDz(:)
-    real(RK), pointer :: Qm0r(:,:,1)
+    real(RK), pointer, contiguous :: vsDx(:), vsDy(:), vsDz(:)
+    real(RK), pointer, contiguous :: vsuDx(:), vsuDy(:), vsuDz(:)
+    real(RK), pointer, contiguous :: vbDx(:), vbDy(:), vbDz(:)
+    real(RK), pointer, contiguous :: cDx(:),  cDy(:),  cDz(:)
+    real(RK), pointer, contiguous :: tuDx(:),  tuDy(:),  tuDz(:)
+    real(RK), pointer, contiguous :: tlDx(:),  tlDy(:),  tlDz(:)
+    real(RK), pointer, contiguous :: tdDx(:),  tdDy(:),  tdDz(:)
+    real(RK), pointer, contiguous :: Qm0r(:,:,:)
 !TRANSPORT_END
 #endif
 
@@ -214,31 +212,30 @@ module ms2_site
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK),pointer  :: r(:), or(:)
-    real(RK)          :: Q
-    real(RK)          :: mass
-    real(RK)          :: shield
+    real(RK)          :: r(3), or(3)
+    real(RK)          :: Q, mass, shield
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
-    real(RK), pointer :: RX(:), RY(:), RZ(:)
-    real(RK), pointer :: OX(:), OY(:), OZ(:)
-    real(RK), pointer :: FX(:), FY(:), FZ(:)
-    real(RK), pointer :: TX(:), TY(:), TZ(:)
-    real(RK), pointer :: PX(:), PY(:), PZ(:)
-    real(RK), pointer :: RXTest(:), RYTest(:), RZTest(:)
-    real(RK), pointer :: OXTest(:), OYTest(:), OZTest(:)
-    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
+    integer, pointer  :: NTest0, NTest1, NTest2
+    real(RK), pointer, contiguous :: RX(:), RY(:), RZ(:)
+    real(RK), pointer, contiguous :: OX(:), OY(:), OZ(:)
+    real(RK), pointer, contiguous :: FX(:), FY(:), FZ(:)
+    real(RK), pointer, contiguous :: TX(:), TY(:), TZ(:)
+    real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
+    real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
+    real(RK), pointer, contiguous :: OXTest(:), OYTest(:), OZTest(:)
+    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer :: vsQx(:) , vsQy(:), vsQz(:)
-    real(RK), pointer :: vsuQx(:), vsuQy(:), vsuQz(:)
-    real(RK), pointer :: vbQx(:), vbQy(:), vbQz(:)
-    real(RK), pointer :: cQx(:) ,  cQy(:),  cQz(:)
-    real(RK), pointer :: tuQx(:),  tuQy(:),  tuQz(:)
-    real(RK), pointer :: tlQx(:),  tlQy(:),  tlQz(:)
-    real(RK), pointer :: tdQx(:),  tdQy(:),  tdQz(:)
-    real(RK), pointer :: Qm0r(:,:,1)
+    real(RK), pointer, contiguous :: vsQx(:) , vsQy(:), vsQz(:)
+    real(RK), pointer, contiguous :: vsuQx(:), vsuQy(:), vsuQz(:)
+    real(RK), pointer, contiguous :: vbQx(:), vbQy(:), vbQz(:)
+    real(RK), pointer, contiguous :: cQx(:) ,  cQy(:),  cQz(:)
+    real(RK), pointer, contiguous :: tuQx(:),  tuQy(:),  tuQz(:)
+    real(RK), pointer, contiguous :: tlQx(:),  tlQy(:),  tlQz(:)
+    real(RK), pointer, contiguous :: tdQx(:),  tdQy(:),  tdQz(:)
+    real(RK), pointer, contiguous :: Qm0r(:,:,:)
 !TRANSPORT_END
 #endif
 
@@ -286,10 +283,6 @@ contains
     if( UseIntDegFreed ) then
         call FileReadParameter( this%SiteId, iounit_potmod, IdLJ126_SiteId, .false. )
     end if
-    
-    nullify ( this%r )
-    allocate( this%r( 3 ), STAT = stat )
-    call AllocationError( stat, 'coordinates', 3 )
 
     call FileReadParameter( this%r(1), iounit_potmod, IdLJ126_r1, .false. )
     call FileReadParameter( this%r(2), iounit_potmod, IdLJ126_r2, .false. )
@@ -634,10 +627,6 @@ contains
     if( UseIntDegFreed ) then
       call FileReadParameter( this%SiteId, iounit_potmod, IdCharge_SiteId, .false. )
     end if
-    
-    nullify ( this%r )
-    allocate( this%r( 3 ), STAT = stat )
-    call AllocationError( stat, 'coordinates', 3 )
 
     call FileReadParameter( this%r(1), iounit_potmod, IdCharge_r1, .false. )
     call FileReadParameter( this%r(2), iounit_potmod, IdCharge_r2, .false. )
@@ -966,13 +955,6 @@ contains
     if( UseIntDegFreed ) then
         call FileReadParameter( this%SiteId, iounit_potmod, IdDipole_SiteId, .false. )
     end if
-
-    nullify ( this%r )
-    allocate( this%r( 3 ), STAT = stat )
-    call AllocationError( stat, 'coordinates', 3 )
-    nullify ( this%or )
-    allocate( this%or( 3 ), STAT = stat )
-    call AllocationError( stat, 'coordinates', 3 )
 
     call FileReadParameter( this%r(1), iounit_potmod, IdDipole_r1, .false. )
     call FileReadParameter( this%r(2), iounit_potmod, IdDipole_r2, .false. )
@@ -1380,13 +1362,6 @@ contains
     if( UseIntDegFreed ) then
         call FileReadParameter( this%SiteId, iounit_potmod, IdQuadrupole_SiteId, .false. )
     end if
-
-    nullify ( this%r )
-    allocate( this%r( 3 ), STAT = stat )
-    call AllocationError( stat, 'coordinates', 3 )
-    nullify ( this%or )
-    allocate( this%or( 3 ), STAT = stat )
-    call AllocationError( stat, 'coordinates', 3 )
 
     call FileReadParameter( this%r(1), iounit_potmod, IdQuadrupole_r1, .false. )
     call FileReadParameter( this%r(2), iounit_potmod, IdQuadrupole_r2, .false. )

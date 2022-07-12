@@ -38,7 +38,7 @@ module ms2_unit
     integer  :: NSites
 
     ! SiteIds in a unit
-    integer, allocatable :: SiteIds(:) 
+    integer, allocatable :: SiteIds(:) ! Michael Sch.: make allocatables contiguous?
 
     ! Geometry of unit
     logical :: isElongated, is3D
@@ -56,7 +56,7 @@ module ms2_unit
     real(RK) :: P0(3)
 
     ! position of COM in space-fixed system
-    real(RK), pointer :: PX(:), PY(:), PZ(:)
+    real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
 
     ! Principal moments of inertia
     real(RK) :: MOI(3)
@@ -66,24 +66,24 @@ module ms2_unit
 
     ! 12-6 Lennard-Jones sites
     integer :: NLJ126
-    type(TSiteLJ126), pointer :: SiteLJ126(:)
+    type(TSiteLJ126), pointer, contiguous :: SiteLJ126(:)
 
     ! Coulomb sites
     integer :: NCharge
-    type(TSiteCharge), pointer :: SiteCharge(:)
+    type(TSiteCharge), pointer, contiguous :: SiteCharge(:)
 
     ! Dipole sites
     integer :: NDipole
-    type(TSiteDipole), pointer :: SiteDipole(:)
+    type(TSiteDipole), pointer, contiguous :: SiteDipole(:)
 
     ! Quadrupole sites
     integer :: NQuadrupole
-    type(TSiteQuadrupole), pointer :: SiteQuadrupole(:)
+    type(TSiteQuadrupole), pointer, contiguous :: SiteQuadrupole(:)
 
    ! Body fixed dipole vector for reaction field
     real(RK) :: Mue(3), MueSquared
 
-    integer, pointer :: NPartMax, NPart
+    integer, pointer :: NPartMax, NPart ! Michael Sch. pointer needed here?
     integer, pointer :: NPart0, NPart1, NPart2
 
   end type TUnit

@@ -19,10 +19,6 @@
 #define MPI_VER 0
 #endif
 
-#ifndef TRANS
-#define TRANS 0
-#endif
-
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_simulation.F90...'
 #endif
@@ -51,7 +47,7 @@ module ms2_simulation
     integer :: mpiEnsembleGroups
 
     ! Ensembles
-    type(TEnsemble), pointer :: Ensemble(:)
+    type(TEnsemble), pointer, contiguous :: Ensemble(:)
 
     ! I/O unit for result file
     integer :: iounit_result
@@ -151,7 +147,21 @@ end type TSimulation
   interface VisualClose
     module procedure TSimulation_VisualClose
   end interface
-  
+
+#if OSMOP > 0
+  interface ProfileOpen
+    module procedure TSimulation_ProfileOpen
+  end interface
+
+  interface ProfileUpdate
+    module procedure TSimulation_ProfileUpdate
+  end interface
+
+  interface ProfileClose
+    module procedure TSimulation_ProfileClose
+  end interface
+#endif
+
   interface RDFOpen
     module procedure TSimulation_RDFOpen
   end interface
@@ -388,7 +398,7 @@ contains
 
       ! Read number of steps
       call FileReadParameter( NSteps, iounit_params , IdRSteps, .true. )
-      write( IOBuffer, '("Number of radial steps: ",T24, I7)' ) NSteps
+      write( IOBuffer, '("Number of radial steps: ",T23, I8)' ) NSteps
       call LogWrite
 
       ! Read minimum radius
@@ -537,10 +547,10 @@ contains
 &         call Error( trim( SimulationTypeString )//" simulation of " &
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
 
-      if( (EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA) &
-&         .and. .not. SimulationType .eq. MonteCarlo ) &
-&         call Error( trim( SimulationTypeString )//" simulation of " &
-&         //trim( EnsembleTypeString )//" ensemble is not implemented" )
+!       if( (EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA) &
+! &         .and. .not. SimulationType .eq. MonteCarlo ) &
+! &         call Error( trim( SimulationTypeString )//" simulation of " &
+! &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
 
       ! Read number of MC overlap reduction steps
       call LogWriteBlank
@@ -607,7 +617,7 @@ contains
 
       ! Read number of production steps
       call FileReadParameter( NSteps, iounit_params , IdNSteps, .true., 0 )
-      write( IOBuffer, '("Number of production steps: ",T40, I7)' ) NSteps
+      write( IOBuffer, '("Number of production steps: ",T39, I8)' ) NSteps
       call LogWrite
       call LogWriteBlank
 
@@ -679,7 +689,7 @@ contains
         end if
 
         if( ErrorsUpdateFrequency < NSteps ) then
-          write( IOBuffer, '("Final result files will be updated each", I7, " time steps")' ) ErrorsUpdateFrequency
+          write( IOBuffer, '("Final result files will be updated each", I8, " time steps")' ) ErrorsUpdateFrequency
         else
           write( IOBuffer, '("Final result files will be created at the end")' )
         end if
@@ -715,6 +725,25 @@ contains
       call LogWrite
       call LogWriteBlank
       end if
+#if OSMOP > 0
+      if ( SimulationType .eq. MonteCarlo ) then
+        write( IOBuffer, '("Osmotic Pressure calculation with in Monte-Carlo not possible. Continuing without")' )
+        call LogWrite
+        call LogWriteBlank
+      else
+        !Number of Bins for the Density, Chem. Potential and Pressure
+        call FileReadParameter( NBinsDen, iounit_params , IdNBinsDen, .true., 500 )
+        write( IOBuffer, '("Osmotic Pressure calculation with ", I7, " Bins")' ) NBinsDen
+        call LogWrite
+        call FileReadParameter( kForceOsmoticPressure, iounit_params , IdWallForce, .true., 41868._RK )
+        if( .not. UseReducedUnits ) then
+          kForceOsmoticPressure = kForceOsmoticPressure/(NAvogadro*Angstroem**2)*(UnitLength**2)/UnitEnergy
+        end if
+        write( IOBuffer, '("Forceconstant of the wall: ",T26, F10.5, " ?")' ) kForceOsmoticPressure
+        call LogWrite
+        call LogWriteBlank
+     end if
+#endif
 
       ! Read cutoff mode
       call FileReadParameter( str, iounit_params , IdCutoffMode, .true., "COM" )
@@ -853,6 +882,8 @@ contains
           write( IOBuffer, '("Shake tolerance: ", F9.6)' ) Shake
           call LogWrite
         end if
+      else
+        Shake = 0.0_RK
       end if
 
       ! Read parameters for intramolecular nonbonded interactions
@@ -1061,11 +1092,12 @@ contains
     call LogWrite
     write( IOBuffer, '(72(1H*))')
     call LogWrite
-    !if(RootProc) then
     call ResultOpen( this )
     call VisualOpen( this )
     call RDFOpen( this )
-    !end if
+#if OSMOP > 0
+    if ( SimulationType .ne. MonteCarlo ) call ProfileOpen(this )
+#endif
 
   end subroutine TSimulation_Construct
 
@@ -1087,12 +1119,14 @@ contains
 
     ! Close result and visualisation files
     call LogWriteBlank
-    !if(RootProc) then
+
     call ResultClose( this )
     call VisualClose( this )
     call RDFClose( this )
-    !end if
-    
+#if OSMOP > 0
+    if ( SimulationType .ne. MonteCarlo ) call ProfileClose(this )
+#endif
+
     ! Destroy accumulators
     call DestroyAccumulators( this )
 
@@ -1363,8 +1397,12 @@ contains
         call Unit2Atom( this%Ensemble(j) )
         ! Recalculate LongRange Correction
         call CalculateCorr( this%Ensemble(j) )
-        if ( (LongRange .eq. Ewald) .or. (LongRange .eq. PME) ) then
+        if (LongRange .eq. Ewald) then
           this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
+#ifdef SPME
+        else if (LongRange .eq. PME) then
+          this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
+#endif
         end if
 
          ! Set all potential energy matrices
@@ -1386,25 +1424,25 @@ contains
         write( IOBuffer, '("Starting MC overlap reduction")' )
       end if
       SimulationType = MonteCarlo
-      
-      if ( UseIntDegFreed ) then
-        do i=1,this%NEnsembles
-          call Flex2Rigid( this%Ensemble(i) )
-        end do
-      end if
+
+!       if ( UseIntDegFreed ) then
+!         do i=1,this%NEnsembles
+!           call Flex2Rigid( this%Ensemble(i) )
+!         end do
+!       end if
 
       call Timer_setTag(RunStepsTimer,"MC overlap reduction")
       call start_Timer(RunStepsTimer)
       call logwritestart_Timer(RunStepsTimer)
 
       call RunSteps( this, StepStart, StepEnd )
-      
-      if ( UseIntDegFreed ) then
-        do i=1,this%NEnsembles
-          call Rigid2Flex( this%Ensemble(i) )
-        end do
-      end if
-      
+
+!       if ( UseIntDegFreed ) then
+!         do i=1,this%NEnsembles
+!           call Rigid2Flex( this%Ensemble(i) )
+!         end do
+!       end if
+
       call stop_Timer(RunStepsTimer)
       call logwritestop_Timer(RunStepsTimer)
 
@@ -1456,7 +1494,6 @@ eqloop: do
       if( Equilibration .and. .not. TerminateProgram ) then
         StepEnd = NStepsP
         if( EnsembleType .eq. EnsembleTypeGE ) then
-          StepEnd = NStepsP
           call LogWriteBlank
           if( Restart ) then
             write( IOBuffer, '("Resuming GE equilibration")' )
@@ -1476,9 +1513,9 @@ eqloop: do
             call CheckNPart( this, NPartsOk )
 
 #if MPI_VER > 0 && ( ARCH == 1 || ARCH == 2 )
-            call MPI_Allreduce( NPartsOk, AnyNPartOk, 1, MPI_LOGICAL, MPI_LAND, Communicator, ierror )
-            if ( .not. AnyNPartOk) then
-                NPartsOk = .false.
+            if (SimulationType .eq. MonteCarlo) then
+              call MPI_Allreduce( NPartsOk, AnyNPartOk, 1, MPI_LOGICAL, MPI_LAND, Communicator, ierror )
+              if ( .not. AnyNPartOk)  NPartsOk = .false.
             endif
 #endif
             if( NPartsOk ) then
@@ -1773,8 +1810,12 @@ eqloop: do
         
         ! Recalculate LongRange Correction
         call CalculateCorr( this%Ensemble(j) )
-        if ( (LongRange .eq. Ewald) .or. (LongRange .eq. PME) ) then
+        if (LongRange .eq. Ewald) then
           this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
+#ifdef SPME
+        else if (LongRange .eq. PME) then
+          this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
+#endif
         end if
         
         ! Set all potential energy matrices
@@ -1952,11 +1993,11 @@ eqloop: do
               if(mod((Step+this%Ensemble(i)%NStepCorr-1),this%Ensemble(i)%NStepCorr) .eq. 0) then
                 StepCF = (Step + this%Ensemble(i)%NStepCorr -1) / this%Ensemble(i)%NStepCorr
                 if ( StepCF >= this%Ensemble(i)%Ncorr )then
-                  this%Ensemble(i)%NBlocksCF = 1 + ( StepCF - 1 - this%Ensemble(i)%Ncorr ) / ( this%Ensemble(i)%BlockSizeCF * this%Ensemble(i)%NSpancf )
-                  this%Ensemble(i)%NBlockSizesCF = int( sqrt( real(( StepCF - this%Ensemble(i)%Ncorr) / (this%Ensemble(i)%BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
+                  NBlocksCF = 1 + ( StepCF - 1 - this%Ensemble(i)%Ncorr ) / ( BlockSizeCF * this%Ensemble(i)%NSpancf )
+                  NBlockSizesCF = int( sqrt( real(( StepCF - this%Ensemble(i)%Ncorr) / (BlockSizeCF * this%Ensemble(i)%NSpancf ), RK)))
                 else
-                  this%Ensemble(i)%NBlocksCF     = 0
-                  this%Ensemble(i)%NBlockSizesCF = 0
+                  NBlocksCF     = 0
+                  NBlockSizesCF = 0
                 end if
               end if
             end if
@@ -1984,7 +2025,12 @@ eqloop: do
 
       ! Update log and result files
       if( mod( Step, LogUpdateFrequency ) == 0 .or. Step == StepEnd ) call LogWriteStep
-      if( .not. Equilibration .and. ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == StepEnd )) call ErrorsUpdate( this )
+      if( .not. Equilibration .and. ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == StepEnd )) then
+        call ErrorsUpdate( this )
+#if OSMOP > 0
+        if ( SimulationType .ne. MonteCarlo ) call ProfileUpdate(this )
+#endif
+      endif
 
       ! Check for termination request (caused by signal handler)
 #if MPI_VER > 0
@@ -2577,6 +2623,89 @@ eqloop: do
   end subroutine TSimulation_VisualClose
 
 
+#if OSMOP > 0
+!==============================================================!
+!  Subroutine TSimulation_ProfileOpen                          !
+!==============================================================!
+
+  subroutine TSimulation_ProfileOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Open ensemble visualisation files
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call ProfileOpen( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_ProfileOpen
+
+
+!==============================================================!
+!  Subroutine TSimulation_ProfileUpdate                        !
+!==============================================================!
+
+  subroutine TSimulation_ProfileUpdate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Return if no output
+    if( BlockSize < 1 ) return
+
+    ! No output for MCOverlapReduction
+    if( MCOverlapReduction ) return
+
+    ! Update ensemble visualisation files
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+       call ProfileUpdate( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_ProfileUpdate
+
+
+!==============================================================!
+!  Subroutine TSimulation_ProfileClose                         !
+!==============================================================!
+
+  subroutine TSimulation_ProfileClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Close ensemble visualisation files
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call ProfileClose( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_ProfileClose
+#endif
+
+
 !==============================================================!
 !  Subroutine TSimulation_RDFOpen                              !
 !==============================================================!
@@ -2662,7 +2791,8 @@ eqloop: do
     end do
 
   end subroutine TSimulation_RDFClose
-  
+
+
 !==============================================================!
 !  Subroutine TSimulation_RestartSave                          !
 !==============================================================!
@@ -2695,7 +2825,7 @@ eqloop: do
 #endif
 
     write( IOBuffer, '("Saving restart file ", A)' ) trim( RestartFileName )
-    call LogWrite
+    call LogWriteTime
 
     ! Open restart file for writing
     call FileRewrite( iounit_restart, trim(RestartFileName) )
@@ -2703,6 +2833,8 @@ eqloop: do
     ! Save contents to restart file
     write( iounit_restart, '(A)' ) trim( ParameterFileName )
     write( iounit_restart, '(2I10)' ) Step, StepTotal
+    write( IOBuffer, '("saving restart data at step",I10," (of",I10,")")' ) Step, StepTotal
+    call LogWrite
     write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
 
     ! Save ensembles
@@ -2748,7 +2880,7 @@ eqloop: do
 #endif
 
     write( IOBuffer, '("Reading restart file ")' )
-    call LogWrite
+    call LogWriteTime
 
     if( RootProc ) then
       write( RestartFileName, '(A,A)' ) trim(OutputNameTag),RestartFileExtension
@@ -2769,14 +2901,16 @@ eqloop: do
         call LogWriteBlank
       endif
       read( iounit_restart, '(2I10)' ) Step, StepTotal
+      write( IOBuffer, '("restarting at step",I10," (of",I10,")")' ) Step, StepTotal
+      call LogWrite
       read( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
     end if
 
 #if MPI_VER > 0
-    call MPI_Bcast( Step, 1, MPI_INTEGER, NRootProc_W, MPI_COMM_WORLD, ierror )
-    call MPI_Bcast( StepTotal, 1, MPI_INTEGER, NRootProc_W, MPI_COMM_WORLD, ierror )
-    call MPI_Bcast( Equilibration, 1, MPI_LOGICAL, NRootProc_W, MPI_COMM_WORLD, ierror )
-    call MPI_Bcast( NVTEquilibration, 1, MPI_LOGICAL, NRootProc_W, MPI_COMM_WORLD, ierror )
+    call MPI_Bcast( Step, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+    call MPI_Bcast( StepTotal, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
+    call MPI_Bcast( Equilibration, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
+    call MPI_Bcast( NVTEquilibration, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
 #endif
 
     ! Set current block number
