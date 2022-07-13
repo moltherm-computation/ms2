@@ -42,7 +42,7 @@ module ms2_molecule
   type TMolecule
 
     ! Geometry of molecule
-    logical :: isElongated
+    logical :: isElongated, hasIntraLJEl
 
     ! Number of degrees of freedom
     integer :: NDFRot, NDF
