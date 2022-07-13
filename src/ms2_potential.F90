@@ -15785,7 +15785,6 @@ loop2:  do j = 1, j1
   end subroutine TPotQQ_Energy
 
 
-
 !==============================================================!
 !  Subroutine TPotBond_Construct                               !
 !==============================================================!
@@ -15848,9 +15847,9 @@ loop2:  do j = 1, j1
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: R, RSquared
     real(RK)          :: FXi, FYi, FZi
@@ -15999,7 +15998,63 @@ loop2:  do j = 1, j1
 
 
 !==============================================================!
-!  Subroutine TPotAngle_Construct                               !
+!  Subroutine TPotBond_Energy                                  !
+!==============================================================!
+
+  subroutine TPotBond_Energy( this, np, nu, F, EBond, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotBond)           :: this
+    integer, intent(in)      :: np
+    integer, intent(in)      :: nu
+    real(RK), intent(in out) :: F(3,nu)
+    real(RK), intent(in out) :: EBond
+    real(RK), intent(in)     :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: dR, R0, R, RSquared
+    real(RK)          :: ForConst, F0, Fij, FXij, FYij, FZij
+    real(RK)          :: RXij, RYij, RZij, PXij, PYij, PZij
+    real(RK)          :: EPotLocal
+
+    ForConst = this%ForConst
+    R0 = this%R0
+
+    ! Calculate bond length
+    RXij = this%Bond%RX1(np) - this%Bond%RX2(np)
+    RYij = this%Bond%RY1(np) - this%Bond%RY2(np)
+    RZij = this%Bond%RZ1(np) - this%Bond%RZ2(np)
+    RXij = (RXij - anint( RXij )) * BoxLength
+    RYij = (RYij - anint( RYij )) * BoxLength
+    RZij = (RZij - anint( RZij )) * BoxLength
+
+    RSquared=RXij**2+RYij**2+RZij**2
+    R=sqrt(RSquared) ! Bond length
+    ! Deviation from equilibrium
+    dR=R-R0
+    ! Potential parameter
+    F0 = dR*ForConst
+    ! Energy of the bond
+    EBond = EBond + dR*F0
+    ! Force (abs. value)
+    Fij  = -2.0d0*F0/R
+    FXij = Fij * RXij
+    FYij = Fij * RYij
+    FZij = Fij * RZij
+    F(1,this%Bond%SiteId1) = F(1,this%Bond%SiteId1) + FXij
+    F(2,this%Bond%SiteId1) = F(2,this%Bond%SiteId1) + FYij
+    F(3,this%Bond%SiteId1) = F(3,this%Bond%SiteId1) + FZij
+    F(1,this%Bond%SiteId2) = F(1,this%Bond%SiteId2) - FXij
+    F(2,this%Bond%SiteId2) = F(2,this%Bond%SiteId2) - FYij
+    F(3,this%Bond%SiteId2) = F(3,this%Bond%SiteId2) - FZij
+
+  end subroutine TPotBond_Energy
+
+
+!==============================================================!
+!  Subroutine TPotAngle_Construct                              !
 !==============================================================!
 
   subroutine TPotAngle_Construct( this, Molecule, j )
@@ -16047,7 +16102,7 @@ loop2:  do j = 1, j1
 
 
 !==============================================================!
-!  Subroutine TPotAngle_Force                                   !
+!  Subroutine TPotAngle_Force                                  !
 !==============================================================!
 
   subroutine TPotAngle_Force( this, EPot, EPotIntra_Angle, BoxLength )
@@ -16061,8 +16116,8 @@ loop2:  do j = 1, j1
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: RXk, RYk, RZk
     real(RK)          :: RijRkj, RijSquared, RkjSquared
@@ -16214,7 +16269,94 @@ loop2:  do j = 1, j1
 
 
 !==============================================================!
-!  Subroutine TPotDihedral_Construct                               !
+!  Subroutine TPotAngle_Energy                                 !
+!==============================================================!
+
+  subroutine TPotAngle_Energy( this, np, nu, F, EAngle, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPotAngle)          :: this
+    integer, intent(in)      :: np
+    integer, intent(in)      :: nu
+    real(RK), intent(in out) :: F(3,nu)
+    real(RK), intent(in out) :: EAngle
+    real(RK), intent(in)     :: BoxLength
+
+    ! Declare local variables
+    real(RK)          :: RijRkj, RijSquared, RkjSquared
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: RXkj, RYkj, RZkj
+    real(RK)          :: EPotLocal
+    real(RK)          :: ForConst, Angle, Angle0, dAngle
+    real(RK)          :: abc, cosa, sina, sab, cab
+    real(RK)          :: faa, fab, fbb, fax, fay, faz, fbx, fby, fbz
+
+    ForConst = this%ForConst
+    Angle0 = this%Angle0
+
+    RXij = this%Angle%RX1(np) - this%Angle%RX2(np)
+    RYij = this%Angle%RY1(np) - this%Angle%RY2(np)
+    RZij = this%Angle%RZ1(np) - this%Angle%RZ2(np)
+    RXkj = this%Angle%RX3(np) - this%Angle%RX2(np)
+    RYkj = this%Angle%RY3(np) - this%Angle%RY2(np)
+    RZkj = this%Angle%RZ3(np) - this%Angle%RZ2(np)
+    RXij = (RXij - anint( RXij )) * BoxLength
+    RYij = (RYij - anint( RYij )) * BoxLength
+    RZij = (RZij - anint( RZij )) * BoxLength
+    RXkj = (RXkj - anint( RXkj )) * BoxLength
+    RYkj = (RYkj - anint( RYkj )) * BoxLength
+    RZkj = (RZkj - anint( RZkj )) * BoxLength
+
+    RijSquared=RXij**2+RYij**2+RZij**2
+    RkjSquared=RXkj**2+RYkj**2+RZkj**2
+
+    ! Calculate angle
+    RijRkj=sqrt(RijSquared*RkjSquared)
+    cosa = (RXij*RXkj+RYij*RYkj+RZij*RZkj)/RijRkj
+    if( cosa .gt. 1._RK ) cosa = 1._RK
+    if( cosa .lt.  -1._RK ) cosa = -1._RK
+    Angle = acos(cosa)
+
+    ! Deviation from equilibrium
+    dAngle = Angle - Angle0
+    ! Derivative of the energy
+    abc = dAngle*ForConst
+    EAngle = EAngle + abc*dAngle
+    ! Force calculation
+    sina = sqrt(1._RK-cosa**2)
+    if( sina .lt. 1E-12_RK ) sina = 1E-12_RK
+    sab = -2._RK*abc/sina
+    cab = sab*cosa
+
+    fab = sab/RijRkj
+    faa = cab/RijSquared
+    fbb = cab/RkjSquared
+
+    fax = fab*RXkj-faa*RXij
+    fay = fab*RYkj-faa*RYij
+    faz = fab*RZkj-faa*RZij
+
+    fbx = fab*RXij-fbb*RXkj
+    fby = fab*RYij-fbb*RYkj
+    fbz = fab*RZij-fbb*RZkj
+
+    F(1,this%Angle%SiteId1) = F(1,this%Angle%SiteId1) - fax
+    F(2,this%Angle%SiteId1) = F(2,this%Angle%SiteId1) - fay
+    F(3,this%Angle%SiteId1) = F(3,this%Angle%SiteId1) - faz
+    F(1,this%Angle%SiteId2) = F(1,this%Angle%SiteId2) + fax + fbx
+    F(2,this%Angle%SiteId2) = F(2,this%Angle%SiteId2) + fay + fby
+    F(2,this%Angle%SiteId2) = F(3,this%Angle%SiteId2) + faz + fbz
+    F(1,this%Angle%SiteId3) = F(1,this%Angle%SiteId3) - fbx
+    F(2,this%Angle%SiteId3) = F(2,this%Angle%SiteId3) - fby
+    F(3,this%Angle%SiteId3) = F(3,this%Angle%SiteId3) - fbz
+
+  end subroutine TPotAngle_Energy
+
+
+!==============================================================!
+!  Subroutine TPotDihedral_Construct                           !
 !==============================================================!
 
   subroutine TPotDihedral_Construct( this, Molecule, j )
@@ -16246,7 +16388,7 @@ loop2:  do j = 1, j1
 
 
 !==============================================================!
-!  Subroutine TPotDihedral_Destruct                                !
+!  Subroutine TPotDihedral_Destruct                            !
 !==============================================================!
 
   subroutine TPotDihedral_Destruct( this )
@@ -16263,7 +16405,7 @@ loop2:  do j = 1, j1
 
 
 !==============================================================!
-!  Subroutine TPotDihedral_Force                                   !
+!  Subroutine TPotDihedral_Force                               !
 !==============================================================!
 
   subroutine TPotDihedral_Force( this, EPot, EPotIntra_Dihedral,  BoxLength )
@@ -16279,8 +16421,8 @@ loop2:  do j = 1, j1
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:), RX4(:), RY4(:), RZ4(:)
-    real(RK), pointer :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:), FX4(:), FY4(:), FZ4(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:), RX4(:), RY4(:), RZ4(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:), FX4(:), FY4(:), FZ4(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: RXj, RYj, RZj
     real(RK)          :: RXk, RYk, RZk

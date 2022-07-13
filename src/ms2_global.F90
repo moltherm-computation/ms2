@@ -400,7 +400,7 @@ module ms2_global
   character(*), parameter :: IdQuadrupole_shield           = 'shielding'
   ! Internal degrees of freedom
   character(*), parameter :: IdConstraint_NSites           = 'Constraint'
-  character(*), parameter :: IdConstraint_SiteIds          = 'SiteIds'
+  character(*), parameter :: IdConstraint_SiteIds          = 'SiteIDs'
   character(*), parameter :: IdConstraint_NDFRot           = 'NRotAxes'
   character(*), parameter :: IdConstraint_Mass             = 'TotalMass'
   character(*), parameter :: IdConstraint_MOI1             = 'InertMomX'

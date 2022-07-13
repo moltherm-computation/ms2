@@ -47,7 +47,7 @@ module ms2_simulation
     integer :: mpiEnsembleGroups
 
     ! Ensembles
-    type(TEnsemble), pointer :: Ensemble(:)
+    type(TEnsemble), pointer, contiguous :: Ensemble(:)
 
     ! I/O unit for result file
     integer :: iounit_result
@@ -617,7 +617,7 @@ contains
 
       ! Read number of production steps
       call FileReadParameter( NSteps, iounit_params , IdNSteps, .true., 0 )
-      write( IOBuffer, '("Number of production steps: ",T40, I7)' ) NSteps
+      write( IOBuffer, '("Number of production steps: ",T39, I8)' ) NSteps
       call LogWrite
       call LogWriteBlank
 
@@ -689,7 +689,7 @@ contains
         end if
 
         if( ErrorsUpdateFrequency < NSteps ) then
-          write( IOBuffer, '("Final result files will be updated each", I7, " time steps")' ) ErrorsUpdateFrequency
+          write( IOBuffer, '("Final result files will be updated each", I8, " time steps")' ) ErrorsUpdateFrequency
         else
           write( IOBuffer, '("Final result files will be created at the end")' )
         end if
@@ -2833,6 +2833,8 @@ eqloop: do
     ! Save contents to restart file
     write( iounit_restart, '(A)' ) trim( ParameterFileName )
     write( iounit_restart, '(2I10)' ) Step, StepTotal
+    write( IOBuffer, '("saving restart data at step",I10," (of",I10,")")' ) Step, StepTotal
+    call LogWrite
     write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
 
     ! Save ensembles
