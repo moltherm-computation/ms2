@@ -180,7 +180,6 @@ module ms2_component
 
     ! Number of test particles
     integer, pointer :: NTest
-    integer          :: NTestAll
     integer, pointer :: NTest0, NTest1, NTest2
 
     ! Number of degrees of freedom
@@ -1667,7 +1666,7 @@ contains
       if (this%Molecule%Unit(i)%NLJ126 > 0) then
         do j = 1, this%Molecule%Unit(i)%NLJ126
           nlj = nlj+1
-          this%Molecule%Unit(i)%SiteLJ126(j)%r=>this%Molecule%SiteLJ126(nlj)%r
+          this%Molecule%Unit(i)%SiteLJ126(j)%r=this%Molecule%SiteLJ126(nlj)%r
           this%Molecule%Unit(i)%SiteLJ126(j)%RX=>this%Molecule%SiteLJ126(nlj)%RX
           this%Molecule%Unit(i)%SiteLJ126(j)%RY=>this%Molecule%SiteLJ126(nlj)%RY
           this%Molecule%Unit(i)%SiteLJ126(j)%RZ=>this%Molecule%SiteLJ126(nlj)%RZ
@@ -1693,7 +1692,7 @@ contains
       if (this%Molecule%Unit(i)%NCharge > 0) then
         do j = 1, this%Molecule%Unit(i)%NCharge
           nch = nch+1
-          this%Molecule%Unit(i)%SiteCharge(j)%r=>this%Molecule%SiteCharge(nch)%r
+          this%Molecule%Unit(i)%SiteCharge(j)%r=this%Molecule%SiteCharge(nch)%r
           this%Molecule%Unit(i)%SiteCharge(j)%RX=>this%Molecule%SiteCharge(nch)%RX
           this%Molecule%Unit(i)%SiteCharge(j)%RY=>this%Molecule%SiteCharge(nch)%RY
           this%Molecule%Unit(i)%SiteCharge(j)%RZ=>this%Molecule%SiteCharge(nch)%RZ
@@ -1719,8 +1718,8 @@ contains
       if (this%Molecule%Unit(i)%NDipole > 0) then
         do j = 1, this%Molecule%Unit(i)%NDipole
           ndi = ndi+1
-          this%Molecule%Unit(i)%SiteDipole(j)%r=>this%Molecule%SiteDipole(ndi)%r
-          this%Molecule%Unit(i)%SiteDipole(j)%or=>this%Molecule%SiteDipole(ndi)%or
+          this%Molecule%Unit(i)%SiteDipole(j)%r=this%Molecule%SiteDipole(ndi)%r
+          this%Molecule%Unit(i)%SiteDipole(j)%or=this%Molecule%SiteDipole(ndi)%or
           this%Molecule%Unit(i)%SiteDipole(j)%RX=>this%Molecule%SiteDipole(ndi)%RX
           this%Molecule%Unit(i)%SiteDipole(j)%RY=>this%Molecule%SiteDipole(ndi)%RY
           this%Molecule%Unit(i)%SiteDipole(j)%RZ=>this%Molecule%SiteDipole(ndi)%RZ
@@ -1755,8 +1754,8 @@ contains
       if (this%Molecule%Unit(i)%NQuadrupole > 0) then
         do j = 1, this%Molecule%Unit(i)%NQuadrupole
           nqu = nqu+1
-          this%Molecule%Unit(i)%SiteQuadrupole(j)%r=>this%Molecule%SiteQuadrupole(nqu)%r
-          this%Molecule%Unit(i)%SiteQuadrupole(j)%or=>this%Molecule%SiteQuadrupole(nqu)%or
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%r=this%Molecule%SiteQuadrupole(nqu)%r
+          this%Molecule%Unit(i)%SiteQuadrupole(j)%or=this%Molecule%SiteQuadrupole(nqu)%or
           this%Molecule%Unit(i)%SiteQuadrupole(j)%RX=>this%Molecule%SiteQuadrupole(nqu)%RX
           this%Molecule%Unit(i)%SiteQuadrupole(j)%RY=>this%Molecule%SiteQuadrupole(nqu)%RY
           this%Molecule%Unit(i)%SiteQuadrupole(j)%RZ=>this%Molecule%SiteQuadrupole(nqu)%RZ
@@ -3740,8 +3739,6 @@ subroutine TComponent_InitUnit( this, np, dq )
     BoxLengthInv = 1._RK / this%BoxLength
     nu = this%Molecule%NUnit
 
-    ! Check number of rotation axes
-    if ( this%Molecule%isElongated ) then
     ! Loop over all units in Molecule
     do k = 1, nu
       ! Check number of rotation axes
@@ -3866,18 +3863,7 @@ subroutine TComponent_InitUnit( this, np, dq )
 
       end if
     end do
-    else ! If molecule is not elongated
-      do k = 1, nu
-        ! Loop over LJ126 sites in molecule
-        do i = 1, this%Molecule%Unit(k)%NLJ126
-          pLJ126 => this%Molecule%Unit(k)%SiteLJ126(i)
-          pLJ126%RX(np) = this%P0(np, 1, k)
-          pLJ126%RY(np) = this%P0(np, 2, k)
-          pLJ126%RZ(np) = this%P0(np, 3, k)
-        end do
 
-      end do
-    end if
 
   end subroutine TComponent_Unit2Atom1Mol
 
@@ -5638,7 +5624,7 @@ loop1:do i = 1, this%NPart
     real(RK)          :: MassInv
     real(RK)          :: Moi23, Moi31, Moi12
     real(RK)          :: TMoi1, TMoi2, TMoi3
-    real(RK), pointer :: pF(:, :, :), pT(:, :, :)
+    real(RK), pointer, contiguous :: pF(:, :, :), pT(:, :, :)
     integer           :: np, nu
     integer           :: i, j, k
     real(RK)          :: r(3)
@@ -6964,9 +6950,7 @@ contains
     end do
 
     ! Calculate site positions
-    do i=1,this%Molecule%NUnit
-      call Unit2Atom( this, this%NPart, i)
-    end do
+    call Unit2Atom( this, this%NPart, this%Molecule%NUnit)
 
 
   end subroutine TComponent_RestoreState
@@ -7197,7 +7181,7 @@ contains
           r(:) = 0._RK
           do k= 1, nu
             ! Calculate new positions of COM for molecules from new COM of units
-            r(1:3) = r(1:3) + this%Molecule%Unit(k)%Mass*this%P0(i,j,1:3)
+            r(1:3) = r(1:3) + this%Molecule%Unit(k)%Mass*this%P0(i, 1:3, k)
           end do
           this%Pm0(i,:) = r(:)/this%Molecule%Mass
           ! Calculate displacement of molecules

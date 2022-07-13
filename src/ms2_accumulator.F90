@@ -109,13 +109,14 @@ contains
 !  Subroutine TAccumulator_Construct                           !
 !==============================================================!
 
-  subroutine TAccumulator_Construct( this, UpdateByAverage )
+  subroutine TAccumulator_Construct( this, UpdateByAverage, trans )
 
     implicit none
 
     ! Declare arguments
-    type(TAccumulator)  :: this
-    logical, intent(in) :: UpdateByAverage
+    type(TAccumulator)            :: this
+    logical, intent(in)           :: UpdateByAverage
+    logical, intent(in), optional :: trans
 
     ! Set method of updating
     this%UpdateByAverage = UpdateByAverage
@@ -125,7 +126,11 @@ contains
     this%NTotalSum = 0
 
     ! Allocate arrays
-    call Allocate( this )
+    if (present(trans)) then
+      call Allocate( this, trans )
+    else
+      call Allocate( this )
+    end if
 
   end subroutine TAccumulator_Construct
 
@@ -151,33 +156,39 @@ contains
 !  Subroutine TAccumulator_Allocate                            !
 !==============================================================!
 
-  subroutine TAccumulator_Allocate( this )
+  subroutine TAccumulator_Allocate( this, trans )
 
     implicit none
 
     ! Declare arguments
-    type(TAccumulator) :: this
+    type(TAccumulator)            :: this
+    logical, intent(in), optional :: trans
 
     ! Declare local variables
-    integer :: stat
+    integer :: stat, i
+
+    i = NBlocksMax
+#if TRANS == 1
+    if (present(trans) .and. trans) i = NBlocksMaxCF
+#endif
 
     ! Allocate arrays
-    allocate( this%BlockSum( NBlocksMax ), STAT = stat )
-    call AllocationError( stat, 'output blocks', NBlocksMax )
-    allocate( this%NBlockSum( NBlocksMax ), STAT = stat )
-    call AllocationError( stat, 'output blocks', NBlocksMax )
+    allocate( this%BlockSum( i ), STAT = stat )
+    call AllocationError( stat, 'output blocks', i )
+    allocate( this%NBlockSum( i ), STAT = stat )
+    call AllocationError( stat, 'output blocks', i )
     this%BlockSum  = 0._RK
     this%NBlockSum = 0
 
 #if MPI_VER > 0
     if ( SimulationType .eq. MonteCarlo ) then
       ! Allocate arrays for MC communication COL_DEBUG
-      allocate( this%BlockSumGathered( NBlocksMax*NProcs ), STAT = stat )
-      call AllocationError( stat, 'output blocks', NBlocksMax )
+      allocate( this%BlockSumGathered( i*NProcs ), STAT = stat )
+      call AllocationError( stat, 'output blocks', i )
       this%BlockSumGathered = 0._RK
    
-      allocate( this%NBlockSumGathered( NBlocksMax*NProcs ), STAT = stat )
-      call AllocationError( stat, 'output blocks', NBlocksMax )
+      allocate( this%NBlockSumGathered( i*NProcs ), STAT = stat )
+      call AllocationError( stat, 'output blocks', i )
       this%NBlockSumGathered = 0._RK
     endif
 #endif   
@@ -234,31 +245,46 @@ contains
 !  Subroutine TAccumulator_Update                              !
 !==============================================================!
 
-  subroutine TAccumulator_Update( this, Value )
+  subroutine TAccumulator_Update( this, Value, Mmess )
 
     implicit none
 
     ! Declare arguments
-    type(TAccumulator)   :: this
-    real(RK), intent(in) :: Value
+    type(TAccumulator)            :: this
+    real(RK), intent(in)          :: Value
+    integer, intent(in), optional :: Mmess
+
+    ! Declare local variables
+    integer :: i, j, k
+
+    i = Step
+    j = BlockSize
+    k = NBlocks
+#if TRANS == 1
+    if (present(Mmess)) then
+      i = Mmess
+      j = BlockSizeCF
+      k = NBlocksCF
+    end if
+#endif
 
     ! Update sums and calculate average
     if( this%UpdateByAverage ) then
-      if( mod( Step, BlockSize ) == 0) then
-        this%BlockSum(NBlocks) = NBlocks * BlockSize * Value - this%TotalSum
-        this%NBlockSum(NBlocks) = BlockSize
-        this%TotalSum = NBlocks * BlockSize * Value
-        this%NTotalSum = NBlocks * BlockSize
+      if( mod( i, j ) == 0) then
+        this%BlockSum(k) = k * j * Value - this%TotalSum
+        this%NBlockSum(k) = j
+        this%TotalSum = k * j * Value
+        this%NTotalSum = k * j
         this%Average = this%TotalSum / real( this%NTotalSum, RK )
-        this%BlockAverage = this%BlockSum(NBlocks) / real( this%NBlockSum(NBlocks), RK )
+        this%BlockAverage = this%BlockSum(k) / real( this%NBlockSum(k), RK )
       end if
     else
-      this%BlockSum(NBlocks) = this%BlockSum(NBlocks) + Value
-      this%NBlockSum(NBlocks) = this%NBlockSum(NBlocks) + 1
+      this%BlockSum(k) = this%BlockSum(k) + Value
+      this%NBlockSum(k) = this%NBlockSum(k) + 1
       this%TotalSum = this%TotalSum + Value
       this%NTotalSum = this%NTotalSum + 1
       this%Average = this%TotalSum / real( this%NTotalSum, RK )
-      this%BlockAverage = this%BlockSum(NBlocks) / real( this%NBlockSum(NBlocks), RK )
+      this%BlockAverage = this%BlockSum(k) / real( this%NBlockSum(k), RK )
     end if
 
   end subroutine TAccumulator_Update
@@ -268,7 +294,7 @@ contains
 !  Subroutine TAccumulator_Error                               !
 !==============================================================!
 
-  subroutine TAccumulator_Error( this )
+  subroutine TAccumulator_Error( this, trans )
 
     implicit none
     
@@ -277,24 +303,39 @@ contains
 #endif
 
     ! Declare arguments
-    type(TAccumulator) :: this
+    type(TAccumulator)            :: this
+    logical, intent(in), optional :: trans
 
     ! Declare local variables
+#if TRANS == 1
+    real(RK) :: Tau(max(NBlockSizes,NBlockSizesCF))
+#else
     real(RK) :: Tau(NBlockSizes)
+#endif
     real(RK) :: BlockAverage
     real(RK) :: sx1, sx2, sxy
     real(RK) :: TauSum, TauInf
-    integer :: i, j
-
+    integer  :: i, j, m, n
 #if MPI_VER > 0
     real(RK) :: ReducedAverage
+#endif
 
+    m = NBlockSizes
+    n = NBlocks
+#if TRANS == 1
+    if (present(trans) .and. trans) then
+      m = NBlockSizesCF
+      n = NBlocksCF
+    end if
+#endif
+
+#if MPI_VER > 0
     if ( SimulationType .eq. MonteCarlo ) then
 
-      call MPI_Gather(this%BlockSum(1:(NBlocks/NProcs)),NBlocks/NProcs, MPI_RK , &
-&       this%BlockSumGathered(1:NBlocks), NBlocks/NProcs,MPI_RK,NRootProc,Communicator,ierror )
-      call MPI_Gather(this%NBlockSum(1:(NBlocks/NProcs)),NBlocks/NProcs, MPI_INTEGER , this%NBlockSumGathered(1:NBlocks), & 
-&       NBlocks/NProcs,MPI_INTEGER,NRootProc,Communicator,ierror )
+      call MPI_Gather(this%BlockSum(1:(n/NProcs)),n/NProcs, MPI_RK , &
+&       this%BlockSumGathered(1:n), n/NProcs,MPI_RK,NRootProc,Communicator,ierror )
+      call MPI_Gather(this%NBlockSum(1:(n/NProcs)),n/NProcs, MPI_INTEGER , this%NBlockSumGathered(1:n), & 
+&       n/NProcs,MPI_INTEGER,NRootProc,Communicator,ierror )
       call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
 &       NRootProc, Communicator, ierror )
 
@@ -305,8 +346,8 @@ contains
       this%Average=ReducedAverage/NProcs
       ! Calculate variance
       Tau = 0._RK
-      do i = 1, NBlockSizes
-        do j = i, NBlocks, i
+      do i = 1, m
+        do j = i, n, i
           BlockAverage = sum( this%BlockSumGathered(j - i + 1:j) ) / real( sum(this%NBlockSumGathered (j - i + 1:j) ), RK )
           Tau(i) = Tau(i) + (BlockAverage - this%Average)**2
         end do
@@ -314,13 +355,13 @@ contains
         ! Call write to prevent vectorization of loop (a bug in pgi compiler)
         write( IOBuffer, '("Prevent loop vectorization")' )
 #endif
-        Tau(i) = Tau(i) / real( (NBlocks / i), RK )
+        Tau(i) = Tau(i) / real( (n / i), RK )
       end do
 
     else
       Tau = 0._RK
-      do i = 1, NBlockSizes
-        do j = i, NBlocks, i
+      do i = 1, m
+        do j = i, n, i
           BlockAverage = sum( this%BlockSum(j - i + 1:j) ) / real( sum( this%NBlockSum(j - i + 1:j) ), RK )
           Tau(i) = Tau(i) + (BlockAverage - this%Average)**2
         end do
@@ -328,14 +369,14 @@ contains
         ! Call write to prevent vectorization of loop (a bug in pgi compiler)
         write( IOBuffer, '("Prevent loop vectorization")' )
 #endif
-        Tau(i) = Tau(i) / real( (NBlocks / i), RK )
+        Tau(i) = Tau(i) / real( (n / i), RK )
       end do
     endif
 #else
     ! Calculate variance
     Tau = 0._RK
-    do i = 1, NBlockSizes
-      do j = i, NBlocks, i
+    do i = 1, m
+      do j = i, n, i
         BlockAverage = sum( this%BlockSum(j - i + 1:j) ) / real( sum( this%NBlockSum(j - i + 1:j) ), RK )
         Tau(i) = Tau(i) + (BlockAverage - this%Average)**2
       end do
@@ -343,26 +384,26 @@ contains
       ! Call write to prevent vectorization of loop (a bug in pgi compiler)
       write( IOBuffer, '("Prevent loop vectorization")' )
 #endif
-      Tau(i) = Tau(i) / real( (NBlocks / i), RK )
+      Tau(i) = Tau(i) / real( (n / i), RK )
     end do
 #endif
 
     this%Variance = Tau(1)
     if( this%Variance == 0._RK ) return
-    Tau(1:NBlockSizes) = Tau(1:NBlockSizes) / this%Variance
+    Tau(1:m) = Tau(1:m) / this%Variance
     sx1 = 0._RK
     sx2 = 0._RK
     sxy = 0._RK
-    do i = 1, NBlockSizes
+    do i = 1, m
       sx1 = sx1 + 1._RK / i
       sx2 = sx2 + 1._RK / i**2
       sxy = sxy + Tau(i)
       Tau(i) = i * Tau(i)
     end do
-    TauSum = sum( Tau(1:NBlockSizes) )
-    TauInf = (TauSum * sx2 - sx1* sxy) / (NBlockSizes * sx2 - sx1**2)
-    TauInf = max( TauInf, TauSum / NBlockSizes )
-    this%Variance = sqrt( this%Variance / NBlocks * TauInf )
+    TauSum = sum( Tau(1:m) )
+    TauInf = (TauSum * sx2 - sx1* sxy) / (m * sx2 - sx1**2)
+    TauInf = max( TauInf, TauSum / m )
+    this%Variance = sqrt( this%Variance / n * TauInf )
 
   end subroutine TAccumulator_Error
 
@@ -478,23 +519,29 @@ contains
 !  Subroutine TAccumulator_RestartSave                         !
 !==============================================================!
 
-  subroutine TAccumulator_RestartSave( this )
+  subroutine TAccumulator_RestartSave( this, trans )
 
     implicit none
 
     ! Declare arguments
-    type(TAccumulator) :: this
+    type(TAccumulator)            :: this
+    logical, intent(in), optional :: trans
 
     ! Declare local variables
-    integer :: i
+    integer :: i, j
 
     ! Check for root process
     if( .not. RootProc ) return
 
+    j = NBlocks
+#if TRANS == 1
+    if (present(trans) .and. trans) j = NBlocksCF
+#endif
+
     ! Save contents to restart file
-    write( iounit_restart, '(I10)' ) NBlocks
-    if( NBlocks > 0 ) write( iounit_restart, '(ES20.12E3, ";", I10)' ) &
-&     ( this%BlockSum(i), this%NBlockSum(i), i = 1, NBlocks )
+    write( iounit_restart, '(I10)' ) j
+    if( j > 0 ) write( iounit_restart, '(ES20.12E3, ";", I10)' ) &
+&     ( this%BlockSum(i), this%NBlockSum(i), i = 1, j )
 
   end subroutine TAccumulator_RestartSave
 
