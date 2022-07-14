@@ -65,9 +65,6 @@ module ms2_component
     real(RK), pointer, contiguous :: P4(:, :, :)
     real(RK), pointer, contiguous :: P5(:, :, :)
 
-    ! Quaternion parameters for molecules - only to calculate the initial orientation
-    real(RK), pointer :: Qm0(:, :)
-
     ! Quaternion parameters and their derivatives for Units
     real(RK), pointer, contiguous :: Q0(:, :, :)
     real(RK), pointer, contiguous :: Q0Save(:, :, :)
@@ -240,6 +237,7 @@ module ms2_component
 
     ! Variables for Thermodynamic Integration
     integer           :: NBins
+    integer           :: changeLaFreq, changeLaPart, forfeitLaSampl
     integer, pointer, contiguous  :: BinsVisit(:)
     real(RK)          :: Lambda, LambdaExponent, LaMin, LaMax, deltaLa, LaStepMax
     real(RK)          :: ExpMinusBetaEnLaMin, currentBinsEn
@@ -347,6 +345,10 @@ module ms2_component
     module procedure TComponent_RemoveNetMomentum
   end interface
 
+  interface SlowExceptions
+    module procedure TComponent_SlowExceptions
+  end interface
+
   interface CalculateEKin
     module procedure TComponent_CalculateEKin
   end interface
@@ -361,14 +363,6 @@ module ms2_component
   
   interface RotateTest
     module procedure TComponent_RotateTest
-  end interface
-
-  interface Mol2Resize
-    module procedure TComponent_Mol2Resize
-  end interface
-
-  interface Mol2Unit
-    module procedure TComponent_Mol2Unit
   end interface
 
   interface InitUnit
@@ -411,14 +405,6 @@ module ms2_component
     module procedure TComponent_DensityProfile
   end interface
 #endif
-
-  interface Flex2Rigid
-    module procedure TComponent_Flex2Rigid
-  end interface
-
-  interface Rigid2Flex
-    module procedure TComponent_Rigid2Flex
-  end interface
 
   interface PredictGear
     module procedure TComponent_PredictGear
@@ -679,7 +665,7 @@ contains
         call LogWrite
 
       case (ChemPotMethodThermoInt)
-        call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.2_RK )
+        call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.1_RK )
         write( IOBuffer, '("Thermo. Int. LambdaMin: ", T40, F8.5)' ) this%LaMin
         call LogWrite
         call FileReadParameter( this%LaMax, iounit_params , IdLambdaMax, .false., 1.0_RK )
@@ -689,18 +675,45 @@ contains
         write( IOBuffer, '("Thermo. Int. NBins: ", T40, I8)' ) this%NBins
         call LogWrite
         if (SimulationType .eq. MolecularDynamics) then
-          call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.01_RK)
+          write( IOBuffer, '("In MD simulations LambdaStepMax is determined by NBins, LambdaMax and LambdaMin.")' )
+          call LogWrite
+          this%LaStepMax = -(this%LaMax-this%LaMin) / (this%NBins-1)
+          this%deltaLa = -this%LaStepMax
         else
           call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.1_RK)
+          this%deltaLa = (this%LaMax-this%LaMin) / this%NBins
         end if
         write( IOBuffer, '("Thermo. Int. LambdaStepMax: ", T40, F8.5)' ) this%LaStepMax
         call LogWrite
         call FileReadParameter( this%LambdaExponent, iounit_params , IdLambdaExponent, .false., 4.0_RK)
         write( IOBuffer, '("Thermo. Int. LambdaExponent: ", T40, F8.5)' ) this%LambdaExponent
         call LogWrite
-        call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 250 )
+        call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 25 ) ! Michael Sch.: changed from 250
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
         call LogWrite
+
+        ! Michael Sch.: new for enhanced possibilites for E(la) sampling
+        if (SimulationType .eq. MolecularDynamics) then
+          call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 5000)
+        else
+          call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 100)
+        end if
+        write( IOBuffer, '("Frequency for lambda changes:", I11 )' ) this%changeLaFreq
+        call LogWrite
+        this%changeLaPart = 1.8*this%changeLaFreq*(this%LaMax-this%LaMin)/this%LaStepMax
+        if (SimulationType .eq. MonteCarlo) this%changeLaPart=10*this%changeLaPart
+        ! read parameter in case the user wants no or more different particles to be sampled...not advised too much^^
+        call FileReadParameter( this%changeLaPart, iounit_params , IdchangeLaPart, .false., this%changeLaPart)
+        write( IOBuffer, '("Frequency for changing the fluctuating particle:", I11 )' ) this%changeLaPart
+        call LogWrite
+        if (SimulationType .eq. MolecularDynamics) then
+          call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 2000)
+        else
+          call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 40)
+        end if
+        write( IOBuffer, '("Forfeit steps of each lambda value regarding the energy sampling:", I11 )' ) this%forfeitLaSampl
+        call LogWrite
+
 #if MPI_VER>0
         if (SimulationType .eq. MolecularDynamics) then
           this%NTest = ((this%NTest-1)/NProcs +1)
@@ -711,7 +724,6 @@ contains
           write( IOBuffer, '("LambdaMin too low for simulation! Value was changed to: ", F8.5)' ) this%LaMin
           call LogWrite
         endif
-        this%deltaLa=(this%LaMax-this%LaMin)/this%NBins
 
       end select
 
@@ -888,7 +900,7 @@ contains
     this%Fraction = 0._RK
     this%NBins = 0
 
-    this%Lambda = 1.0_RK - Zero
+    this%Lambda = 1.0_RK !- Zero ! test Minh
 
     ! Set fluctuating state (for GradIns)
     this%FluctState = 0
@@ -1243,7 +1255,7 @@ contains
 
     ! Declare local variables
     integer :: np, ntest, nf
-    integer :: nu, nup, neu, neup
+    integer :: nu, nup
     integer :: i, j
     integer :: nlj, nch, ndi, nqu
     integer :: stat
@@ -1253,9 +1265,8 @@ contains
     ! Set maximum number of particles and number of test particles
     np = this%NPartMax
     nu = this%Molecule%NUnit
-    neu = this%Molecule%NEUnit ! number of elongated Units in molecule
     nup = nu*np
-    neup = neu*np
+
     ntest = this%NTest
 
     ! Nullify pointers
@@ -1275,7 +1286,6 @@ contains
     nullify( this%FAll )
     nullify( this%NAdd )
 #endif
-    nullify( this%Qm0 )
     nullify( this%Q0Save )
     nullify( this%Q0tmp )
     nullify( this%Q0 )
@@ -1370,8 +1380,6 @@ contains
     allocate( this%FRC2( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
     allocate( this%FRC3( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%Qm0( np, 4 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
     allocate( this%Q0( np, 4, nu ), STAT = stat )
     call AllocationError( stat, 'units*particles', nup )  
@@ -1481,9 +1489,6 @@ contains
 ! For the calculation of transport properties, the necessary quaternion matrix has
 ! already been allocated in this subroutine!
       ! Quaternion parameters
-      allocate( this%Qm0( np, 4 ), STAT = stat )
-      call AllocationError( stat, 'particles', np )
-      ! Quaternion parameters for Units
       allocate( this%Q0( np, 4, nu ), STAT = stat )
       call AllocationError( stat, 'units*particles', nup )      
 #endif
@@ -2674,13 +2679,21 @@ contains
     nu = this%Molecule%NUnit
 
     ! Set random linear velocities
-    do k=1,nu
+    if (EMinimizationIDF) then ! Michaael Sch.: changed here for preEquilibration
       do i = 1, 3
         do j = 1, this%NPart
-          this%P1(j, i, k) = rnd( -1._RK, 1._RK )
+          this%P1(j, i, :) = rnd( -1._RK, 1._RK )
         end do
       end do
-    end do
+    else
+      do k=1,nu 
+        do i = 1, 3
+          do j = 1, this%NPart
+            this%P1(j, i, k) = rnd( -1._RK, 1._RK )
+          end do
+        end do
+      end do
+    end if
 
     ! Normalize translational velocity vectors (only done once - needs not to be efficient)
     do k=1,nu
@@ -2848,6 +2861,50 @@ contains
 
 
 !==============================================================!
+!  Subroutine TComponent_SlowExceptions                        !
+!==============================================================!
+
+  subroutine TComponent_SlowExceptions( this, maxmolEkin )
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent)    :: this
+    real(RK),intent(in) :: maxmolEkin
+
+    ! Declare local variables
+    integer  :: i, j, k, nu
+    real(RK) :: Ekin, slowing
+    
+    nu = this%Molecule%NUnit
+
+    ! Loop over all molecules   
+    do i = 1, this%NPart
+      Ekin = 0._RK
+      do  k = 1, nu
+        ! Calculate translational kinetic energy
+        Ekin = Ekin+this%Molecule%Unit(k)%Mass * TimeStepSquaredInv2 &
+&           * sum( this%P1(i, :, k)**2 ) * this%BoxLength**2
+        ! Calculate rotational kinetic energy
+        do j = 1, this%Molecule%Unit(k)%NDFRot
+          Ekin = Ekin + this%Molecule%Unit(k)%MOI(j) * .5_RK &
+&             *  this%W0(i, j, k)**2
+        end do
+      end do
+      ! Check for too fast molecules
+      if (Ekin > maxmolEkin) then
+        slowing = sqrt( 0.7_RK*maxmolEkin / Ekin )
+        !write( IOBuffer, '("Molecule ", I4, " is to fast by a factor of ", F9.6,"; slowing it down.")' ) i, slowing ! Michael DEBUG
+        !call LogWrite
+        this%P1(i, :, :) = this%P1(i, :, :) * slowing
+        if( this%Molecule%isElongated ) this%W0(i, :, :) = this%W0(i, :, :) * slowing
+      end if
+    end do
+
+  end subroutine TComponent_SlowExceptions
+
+
+!==============================================================!
 !  Subroutine TComponent_CalculateEKin                         !
 !==============================================================!
 
@@ -2862,17 +2919,16 @@ contains
     integer :: i, k, nu
     
     nu = this%Molecule%NUnit
+    this%EKinTran = 0._RK
+    this%EKinRot = 0._RK
 
     ! Calculate translational kinetic energy
-    this%EKinTran = 0._RK
     do  k = 1,  nu
       this%EKinTran = this%EkinTran+this%Molecule%Unit(k)%Mass * TimeStepSquaredInv2 &
 &       * sum( this%P1(1:this%NPart, :, k)**2 ) * this%BoxLength**2
     end do
 
-
     ! Calculate rotational kinetic energy
-    this%EKinRot = 0._RK
     do k = 1, nu
       do i = 1, this%Molecule%Unit(k)%NDFRot
         this%EKinRot = this%EKinRot + this%Molecule%Unit(k)%MOI(i) * .5_RK &
@@ -3208,290 +3264,6 @@ subroutine TComponent_InitUnit( this, np, dq )
 ! #endif
 
   end subroutine TComponent_InitUnit
-
-
-!==============================================================!
-!  Subroutine TComponent_Mol2Resize                            !
-!==============================================================!
-
-  subroutine TComponent_Mol2Resize( this, DelBoxFrac )
-
-    implicit none
-
-    ! Declare arguments
-    real(RK),intent(in) :: DelBoxFrac
-    type(TComponent)    :: this
-!     integer, intent(in) :: np
-!     integer, intent(in) :: nu
-
-    ! Declare local variables
-    real(RK)            :: PXij, PYij,PZij
-    integer             :: nu, np
-    integer             :: i, j
-
-
-    ! Calculate positions of units after global resize
-    nu = this%Molecule%NUnit
-    np = this%NPart
-    if (nu .eq. 1) then
-      do i=1, np
-        this%P0(i,1,1) = this%Pm0(i,1)
-        this%P0(i,2,1) = this%Pm0(i,2)
-        this%P0(i,3,1) = this%Pm0(i,3)
-      end do
-    else
-      do i=1, np
-        do j=1,nu
-          PXij = this%P0(i,1,j) - this%Pm0(i,1)
-          PYij = this%P0(i,2,j) - this%Pm0(i,2)
-          PZij = this%P0(i,3,j) - this%Pm0(i,3)
-
-          this%P0(i,1,j) = ( PXij - anint(PXij) ) / DelBoxFrac + this%Pm0(i,1)
-          this%P0(i,2,j) = ( PYij - anint(PYij) ) / DelBoxFrac + this%Pm0(i,2)
-          this%P0(i,3,j) = ( PZij - anint(PZij) ) / DelBoxFrac + this%Pm0(i,3)
-
-        !  this%P0(i,1,j) = this%P0(i,1,j) - anint(this%P0(i,1,j))
-        !  this%P0(i,2,j) = this%P0(i,2,j) - anint(this%P0(i,2,j))
-        !  this%P0(i,3,j) = this%P0(i,3,j) - anint(this%P0(i,3,j))
-        end do
-      end do
-    end if
-
-    end subroutine TComponent_Mol2Resize
-
-
-!==============================================================!
-!  Subroutine TComponent_Mol2Unit                              !
-!==============================================================!
-
-  subroutine TComponent_Mol2Unit( this, np, nu )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)    :: this
-    integer, intent(in) :: np
-    integer, intent(in) :: nu
-
-    ! Declare local variables
-    real(RK)                       :: BoxLengthInv
-    real(RK)                       :: PmX(np), PmY(np), PmZ(np)
-    real(RK)                       :: q1, q2, q3, q4, qinv
-    real(RK)                       :: A11(np), A12(np), A13(np)
-    real(RK)                       :: A21(np), A22(np), A23(np)
-    real(RK)                       :: A31(np), A32(np), A33(np)
-    integer                        :: nup
-    type(TUnit), pointer           :: pUnit
-    integer                        :: i, j
-
-    ! Broadcast positions and orientations to all processes
-#if MPI_VER > 0
-    ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), MPI_RK, NRootProc, Communicator, ierror )
-      if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Qm0(:, :), size( this%Qm0 ), MPI_RK, NRootProc, Communicator, ierror )
-      end if
-    end if
-#endif
-
-    ! Assign local variables
-    BoxLengthInv = 1._RK / this%BoxLength
-    nup = nu*np
-
-    ! Check number of rotation axes
-    if( this%Molecule%isElongated ) then
-      ! Loop over molecules
-      do i = 1, np
-        ! Positions and quaternions of particle i
-        PmX(i) = this%Pm0(i, 1)
-        PmY(i) = this%Pm0(i, 2)
-        PmZ(i) = this%Pm0(i, 3)
-        q1 = this%Qm0(i, 1)
-        q2 = this%Qm0(i, 2)
-        q3 = this%Qm0(i, 3)
-        q4 = this%Qm0(i, 4)
-
-        ! Normalise quaternions
-#if ARCH == 3
-        qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#else
-        qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#endif
-        q1 = q1 * qinv
-        q2 = q2 * qinv
-        q3 = q3 * qinv
-        q4 = q4 * qinv
-        this%Qm0(i, 1) = q1
-        this%Qm0(i, 2) = q2
-        this%Qm0(i, 3) = q3
-        this%Qm0(i, 4) = q4
-
-        ! Calculate rotation matrix elements
-        A11(i) = q1**2 + q2**2 - q3**2 - q4**2
-        A12(i) = 2._RK * (q2 * q3 + q1 * q4)
-        A13(i) = 2._RK * (q2 * q4 - q1 * q3)
-        A21(i) = 2._RK * (q2 * q3 - q1 * q4)
-        A22(i) = q1**2 - q2**2 + q3**2 - q4**2
-        A23(i) = 2._RK * (q3 * q4 + q1 * q2)
-        A31(i) = 2._RK * (q2 * q4 + q1 * q3)
-        A32(i) = 2._RK * (q3 * q4 - q1 * q2)
-        A33(i) = q1**2 - q2**2 - q3**2 + q4**2
-
-      end do
-
-      ! Calculate initial COM position and quartenions for Units
-      ! Loop over Units in molecule
-      do j = 1, nu
-         pUnit => this%Molecule%Unit(j)
-         do i = 1, np
-           this%P0(i, 1, j) = PmX(i) + (pUnit%P0(1)*A11(i)+pUnit%P0(2)*A21(i)+pUnit%P0(3)*A31(i)) * BoxLengthInv
-           this%P0(i, 2, j) = PmY(i) + (pUnit%P0(1)*A12(i)+pUnit%P0(2)*A22(i)+pUnit%P0(3)*A32(i)) * BoxLengthInv
-           this%P0(i, 3, j) = PmZ(i) + (pUnit%P0(1)*A13(i)+pUnit%P0(2)*A23(i)+pUnit%P0(3)*A33(i)) * BoxLengthInv
-
-           this%Q0(i,1,j) = this%Qm0(i,1)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(2) - &
-&                            this%Qm0(i,3)*pUnit%Q0(3) - this%Qm0(i,4)*pUnit%Q0(4)
-           this%Q0(i,2,j) = this%Qm0(i,1)*pUnit%Q0(2) + this%Qm0(i,2)*pUnit%Q0(1) + &
-&                            this%Qm0(i,3)*pUnit%Q0(4) - this%Qm0(i,4)*pUnit%Q0(3)
-           this%Q0(i,3,j) = this%Qm0(i,1)*pUnit%Q0(3) + this%Qm0(i,3)*pUnit%Q0(1) - &
-&                            this%Qm0(i,2)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(2)
-           this%Q0(i,4,j) = this%Qm0(i,1)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(1) - &
-&                            this%Qm0(i,2)*pUnit%Q0(3) - this%Qm0(i,3)*pUnit%Q0(2)
-         end do
-       end do
-
-    else    ! if Molecule is not Elongated
-      do i = 1, np
-        ! Positions and quaternions of particle i
-        PmX(i) = this%Pm0(i, 1)
-        PmY(i) = this%Pm0(i, 2)
-        PmZ(i) = this%Pm0(i, 3)
-        do j = 1, nu
-          this%P0(i, 1, j) = PmX(i)
-          this%P0(i, 2, j) = PmY(i)
-          this%P0(i, 3, j) = PmZ(i)
-        end do
-      end do
-    end if
-
-  end subroutine TComponent_Mol2Unit
-
-
-!==============================================================!
-!  Subroutine TComponent_Mol2Unit1Test                             !
-!==============================================================!
-
-  subroutine TComponent_Mol2Unit1Test( this, np, nu )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)    :: this
-    integer, intent(in) :: np
-    integer, intent(in) :: nu
-
-    ! Declare local variables
-    real(RK)                       :: BoxLengthInv
-    real(RK)                       :: PmX, PmY, PmZ
-    real(RK)                       :: q1, q2, q3, q4, qinv
-    real(RK)                       :: A11, A12, A13
-    real(RK)                       :: A21, A22, A23
-    real(RK)                       :: A31, A32, A33
-    type(TUnit), pointer           :: pUnit
-    integer                        :: j
-
-    ! Broadcast positions and orientations to all processes
-#if MPI_VER > 0
-    ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%Pm0Test(:, :), size( this%Pm0Test ), MPI_RK, NRootProc, Communicator, ierror )
-      if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Qm0Test(:, :), size( this%Qm0Test ), MPI_RK, NRootProc, Communicator, ierror )
-      end if
-    end if
-#endif
-
-    ! Assign local variables
-    BoxLengthInv = 1._RK / this%BoxLength
-!    nu  = this%Molecule%NUnit
-
-    ! Check number of rotation axes
-    if( this%Molecule%isElongated ) then
-!      PmX = this%Pm0Test(np, 1)
-!      PmY = this%Pm0Test(np, 2)
-!      PmZ = this%Pm0Test(np, 3)
-!      q1 = this%Qm0Test(np, 1)
-!      q2 = this%Qm0Test(np, 2)
-!      q3 = this%Qm0Test(np, 3)
-!      q4 = this%Qm0Test(np, 4)
-
-      ! Normalise quaternions
-#if ARCH == 3
-      qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#else
-      qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#endif
-      q1 = q1 * qinv
-      q2 = q2 * qinv
-      q3 = q3 * qinv
-      q4 = q4 * qinv
-!      this%Qm0Test(np, 1) = q1
-!      this%Qm0Test(np, 2) = q2
-!      this%Qm0Test(np, 3) = q3
-!      this%Qm0Test(np, 4) = q4
-
-      ! Calculate rotation matrix elements
-      A11 = q1**2 + q2**2 - q3**2 - q4**2
-      A12 = 2._RK * (q2 * q3 + q1 * q4)
-      A13 = 2._RK * (q2 * q4 - q1 * q3)
-      A21 = 2._RK * (q2 * q3 - q1 * q4)
-      A22 = q1**2 - q2**2 + q3**2 - q4**2
-      A23 = 2._RK * (q3 * q4 + q1 * q2)
-      A31 = 2._RK * (q2 * q4 + q1 * q3)
-      A32 = 2._RK * (q3 * q4 - q1 * q2)
-      A33 = q1**2 - q2**2 - q3**2 + q4**2
-
-
-      ! Calculate initial COM position and quartenions for Units
-      ! Loop over Units in molecule
-      do j = 1, nu
-        pUnit => this%Molecule%Unit(j)
-        this%P0Test(np, 1, j) = PmX + (pUnit%P0(1)*A11+pUnit%P0(2)*A21+pUnit%P0(3)*A31) * BoxLengthInv
-        this%P0Test(np, 2, j) = PmY + (pUnit%P0(1)*A12+pUnit%P0(2)*A22+pUnit%P0(3)*A32) * BoxLengthInv
-        this%P0Test(np, 3, j) = PmZ + (pUnit%P0(1)*A13+pUnit%P0(2)*A23+pUnit%P0(3)*A33) * BoxLengthInv
-        this%Q0Test(np,1,j) = this%Qm0(np,1)*pUnit%Q0(1) - this%Qm0(np,2)*pUnit%Q0(2) - &
-&                            this%Qm0(np,3)*pUnit%Q0(3) - this%Qm0(np,4)*pUnit%Q0(4)
-        this%Q0Test(np,2,j) = this%Qm0(np,1)*pUnit%Q0(2) + this%Qm0(np,2)*pUnit%Q0(1) + &
-&                            this%Qm0(np,3)*pUnit%Q0(4) - this%Qm0(np,4)*pUnit%Q0(3)
-        this%Q0Test(np,3,j) = this%Qm0(np,1)*pUnit%Q0(3) + this%Qm0(np,3)*pUnit%Q0(1) - &
-&                            this%Qm0(np,2)*pUnit%Q0(4) + this%Qm0(np,4)*pUnit%Q0(2)
-        this%Q0Test(np,4,j) = this%Qm0(np,1)*pUnit%Q0(4) + this%Qm0(np,4)*pUnit%Q0(1) - &
-&                            this%Qm0(np,2)*pUnit%Q0(3) - this%Qm0(np,3)*pUnit%Q0(2)
-      end do
-
-    else    ! if Molecule is not Elongated
-      ! Positions and quaternions of particle np
-!      PmX = this%Pm0Test(np, 1)
-!      PmY = this%Pm0Test(np, 2)
-!      PmZ = this%Pm0Test(np, 3)
-      do j = 1, nu
-        this%P0Test(np, 1, j) = PmX ! COM of Unit in space-fixed system
-        this%P0Test(np, 2, j) = PmY
-        this%P0Test(np, 3, j) = PmZ
-      end do
-    end if
-
-  end subroutine TComponent_Mol2Unit1Test
 
 
 !==============================================================!
@@ -5430,59 +5202,6 @@ subroutine TComponent_InitUnit( this, np, dq )
   end subroutine TComponent_Unit2Mol1
 
 
-!==============================================================!
-!  Subroutine TComponent_Flex2Rigid                            !
-!==============================================================!
-
-  subroutine TComponent_Flex2Rigid( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent)     :: this
-
-    ! Declare local variables
-    integer :: i
-
-    do i=1, this%Molecule%NBond
-      this%Molecule%IDFBond(i)%ForConst = this%Molecule%IDFBond(i)%ForConst * 1e10_RK
-    end do
-    do i=1, this%Molecule%NAngle
-      this%Molecule%IDFAngle(i)%ForConst = this%Molecule%IDFAngle(i)%ForConst * 1e10_RK
-    end do
-    do i=1, this%Molecule%NDihedral
-      this%Molecule%IDFDihedral(i)%ForConst = this%Molecule%IDFDihedral(i)%ForConst * 1e10_RK
-    end do
-
-  end subroutine TComponent_Flex2Rigid
-
-
-!==============================================================!
-!  Subroutine TComponent_Rigid2Flex                            !
-!==============================================================!
-
-  subroutine TComponent_Rigid2Flex( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent)     :: this
-
-    ! Declare local variables
-    integer :: i
-
-    do i=1, this%Molecule%NBond
-      this%Molecule%IDFBond(i)%ForConst = this%Molecule%IDFBond(i)%ForConst / 1e10_RK
-    end do
-    do i=1, this%Molecule%NAngle
-      this%Molecule%IDFAngle(i)%ForConst = this%Molecule%IDFAngle(i)%ForConst / 1e10_RK
-    end do
-    do i=1, this%Molecule%NDihedral
-      this%Molecule%IDFDihedral(i)%ForConst = this%Molecule%IDFDihedral(i)%ForConst / 1e10_RK
-    end do
-
-  end subroutine TComponent_Rigid2Flex
-
 #if OSMOP > 0
 !==============================================================!
 !  Subroutine TComponent_DensityProfile                        !
@@ -5559,49 +5278,77 @@ loop1:do i = 1, this%NPart
 
 
     ! Predict COM positions and their derivatives
-    do k=1,nu
-     do j = 1, 3
-      do i = 1, np
-        this%P0(i, j, k) = this%P0(i, j, k) + this%P1(i, j, k) + this%P2(i, j, k) &
-&                        + this%P3(i, j, k) + this%P4(i, j, k) + this%P5(i, j, k)
-        this%P1(i, j, k) = this%P1(i, j, k) + 2._RK * this%P2(i, j, k) + 3._RK * this%P3(i, j, k) &
-&                        + 4._RK * this%P4(i, j, k) + 5._RK * this%P5(i, j, k)
-        this%P2(i, j, k) = this%P2(i, j, k) + 3._RK * this%P3(i, j, k) + 6._RK * this%P4(i, j, k) &
-&                        +10._RK * this%P5(i, j, k)
-        this%P3(i, j, k) = this%P3(i, j, k) + 4._RK * this%P4(i, j, k) +10._RK * this%P5(i, j, k)
-        this%P4(i, j, k) = this%P4(i, j, k) + 5._RK * this%P5(i, j, k)
+    do k = 1, nu
+      do j = 1, 3
+        do i = 1, np
+          this%P0(i, j, k) = this%P0(i, j, k) + this%P1(i, j, k) + this%P2(i, j, k) &
+&                          + this%P3(i, j, k) + this%P4(i, j, k) + this%P5(i, j, k)
+          this%P1(i, j, k) = this%P1(i, j, k) + 2._RK * this%P2(i, j, k) + 3._RK * this%P3(i, j, k) &
+&                          + 4._RK * this%P4(i, j, k) + 5._RK * this%P5(i, j, k)
+          this%P2(i, j, k) = this%P2(i, j, k) + 3._RK * this%P3(i, j, k) + 6._RK * this%P4(i, j, k) &
+&                          +10._RK * this%P5(i, j, k)
+          this%P3(i, j, k) = this%P3(i, j, k) + 4._RK * this%P4(i, j, k) +10._RK * this%P5(i, j, k)
+          this%P4(i, j, k) = this%P4(i, j, k) + 5._RK * this%P5(i, j, k)
+        end do
       end do
-     end do
+    end do
 
+    do i = 1, np
+      r(:) = 0._RK
+      do k= 1, nu
+        do j = 1, 3
+          ! Check for conservation of particles in primary cell
+#if ARCH == 1
+          if( this%P0(i, j, k) < -.5_RK ) then
+            this%P0(i, j, k) = this%P0(i, j, k) + 1._RK
+          elseif( this%P0(i, j, k) > .5_RK ) then
+            this%P0(i, j, k) = this%P0(i, j, k) - 1._RK
+          end if
+#else
+          this%P0(i, j, k) = this%P0(i, j, k) - anint( this%P0(i, j, k) )
+#endif
+          ! Calculate new positions of COM for molecules from new COM of units
+          r(j) = r(j) + this%Molecule%Unit(k)%Mass*(this%P0(i,j,k)-anint(this%P0(i,j,k)-this%Pm0(i,j)))
+        end do
+      end do
 
-     if( this%Molecule%Unit(k)%IsElongated ) then
+      this%Pm0(i,:) = r(:)/this%Molecule%Mass
+      ! Calculate displacement of molecules
+      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
+      this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
+      this%Pm0old(i,:) = this%Pm0(i, :)
+    end do
 
-      ! Predict quaternion parameters and their derivatives
-       do j = 1, 4
-         do i = 1, np
-           this%Q0(i, j, k) = this%Q0(i, j, k) + this%Q1(i, j, k) + this%Q2(i, j, k) &
-&                           + this%Q3(i, j, k) + this%Q4(i, j, k)
-           this%Q1(i, j, k) = this%Q1(i, j, k) + 2._RK * this%Q2(i, j, k) + 3._RK * this%Q3(i, j, k) &
-&                           + 4._RK * this%Q4(i, j, k)
-           this%Q2(i, j, k) = this%Q2(i, j, k) + 3._RK * this%Q3(i, j, k) + 6._RK * this%Q4(i, j, k)
-           this%Q3(i, j, k) = this%Q3(i, j, k) + 4._RK * this%Q4(i, j, k)
-         end do
-       end do
+    do k = 1, nu
+      if( this%Molecule%Unit(k)%IsElongated ) then
 
-      ! Predict angular velocities and their derivatives
-       do j = 1, this%Molecule%Unit(k)%NDFRot
-         do i = 1, np
-           this%W0(i, j, k) = this%W0(i, j, k) + this%W1(i, j, k) + this%W2(i, j, k) &
-&                           + this%W3(i, j, k) + this%W4(i, j, k)
-           this%W1(i, j, k) = this%W1(i, j, k) + 2._RK * this%W2(i, j, k) + 3._RK * this%W3(i, j, k) &
-&                           + 4._RK * this%W4(i, j, k)
-           this%W2(i, j, k) = this%W2(i, j, k) + 3._RK * this%W3(i, j, k) + 6._RK * this%W4(i, j, k)
-           this%W3(i, j, k) = this%W3(i, j, k) + 4._RK * this%W4(i, j, k)
-         end do
-       end do
-       
-     end if
-   end do
+        ! Predict quaternion parameters and their derivatives
+        do j = 1, 4
+          do i = 1, np
+            this%Q0(i, j, k) = this%Q0(i, j, k) + this%Q1(i, j, k) + this%Q2(i, j, k) &
+  &                           + this%Q3(i, j, k) + this%Q4(i, j, k)
+            this%Q1(i, j, k) = this%Q1(i, j, k) + 2._RK * this%Q2(i, j, k) + 3._RK * this%Q3(i, j, k) &
+  &                           + 4._RK * this%Q4(i, j, k)
+            this%Q2(i, j, k) = this%Q2(i, j, k) + 3._RK * this%Q3(i, j, k) + 6._RK * this%Q4(i, j, k)
+            this%Q3(i, j, k) = this%Q3(i, j, k) + 4._RK * this%Q4(i, j, k)
+          end do
+        end do
+
+        ! Predict angular velocities and their derivatives
+        do j = 1, this%Molecule%Unit(k)%NDFRot
+          do i = 1, np
+            this%W0(i, j, k) = this%W0(i, j, k) + this%W1(i, j, k) + this%W2(i, j, k) &
+  &                           + this%W3(i, j, k) + this%W4(i, j, k)
+            this%W1(i, j, k) = this%W1(i, j, k) + 2._RK * this%W2(i, j, k) + 3._RK * this%W3(i, j, k) &
+  &                           + 4._RK * this%W4(i, j, k)
+            this%W2(i, j, k) = this%W2(i, j, k) + 3._RK * this%W3(i, j, k) + 6._RK * this%W4(i, j, k)
+            this%W3(i, j, k) = this%W3(i, j, k) + 4._RK * this%W4(i, j, k)
+          end do
+        end do
+
+      end if
+
+    end do
 
 
   end subroutine TComponent_PredictGear
@@ -5628,7 +5375,7 @@ loop1:do i = 1, this%NPart
     integer           :: np, nu
     integer           :: i, j, k
     real(RK)          :: r(3)
-    real(RK)          :: Corr0(merge(4,3,this%Molecule%isElongated)), Corr1
+    real(RK)          :: Corr0(4), Corr1
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
@@ -5663,108 +5410,91 @@ loop1:do i = 1, this%NPart
     do i = 1, np
       r(:) = 0._RK
       do k= 1, nu
-         r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
-      end do
-      this%Pm0(i,:) = r(:)/this%Molecule%Mass
-    end do
-
-    ! Calculate displacement of molecules
-    do i = 1, np
-      do j = 1, 3
-        this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
-
-    ! Check for conservation of particles in primary cell
+        do j = 1, 3
+          ! Check for conservation of particles in primary cell
 #if ARCH == 1
-        if( this%Pm0(i, j) < -.5_RK ) then
-          do k = 1, nu
-             this%P0(i, j, k) = this%P0(i, j, k) + 1._RK
-          end do
-        elseif( this%Pm0(i, j) > .5_RK ) then
-          do k = 1, nu
-             this%P0(i, j, k) = this%P0(i, j, k) - 1._RK
-          end do
-        end if
+          if( this%P0(i, j, k) < -.5_RK ) then
+            this%P0(i, j, k) = this%P0(i, j, k) + 1._RK
+          elseif( this%P0(i, j, k) > .5_RK ) then
+            this%P0(i, j, k) = this%P0(i, j, k) - 1._RK
+          end if
 #else
-        do k = 1, nu
-           this%P0(i, j, k) = this%P0(i, j, k) - anint( this%Pm0(i, j) )
+          this%P0(i, j, k) = this%P0(i, j, k) - anint( this%P0(i, j, k) )
+#endif
+          ! Calculate new positions of COM for molecules from new COM of units
+          r(j) = r(j) + this%Molecule%Unit(k)%Mass*(this%P0(i,j,k)-anint(this%P0(i,j,k)-this%Pm0(i,j)))
         end do
       end do
-    end do
-#endif
-    ! Calculate new positions of COM for molecules from new COM of units
-    do i = 1, np
-      r(:) = 0._RK
-      do k= 1, nu
-         r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
-      end do
 
       this%Pm0(i,:) = r(:)/this%Molecule%Mass
+      ! Calculate displacement of molecules
+      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
+      this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
       this%Pm0old(i,:) = this%Pm0(i, :)
     end do
 
-
-    if( this%Molecule%isElongated ) then
-
-      ! Correct quaternion parameters and their derivatives
-    do k = 1, nu
-      do i = 1, np
-        Corr0(1) = TimeStep2 * ( - this%Q0(i, 2, k) * this%W0(i, 1, k) - this%Q0(i, 3, k) * this%W0(i, 2, k) &
-&                                        - this%Q0(i, 4, k) * this%W0(i, 3, k))
-        Corr0(2) = TimeStep2 * ( + this%Q0(i, 1, k) * this%W0(i, 1, k) - this%Q0(i, 4, k) * this%W0(i, 2, k) &
-&                                        + this%Q0(i, 3, k) * this%W0(i, 3, k))
-        Corr0(3) = TimeStep2 * ( + this%Q0(i, 4, k) * this%W0(i, 1, k) + this%Q0(i, 1, k) * this%W0(i, 2, k) &
-&                                        - this%Q0(i, 2, k) * this%W0(i, 3, k))
-        Corr0(4) = TimeStep2 * ( - this%Q0(i, 3, k) * this%W0(i, 1, k) + this%Q0(i, 2, k) * this%W0(i, 2, k) &
-&                                        + this%Q0(i, 1, k) * this%W0(i, 3, k))
-        do j = 1, 4
-          Corr1 = Corr0(j) - this%Q1(i, j, k)
-          this%Q0(i, j, k) = this%Q0(i, j, k) + Corr1 * Gear10
-          this%Q1(i, j, k) =                    Corr0(j)
-          this%Q2(i, j, k) = this%Q2(i, j, k) + Corr1 * Gear12
-          this%Q3(i, j, k) = this%Q3(i, j, k) + Corr1 * Gear13
-          this%Q4(i, j, k) = this%Q4(i, j, k) + Corr1 * Gear14
-        end do
-      end do
-    end do
-
-      ! Correct angular velocities and their derivatives
+    if ( this%Molecule%isElongated ) then
 #if MPI_VER > 0
       pT => this%TAll(:, :, :)
 #else
       pT => this%T(:, :, :)
 #endif
+    end if
+
+    ! Correct quaternion parameters and their derivatives
     do k = 1, nu
-      TMoi1 = TimeStep / this%Molecule%Unit(k)%MOI(1)
-      TMoi2 = TimeStep / this%Molecule%Unit(k)%MOI(2)
-      if( this%Molecule%Unit(k)%is3D ) then
-        Moi23 = this%Molecule%Unit(k)%MOI(2) - this%Molecule%Unit(k)%MOI(3)
-        Moi31 = this%Molecule%Unit(k)%MOI(3) - this%Molecule%Unit(k)%MOI(1)
-        Moi12 = this%Molecule%Unit(k)%MOI(1) - this%Molecule%Unit(k)%MOI(2)
-        TMoi3 = TimeStep / this%Molecule%Unit(k)%MOI(3)
-      endif
-
-      do i = 1, np
-        if( this%Molecule%Unit(k)%is3D ) then
-          Corr0(1) = (pT(i, 1, k) + this%W0(i, 2, k) * this%W0(i, 3, k) * Moi23) * TMoi1
-          Corr0(2) = (pT(i, 2, k) + this%W0(i, 3, k) * this%W0(i, 1, k) * Moi31) * TMoi2
-          Corr0(3) = (pT(i, 3, k) + this%W0(i, 1, k) * this%W0(i, 2, k) * Moi12) * TMoi3
-        else
-          Corr0(1) = pT(i, 1, k) * TMoi1
-          Corr0(2) = pT(i, 2, k) * TMoi2
-        end if
-
-        do j = 1, this%Molecule%Unit(k)%NDFRot
-          Corr1 = Corr0(j) - this%W1(i, j, k)
-          this%W0(i, j, k) = this%W0(i, j, k) + Corr1 * Gear10
-          this%W1(i, j, k) =                    Corr0(j)
-          this%W2(i, j, k) = this%W2(i, j, k) + Corr1 * Gear12
-          this%W3(i, j, k) = this%W3(i, j, k) + Corr1 * Gear13
-          this%W4(i, j, k) = this%W4(i, j, k) + Corr1 * Gear14
+      if( this%Molecule%Unit(k)%isElongated ) then
+        do i = 1, np
+          Corr0(1) = TimeStep2 * ( - this%Q0(i, 2, k) * this%W0(i, 1, k) - this%Q0(i, 3, k) * this%W0(i, 2, k) &
+&                                          - this%Q0(i, 4, k) * this%W0(i, 3, k))
+          Corr0(2) = TimeStep2 * ( + this%Q0(i, 1, k) * this%W0(i, 1, k) - this%Q0(i, 4, k) * this%W0(i, 2, k) &
+&                                          + this%Q0(i, 3, k) * this%W0(i, 3, k))
+          Corr0(3) = TimeStep2 * ( + this%Q0(i, 4, k) * this%W0(i, 1, k) + this%Q0(i, 1, k) * this%W0(i, 2, k) &
+&                                          - this%Q0(i, 2, k) * this%W0(i, 3, k))
+          Corr0(4) = TimeStep2 * ( - this%Q0(i, 3, k) * this%W0(i, 1, k) + this%Q0(i, 2, k) * this%W0(i, 2, k) &
+&                                          + this%Q0(i, 1, k) * this%W0(i, 3, k))
+          do j = 1, 4
+            Corr1 = Corr0(j) - this%Q1(i, j, k)
+            this%Q0(i, j, k) = this%Q0(i, j, k) + Corr1 * Gear10
+            this%Q1(i, j, k) =                    Corr0(j)
+            this%Q2(i, j, k) = this%Q2(i, j, k) + Corr1 * Gear12
+            this%Q3(i, j, k) = this%Q3(i, j, k) + Corr1 * Gear13
+            this%Q4(i, j, k) = this%Q4(i, j, k) + Corr1 * Gear14
+          end do
         end do
-      end do
 
+        ! Correct angular velocities and their derivatives
+        TMoi1 = TimeStep / this%Molecule%Unit(k)%MOI(1)
+        TMoi2 = TimeStep / this%Molecule%Unit(k)%MOI(2)
+        if( this%Molecule%Unit(k)%is3D ) then
+          Moi23 = this%Molecule%Unit(k)%MOI(2) - this%Molecule%Unit(k)%MOI(3)
+          Moi31 = this%Molecule%Unit(k)%MOI(3) - this%Molecule%Unit(k)%MOI(1)
+          Moi12 = this%Molecule%Unit(k)%MOI(1) - this%Molecule%Unit(k)%MOI(2)
+          TMoi3 = TimeStep / this%Molecule%Unit(k)%MOI(3)
+        endif
+
+        do i = 1, np
+          if( this%Molecule%Unit(k)%is3D ) then
+            Corr0(1) = (pT(i, 1, k) + this%W0(i, 2, k) * this%W0(i, 3, k) * Moi23) * TMoi1
+            Corr0(2) = (pT(i, 2, k) + this%W0(i, 3, k) * this%W0(i, 1, k) * Moi31) * TMoi2
+            Corr0(3) = (pT(i, 3, k) + this%W0(i, 1, k) * this%W0(i, 2, k) * Moi12) * TMoi3
+          else
+            Corr0(1) = pT(i, 1, k) * TMoi1
+            Corr0(2) = pT(i, 2, k) * TMoi2
+          end if
+
+          do j = 1, this%Molecule%Unit(k)%NDFRot
+            Corr1 = Corr0(j) - this%W1(i, j, k)
+            this%W0(i, j, k) = this%W0(i, j, k) + Corr1 * Gear10
+            this%W1(i, j, k) =                    Corr0(j)
+            this%W2(i, j, k) = this%W2(i, j, k) + Corr1 * Gear12
+            this%W3(i, j, k) = this%W3(i, j, k) + Corr1 * Gear13
+            this%W4(i, j, k) = this%W4(i, j, k) + Corr1 * Gear14
+          end do
+        end do
+
+      end if
     end do
-  end if
 
   end subroutine TComponent_CorrectGear
 
@@ -6119,10 +5849,11 @@ loop1:do i = 1, this%NPart
     real(RK),intent(in out) :: VirialShake
 
     ! Declare local variables
-    logical                 :: need, stable
+    logical                 :: need
     type(TIdfBond), pointer :: pBond
-    integer                 :: np, nu, it, itmax
-    integer                 :: i, i0, i1, j, k, Unit1, Unit2
+    integer                 :: it, itmax, unstableMol
+    integer                 :: i, i0, i1, j, k
+    integer                 :: np, nu, Unit1, Unit2
     real(RK)                :: BoxLength, Shake2, Shake002
     real(RK)                :: RX1, RY1, RZ1, RX2, RY2, RZ2
     real(RK)                :: PX1, PY1, PZ1, PX2, PY2, PZ2
@@ -6136,10 +5867,8 @@ loop1:do i = 1, this%NPart
     real(RK)                :: Term1(3), Term2(3), Term3(3), MOI(3), intermedQ0(4), addW1(3), addQ1(4)
     real(RK)                :: tempP0(3,this%Molecule%NUnit), tempQ0(4,this%Molecule%NUnit), tempW0(3)
     real(RK)                :: tempF(3,this%Molecule%NUnit), tempT(3,this%Molecule%NUnit)
-
 #if MPI_VER > 0
-    integer                 :: itRoot
-    logical                 :: stableRoot
+    integer                 :: itRoot, unstableMolRoot
 
     call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
     call MPI_Bcast( this%P1(:, :, :), size( this%P1 ), MPI_RK, NRootProc, Communicator, ierror )
@@ -6155,17 +5884,16 @@ loop1:do i = 1, this%NPart
     Shake002 = Shake2/100
     np = this%NPart
     nu = this%Molecule%NUnit
-    it = 0
+    unstableMol = 0
     itmax = 9999
-    stable = .true.
 
 #if MPI_VER > 0
     i0 = this%NPart0
     i1 = this%NPart2
-    do i = i0, i1
+molloop: do i = i0, i1
 #else
-    i1 = this%NPart1
-    do i = 1, i1
+    i1 = this%NPart
+molloop: do i = 1, i1
 #endif
 !     do i = 1, np
       ! get/save old site and COM (of unit) positions 
@@ -6514,11 +6242,11 @@ loop1:do i = 1, this%NPart
         elseif ( dRmax >= dRmaxold .or. Shake002 > (dRmaxold - dRmax) ) then
           dRmax = 0.1_RK*Shake2
           need = .false.
-          stable = .false.
+          unstableMol = i
           ! happens for Force*timestep too high; QShake can't resolve constraints if displacements each timestep are very large
           ! checks to-do: timestep below 10fs and able to display dynamics? Average displacement < sigma?
           !dRmax = 0._RK
-          !cycle
+          exit molloop
         end if
 
       end do ! shake-force calculation for molecule i finished
@@ -6534,7 +6262,7 @@ loop1:do i = 1, this%NPart
         endif
       end do
 
-    end do ! molecule loop
+    end do molloop ! molecule loop
 
 #if MPI_VER > 0
     call MPI_Reduce( this%F(:, :, :), this%FAll(:, :, :), size( this%F ), &
@@ -6542,28 +6270,34 @@ loop1:do i = 1, this%NPart
     if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( it, itRoot, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
-    call MPI_Reduce( stable, stableRoot, 1, MPI_LOGICAL, MPI_LAND, NRootProc, Communicator, ierror )
+    call MPI_Reduce( unstableMol, unstableMolRoot, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
     if (RootProc) then
       it = itRoot
-      stable = stableRoot
+      unstableMol = unstableMolRoot
 #endif
 
-      if ( .not. stable) then ! unsauber geschrieben, da auch andere Procs als der Root unstable sein können
-        write( IOBuffer, '("QShake was not converging to zero for molecule", I6, " in step", I10)' ) i, Step
-        call LogWrite
-        write( IOBuffer, '("Stop at iteration: ", I4)' ) it
-        call LogWrite
-        call Error( 'Initial density to high for QShake' )
+      if (unstableMol > 0 .or. it >= itmax) then ! write debug information (pos, vel, force) in restart file
+        call FileRewrite( iounit_restart, trim(RestartFileName) )
+        write( iounit_restart, '(A)' ) trim( ParameterFileName )
+        write( iounit_restart, '(2I10)' ) Step, StepTotal
+        write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
+        call RestartSave( this )
+        do i = 1, np
+          do k = 1, nu
+            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%F(np,:,nu)
+          end do
+        end do
+        call FileClose( iounit_restart )
       end if
 
-      if ( it >= itmax ) then  !Michael Sch.: this case should never happen
-        write( IOBuffer, '("Too many iterations needed for QShake at step: ", I10)' ) Step
+      if (unstableMol > 0) then 
+        write( IOBuffer, '("QShake was not converging to zero for molecule", I6, &
+&                          " in step", I10, ". Stop at iteration: ", I4)' ) unstableMol, Step, it
         call LogWrite
-        write( IOBuffer, '("This can happen if the given configuration has to many overlaps.")' )
-        call LogWrite
-        write( IOBuffer, '("Try a lower initial density or use MCOR-Steps to avoid this.")' )
-        call LogWrite
-        call Error( 'Initial density to high for QShake' )
+        call Error( 'QShake was not converging. Occuring forces to high for integration.' )
+      end if
+      if ( it >= itmax ) then
+        call Error( 'Initial density to high for QShake. Probably to many overlaps.' )
       end if
 #if MPI_VER > 0
     end if
@@ -6748,6 +6482,8 @@ contains
 
     ! Increase NPart
     selected = rnd( this%NPart )
+    !IOBuffer = '' ! Michael DEBUG
+    !write( IOBuffer, '("Duplicating particle number " I4," for insertion at end. ")' ) selected
     this%NPart = this%NPart + 1
 #if MPI_VER > 0
     this%NPart1 = ProcRange( this%NPart, this%NPart0, this%NPart2 )
