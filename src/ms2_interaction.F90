@@ -144,9 +144,9 @@ module ms2_interaction
     logical :: includeIntraLJEl
 
     ! IDF
-    integer,pointer :: BoPartner(:,:), BondCount(:)
-    integer,pointer :: AnglePartner(:,:), AngleCount(:)
-    integer,pointer :: DihedralPartner(:,:), DihedralCount(:)
+    integer,pointer, contiguous :: BoPartner(:,:), BondCount(:)
+    integer,pointer, contiguous :: AnglePartner(:,:), AngleCount(:)
+    integer,pointer, contiguous :: DihedralPartner(:,:), DihedralCount(:)
 
     ! Ewald Summation
     real(RK) :: Kappa
@@ -154,8 +154,8 @@ module ms2_interaction
     real(RK) :: lad1,lad2
     
     ! IDF
-    integer,pointer :: UnitLJ1(:),UnitC1(:),UnitDP1(:),UnitQP1(:)
-    integer,pointer :: UnitLJ2(:),UnitC2(:),UnitDP2(:),UnitQP2(:)
+    integer,pointer, contiguous :: UnitLJ1(:),UnitC1(:),UnitDP1(:),UnitQP1(:)
+    integer,pointer, contiguous :: UnitLJ2(:),UnitC2(:),UnitDP2(:),UnitQP2(:)
     integer  :: NLJ126_U1, NLJ126_U2
     integer  :: NCharge_U1, NCharge_U2
     integer  :: NDipole_U1, NDipole_U2
@@ -225,8 +225,15 @@ module ms2_interaction
 
   interface CalcCutoffPartners
     module procedure TInteraction_CalcPartners
+    module procedure TInteraction_CalcPartnersMol
     module procedure TInteraction_CalcPartners1
   end interface
+  
+!   interface CalcCutoffPartnersIntra
+!     module procedure TInteraction_CalcPartnersIntra
+!     module procedure TInteraction_CalcPartnersIntraMol
+!     module procedure TInteraction_CalcPartnersIntra1
+!   end interface
 
   interface CalcCutoffPartnersTest
     module procedure TInteraction_CalcPartnersTest
@@ -442,8 +449,8 @@ contains
           this%PotLJ126LJ126(j1, j2)%CutoffPartner => this%CutoffPartner
 
           if( RDFUpdateFrequency>0 ) then
-            allocate( this%PotLJ126LJ126(j1, j2)%RDFSum(RDFNumberShells+10), STAT = stat )
-            call AllocationError( stat, 'RDFSum', RDFNumberShells+10)
+            allocate( this%PotLJ126LJ126(j1, j2)%RDFSum(RDFNumberShells), STAT = stat )
+            call AllocationError( stat, 'RDFSum', RDFNumberShells)
           end if
         end do
       end do
@@ -1099,55 +1106,55 @@ contains
     integer        :: i, j, k, jk, unit1
     real(RK)       :: EBonded
 
-!    call CalcCutoffPartners( this, selected )
+    call CalcCutoffPartners( this, selected )
 
     ! use MC Energy-Routine instad? possible?
     ! Calculate Lennard-Jones forces
     do i = 1, this%N1LJ126
       do j = 1, this%N2LJ126
-!        call Energy( this%PotLJ126LJ126( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+        call Energy( this%PotLJ126LJ126( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
       end do
     end do
     ! Calculate point charge forces
     do i = 1, this%N1Charge
       if ( .not. this%ReactionField ) then
         do j = 1, this%N2Charge
-!          call Energy( this%PotChargeCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, this%Kappa, CompIdent )
+          call Energy( this%PotChargeCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, this%Kappa, CompIdent )
         end do
       else
         do j = 1, this%N2Charge
-!          call Energy( this%PotChargeCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+          call Energy( this%PotChargeCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
         end do
       end if
       do j = 1, this%N2Dipole
-!        call Energy( this%PotChargeDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+        call Energy( this%PotChargeDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
       end do
       do j = 1, this%N2Quadrupole
-!        call Energy( this%PotChargeQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+        call Energy( this%PotChargeQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
       end do
     end do
     ! Calculate dipolar forces
     do i = 1, this%N1Dipole
       do j = 1, this%N2Charge
-!        call Energy( this%PotDipoleCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+        call Energy( this%PotDipoleCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
       end do
       do j = 1, this%N2Dipole
-!        call Energy( this%PotDipoleDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+        call Energy( this%PotDipoleDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
       end do
       do j = 1, this%N2Quadrupole
-!        call Energy( this%PotDipoleQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+        call Energy( this%PotDipoleQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
       end do
     end do
     ! Calculate quadrupolar forces
     do i = 1, this%N1Quadrupole
       do j = 1, this%N2Charge
-!        call Energy( this%PotQuadrupoleCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+        call Energy( this%PotQuadrupoleCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
       end do
       do j = 1, this%N2Dipole
-!        call Energy( this%PotQuadrupoleDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+        call Energy( this%PotQuadrupoleDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
       end do
       do j = 1, this%N2Quadrupole
-!        call Energy( this%PotQuadrupoleQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+        call Energy( this%PotQuadrupoleQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
       end do
     end do
 
@@ -1155,14 +1162,14 @@ contains
     if ( UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1 ) then
       if (.not. Shake > 0) then
         do i = 1, this%NBond
-!          call Energy( this%PotBond(i), selected, NUnitX, F(:,:), EBond, BoxLength)
+          call Energy( this%PotBond(i), selected, NUnitX, F(:,:), EBond, BoxLength)
         end do
       end if
       do i = 1, this%NAngle
-!        call Energy( this%PotAngle(i), selected, NUnitX, F(:,:), EAngle, BoxLength)
+        call Energy( this%PotAngle(i), selected, NUnitX, F(:,:), EAngle, BoxLength)
       end do
       do i = 1, this%NDihedral
-!        call Energy( this%PotDihedral(i), selected, NUnitX, F(:,:), EDihedral, BoxLength)
+        call Energy( this%PotDihedral(i), selected, NUnitX, F(:,:), EDihedral, BoxLength)
       end do
       EBonded = EBond + EAngle + EDihedral
       EIntra = EIntra + EBonded
@@ -1745,12 +1752,12 @@ contains
 
     ! Declare arguments
     type(TInteraction)   :: this
-    real(RK), pointer    :: EPotTest(:)
+    real(RK), pointer, contiguous    :: EPotTest(:)
     real(RK), intent(in) :: BoxLength
 
     ! Declare local variables
-    real(RK), pointer :: MueX1(:,:), MueY1(:,:), MueZ1(:,:)
-    real(RK), pointer :: MueX2(:,:), MueY2(:,:), MueZ2(:,:)
+    real(RK), pointer, contiguous :: MueX1(:,:), MueY1(:,:), MueZ1(:,:)
+    real(RK), pointer, contiguous :: MueX2(:,:), MueY2(:,:), MueZ2(:,:)
     real(RK)          :: mueXi, mueYi, mueZi
     real(RK)          :: EPotLocal
     real(RK)          :: muexj, mueyj, muezj
@@ -1823,7 +1830,11 @@ contains
       MueY2 => this%MueY2
       MueZ2 => this%MueZ2
 
+#if MPI_VER > 0
+      do i = this%NTest10, this%NTest12
+#else
       do i = 1, this%NTest1
+#endif
         do u = 1, this%NUnit1
           EPotLocal = 0._RK
           iu = (i-1)*nu1+u ! unit's number
@@ -1878,8 +1889,8 @@ contains
     type(TPotQuadrupoleCharge), pointer     :: pqc
     type(TPotQuadrupoleDipole), pointer     :: pqd
     type(TPotQuadrupoleQuadrupole), pointer :: pqq
-    real(RK), pointer :: EPot(:), Virial(:)
-    real(RK), pointer :: d2EpotdV2(:)
+    real(RK), pointer, contiguous :: EPot(:), Virial(:)
+    real(RK), pointer, contiguous :: d2EpotdV2(:)
     real(RK)          :: EPotLocal
     real(RK)          :: VirialLocal
     real(RK)          :: d2EpotdV2Local
@@ -1888,9 +1899,9 @@ contains
     real(RK)          :: Epsilon, Epsilon2, Epsilon4, Epsilon48
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer :: PX2(:, :), PY2(:, :), PZ2(:, :)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: PX2(:, :), PY2(:, :), PZ2(:, :)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: OXi, OYi, OZi
@@ -1907,7 +1918,7 @@ contains
     real(RK)          :: CosAux, CosGammaij
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp, RFConst2
-    real(RK), pointer :: MueX2(:, :), MueY2(:, :), MueZ2(:, :)
+    real(RK), pointer, contiguous :: MueX2(:, :), MueY2(:, :), MueZ2(:, :)
     real(RK)          :: mueXi, mueYi, mueZi
     real(RK)          :: sitecorr, Plen2
     real(RK)          :: KappaRij, Rij, approx, Faktor, q
@@ -2896,7 +2907,7 @@ contains
 
 
       ! Explicit reaction field contribution
-      if ( (this%ReactionField) .or. (LongRange .eq. ExtRField) ) then
+      if ( this%ReactionField ) then
         if ( LongRange .eq. RField) then    ! Normal ReactionField
           MueX2 => this%MueX2
           MueY2 => this%MueY2
@@ -3601,15 +3612,15 @@ end subroutine TInteraction_Energy
     type(TPotBond), pointer                 :: pbo
     type(TPotAngle), pointer                :: pan
     type(TPotDihedral), pointer             :: pto
-    real(RK), pointer :: EPot(:), Virial(:), d2EpotdV2(:)
+    real(RK), pointer, contiguous :: EPot(:), Virial(:), d2EpotdV2(:)
     real(RK)          :: SigmaSquared
     real(RK)          :: Epsilon, Epsilon1, Epsilon2, Epsilon4, Epsilon48
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
-    real(RK), pointer :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-!     real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:)
-    real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
-    real(RK), pointer :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+!     real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:)
+    real(RK), pointer, contiguous :: PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: OXi, OYi, OZi
@@ -3632,7 +3643,7 @@ end subroutine TInteraction_Energy
     real(RK)          :: CosAux, CosGammaij
     real(RK)          :: dCosThetai, dCosThetaj, dCosGammaij
     real(RK)          :: Tmp, RFConst2
-    real(RK), pointer :: MueX2(:,:), MueY2(:,:), MueZ2(:,:)
+    real(RK), pointer, contiguous :: MueX2(:,:), MueY2(:,:), MueZ2(:,:)
     real(RK)          :: mueXi, mueYi, mueZi
     real(RK)          :: KappaRij, Rij, approx, Faktor
     real(RK)          :: coeff
@@ -5221,7 +5232,7 @@ end subroutine TInteraction_Energy
 
     end if ! SiteSite - Cutoff
 
-  endif !!! not IntraLJEL  
+  endif !!! no includeIntraLJEl
 
 ! -------------------------------------------- !
 ! --- Bond / Angle / Dihedral interactions --- !
@@ -5535,7 +5546,7 @@ end subroutine TInteraction_Energy
     type(TInteraction) :: this
 
     ! Declare local variables
-    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PX1d(this%NPart1*this%NUnit1)
     real(RK)          :: PY1d(this%NPart1*this%NUnit1)
     real(RK)          :: PZ1d(this%NPart1*this%NUnit1)
@@ -5547,7 +5558,7 @@ end subroutine TInteraction_Energy
     real(RK)          :: RCutoff
     integer           :: i, j, N, N2, NInCutoff, ik, NNU, NUm
     integer           :: NU, NU2
-    integer           :: k, m
+    integer           :: k, l, m, o
  
     ! Set cutoff radius
     RCutoff = this%RCutoffSquaredScaled

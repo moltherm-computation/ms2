@@ -548,6 +548,10 @@ module ms2_potential
     module procedure TPotBond_Force
   end interface
 
+  interface Energy
+    module procedure TPotBond_Energy
+  end interface
+
 
 !==============================================================!
 !  Type TPotAngle                                              !
@@ -575,6 +579,10 @@ module ms2_potential
 
   interface Force
     module procedure TPotAngle_Force
+  end interface
+
+  interface Energy
+    module procedure TPotAngle_Energy
   end interface
 
 
@@ -608,6 +616,9 @@ module ms2_potential
     module procedure TPotDihedral_Force
   end interface
 
+  interface Energy
+    module procedure TPotDihedral_Energy
+  end interface
 
   
 contains
@@ -1285,7 +1296,8 @@ loop2:    do m=1,NBinsDen
           end if
         end do loop1
         ! Include intramolecular interaction if need
-        if (SameComponent .and. (intra15 .or. intra14)) then ! Michael Sch.: intra15/14 enough, .and. redundant
+        if (intra15 .or. intra14) then ! Michael Sch.: intra15/14 enough, .and. redundant (changed for all pot-classes)
+        ! previous: if (SameComponent .and. (intra15 .or. intra14)) then
           RXij = RXi - RX2(i)
           RYij = RYi - RY2(i)
           RZij = RZi - RZ2(i)
@@ -1354,11 +1366,11 @@ loop2:    do m=1,NBinsDen
           j0 = 1
           j1 = N1
         end if
-loop2:  do ji = j0, j1
+loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
-loop2:  do j = j0, j1
+loop3:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -1373,7 +1385,7 @@ loop2:  do j = j0, j1
           RYij = RYij - anint( RYij )
           RZij = RZij - anint( RZij )
           RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle loop2
+          if( RijSquared >= RCutoffSquared ) cycle loop3
           RijSquaredInv = SigmaSquared / RijSquared
           Rij6Inv = RijSquaredInv**3
           EPotLocal1 = Rij6Inv * (Rij6Inv - 1._RK)
@@ -1396,7 +1408,7 @@ loop2:  do j = j0, j1
           forceTempX(j) = forceTempX(j) - FXij
           forceTempY(j) = forceTempY(j) - FYij
           forceTempZ(j) = forceTempZ(j) - FZij
-        end do loop2
+        end do loop3
         FX1(i) = FXi
         FY1(i) = FYi
         FZ1(i) = FZi
@@ -1826,7 +1838,7 @@ loop2:    do m=1,NBinsDen
           end if
         end do loop1
         ! Include intramolecular interaction if need
-        if (SameComponent .and. (intra15 .or. intra14)) then
+        if (intra15 .or. intra14) then
           RXij = RXi - RX2(i)
           RYij = RYi - RY2(i)
           RZij = RZi - RZ2(i)
@@ -1950,12 +1962,12 @@ loop2:    do m=1,NBinsDen
           j0 = 1
           j1 = N1
         end if
-loop2:  do ji = j0, j1
+loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 
 #else
           j0 = merge( i + 1, 1, SameComponent )
-loop2:  do j = j0, j1
+loop3:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -1970,7 +1982,7 @@ loop2:  do j = j0, j1
           RYij = RYij - anint( RYij )
           RZij = RZij - anint( RZij )
           RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle loop2
+          if( RijSquared >= RCutoffSquared ) cycle loop3
           RijSquaredInv = SigmaSquared / RijSquared
           Rij6Inv = RijSquaredInv**3
           EPotLocal1 = Rij6Inv * (Rij6Inv - 1._RK)
@@ -1994,7 +2006,7 @@ loop2:  do j = j0, j1
           forceTempY(j) = forceTempY(j) - FYij
           forceTempZ(j) = forceTempZ(j) - FZij
 
-        end do loop2
+        end do loop3
         FX1(i) = FXi
         FY1(i) = FYi
         FZ1(i) = FZi
@@ -16380,9 +16392,11 @@ loop2:  do j = 1, j1
     this%Unit2 = this%Dihedral%UnitId2
     this%Unit3 = this%Dihedral%UnitId3
     this%Unit4 = this%Dihedral%UnitId4
+    this%nmax = this%Dihedral%nmax
     this%ForConst => this%Dihedral%ForConst
     this%gamma = this%Dihedral%gamma*Pi/180
     this%multi = this%Dihedral%multi
+    this%gamma0 => this%Dihedral%gamma0
 
   end subroutine TPotDihedral_Construct
 

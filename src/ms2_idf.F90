@@ -102,6 +102,7 @@ module ms2_idf
 
     real(RK)          :: ForConst
     real(RK)          :: phi
+    integer           :: nmax    ! multiplicity
     real(RK)          :: gamma ! phase factor
     integer           :: multi     ! multiplicity
     integer           :: SiteId1, SiteId2, SiteId3, SiteId4
@@ -110,6 +111,7 @@ module ms2_idf
     real(RK)          :: ScaleEl14
     integer, pointer  :: NPartMax, NPart
     integer, pointer  :: NPart0, NPart1, NPart2
+    real(RK), pointer, contiguous :: gamma0(:)
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:)
     real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: RX3(:), RY3(:), RZ3(:)

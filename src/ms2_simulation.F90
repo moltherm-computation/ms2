@@ -2838,7 +2838,7 @@ eqloop: do
     write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
 
     ! Save ensembles
-    do i = 1, this%NEnsembles
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       write( IOBuffer, '("writing ensemble",I7)' ) i
       call LogWriteTime
       ! saving ensemble data
