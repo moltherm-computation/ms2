@@ -555,44 +555,23 @@ contains
       ! Read number of MC overlap reduction steps
       call LogWriteBlank
       if( SimulationType .eq. MolecularDynamics ) then
-        call FileReadParameter( NStepsMCOR, iounit_params , IdNStepsMCOR, .true., 0 )
-        if( NStepsMCOR > 0 ) then
-          write( IOBuffer, '("Number of MC overlap reduction steps: ",T40, I7)' ) NStepsMCOR
+        call FileReadParameter( NStepsMC, iounit_params , IdNStepsMC, .true., 0 )
+        if( NStepsMC > 0 ) then
+          write( IOBuffer, '("Number of MC overlap reduction steps: ",T40, I7)' ) NStepsMC
           call LogWrite
           MCOverlapReduction = .true.
           Acceptance = .5_RK
           AccUpperLimit = Acceptance * 1.1_RK
           AccLowerLimit = Acceptance * 0.9_RK
+
         else
           write( IOBuffer, '("No MC overlap reduction")' )
           call LogWrite
           MCOverlapReduction = .false.
         end if
-        
-        EMinimizationIDF = .false.
-        call FileReadParameter( NStepsrigEmin, iounit_params , IdNStepsrigEmin, .true., 0 )
-        call FileReadParameter( NStepsflexEmin, iounit_params , IdNStepsflexEmin, .true., 0 )
-        if( NStepsrigEmin > 0 .or. NStepsflexEmin > 0) then
-          EMinimizationIDF = .true.
-          write( IOBuffer, '("Energy minimization will be used.")' )
-          call LogWrite
-        elseif ( NStepsrigEmin == 0 .and. NStepsflexEmin == 0 .and. UseIntDegFreed ) then
-          write( IOBuffer, '("No energy minimization will be used.")' )
-          call LogWrite
-        end if
-        
-        if( NStepsrigEmin > 0 ) then
-          write( IOBuffer, '("Number of rigid energy minimization steps: ",T40, I7)' ) NStepsrigEmin
-          call LogWrite
-        end if
-        if( NStepsflexEmin > 0 ) then
-          write( IOBuffer, '("Number of flexible energy minimization steps: ",T40, I7)' ) NStepsflexEmin
-          call LogWrite
-        end if
 
       else
         MCOverlapReduction = .false.
-        EMinimizationIDF = .false.
       end if
 
       ! Read number of NVT equilibration steps
@@ -885,10 +864,6 @@ contains
          printIDF = .true.
       case( 'OFF', 'Off', 'off', 'no', 'NO', 'No' )
          printIDF = .false.
-         if ( EMinimizationIDF ) then
-           write( IOBuffer, '("For rigid systems the defined energy minimization is no different than an NVT Equilibration .")' )
-           call LogWrite
-         end if
       case default
          call Error( trim( str )//'To print contributions to intramolecular energy use on or yes' )
       end select
@@ -1032,7 +1007,8 @@ contains
             this%Ensemble(i)%nsqmax = nsqmax_h
             this%Ensemble(i)%nvecmax = nvecmax_h
             this%Ensemble(i)%nmax = nmax_h
-#if SPME > 0
+
+#ifdef SPME
       else if (LongRange .eq. PME) then
             this%Ensemble(i)%KappaL = KappaL_h
             this%Ensemble(i)%gridx  = grid_h
@@ -1230,16 +1206,15 @@ contains
     type(TSimulation) :: this
 
     ! Declare local variables
-    integer  :: StepStart, StepEnd
-    integer  :: i, j, k, l, m, NGradInsInit
-    real(RK) :: Shakesave
-    logical  :: NPartsOk
+    integer :: StepStart, StepEnd
+    integer :: i, j, NGradInsInit
+    logical :: NPartsOk
     type(TStopwatch) :: RunTimer,RunStepsTimer
 
 #if MPI_VER > 0
     type(TComponent), pointer :: pc
     type(TInteraction), pointer :: pi
-    integer :: n1, n2
+    integer :: k, n1, n2
     
     integer :: color, NGroups, Proc_Max_Eff
     integer :: statusHost, lengthHost, tmpVal
@@ -1363,7 +1338,7 @@ contains
            
            if (color == 1000000) then
               if (MCOverlapReduction) then
-                NStepsMCOR = 1
+                NStepsMC = 1
               endif
 
               if (NVTEquilibration) then
@@ -1422,8 +1397,12 @@ contains
         call Unit2Atom( this%Ensemble(j) )
         ! Recalculate LongRange Correction
         call CalculateCorr( this%Ensemble(j) )
-        if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
+        if (LongRange .eq. Ewald) then
           this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
+#ifdef SPME
+        else if (LongRange .eq. PME) then
+          this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
+#endif
         end if
 
          ! Set all potential energy matrices
@@ -1436,7 +1415,7 @@ contains
 
     ! Run MC overlap reduction
     if( MCOverlapReduction .and. .not. TerminateProgram ) then
-      StepEnd = NStepsMCOR
+      StepEnd = NStepsMC
       call LogWriteBlank
       if( Restart ) then
         write( IOBuffer, '("Resuming MC overlap reduction")' )
@@ -1445,12 +1424,25 @@ contains
         write( IOBuffer, '("Starting MC overlap reduction")' )
       end if
       SimulationType = MonteCarlo
-     ! Michael Sch.: to improve energy minimization for flexible systems "UseIntDegFreed" should be set to false.....to be tested
+
+!       if ( UseIntDegFreed ) then
+!         do i=1,this%NEnsembles
+!           call Flex2Rigid( this%Ensemble(i) )
+!         end do
+!       end if
 
       call Timer_setTag(RunStepsTimer,"MC overlap reduction")
       call start_Timer(RunStepsTimer)
       call logwritestart_Timer(RunStepsTimer)
+
       call RunSteps( this, StepStart, StepEnd )
+
+!       if ( UseIntDegFreed ) then
+!         do i=1,this%NEnsembles
+!           call Rigid2Flex( this%Ensemble(i) )
+!         end do
+!       end if
+
       call stop_Timer(RunStepsTimer)
       call logwritestop_Timer(RunStepsTimer)
 
@@ -1470,68 +1462,6 @@ contains
     end if
 
 eqloop: do
-      ! Run energy minimization
-      if( EMinimizationIDF .and. .not. TerminateProgram ) then
-        call LogWriteBlank
-        if( Restart ) then
-          write( IOBuffer, '("Resuming energy minimization")' )
-          Restart = .false.
-        else
-          write( IOBuffer, '("Starting energy minimization")' )
-        end if
-
-        Shakesave = Shake
-        Shake = 0._RK
-        if ( NStepsrigEmin > 0 ) then
-          UseIntDegFreed = .false.
-          StepEnd = NStepsrigEmin
-          call Timer_setTag(RunStepsTimer,"Rigid energy minimization")
-          call start_Timer(RunStepsTimer)
-          call logwritestart_Timer(RunStepsTimer)
-          call RunSteps( this, StepStart, StepEnd )
-          call stop_Timer(RunStepsTimer)
-          call logwritestop_Timer(RunStepsTimer)
-          StepStart = 1
-          UseIntDegFreed = .true.
-        end if
-        do k = 1, this%NEnsembles
-          do j = 1, this%Ensemble(k)%NComponents
-            do i = 1, this%Ensemble(k)%Component(j)%NPart
-              do l = 1, this%Ensemble(k)%Component(j)%Molecule%NUnit
-                do m = 1, 3
-      ! Michael Sch.: offsetting all unit velocities by +/- 10%, before all velocities within a molecule are the same
-                  this%Ensemble(k)%Component(j)%P1(i,m,l) = this%Ensemble(k)%Component(j)%P1(i,m,l) &
-&                                                           * ( 1._RK + 0.1_RK * rnd(-1._RK,1._RK) )
-                end do
-              end do
-            end do
-          end do
-        end do
-
-        if ( NStepsflexEmin > 0 ) then
-          TimeStep = TimeStep * 0.1_RK
-          StepEnd = NStepsflexEmin
-          call Timer_setTag(RunStepsTimer,"Flexible energy minimization")
-          call start_Timer(RunStepsTimer)
-          call logwritestart_Timer(RunStepsTimer)
-          call RunSteps( this, StepStart, StepEnd )
-          call stop_Timer(RunStepsTimer)
-          call logwritestop_Timer(RunStepsTimer)
-          StepStart = 1
-          TimeStep = TimeStep * 10._RK
-        end if
-        Shake = Shakesave
-
-        if( .not. TerminateProgram ) then
-          write( IOBuffer, '("Energy minimization completed")' )
-          EMinimizationIDF = .false.
-        else
-          write( IOBuffer, '("Energy minimization TERMINATED")' )
-        end if
-        call LogWriteTime
-        StepStart = 1
-      end if
-    
       ! Run NVT equilibration
       if( NVTEquilibration .and. .not. TerminateProgram ) then
         StepEnd = NStepsV
@@ -1597,11 +1527,9 @@ eqloop: do
               call LogWriteTime
               write( IOBuffer, '("Restarting equilibration")' )
               call LogWrite
-              EMinimizationIDF = .true.
-              NVTEquilibration = .true.
               call ResetEnsembles( this )
               tooManyParticles = .false.
-
+              NVTEquilibration = .true.
               StepStart = 1
               cycle eqloop
             end if
@@ -1637,10 +1565,9 @@ eqloop: do
               call LogWriteTime
               write( IOBuffer, '("Restarting equilibration")' )
               call LogWrite
-              EMinimizationIDF = .true.
-              NVTEquilibration = .true.
               call ResetEnsembles( this )
               tooManyParticles = .false.
+              NVTEquilibration = .true.
               StepStart = 1
               cycle eqloop
             end if
@@ -1730,10 +1657,9 @@ eqloop: do
               call LogWriteTime
               write( IOBuffer, '("Restarting equilibration")' )
               call LogWrite
-              EMinimizationIDF = .true.
-              NVTEquilibration = .true.
               call ResetEnsembles( this )
               tooManyParticles = .false.
+              NVTEquilibration = .true.
               StepStart = 1
               cycle eqloop
             end if
@@ -1884,8 +1810,12 @@ eqloop: do
         
         ! Recalculate LongRange Correction
         call CalculateCorr( this%Ensemble(j) )
-        if ((LongRange .eq. Ewald) .or. (LongRange .eq. PME)) then
+        if (LongRange .eq. Ewald) then
           this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
+#ifdef SPME
+        else if (LongRange .eq. PME) then
+          this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
+#endif
         end if
         
         ! Set all potential energy matrices

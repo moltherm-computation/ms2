@@ -100,15 +100,18 @@ module ms2_idf
 
   type TIdfDihedral
 
+    real(RK)          :: ForConst
     real(RK)          :: phi
     integer           :: nmax    ! multiplicity
+    real(RK)          :: gamma ! phase factor
+    integer           :: multi     ! multiplicity
     integer           :: SiteId1, SiteId2, SiteId3, SiteId4
     integer           :: UnitId1, UnitId2, UnitId3, UnitId4
     real(RK)          :: ScaleLJ14
     real(RK)          :: ScaleEl14
     integer, pointer  :: NPartMax, NPart
     integer, pointer  :: NPart0, NPart1, NPart2
-    real(RK), pointer, contiguous :: ForConst(:), gamma0(:)
+    real(RK), pointer, contiguous :: gamma0(:)
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:)
     real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: RX3(:), RY3(:), RZ3(:)
@@ -152,27 +155,13 @@ contains
     ! Read site parameters
     call FileReadParameter_IOBuffer( iounit_potmod, IdBond_Sites )
     read( IOBuffer, * ) this%SiteId1, this%SiteId2
-    call FileReadParameter( this%R0, iounit_potmod, IdBond_R0, .false.)
-    if (Shake > 0) then
-      this%ForConst = 1e07_RK
-    else
-      call FileReadParameter( this%ForConst, iounit_potmod, IdBond_ForConst, .false.)
-      if (this%ForConst < 100) then
-        call LogWriteBlank
-        write( IOBuffer, '("WARNING: Check your bond definition. Currently a/some connections are faulty.")' )
-        call LogWrite
-        write( IOBuffer, '("Either use Shake to keep bonds rigd or choose a reasonably high force constant.")' )
-        call LogWrite
-      end if
-    end if
+    call FileReadParameter( this%ForConst, iounit_potmod, IdBond_ForConst, .false.)
 
     ! Convert to SI units
-    this%R0 = this%R0 * Angstroem
-    this%ForConst = this%ForConst * kBoltzmann / Angstroem / Angstroem
+    this%ForConst = this%ForConst * kBoltzmann
 
     ! Convert to derived units
-    this%R0 = this%R0 / UnitLength
-    this%ForConst = this%ForConst * UnitLength * UnitLength / UnitEnergy
+    this%ForConst = this%ForConst / UnitEnergy
 
 
 end subroutine TIdfBond_Construct
@@ -213,7 +202,7 @@ end subroutine TIdfBond_Construct
 &     this%R0 * UnitLength / Angstroem, this%R0
     call FileWriteParameter( iounit_normal, IdBond_R0 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%ForConst * UnitEnergy * Angstroem * Angstroem / kBoltzmann / UnitLength / UnitLength, this%ForConst
+&     this%ForConst * UnitEnergy / kBoltzmann, this%ForConst
     call FileWriteParameter( iounit_normal, IdBond_ForConst )
 
   end subroutine TIdfBond_Save
@@ -233,14 +222,12 @@ end subroutine TIdfBond_Construct
     ! Read site parameters
     call FileReadParameter_IOBuffer( iounit_potmod, IdAngle_Sites )
     read( IOBuffer, * ) this%SiteId1, this%SiteId2, this%SiteId3
-    call FileReadParameter( this%Angle0, iounit_potmod, IdAngle_Angle0, .false.)
     call FileReadParameter( this%ForConst, iounit_potmod, IdAngle_ForConst, .false.)
 
     ! Convert to SI units
     this%ForConst = this%ForConst * kBoltzmann
 
     ! Convert to derived units
-    this%Angle0 = this%Angle0*Pi/180
     this%ForConst = this%ForConst / UnitEnergy
 
 end subroutine TIdfAngle_Construct
@@ -278,8 +265,7 @@ end subroutine TIdfAngle_Construct
 
     write( IOBuffer, '(3I3)' ) this%SiteId1, this%SiteId2, this%SiteId3
     call FileWriteParameter( iounit_normal, IdAngle_Sites )
-    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&     this%Angle0*180/PI, this%Angle0
+    write( IOBuffer, '(G20.10)' ) this%Angle0
     call FileWriteParameter( iounit_normal, IdAngle_Angle0 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &     this%ForConst * UnitEnergy / kBoltzmann, this%ForConst
@@ -306,35 +292,11 @@ end subroutine TIdfAngle_Construct
     ! Read site parameters
     call FileReadParameter_IOBuffer( iounit_potmod, IdDihedral_Sites )
     read( IOBuffer, * ) this%SiteId1, this%SiteId2, this%SiteId3, this%SiteId4
-    call FileReadParameter( this%nmax, iounit_potmod, IdDihedral_nmax, .false. )
-
-    if (this%nmax > 0 ) then
-      allocate( this%ForConst(1:this%nmax+1), STAT = stat )
-      call AllocationError( stat, 'dihedral ForConst for internal degrees of freedom', this%nmax )
-      allocate( this%gamma0(1:this%nmax+1), STAT = stat )
-      call AllocationError( stat, 'dihedral gamm0 for internal degrees of freedom', this%nmax )
-    else
-      allocate( this%ForConst(1), STAT = stat )
-      call AllocationError( stat, 'dihedral ForConst for internal degrees of freedom', this%nmax )
-      allocate( this%gamma0(1), STAT = stat )
-      call AllocationError( stat, 'dihedral gamm0 for internal degrees of freedom', this%nmax )
-    end if
-
-    call FileReadParameter( this%ForConst(1), iounit_potmod, IdDihedral_ForConst//'0', .false. )
-    call FileReadParameter(this%gamma0(1), iounit_potmod, IdDihedral_gamma0//'0',.false. )
-    if (this%nmax > 0) then
-      do i = 1,(this%nmax)
-        if (i < 10) then
-          write(integ,'(I1)') i
-        else
-          write(integ,'(I2)') i
-        end if
-        call FileReadParameter( this%ForConst(i+1), iounit_potmod, IdDihedral_ForConst//trim(integ), .false. )
-        call FileReadParameter(this%gamma0(i+1), iounit_potmod, IdDihedral_gamma0//trim(integ), .false. )
-      end do
-    end if
-
-    if (LJEl14 .and. (this%nmax > 0)) then
+    call FileReadParameter( this%ForConst, iounit_potmod, IdDihedral_PotBarrier, .false.)
+    call FileReadParameter( this%gamma, iounit_potmod, IdDihedral_gamma, .false. )
+    call FileReadParameter( this%multi, iounit_potmod, IdDihedral_n, .false. )
+    
+    if (LJEl14 .and. (this%multi .gt. 0)) then
       this%ScaleLJ14 = 0.0
       this%ScaleEl14 = 0.0
       call FileReadParameter( this%ScaleLJ14, iounit_potmod, IdDihedral_ScaleLJ14, .false. )
@@ -342,11 +304,10 @@ end subroutine TIdfAngle_Construct
     end if
 
     ! Convert to SI units
-    this%ForConst(:) = this%ForConst(:) * kBoltzmann
+    this%ForConst = this%ForConst * kBoltzmann
 
     ! Convert to derived units
-    this%gamma0(:) = this%gamma0(:)*Pi/180
-    this%ForConst(:) = this%ForConst(:) / UnitEnergy
+    this%ForConst = this%ForConst / UnitEnergy
 
 end subroutine TIdfDihedral_Construct
 
@@ -379,23 +340,17 @@ end subroutine TIdfDihedral_Construct
     ! Declare arguments
     type(TIdfDihedral) :: this
 
-    ! Declare local variables
-    integer           :: i
-
     ! Save site parameters
     write( IOBuffer, '(4I3)' ) this%SiteId1, this%SiteId2, this%SiteId3, this%SiteId4
     call FileWriteParameter( iounit_normal, IdDihedral_Sites )
-    write( IOBuffer, '(G20.10)' ) this%nmax
-    call FileWriteParameter( iounit_normal, IdDihedral_nmax )
-    do i= 1,this%nmax+1
-      write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&       this%ForConst(i) * UnitEnergy / kBoltzmann, this%ForConst(i)
-      call FileWriteParameter( iounit_normal, IdDihedral_ForConst)
-      write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&       this%gamma0(i)*180/Pi, this%gamma0(i)
-      call FileWriteParameter( iounit_normal, IdDihedral_gamma0 )
-    end do
-    if (LJEl14 .and. (this%nmax .ge. 0)) then
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
+&     this%ForConst * UnitEnergy / kBoltzmann, this%ForConst
+    call FileWriteParameter( iounit_normal, IdDihedral_PotBarrier)
+    write( IOBuffer, '(G20.10)' ) this%gamma
+    call FileWriteParameter( iounit_normal, IdDihedral_gamma )
+    write( IOBuffer, '(G20.10)' ) this%multi
+    call FileWriteParameter( iounit_normal, IdDihedral_n )
+    if (LJEl14 .and. (this%multi .gt. 0)) then
       write( IOBuffer, '(G20.10)' ) this%ScaleLJ14
       call FileWriteParameter( iounit_normal, IdDihedral_ScaleLJ14 )
       write( IOBuffer, '(G20.10)' ) this%ScaleEl14
