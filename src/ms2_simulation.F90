@@ -1470,6 +1470,68 @@ contains
     end if
 
 eqloop: do
+      ! Run energy minimization
+      if( EMinimizationIDF .and. .not. TerminateProgram ) then
+        call LogWriteBlank
+        if( Restart ) then
+          write( IOBuffer, '("Resuming energy minimization")' )
+          Restart = .false.
+        else
+          write( IOBuffer, '("Starting energy minimization")' )
+        end if
+
+        Shakesave = Shake
+        Shake = 0._RK
+        if ( NStepsrigEmin > 0 ) then
+          UseIntDegFreed = .false.
+          StepEnd = NStepsrigEmin
+          call Timer_setTag(RunStepsTimer,"Rigid energy minimization")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
+          call RunSteps( this, StepStart, StepEnd )
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
+          StepStart = 1
+          UseIntDegFreed = .true.
+        end if
+        do k = 1, this%NEnsembles
+          do j = 1, this%Ensemble(k)%NComponents
+            do i = 1, this%Ensemble(k)%Component(j)%NPart
+              do l = 1, this%Ensemble(k)%Component(j)%Molecule%NUnit
+                do m = 1, 3
+      ! Michael Sch.: offsetting all unit velocities by +/- 10%, before all velocities within a molecule are the same
+                  this%Ensemble(k)%Component(j)%P1(i,m,l) = this%Ensemble(k)%Component(j)%P1(i,m,l) &
+&                                                           * ( 1._RK + 0.1_RK * rnd(-1._RK,1._RK) )
+                end do
+              end do
+            end do
+          end do
+        end do
+
+        if ( NStepsflexEmin > 0 ) then
+          TimeStep = TimeStep * 0.1_RK
+          StepEnd = NStepsflexEmin
+          call Timer_setTag(RunStepsTimer,"Flexible energy minimization")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
+          call RunSteps( this, StepStart, StepEnd )
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
+          StepStart = 1
+          TimeStep = TimeStep * 10._RK
+        end if
+        Shake = Shakesave
+
+        if( .not. TerminateProgram ) then
+          write( IOBuffer, '("Energy minimization completed")' )
+          EMinimizationIDF = .false.
+        else
+          write( IOBuffer, '("Energy minimization TERMINATED")' )
+        end if
+        call LogWriteTime
+        StepStart = 1
+      end if
+    
       ! Run NVT equilibration
       if( NVTEquilibration .and. .not. TerminateProgram ) then
         StepEnd = NStepsV

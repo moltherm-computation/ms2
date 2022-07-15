@@ -2697,13 +2697,21 @@ contains
     nu = this%Molecule%NUnit
 
     ! Set random linear velocities
-    do k=1,nu
+    if (EMinimizationIDF) then ! Michaael Sch.: changed here for preEquilibration
       do i = 1, 3
         do j = 1, this%NPart
-          this%P1(j, i, k) = rnd( -1._RK, 1._RK )
+          this%P1(j, i, :) = rnd( -1._RK, 1._RK )
         end do
       end do
-    end do
+    else
+      do k=1,nu 
+        do i = 1, 3
+          do j = 1, this%NPart
+            this%P1(j, i, k) = rnd( -1._RK, 1._RK )
+          end do
+        end do
+      end do
+    end if
 
     ! Normalize translational velocity vectors (only done once - needs not to be efficient)
     do k=1,nu
@@ -5572,49 +5580,51 @@ loop1:do i = 1, this%NPart
 
 
     ! Predict COM positions and their derivatives
-    do k=1,nu
-     do j = 1, 3
-      do i = 1, np
-        this%P0(i, j, k) = this%P0(i, j, k) + this%P1(i, j, k) + this%P2(i, j, k) &
-&                        + this%P3(i, j, k) + this%P4(i, j, k) + this%P5(i, j, k)
-        this%P1(i, j, k) = this%P1(i, j, k) + 2._RK * this%P2(i, j, k) + 3._RK * this%P3(i, j, k) &
-&                        + 4._RK * this%P4(i, j, k) + 5._RK * this%P5(i, j, k)
-        this%P2(i, j, k) = this%P2(i, j, k) + 3._RK * this%P3(i, j, k) + 6._RK * this%P4(i, j, k) &
-&                        +10._RK * this%P5(i, j, k)
-        this%P3(i, j, k) = this%P3(i, j, k) + 4._RK * this%P4(i, j, k) +10._RK * this%P5(i, j, k)
-        this%P4(i, j, k) = this%P4(i, j, k) + 5._RK * this%P5(i, j, k)
+    do k = 1, nu
+      do j = 1, 3
+        do i = 1, np
+          this%P0(i, j, k) = this%P0(i, j, k) + this%P1(i, j, k) + this%P2(i, j, k) &
+&                          + this%P3(i, j, k) + this%P4(i, j, k) + this%P5(i, j, k)
+          this%P1(i, j, k) = this%P1(i, j, k) + 2._RK * this%P2(i, j, k) + 3._RK * this%P3(i, j, k) &
+&                          + 4._RK * this%P4(i, j, k) + 5._RK * this%P5(i, j, k)
+          this%P2(i, j, k) = this%P2(i, j, k) + 3._RK * this%P3(i, j, k) + 6._RK * this%P4(i, j, k) &
+&                          +10._RK * this%P5(i, j, k)
+          this%P3(i, j, k) = this%P3(i, j, k) + 4._RK * this%P4(i, j, k) +10._RK * this%P5(i, j, k)
+          this%P4(i, j, k) = this%P4(i, j, k) + 5._RK * this%P5(i, j, k)
+        end do
       end do
-     end do
+    end do
 
+    do k = 1, nu
+      if( this%Molecule%Unit(k)%IsElongated ) then
 
-     if( this%Molecule%Unit(k)%IsElongated ) then
+        ! Predict quaternion parameters and their derivatives
+        do j = 1, 4
+          do i = 1, np
+            this%Q0(i, j, k) = this%Q0(i, j, k) + this%Q1(i, j, k) + this%Q2(i, j, k) &
+  &                           + this%Q3(i, j, k) + this%Q4(i, j, k)
+            this%Q1(i, j, k) = this%Q1(i, j, k) + 2._RK * this%Q2(i, j, k) + 3._RK * this%Q3(i, j, k) &
+  &                           + 4._RK * this%Q4(i, j, k)
+            this%Q2(i, j, k) = this%Q2(i, j, k) + 3._RK * this%Q3(i, j, k) + 6._RK * this%Q4(i, j, k)
+            this%Q3(i, j, k) = this%Q3(i, j, k) + 4._RK * this%Q4(i, j, k)
+          end do
+        end do
 
-      ! Predict quaternion parameters and their derivatives
-       do j = 1, 4
-         do i = 1, np
-           this%Q0(i, j, k) = this%Q0(i, j, k) + this%Q1(i, j, k) + this%Q2(i, j, k) &
-&                           + this%Q3(i, j, k) + this%Q4(i, j, k)
-           this%Q1(i, j, k) = this%Q1(i, j, k) + 2._RK * this%Q2(i, j, k) + 3._RK * this%Q3(i, j, k) &
-&                           + 4._RK * this%Q4(i, j, k)
-           this%Q2(i, j, k) = this%Q2(i, j, k) + 3._RK * this%Q3(i, j, k) + 6._RK * this%Q4(i, j, k)
-           this%Q3(i, j, k) = this%Q3(i, j, k) + 4._RK * this%Q4(i, j, k)
-         end do
-       end do
+        ! Predict angular velocities and their derivatives
+        do j = 1, this%Molecule%Unit(k)%NDFRot
+          do i = 1, np
+            this%W0(i, j, k) = this%W0(i, j, k) + this%W1(i, j, k) + this%W2(i, j, k) &
+  &                           + this%W3(i, j, k) + this%W4(i, j, k)
+            this%W1(i, j, k) = this%W1(i, j, k) + 2._RK * this%W2(i, j, k) + 3._RK * this%W3(i, j, k) &
+  &                           + 4._RK * this%W4(i, j, k)
+            this%W2(i, j, k) = this%W2(i, j, k) + 3._RK * this%W3(i, j, k) + 6._RK * this%W4(i, j, k)
+            this%W3(i, j, k) = this%W3(i, j, k) + 4._RK * this%W4(i, j, k)
+          end do
+        end do
 
-      ! Predict angular velocities and their derivatives
-       do j = 1, this%Molecule%Unit(k)%NDFRot
-         do i = 1, np
-           this%W0(i, j, k) = this%W0(i, j, k) + this%W1(i, j, k) + this%W2(i, j, k) &
-&                           + this%W3(i, j, k) + this%W4(i, j, k)
-           this%W1(i, j, k) = this%W1(i, j, k) + 2._RK * this%W2(i, j, k) + 3._RK * this%W3(i, j, k) &
-&                           + 4._RK * this%W4(i, j, k)
-           this%W2(i, j, k) = this%W2(i, j, k) + 3._RK * this%W3(i, j, k) + 6._RK * this%W4(i, j, k)
-           this%W3(i, j, k) = this%W3(i, j, k) + 4._RK * this%W4(i, j, k)
-         end do
-       end do
-       
-     end if
-   end do
+      end if
+
+    end do
 
 
   end subroutine TComponent_PredictGear
@@ -5675,18 +5685,16 @@ loop1:do i = 1, this%NPart
 
     do i = 1, np
       r(:) = 0._RK
-      do k= 1, nu
-         r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
+      do j = 1, 3
+        do k= 1, nu
+
+          r(j) = r(j) + this%Molecule%Unit(k)%Mass*this%P0(i,j,k)
+        end do
       end do
       this%Pm0(i,:) = r(:)/this%Molecule%Mass
-    end do
 
-    ! Calculate displacement of molecules
-    do i = 1, np
       do j = 1, 3
-        this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
-
-    ! Check for conservation of particles in primary cell
+        ! Check for conservation of particles in primary cell
 #if ARCH == 1
         if( this%Pm0(i, j) < -.5_RK ) then
           do k = 1, nu
@@ -5702,15 +5710,17 @@ loop1:do i = 1, this%NPart
            this%P0(i, j, k) = this%P0(i, j, k) - anint( this%Pm0(i, j) )
         end do
       end do
-    end do
+
 #endif
     ! Calculate new positions of COM for molecules from new COM of units
-    do i = 1, np
+
       r(:) = 0._RK
       do k= 1, nu
          r(:) = r(:) + this%Molecule%Unit(k)%Mass*this%P0(i,:,k)
       end do
 
+      ! Calculate displacement of molecules
+      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
       this%Pm0(i,:) = r(:)/this%Molecule%Mass
       this%Pm0old(i,:) = this%Pm0(i, :)
     end do
@@ -5721,63 +5731,62 @@ loop1:do i = 1, this%NPart
 #else
       pT => this%T(:, :, :)
 #endif
+    end if
 
     ! Correct quaternion parameters and their derivatives
     do k = 1, nu
-      do i = 1, np
-        Corr0(1) = TimeStep2 * ( - this%Q0(i, 2, k) * this%W0(i, 1, k) - this%Q0(i, 3, k) * this%W0(i, 2, k) &
-&                                        - this%Q0(i, 4, k) * this%W0(i, 3, k))
-        Corr0(2) = TimeStep2 * ( + this%Q0(i, 1, k) * this%W0(i, 1, k) - this%Q0(i, 4, k) * this%W0(i, 2, k) &
-&                                        + this%Q0(i, 3, k) * this%W0(i, 3, k))
-        Corr0(3) = TimeStep2 * ( + this%Q0(i, 4, k) * this%W0(i, 1, k) + this%Q0(i, 1, k) * this%W0(i, 2, k) &
-&                                        - this%Q0(i, 2, k) * this%W0(i, 3, k))
-        Corr0(4) = TimeStep2 * ( - this%Q0(i, 3, k) * this%W0(i, 1, k) + this%Q0(i, 2, k) * this%W0(i, 2, k) &
-&                                        + this%Q0(i, 1, k) * this%W0(i, 3, k))
-        do j = 1, 4
-          Corr1 = Corr0(j) - this%Q1(i, j, k)
-          this%Q0(i, j, k) = this%Q0(i, j, k) + Corr1 * Gear10
-          this%Q1(i, j, k) =                    Corr0(j)
-          this%Q2(i, j, k) = this%Q2(i, j, k) + Corr1 * Gear12
-          this%Q3(i, j, k) = this%Q3(i, j, k) + Corr1 * Gear13
-          this%Q4(i, j, k) = this%Q4(i, j, k) + Corr1 * Gear14
+      if( this%Molecule%Unit(k)%isElongated ) then
+        do i = 1, np
+          Corr0(1) = TimeStep2 * ( - this%Q0(i, 2, k) * this%W0(i, 1, k) - this%Q0(i, 3, k) * this%W0(i, 2, k) &
+&                                          - this%Q0(i, 4, k) * this%W0(i, 3, k))
+          Corr0(2) = TimeStep2 * ( + this%Q0(i, 1, k) * this%W0(i, 1, k) - this%Q0(i, 4, k) * this%W0(i, 2, k) &
+&                                          + this%Q0(i, 3, k) * this%W0(i, 3, k))
+          Corr0(3) = TimeStep2 * ( + this%Q0(i, 4, k) * this%W0(i, 1, k) + this%Q0(i, 1, k) * this%W0(i, 2, k) &
+&                                          - this%Q0(i, 2, k) * this%W0(i, 3, k))
+          Corr0(4) = TimeStep2 * ( - this%Q0(i, 3, k) * this%W0(i, 1, k) + this%Q0(i, 2, k) * this%W0(i, 2, k) &
+&                                          + this%Q0(i, 1, k) * this%W0(i, 3, k))
+          do j = 1, 4
+            Corr1 = Corr0(j) - this%Q1(i, j, k)
+            this%Q0(i, j, k) = this%Q0(i, j, k) + Corr1 * Gear10
+            this%Q1(i, j, k) =                    Corr0(j)
+            this%Q2(i, j, k) = this%Q2(i, j, k) + Corr1 * Gear12
+            this%Q3(i, j, k) = this%Q3(i, j, k) + Corr1 * Gear13
+            this%Q4(i, j, k) = this%Q4(i, j, k) + Corr1 * Gear14
+          end do
         end do
-      end do
-    end do
 
-      ! Correct angular velocities and their derivatives
-
-    do k = 1, nu
-      TMoi1 = TimeStep / this%Molecule%Unit(k)%MOI(1)
-      TMoi2 = TimeStep / this%Molecule%Unit(k)%MOI(2)
-      if( this%Molecule%Unit(k)%is3D ) then
-        Moi23 = this%Molecule%Unit(k)%MOI(2) - this%Molecule%Unit(k)%MOI(3)
-        Moi31 = this%Molecule%Unit(k)%MOI(3) - this%Molecule%Unit(k)%MOI(1)
-        Moi12 = this%Molecule%Unit(k)%MOI(1) - this%Molecule%Unit(k)%MOI(2)
-        TMoi3 = TimeStep / this%Molecule%Unit(k)%MOI(3)
-      endif
-
-      do i = 1, np
+        ! Correct angular velocities and their derivatives
+        TMoi1 = TimeStep / this%Molecule%Unit(k)%MOI(1)
+        TMoi2 = TimeStep / this%Molecule%Unit(k)%MOI(2)
         if( this%Molecule%Unit(k)%is3D ) then
-          Corr0(1) = (pT(i, 1, k) + this%W0(i, 2, k) * this%W0(i, 3, k) * Moi23) * TMoi1
-          Corr0(2) = (pT(i, 2, k) + this%W0(i, 3, k) * this%W0(i, 1, k) * Moi31) * TMoi2
-          Corr0(3) = (pT(i, 3, k) + this%W0(i, 1, k) * this%W0(i, 2, k) * Moi12) * TMoi3
-        else
-          Corr0(1) = pT(i, 1, k) * TMoi1
-          Corr0(2) = pT(i, 2, k) * TMoi2
-        end if
+          Moi23 = this%Molecule%Unit(k)%MOI(2) - this%Molecule%Unit(k)%MOI(3)
+          Moi31 = this%Molecule%Unit(k)%MOI(3) - this%Molecule%Unit(k)%MOI(1)
+          Moi12 = this%Molecule%Unit(k)%MOI(1) - this%Molecule%Unit(k)%MOI(2)
+          TMoi3 = TimeStep / this%Molecule%Unit(k)%MOI(3)
+        endif
 
-        do j = 1, this%Molecule%Unit(k)%NDFRot
-          Corr1 = Corr0(j) - this%W1(i, j, k)
-          this%W0(i, j, k) = this%W0(i, j, k) + Corr1 * Gear10
-          this%W1(i, j, k) =                    Corr0(j)
-          this%W2(i, j, k) = this%W2(i, j, k) + Corr1 * Gear12
-          this%W3(i, j, k) = this%W3(i, j, k) + Corr1 * Gear13
-          this%W4(i, j, k) = this%W4(i, j, k) + Corr1 * Gear14
+        do i = 1, np
+          if( this%Molecule%Unit(k)%is3D ) then
+            Corr0(1) = (pT(i, 1, k) + this%W0(i, 2, k) * this%W0(i, 3, k) * Moi23) * TMoi1
+            Corr0(2) = (pT(i, 2, k) + this%W0(i, 3, k) * this%W0(i, 1, k) * Moi31) * TMoi2
+            Corr0(3) = (pT(i, 3, k) + this%W0(i, 1, k) * this%W0(i, 2, k) * Moi12) * TMoi3
+          else
+            Corr0(1) = pT(i, 1, k) * TMoi1
+            Corr0(2) = pT(i, 2, k) * TMoi2
+          end if
+
+          do j = 1, this%Molecule%Unit(k)%NDFRot
+            Corr1 = Corr0(j) - this%W1(i, j, k)
+            this%W0(i, j, k) = this%W0(i, j, k) + Corr1 * Gear10
+            this%W1(i, j, k) =                    Corr0(j)
+            this%W2(i, j, k) = this%W2(i, j, k) + Corr1 * Gear12
+            this%W3(i, j, k) = this%W3(i, j, k) + Corr1 * Gear13
+            this%W4(i, j, k) = this%W4(i, j, k) + Corr1 * Gear14
+          end do
         end do
-      end do
 
+      end if
     end do
-  end if
 
   end subroutine TComponent_CorrectGear
 
