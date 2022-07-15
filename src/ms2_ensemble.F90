@@ -743,14 +743,6 @@ module ms2_ensemble
     module procedure TEnsemble_Delete
   end interface
 
-  interface Flex2Rigid
-    module procedure TEnsemble_Flex2Rigid
-  end interface
-
-  interface Rigid2Flex
-    module procedure TEnsemble_Rigid2Flex
-  end interface
-
   interface Move2End
     module procedure TEnsemble_Move2End
   end interface
@@ -10545,48 +10537,6 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     end if
 
   end subroutine TEnsemble_Delete
-
-
-!==============================================================!
-!  Subroutine TEnsemble_Flex2Rigid                             !
-!==============================================================!
-
-  subroutine TEnsemble_Flex2Rigid( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble)     :: this
-
-    ! Declare local variables
-    integer :: i
-
-    do i=1, this%NComponents
-      call Flex2Rigid ( this%Component(i) )
-    end do
-
-  end subroutine TEnsemble_Flex2Rigid
-
-
-!==============================================================!
-!  Subroutine TEnsemble_Rigid2Flex                             !
-!==============================================================!
-
-  subroutine TEnsemble_Rigid2Flex( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble)     :: this
-
-    ! Declare local variables
-    integer :: i
-
-    do i=1, this%NComponents
-      call Rigid2Flex ( this%Component(i) )
-    end do
-
-  end subroutine TEnsemble_Rigid2Flex
 
 
 !==============================================================!

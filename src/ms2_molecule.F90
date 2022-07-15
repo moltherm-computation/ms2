@@ -504,7 +504,6 @@ contains
       end if
       this%NNotConstraint = this%NSite-ncs  ! number of not constraint units
       this%NUnit   = this%NNotConstraint+this%NConstraint ! total number of units
-      if (this%NUnit==1) IntraLJEl=.false.
 
     else !  No IDF,  rigid molecule
         this%NUnit = 1
@@ -789,34 +788,34 @@ contains
      allocate (IntLJ15((this%NSite-3)*2, 2), STAT = stat)
      call AllocationError( stat, 'Int15', (this%NSite-3)*4 )
      if (this%NCharge>0) then
-       allocate (IntCC15((this%NSite-3)*2, 2), STAT = stat)
-       call AllocationError( stat, 'IntCC15', (this%NSite-3)*4 )
+       allocate (IntCC15(npossPartners, 2), STAT = stat)
+       call AllocationError( stat, 'IntCC15', npossPartners*2 )
        if (this%NDipole>0) then
-         allocate (IntCD15((this%NSite-3)*2, 2), STAT = stat)
-         call AllocationError( stat, 'IntCD15', (this%NSite-3)*4 )
-         allocate (IntDC15((this%NSite-3)*2, 2), STAT = stat)
-         call AllocationError( stat, 'IntDC15', (this%NSite-3)*4 )
+         allocate (IntCD15(npossPartners, 2), STAT = stat)
+         call AllocationError( stat, 'IntCD15', npossPartners*2 )
+         allocate (IntDC15(npossPartners, 2), STAT = stat)
+         call AllocationError( stat, 'IntDC15', npossPartners*2 )
        end if
        if ( this%NQuadrupole>0) then
-         allocate (IntCQ15((this%NSite-3)*2, 2), STAT = stat)
-         call AllocationError( stat, 'IntCQ15', (this%NSite-3)*4 )
-         allocate (IntQC15((this%NSite-3)*2, 2), STAT = stat)
-         call AllocationError( stat, 'IntQC15', (this%NSite-3)*4 )
+         allocate (IntCQ15(npossPartners, 2), STAT = stat)
+         call AllocationError( stat, 'IntCQ15', npossPartners*2 )
+         allocate (IntQC15(npossPartners, 2), STAT = stat)
+         call AllocationError( stat, 'IntQC15', npossPartners*2 )
        end if
      end if
      if (this%NDipole>0) then
-       allocate (IntDD15((this%NSite-3)*2, 2), STAT = stat)
-       call AllocationError( stat, 'IntDD15', (this%NSite-3)*4 )
+       allocate (IntDD15(npossPartners, 2), STAT = stat)
+       call AllocationError( stat, 'IntDD15', npossPartners*2 )
        if ( this%NQuadrupole >0) then
-         allocate (IntQD15((this%NSite-3)*2, 2), STAT = stat)
-         call AllocationError( stat, 'IntQD15', (this%NSite-3)*4 )
-         allocate (IntDQ15((this%NSite-3)*2, 2), STAT = stat)
-         call AllocationError( stat, 'IntDQ15', (this%NSite-3)*4 )
+         allocate (IntQD15(npossPartners, 2), STAT = stat)
+         call AllocationError( stat, 'IntQD15', npossPartners*2 )
+         allocate (IntDQ15(npossPartners, 2), STAT = stat)
+         call AllocationError( stat, 'IntDQ15', npossPartners*2 )
        end if
      end if
      if ( this%NQuadrupole>0) then
-       allocate (IntQQ15((this%NSite-3)*2, 2), STAT = stat)
-       call AllocationError( stat, 'IntQQ15', (this%NSite-3)*4 )
+       allocate (IntQQ15(npossPartners, 2), STAT = stat)
+       call AllocationError( stat, 'IntQQ15', npossPartners*2 )
      end if
      if (LJEl14) then
        allocate (Int14(this%NDihedral, 2), STAT = stat)

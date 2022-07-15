@@ -240,6 +240,7 @@ module ms2_component
 
     ! Variables for Thermodynamic Integration
     integer           :: NBins
+    integer           :: changeLaFreq, changeLaPart, forfeitLaSampl
     integer, pointer, contiguous  :: BinsVisit(:)
     real(RK)          :: Lambda, LambdaExponent, LaMin, LaMax, deltaLa, LaStepMax
     real(RK)          :: ExpMinusBetaEnLaMin, currentBinsEn
@@ -347,6 +348,10 @@ module ms2_component
     module procedure TComponent_RemoveNetMomentum
   end interface
 
+  interface SlowExceptions
+    module procedure TComponent_SlowExceptions
+  end interface
+
   interface CalculateEKin
     module procedure TComponent_CalculateEKin
   end interface
@@ -411,14 +416,6 @@ module ms2_component
     module procedure TComponent_DensityProfile
   end interface
 #endif
-
-  interface Flex2Rigid
-    module procedure TComponent_Flex2Rigid
-  end interface
-
-  interface Rigid2Flex
-    module procedure TComponent_Rigid2Flex
-  end interface
 
   interface PredictGear
     module procedure TComponent_PredictGear
@@ -679,7 +676,7 @@ contains
         call LogWrite
 
       case (ChemPotMethodThermoInt)
-        call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.2_RK )
+        call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.1_RK )
         write( IOBuffer, '("Thermo. Int. LambdaMin: ", T40, F8.5)' ) this%LaMin
         call LogWrite
         call FileReadParameter( this%LaMax, iounit_params , IdLambdaMax, .false., 1.0_RK )
@@ -689,18 +686,45 @@ contains
         write( IOBuffer, '("Thermo. Int. NBins: ", T40, I8)' ) this%NBins
         call LogWrite
         if (SimulationType .eq. MolecularDynamics) then
-          call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.01_RK)
+          write( IOBuffer, '("In MD simulations LambdaStepMax is determined by NBins, LambdaMax and LambdaMin.")' )
+          call LogWrite
+          this%LaStepMax = -(this%LaMax-this%LaMin) / (this%NBins-1)
+          this%deltaLa = -this%LaStepMax
         else
           call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.1_RK)
+          this%deltaLa = (this%LaMax-this%LaMin) / this%NBins
         end if
         write( IOBuffer, '("Thermo. Int. LambdaStepMax: ", T40, F8.5)' ) this%LaStepMax
         call LogWrite
         call FileReadParameter( this%LambdaExponent, iounit_params , IdLambdaExponent, .false., 4.0_RK)
         write( IOBuffer, '("Thermo. Int. LambdaExponent: ", T40, F8.5)' ) this%LambdaExponent
         call LogWrite
-        call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 250 )
+        call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 25 ) ! Michael Sch.: changed from 250
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
         call LogWrite
+
+        ! Michael Sch.: new for enhanced possibilites for E(la) sampling
+        if (SimulationType .eq. MolecularDynamics) then
+          call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 5000)
+        else
+          call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 100)
+        end if
+        write( IOBuffer, '("Frequency for lambda changes:", I11 )' ) this%changeLaFreq
+        call LogWrite
+        this%changeLaPart = 1.8*this%changeLaFreq*(this%LaMax-this%LaMin)/this%LaStepMax
+        if (SimulationType .eq. MonteCarlo) this%changeLaPart=10*this%changeLaPart
+        ! read parameter in case the user wants no or more different particles to be sampled...not advised too much^^
+        call FileReadParameter( this%changeLaPart, iounit_params , IdchangeLaPart, .false., this%changeLaPart)
+        write( IOBuffer, '("Frequency for changing the fluctuating particle:", I11 )' ) this%changeLaPart
+        call LogWrite
+        if (SimulationType .eq. MolecularDynamics) then
+          call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 2000)
+        else
+          call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 40)
+        end if
+        write( IOBuffer, '("Forfeit steps of each lambda value regarding the energy sampling:", I11 )' ) this%forfeitLaSampl
+        call LogWrite
+
 #if MPI_VER>0
         if (SimulationType .eq. MolecularDynamics) then
           this%NTest = ((this%NTest-1)/NProcs +1)
@@ -711,7 +735,6 @@ contains
           write( IOBuffer, '("LambdaMin too low for simulation! Value was changed to: ", F8.5)' ) this%LaMin
           call LogWrite
         endif
-        this%deltaLa=(this%LaMax-this%LaMin)/this%NBins
 
       end select
 
@@ -888,7 +911,7 @@ contains
     this%Fraction = 0._RK
     this%NBins = 0
 
-    this%Lambda = 1.0_RK - Zero
+    this%Lambda = 1.0_RK !- Zero ! test Minh
 
     ! Set fluctuating state (for GradIns)
     this%FluctState = 0
@@ -2848,6 +2871,50 @@ contains
 
 
 !==============================================================!
+!  Subroutine TComponent_SlowExceptions                        !
+!==============================================================!
+
+  subroutine TComponent_SlowExceptions( this, maxmolEkin )
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent)    :: this
+    real(RK),intent(in) :: maxmolEkin
+
+    ! Declare local variables
+    integer  :: i, j, k, nu
+    real(RK) :: Ekin, slowing
+    
+    nu = this%Molecule%NUnit
+
+    ! Loop over all molecules   
+    do i = 1, this%NPart
+      Ekin = 0._RK
+      do  k = 1, nu
+        ! Calculate translational kinetic energy
+        Ekin = Ekin+this%Molecule%Unit(k)%Mass * TimeStepSquaredInv2 &
+&           * sum( this%P1(i, :, k)**2 ) * this%BoxLength**2
+        ! Calculate rotational kinetic energy
+        do j = 1, this%Molecule%Unit(k)%NDFRot
+          Ekin = Ekin + this%Molecule%Unit(k)%MOI(j) * .5_RK &
+&             *  this%W0(i, j, k)**2
+        end do
+      end do
+      ! Check for too fast molecules
+      if (Ekin > maxmolEkin) then
+        slowing = sqrt( 0.7_RK*maxmolEkin / Ekin )
+        !write( IOBuffer, '("Molecule ", I4, " is to fast by a factor of ", F9.6,"; slowing it down.")' ) i, slowing ! Michael DEBUG
+        !call LogWrite
+        this%P1(i, :, :) = this%P1(i, :, :) * slowing
+        if( this%Molecule%isElongated ) this%W0(i, :, :) = this%W0(i, :, :) * slowing
+      end if
+    end do
+
+  end subroutine TComponent_SlowExceptions
+
+
+!==============================================================!
 !  Subroutine TComponent_CalculateEKin                         !
 !==============================================================!
 
@@ -2862,17 +2929,16 @@ contains
     integer :: i, k, nu
     
     nu = this%Molecule%NUnit
+    this%EKinTran = 0._RK
+    this%EKinRot = 0._RK
 
     ! Calculate translational kinetic energy
-    this%EKinTran = 0._RK
     do  k = 1,  nu
       this%EKinTran = this%EkinTran+this%Molecule%Unit(k)%Mass * TimeStepSquaredInv2 &
 &       * sum( this%P1(1:this%NPart, :, k)**2 ) * this%BoxLength**2
     end do
 
-
     ! Calculate rotational kinetic energy
-    this%EKinRot = 0._RK
     do k = 1, nu
       do i = 1, this%Molecule%Unit(k)%NDFRot
         this%EKinRot = this%EKinRot + this%Molecule%Unit(k)%MOI(i) * .5_RK &
@@ -5430,59 +5496,6 @@ subroutine TComponent_InitUnit( this, np, dq )
   end subroutine TComponent_Unit2Mol1
 
 
-!==============================================================!
-!  Subroutine TComponent_Flex2Rigid                            !
-!==============================================================!
-
-  subroutine TComponent_Flex2Rigid( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent)     :: this
-
-    ! Declare local variables
-    integer :: i
-
-    do i=1, this%Molecule%NBond
-      this%Molecule%IDFBond(i)%ForConst = this%Molecule%IDFBond(i)%ForConst * 1e10_RK
-    end do
-    do i=1, this%Molecule%NAngle
-      this%Molecule%IDFAngle(i)%ForConst = this%Molecule%IDFAngle(i)%ForConst * 1e10_RK
-    end do
-    do i=1, this%Molecule%NDihedral
-      this%Molecule%IDFDihedral(i)%ForConst = this%Molecule%IDFDihedral(i)%ForConst * 1e10_RK
-    end do
-
-  end subroutine TComponent_Flex2Rigid
-
-
-!==============================================================!
-!  Subroutine TComponent_Rigid2Flex                            !
-!==============================================================!
-
-  subroutine TComponent_Rigid2Flex( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent)     :: this
-
-    ! Declare local variables
-    integer :: i
-
-    do i=1, this%Molecule%NBond
-      this%Molecule%IDFBond(i)%ForConst = this%Molecule%IDFBond(i)%ForConst / 1e10_RK
-    end do
-    do i=1, this%Molecule%NAngle
-      this%Molecule%IDFAngle(i)%ForConst = this%Molecule%IDFAngle(i)%ForConst / 1e10_RK
-    end do
-    do i=1, this%Molecule%NDihedral
-      this%Molecule%IDFDihedral(i)%ForConst = this%Molecule%IDFDihedral(i)%ForConst / 1e10_RK
-    end do
-
-  end subroutine TComponent_Rigid2Flex
-
 #if OSMOP > 0
 !==============================================================!
 !  Subroutine TComponent_DensityProfile                        !
@@ -5702,10 +5715,14 @@ loop1:do i = 1, this%NPart
       this%Pm0old(i,:) = this%Pm0(i, :)
     end do
 
+    if ( this%Molecule%isElongated ) then
+#if MPI_VER > 0
+      pT => this%TAll(:, :, :)
+#else
+      pT => this%T(:, :, :)
+#endif
 
-    if( this%Molecule%isElongated ) then
-
-      ! Correct quaternion parameters and their derivatives
+    ! Correct quaternion parameters and their derivatives
     do k = 1, nu
       do i = 1, np
         Corr0(1) = TimeStep2 * ( - this%Q0(i, 2, k) * this%W0(i, 1, k) - this%Q0(i, 3, k) * this%W0(i, 2, k) &
@@ -5728,11 +5745,7 @@ loop1:do i = 1, this%NPart
     end do
 
       ! Correct angular velocities and their derivatives
-#if MPI_VER > 0
-      pT => this%TAll(:, :, :)
-#else
-      pT => this%T(:, :, :)
-#endif
+
     do k = 1, nu
       TMoi1 = TimeStep / this%Molecule%Unit(k)%MOI(1)
       TMoi2 = TimeStep / this%Molecule%Unit(k)%MOI(2)
@@ -6119,10 +6132,11 @@ loop1:do i = 1, this%NPart
     real(RK),intent(in out) :: VirialShake
 
     ! Declare local variables
-    logical                 :: need, stable
+    logical                 :: need
     type(TIdfBond), pointer :: pBond
-    integer                 :: np, nu, it, itmax
-    integer                 :: i, i0, i1, j, k, Unit1, Unit2
+    integer                 :: it, itmax, unstableMol
+    integer                 :: i, i0, i1, j, k
+    integer                 :: np, nu, Unit1, Unit2
     real(RK)                :: BoxLength, Shake2, Shake002
     real(RK)                :: RX1, RY1, RZ1, RX2, RY2, RZ2
     real(RK)                :: PX1, PY1, PZ1, PX2, PY2, PZ2
@@ -6136,10 +6150,8 @@ loop1:do i = 1, this%NPart
     real(RK)                :: Term1(3), Term2(3), Term3(3), MOI(3), intermedQ0(4), addW1(3), addQ1(4)
     real(RK)                :: tempP0(3,this%Molecule%NUnit), tempQ0(4,this%Molecule%NUnit), tempW0(3)
     real(RK)                :: tempF(3,this%Molecule%NUnit), tempT(3,this%Molecule%NUnit)
-
 #if MPI_VER > 0
-    integer                 :: itRoot
-    logical                 :: stableRoot
+    integer                 :: itRoot, unstableMolRoot
 
     call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
     call MPI_Bcast( this%P1(:, :, :), size( this%P1 ), MPI_RK, NRootProc, Communicator, ierror )
@@ -6155,17 +6167,16 @@ loop1:do i = 1, this%NPart
     Shake002 = Shake2/100
     np = this%NPart
     nu = this%Molecule%NUnit
-    it = 0
+    unstableMol = 0
     itmax = 9999
-    stable = .true.
 
 #if MPI_VER > 0
     i0 = this%NPart0
     i1 = this%NPart2
-    do i = i0, i1
+molloop: do i = i0, i1
 #else
-    i1 = this%NPart1
-    do i = 1, i1
+    i1 = this%NPart
+molloop: do i = 1, i1
 #endif
 !     do i = 1, np
       ! get/save old site and COM (of unit) positions 
@@ -6514,11 +6525,11 @@ loop1:do i = 1, this%NPart
         elseif ( dRmax >= dRmaxold .or. Shake002 > (dRmaxold - dRmax) ) then
           dRmax = 0.1_RK*Shake2
           need = .false.
-          stable = .false.
+          unstableMol = i
           ! happens for Force*timestep too high; QShake can't resolve constraints if displacements each timestep are very large
           ! checks to-do: timestep below 10fs and able to display dynamics? Average displacement < sigma?
           !dRmax = 0._RK
-          !cycle
+          exit molloop
         end if
 
       end do ! shake-force calculation for molecule i finished
@@ -6534,7 +6545,7 @@ loop1:do i = 1, this%NPart
         endif
       end do
 
-    end do ! molecule loop
+    end do molloop ! molecule loop
 
 #if MPI_VER > 0
     call MPI_Reduce( this%F(:, :, :), this%FAll(:, :, :), size( this%F ), &
@@ -6542,28 +6553,34 @@ loop1:do i = 1, this%NPart
     if( this%Molecule%isElongated ) call MPI_Reduce( this%T(:, :, :), this%TAll(:, :, :), size( this%T ), &
 &     MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( it, itRoot, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
-    call MPI_Reduce( stable, stableRoot, 1, MPI_LOGICAL, MPI_LAND, NRootProc, Communicator, ierror )
+    call MPI_Reduce( unstableMol, unstableMolRoot, 1, MPI_INTEGER, MPI_MAX, NRootProc, Communicator, ierror )
     if (RootProc) then
       it = itRoot
-      stable = stableRoot
+      unstableMol = unstableMolRoot
 #endif
 
-      if ( .not. stable) then ! unsauber geschrieben, da auch andere Procs als der Root unstable sein können
-        write( IOBuffer, '("QShake was not converging to zero for molecule", I6, " in step", I10)' ) i, Step
-        call LogWrite
-        write( IOBuffer, '("Stop at iteration: ", I4)' ) it
-        call LogWrite
-        call Error( 'Initial density to high for QShake' )
+      if (unstableMol > 0 .or. it >= itmax) then ! write debug information (pos, vel, force) in restart file
+        call FileRewrite( iounit_restart, trim(RestartFileName) )
+        write( iounit_restart, '(A)' ) trim( ParameterFileName )
+        write( iounit_restart, '(2I10)' ) Step, StepTotal
+        write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
+        call RestartSave( this )
+        do i = 1, np
+          do k = 1, nu
+            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%F(np,:,nu)
+          end do
+        end do
+        call FileClose( iounit_restart )
       end if
 
-      if ( it >= itmax ) then  !Michael Sch.: this case should never happen
-        write( IOBuffer, '("Too many iterations needed for QShake at step: ", I10)' ) Step
+      if (unstableMol > 0) then 
+        write( IOBuffer, '("QShake was not converging to zero for molecule", I6, &
+&                          " in step", I10, ". Stop at iteration: ", I4)' ) unstableMol, Step, it
         call LogWrite
-        write( IOBuffer, '("This can happen if the given configuration has to many overlaps.")' )
-        call LogWrite
-        write( IOBuffer, '("Try a lower initial density or use MCOR-Steps to avoid this.")' )
-        call LogWrite
-        call Error( 'Initial density to high for QShake' )
+        call Error( 'QShake was not converging. Occuring forces to high for integration.' )
+      end if
+      if ( it >= itmax ) then
+        call Error( 'Initial density to high for QShake. Probably to many overlaps.' )
       end if
 #if MPI_VER > 0
     end if
@@ -6748,6 +6765,8 @@ contains
 
     ! Increase NPart
     selected = rnd( this%NPart )
+    !IOBuffer = '' ! Michael DEBUG
+    !write( IOBuffer, '("Duplicating particle number " I4," for insertion at end. ")' ) selected
     this%NPart = this%NPart + 1
 #if MPI_VER > 0
     this%NPart1 = ProcRange( this%NPart, this%NPart0, this%NPart2 )
