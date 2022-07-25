@@ -2911,7 +2911,6 @@ eqloop: do
     do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       write( IOBuffer, '("writing ensemble",I7)' ) i
       call LogWriteTime
-      write( iounit_restart, '(A,":",I0)' ) RstEnsembleMarker,i
       ! saving ensemble data
       call RestartSave( this%Ensemble(i) )
     end do
