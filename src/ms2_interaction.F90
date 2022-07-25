@@ -5548,7 +5548,7 @@ end subroutine TInteraction_Energy
     type(TInteraction) :: this
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PX1d(this%NPart1*this%NUnit1)
     real(RK)          :: PY1d(this%NPart1*this%NUnit1)
     real(RK)          :: PZ1d(this%NPart1*this%NUnit1)
@@ -5558,7 +5558,7 @@ end subroutine TInteraction_Energy
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared
     real(RK)          :: RCutoff
-    integer           :: i, j, N, N2, NInCutoff, ik, NNU, NUm
+    integer           :: i, j, N, N2, NInCutoff
     integer           :: NU, NU2
     integer           :: k, l, m, o
  
@@ -5603,154 +5603,167 @@ end subroutine TInteraction_Energy
     end if
 
     ! Calculate partners within cutoff sphere
-    NNU=N*NU
     if( this%SameComponent ) then
+      do k = 1, NU
 #if MPI_VER > 0
-      if( this%NPart10*NU <= (NNU+1)/2 ) then
-        if( this%NPart12*NU > (NNU+1)/2 ) then
+        if( this%NPart10 <= (N+1)/2 ) then
+          if( this%NPart12 > (N+1)/2 ) then
 !$OMP DO        
-          do i = (this%NPart10-1)*NU+1, (NNU+1) / 2
+            do i = this%NPart10, (N+1) / 2
 #else
 !$OMP DO        
-      do i = 1, (NNU+1) / 2
+        do i = 1, (N+1) / 2
 #endif
-        PXi = PX1d(i)
-        PYi = PY1d(i)
-        PZi = PZ1d(i)
-        NInCutoff = this%NInCutoff(i)
-        m = CEILING(real(i)/NU)
-        NUm=NU*m
-        do j = NUm+1, (NNU/2) + i ! without intramolecular interaction
-          PXij = PXi - PX2d(j)
-          PYij = PYi - PY2d(j)
-          PZij = PZi - PZ2d(j)
-          PXij = PXij - anint( PXij )
-          PYij = PYij - anint( PYij )
-          PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
+          m = k+(i-1)*NU
+          PXi = PX1d(m)
+          PYi = PY1d(m)
+          PZi = PZ1d(m)
+          NInCutoff = this%NInCutoff(m)
+          do l = 1, NU
+            do j = i + 1, (N/2) + i
+              o = l+(j-1)*NU
+              PXij = PXi - PX2d(o)
+              PYij = PYi - PY2d(o)
+              PZij = PZi - PZ2d(o)
+              PXij = PXij - anint( PXij )
+              PYij = PYij - anint( PYij )
+              PZij = PZij - anint( PZij )
+              RijSquared = PXij**2 + PYij**2 + PZij**2
 
-          if( RijSquared < RCutoff ) then
-            NInCutoff = NInCutoff + 1
-            this%CutoffPartner(NInCutoff, i) = j
-          end if
+              if( RijSquared < RCutoff ) then
+                NInCutoff = NInCutoff + 1
+                this%CutoffPartner(NInCutoff, m) = o
+              end if
+            end do
+          end do
+          this%NInCutoff(m) = NInCutoff
         end do
-        this%NInCutoff(i) = NInCutoff
-      end do
 !$OMP END DO      
 
 !$OMP DO
 #if MPI_VER > 0
-          do i = (NNU+1) / 2 + 1, this%NPart12*NU
+            do i = (N+1) / 2 + 1, this%NPart12
 #else
-      do i = (NNU+1) / 2 + 1, NNU
+        do i = (N+1) / 2 + 1, N
 #endif
-        PXi = PX1d(i)
-        PYi = PY1d(i)
-        PZi = PZ1d(i)
-        NInCutoff = this%NInCutoff(i)
-        m = CEILING(real(i)/NU)
-        do j = 1, i - NNU/2 - 1
-          PXij = PXi - PX2d(j)
-          PYij = PYi - PY2d(j)
-          PZij = PZi - PZ2d(j)
-          PXij = PXij - anint( PXij )
-          PYij = PYij - anint( PYij )
-          PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
-
-          if( RijSquared < RCutoff ) then
-            NInCutoff = NInCutoff + 1
-            this%CutoffPartner(NInCutoff, i) = j
-          end if
-        end do
-        do j = m*NU+1, NNU
-          PXij = PXi - PX2d(j)
-          PYij = PYi - PY2d(j)
-          PZij = PZi - PZ2d(j)
-          PXij = PXij - anint( PXij )
-          PYij = PYij - anint( PYij )
-          PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
-
-          if( RijSquared < RCutoff ) then
-            NInCutoff = NInCutoff + 1
-            this%CutoffPartner(NInCutoff, i) = j
-          end if
-        end do
-        this%NInCutoff(i) = NInCutoff
-      end do
-!$OMP END DO      
-
-#if MPI_VER > 0
-        else
-!$OMP DO         
-          do i = (this%NPart10-1)*NU+1, this%NPart12*NU
-            PXi = PX1d(i)
-            PYi = PY1d(i)
-            PZi = PZ1d(i)
-            NInCutoff = this%NInCutoff(i)
-            m = CEILING(real(i)/NU)
-            do j = m*NU + 1, N*NU/2 + i
-              PXij = PXi - PX2d(j)
-              PYij = PYi - PY2d(j)
-              PZij = PZi - PZ2d(j)
+          m = k+(i-1)*NU
+          PXi = PX1d(m)
+          PYi = PY1d(m)
+          PZi = PZ1d(m)
+          NInCutoff = this%NInCutoff(m)
+          do l = 1, NU
+            do j = 1, i - N/2 - 1
+              o = l+(j-1)*NU
+              PXij = PXi - PX2d(o)
+              PYij = PYi - PY2d(o)
+              PZij = PZi - PZ2d(o)
               PXij = PXij - anint( PXij )
               PYij = PYij - anint( PYij )
               PZij = PZij - anint( PZij )
               RijSquared = PXij**2 + PYij**2 + PZij**2
               if( RijSquared < RCutoff ) then
                 NInCutoff = NInCutoff + 1
-                this%CutoffPartner(NInCutoff, i) = j
+                this%CutoffPartner(NInCutoff, m) = o
               end if
             end do
-            this%NInCutoff(i) = NInCutoff
+            do j = i + 1, N
+              o = l+(j-1)*NU
+              PXij = PXi - PX2d(o)
+              PYij = PYi - PY2d(o)
+              PZij = PZi - PZ2d(o)
+              PXij = PXij - anint( PXij )
+              PYij = PYij - anint( PYij )
+              PZij = PZij - anint( PZij )
+              RijSquared = PXij**2 + PYij**2 + PZij**2
+              if( RijSquared < RCutoff ) then
+                NInCutoff = NInCutoff + 1
+                this%CutoffPartner(NInCutoff, m) = o
+              end if
+            end do
           end do
-!$OMP END DO          
-        end if
-
-      else
-!$OMP DO       
-        do i = (this%NPart10-1)*NU+1, this%NPart12*NU
-          PXi = PX1d(i)
-          PYi = PY1d(i)
-          PZi = PZ1d(i)
-          NInCutoff = this%NInCutoff(i)
-          m = CEILING(real(i)/NU)
-          do j = 1, i - N*NU/2 - 1
-            PXij = PXi - PX2d(j)
-            PYij = PYi - PY2d(j)
-            PZij = PZi - PZ2d(j)
-            PXij = PXij - anint( PXij )
-            PYij = PYij - anint( PYij )
-            PZij = PZij - anint( PZij )
-            RijSquared = PXij**2 + PYij**2 + PZij**2
-
-            if( RijSquared < RCutoff ) then
-              NInCutoff = NInCutoff + 1
-              this%CutoffPartner(NInCutoff, i) = j
-            end if
-          end do
-          do j = m*NU + 1, N*NU
-            PXij = PXi - PX2d(j)
-            PYij = PYi - PY2d(j)
-            PZij = PZi - PZ2d(j)
-            PXij = PXij - anint( PXij )
-            PYij = PYij - anint( PYij )
-            PZij = PZij - anint( PZij )
-            RijSquared = PXij**2 + PYij**2 + PZij**2
-            if( RijSquared < RCutoff ) then
-              NInCutoff = NInCutoff + 1
-              this%CutoffPartner(NInCutoff, i) = j
-            end if
-          end do
-          this%NInCutoff(i) = NInCutoff
+          this%NInCutoff(m) = NInCutoff
         end do
-!$OMP END DO        
-        
-      end if
+!$OMP END DO      
+
+#if MPI_VER > 0
+          else
+  !$OMP DO         
+            do i = this%NPart10, this%NPart12
+              m = k+(i-1)*NU
+              PXi = PX1d(m)
+              PYi = PY1d(m)
+              PZi = PZ1d(m)
+              NInCutoff = this%NInCutoff(m)
+              do l = 1, NU
+                do j = i + 1, N/2 + i
+                  o = l+(j-1)*NU
+                  PXij = PXi - PX2d(o)
+                  PYij = PYi - PY2d(o)
+                  PZij = PZi - PZ2d(o)
+                  PXij = PXij - anint( PXij )
+                  PYij = PYij - anint( PYij )
+                  PZij = PZij - anint( PZij )
+                  RijSquared = PXij**2 + PYij**2 + PZij**2
+
+                  if( RijSquared < RCutoff ) then
+                    NInCutoff = NInCutoff + 1
+                    this%CutoffPartner(NInCutoff, m) = o
+                  end if
+                end do
+              end do
+              this%NInCutoff(m) = NInCutoff
+            end do
+  !$OMP END DO          
+          end if
+
+        else
+  !$OMP DO       
+          do i = this%NPart10, this%NPart12
+            m = k+(i-1)*NU
+            PXi = PX1d(m)
+            PYi = PY1d(m)
+            PZi = PZ1d(m)
+            NInCutoff = this%NInCutoff(m)
+            do l = 1, NU
+              do j = 1, i - N/2 - 1
+                o = l+(j-1)*NU
+                PXij = PXi - PX2d(o)
+                PYij = PYi - PY2d(o)
+                PZij = PZi - PZ2d(o)
+                PXij = PXij - anint( PXij )
+                PYij = PYij - anint( PYij )
+                PZij = PZij - anint( PZij )
+                RijSquared = PXij**2 + PYij**2 + PZij**2
+
+                if( RijSquared < RCutoff ) then
+                  NInCutoff = NInCutoff + 1
+                  this%CutoffPartner(NInCutoff, m) = o
+                end if
+              end do
+              do j = i + 1, N
+                o = l+(j-1)*NU
+                PXij = PXi - PX2d(o)
+                PYij = PYi - PY2d(o)
+                PZij = PZi - PZ2d(o)
+                PXij = PXij - anint( PXij )
+                PYij = PYij - anint( PYij )
+                PZij = PZij - anint( PZij )
+                RijSquared = PXij**2 + PYij**2 + PZij**2
+                if( RijSquared < RCutoff ) then
+                  NInCutoff = NInCutoff + 1
+                  this%CutoffPartner(NInCutoff, m) = o
+                end if
+              end do
+            end do
+            this%NInCutoff(m) = NInCutoff
+          end do
+  !$OMP END DO        
+          
+        end if
 #endif
-    else
-      N2 = this%NPart2
+      end do
+
+    else ! not same component
 
 !$OMP DO      
 #if MPI_VER > 0
