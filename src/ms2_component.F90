@@ -47,7 +47,7 @@ module ms2_component
 #endif
 
     ! Positions and orientations for units of test particles
-    real(RK), pointer, contiguous :: P0Test(:, :, :), Q0Test(:, :, :)
+    real(RK), pointer :: P0Test(:, :, :), Q0Test(:, :, :)
 
     ! Intramolecular energy of test particles
     real(RK), pointer, contiguous :: EPotTestIntra(:)

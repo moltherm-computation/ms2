@@ -156,7 +156,18 @@ contains
     call FileReadParameter_IOBuffer( iounit_potmod, IdBond_Sites )
     read( IOBuffer, * ) this%SiteId1, this%SiteId2
     call FileReadParameter( this%R0, iounit_potmod, IdBond_R0, .false.)
-    call FileReadParameter( this%ForConst, iounit_potmod, IdBond_ForConst, .false.)
+    if (Shake > 0) then
+      this%ForConst = 1e07_RK
+    else
+      call FileReadParameter( this%ForConst, iounit_potmod, IdBond_ForConst, .false.)
+      if (this%ForConst < 100) then
+        call LogWriteBlank
+        write( IOBuffer, '("WARNING: Check your bond definition. Currently a/some connections are faulty.")' )
+        call LogWrite
+        write( IOBuffer, '("Either use Shake to keep bonds rigd or choose a reasonably high force constant.")' )
+        call LogWrite
+      end if
+    end if
 
     ! Convert to SI units
     this%R0 = this%R0 * Angstroem

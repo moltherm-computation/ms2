@@ -469,9 +469,6 @@ module ms2_global
   real(RK)            :: BuckinghamsInSI
   real(RK)            :: kForceOsmoticPressure
 
-  ! Upper value of the standard deviation of the velocity distribution for the force cricteria used in GE + MD Simulations
-  real(RK), parameter :: root8PIplus1 = sqrt(8._RK / PI + 1._RK)  !rootkB8PIplus1 = sqrt((8._RK / PI + 1._RK) * kBoltzmann)
-
   ! Version of the parameter file
   real(RK) :: parVersionNr
   
