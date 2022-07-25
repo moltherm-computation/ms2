@@ -137,7 +137,7 @@ module ms2_interaction
     real(RK) :: DebyeLen
 
     ! (2*eps-1)/(2*eps+1)
-    real(RK) :: RFConst2, RFConst3
+    real(RK) :: RFConst2
 
     ! Same component + w/o intramolecular nonbonded interactions
     logical :: SameComponent
@@ -150,7 +150,6 @@ module ms2_interaction
 
     ! Ewald Summation
     real(RK) :: Kappa
-    real(RK) :: RFConstant
     real(RK) :: lad1,lad2
     
     ! IDF
@@ -277,23 +276,21 @@ contains
     integer :: stat
     real    :: fac
 
-    ! RFConstant2
-    if (LongRange .eq. RField) then
-      this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
-
-    else
+    ! RFConst2
+    if (LongRange .eq. ExtRField) then
       fac = this%DebyeLen*RCutoffDipoleDipole
       this%RFConst2 = - 2._RK / RCutoffDipoleDipole**3 &
 &                     * ( (RFEpsilon - 1._RK)*(1._RK+fac)+ 0.5*RFEpsilon*(fac)**2 )   &
 &                     / ( (2._RK * RFEpsilon+1._RK)*(1._RK+fac) + RFEpsilon*(fac)**2 )
-
-      this%RFConst3 = -3._RK / RCutoffDipoleDipole * RFEpsilon*(1._RK+fac+0.5*(fac)**2) &
-&                     / ( (2._RK * RFEpsilon + 1._RK)*(1+fac) + RFEpsilon*(fac)**2 )
-      this%RFConstant=RCutoffDipoleDipole
+    else
+      this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
     end if
 
     ! Set SameComponent flag
     this%SameComponent = i1 == i2
+    if ( this%SameComponent .and. Component1%Molecule%hasIntraLJEl) then
+      this%includeIntraLJEl = .true.
+    end if
 
     ! Set number of particles
     this%NPart1 => Component1%NPart
@@ -1901,7 +1898,7 @@ contains
     real(RK)          :: BoxLengthThird
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer, contiguous :: PX2(:, :), PY2(:, :), PZ2(:, :)
+    real(RK), pointer :: PX2(:, :), PY2(:, :), PZ2(:, :)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: OXi, OYi, OZi
@@ -3619,7 +3616,7 @@ end subroutine TInteraction_Energy
     real(RK)          :: BoxLengthThird
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
 !     real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:)
-    real(RK), pointer, contiguous :: PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
@@ -3691,8 +3688,8 @@ end subroutine TInteraction_Energy
     PY2 => this%PY2
     PZ2 => this%PZ2
 
-  !!! Michael Sch.: if clause to skip nonbonded interactions if intraLJEL=off here
-  if (IntraLJEL) then
+  !!! Michael Sch.: if clause to skip nonbonded interactions if component has none
+  if (this%includeIntraLJEl) then
 
     ! Initialization Ewald Summation
     if ( .not. this%ReactionField ) then
@@ -3706,8 +3703,9 @@ end subroutine TInteraction_Energy
 
       ! Calculate Lennard-Jones energy
       do s1 = this%UnitLJ1(nu), this%UnitLJ1(nu+1) - 1
-        do k=1, this%NInCutoff(nu)
-          j = this%CutoffPartner(k, nu) ! j - global number of unit
+        do j=1, this%NUnit2 ! Michael Sch.: changed
+!         do k=1, this%NInCutoff(nu)
+!           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitLJ2(j), this%UnitLJ2(j+1) - 1
 
             ! Set site specific variables
@@ -3785,8 +3783,9 @@ end subroutine TInteraction_Energy
 
       ! Calculate point charge energy
       do s1 = this%UnitC1(nu), this%UnitC1(nu+1) - 1
-        do k=1, this%NInCutoff(nu)
-          j = this%CutoffPartner(k, nu) ! j - global number of unit
+        do j=1, this%NUnit2 ! Michael Sch.: changed
+!         do k=1, this%NInCutoff(nu)
+!           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
             pcc => this%PotChargeCharge(s1, s2)
 
@@ -4093,8 +4092,9 @@ end subroutine TInteraction_Energy
 
       ! Calculate dipolar energy
       do s1 = this%UnitDP1(nu), this%UnitDP1(nu+1) - 1
-        do k=1, this%NInCutoff(nu)
-          j = this%CutoffPartner(k, nu) ! j - global number of unit
+        do j=1, this%NUnit2 ! Michael Sch.: changed
+!         do k=1, this%NInCutoff(nu)
+!           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
             pdc => this%PotDipoleCharge(s1, s2)
 
@@ -4385,8 +4385,9 @@ end subroutine TInteraction_Energy
 
       ! Calculate quadrupolar energy
       do s1 = this%UnitQP1(nu), this%UnitQP1(nu+1) - 1
-        do k=1, this%NInCutoff(nu)
-          j = this%CutoffPartner(k, nu) ! j - global number of unit
+        do j=1, this%NUnit2 ! Michael Sch.: changed
+!         do k=1, this%NInCutoff(nu)
+!           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
             pqc => this%PotQuadrupoleCharge(s1, s2)
 
@@ -5312,8 +5313,9 @@ end subroutine TInteraction_Energy
         end if
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RSquared
-        d2EpotdV2Local = d2EpotdV2Local - R * 2._RK * F0 * dR * (sitecorr * sitecorr - Plen2/RSquared)*Third*Third !xxxx Bond
-        d2EpotdV2Local = d2EpotdV2Local + RSquared * 2._RK * F0 * sitecorr * sitecorr *Third*Third
+        d2EpotdV2Local = RSquared * 2._RK * F0 * sitecorr * sitecorr *Third*Third !xxxx Bond
+        d2EpotdV2Local = d2EpotdV2Local - R * 2._RK * F0 * dR * (sitecorr * sitecorr - Plen2/RSquared)*Third*Third
+        d2EpotdV2(unit2) = d2EpotdV2(unit2) + d2EpotdV2Local
       end do ! bonds
 
       ! Angle Interaction
@@ -5795,7 +5797,7 @@ end subroutine TInteraction_Energy
     integer, intent(in) :: np
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PX1d(this%NUnit1), PY1d(this%NUnit1), PZ1d(this%NUnit1)
     real(RK)          :: PX2d(this%NPart2*this%NUnit2)
     real(RK)          :: PY2d(this%NPart2*this%NUnit2)
@@ -5883,7 +5885,7 @@ end subroutine TInteraction_Energy
     integer, intent(in) :: nu
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: PX2d(this%NPart2*this%NUnit2)
     real(RK)          :: PY2d(this%NPart2*this%NUnit2)
@@ -6129,7 +6131,7 @@ end subroutine TInteraction_Energy
     type(TInteraction) :: this
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PX1d(this%NPart1*this%NUnit1)
     real(RK)          :: PY1d(this%NPart1*this%NUnit1)
     real(RK)          :: PZ1d(this%NPart1*this%NUnit1)
@@ -6291,7 +6293,7 @@ end subroutine TInteraction_Energy
     type(TInteraction) :: this
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared, RCutoff
     integer           :: i, j, NInCutoff, k, l, m, n

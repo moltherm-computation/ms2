@@ -368,10 +368,6 @@ module ms2_component
     module procedure TComponent_RotateTest
   end interface
 
-  interface Mol2Resize
-    module procedure TComponent_Mol2Resize
-  end interface
-
   interface Mol2Unit
     module procedure TComponent_Mol2Unit
   end interface
@@ -3285,56 +3281,6 @@ subroutine TComponent_InitUnit( this, np, dq )
 
 
 !==============================================================!
-!  Subroutine TComponent_Mol2Resize                            !
-!==============================================================!
-
-  subroutine TComponent_Mol2Resize( this, DelBoxFrac )
-
-    implicit none
-
-    ! Declare arguments
-    real(RK),intent(in) :: DelBoxFrac
-    type(TComponent)    :: this
-!     integer, intent(in) :: np
-!     integer, intent(in) :: nu
-
-    ! Declare local variables
-    real(RK)            :: PXij, PYij,PZij
-    integer             :: nu, np
-    integer             :: i, j
-
-
-    ! Calculate positions of units after global resize
-    nu = this%Molecule%NUnit
-    np = this%NPart
-    if (nu .eq. 1) then
-      do i=1, np
-        this%P0(i,1,1) = this%Pm0(i,1)
-        this%P0(i,2,1) = this%Pm0(i,2)
-        this%P0(i,3,1) = this%Pm0(i,3)
-      end do
-    else
-      do i=1, np
-        do j=1,nu
-          PXij = this%P0(i,1,j) - this%Pm0(i,1)
-          PYij = this%P0(i,2,j) - this%Pm0(i,2)
-          PZij = this%P0(i,3,j) - this%Pm0(i,3)
-
-          this%P0(i,1,j) = ( PXij - anint(PXij) ) / DelBoxFrac + this%Pm0(i,1)
-          this%P0(i,2,j) = ( PYij - anint(PYij) ) / DelBoxFrac + this%Pm0(i,2)
-          this%P0(i,3,j) = ( PZij - anint(PZij) ) / DelBoxFrac + this%Pm0(i,3)
-
-        !  this%P0(i,1,j) = this%P0(i,1,j) - anint(this%P0(i,1,j))
-        !  this%P0(i,2,j) = this%P0(i,2,j) - anint(this%P0(i,2,j))
-        !  this%P0(i,3,j) = this%P0(i,3,j) - anint(this%P0(i,3,j))
-        end do
-      end do
-    end if
-
-    end subroutine TComponent_Mol2Resize
-
-
-!==============================================================!
 !  Subroutine TComponent_Mol2Unit                              !
 !==============================================================!
 
@@ -3454,118 +3400,6 @@ subroutine TComponent_InitUnit( this, np, dq )
     end if
 
   end subroutine TComponent_Mol2Unit
-
-
-!==============================================================!
-!  Subroutine TComponent_Mol2Unit1Test                             !
-!==============================================================!
-
-  subroutine TComponent_Mol2Unit1Test( this, np, nu )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)    :: this
-    integer, intent(in) :: np
-    integer, intent(in) :: nu
-
-    ! Declare local variables
-    real(RK)                       :: BoxLengthInv
-    real(RK)                       :: PmX, PmY, PmZ
-    real(RK)                       :: q1, q2, q3, q4, qinv
-    real(RK)                       :: A11, A12, A13
-    real(RK)                       :: A21, A22, A23
-    real(RK)                       :: A31, A32, A33
-    type(TUnit), pointer           :: pUnit
-    integer                        :: j
-
-    ! Broadcast positions and orientations to all processes
-#if MPI_VER > 0
-    ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%Pm0Test(:, :), size( this%Pm0Test ), MPI_RK, NRootProc, Communicator, ierror )
-      if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Qm0Test(:, :), size( this%Qm0Test ), MPI_RK, NRootProc, Communicator, ierror )
-      end if
-    end if
-#endif
-
-    ! Assign local variables
-    BoxLengthInv = 1._RK / this%BoxLength
-!    nu  = this%Molecule%NUnit
-
-    ! Check number of rotation axes
-    if( this%Molecule%isElongated ) then
-!      PmX = this%Pm0Test(np, 1)
-!      PmY = this%Pm0Test(np, 2)
-!      PmZ = this%Pm0Test(np, 3)
-!      q1 = this%Qm0Test(np, 1)
-!      q2 = this%Qm0Test(np, 2)
-!      q3 = this%Qm0Test(np, 3)
-!      q4 = this%Qm0Test(np, 4)
-
-      ! Normalise quaternions
-#if ARCH == 3
-      qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#else
-      qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#endif
-      q1 = q1 * qinv
-      q2 = q2 * qinv
-      q3 = q3 * qinv
-      q4 = q4 * qinv
-!      this%Qm0Test(np, 1) = q1
-!      this%Qm0Test(np, 2) = q2
-!      this%Qm0Test(np, 3) = q3
-!      this%Qm0Test(np, 4) = q4
-
-      ! Calculate rotation matrix elements
-      A11 = q1**2 + q2**2 - q3**2 - q4**2
-      A12 = 2._RK * (q2 * q3 + q1 * q4)
-      A13 = 2._RK * (q2 * q4 - q1 * q3)
-      A21 = 2._RK * (q2 * q3 - q1 * q4)
-      A22 = q1**2 - q2**2 + q3**2 - q4**2
-      A23 = 2._RK * (q3 * q4 + q1 * q2)
-      A31 = 2._RK * (q2 * q4 + q1 * q3)
-      A32 = 2._RK * (q3 * q4 - q1 * q2)
-      A33 = q1**2 - q2**2 - q3**2 + q4**2
-
-
-      ! Calculate initial COM position and quartenions for Units
-      ! Loop over Units in molecule
-      do j = 1, nu
-        pUnit => this%Molecule%Unit(j)
-        this%P0Test(np, 1, j) = PmX + (pUnit%P0(1)*A11+pUnit%P0(2)*A21+pUnit%P0(3)*A31) * BoxLengthInv
-        this%P0Test(np, 2, j) = PmY + (pUnit%P0(1)*A12+pUnit%P0(2)*A22+pUnit%P0(3)*A32) * BoxLengthInv
-        this%P0Test(np, 3, j) = PmZ + (pUnit%P0(1)*A13+pUnit%P0(2)*A23+pUnit%P0(3)*A33) * BoxLengthInv
-        this%Q0Test(np,1,j) = this%Qm0(np,1)*pUnit%Q0(1) - this%Qm0(np,2)*pUnit%Q0(2) - &
-&                            this%Qm0(np,3)*pUnit%Q0(3) - this%Qm0(np,4)*pUnit%Q0(4)
-        this%Q0Test(np,2,j) = this%Qm0(np,1)*pUnit%Q0(2) + this%Qm0(np,2)*pUnit%Q0(1) + &
-&                            this%Qm0(np,3)*pUnit%Q0(4) - this%Qm0(np,4)*pUnit%Q0(3)
-        this%Q0Test(np,3,j) = this%Qm0(np,1)*pUnit%Q0(3) + this%Qm0(np,3)*pUnit%Q0(1) - &
-&                            this%Qm0(np,2)*pUnit%Q0(4) + this%Qm0(np,4)*pUnit%Q0(2)
-        this%Q0Test(np,4,j) = this%Qm0(np,1)*pUnit%Q0(4) + this%Qm0(np,4)*pUnit%Q0(1) - &
-&                            this%Qm0(np,2)*pUnit%Q0(3) - this%Qm0(np,3)*pUnit%Q0(2)
-      end do
-
-    else    ! if Molecule is not Elongated
-      ! Positions and quaternions of particle np
-!      PmX = this%Pm0Test(np, 1)
-!      PmY = this%Pm0Test(np, 2)
-!      PmZ = this%Pm0Test(np, 3)
-      do j = 1, nu
-        this%P0Test(np, 1, j) = PmX ! COM of Unit in space-fixed system
-        this%P0Test(np, 2, j) = PmY
-        this%P0Test(np, 3, j) = PmZ
-      end do
-    end if
-
-  end subroutine TComponent_Mol2Unit1Test
 
 
 !==============================================================!

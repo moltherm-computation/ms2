@@ -611,7 +611,6 @@ module ms2_global
   integer :: NSteps
 
   ! Number of MC overlap reduction steps
-  integer :: NStepsMC
   integer :: NStepsMCOR
 
   ! Number of energy minimization steps; 1. rigid type, 2. flexible type
