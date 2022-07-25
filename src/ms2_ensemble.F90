@@ -14897,7 +14897,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     if( SimulationType .eq. MolecularDynamics .and. ConstantPressure ) then
       write( IOBuffer, '("Mass of piston", T29, "reduced:", F20.9)' ) this%PistonMass
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T28, "in kg/m⁴:", F20.9)' ) this%PistonMass * UnitMass / UnitLength**4
+      write( IOBuffer, '(T28, "in kg/m⁴:", F20.9)' ) this%PistonMass * 0.001_RK * UnitMass / UnitLength**4
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
     end if
@@ -16978,7 +16978,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
             q(1) = 1._RK
             q(2:4) = .0_RK
           end if
-          write( IOBuffer, '("!", I3,  3I5, 4I5)' ) (num+k),  nint( r(:) * 999 ), nint( q(:) * 999 )
+          write( IOBuffer, '("!", I3,  3I5, 4I5)' ) (num+k),  nint( r(:) * 999.99_RK ), nint( q(:) * 999.99_RK )
           call FileWrite( this%iounit_visual )
         end do
       end do
