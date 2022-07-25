@@ -80,7 +80,7 @@ module ms2_molecule
     integer, allocatable :: QuadrupoleSiteIds(:)
     integer, allocatable :: ConstraintSiteIds(:)
     integer, allocatable :: NotConstraintSiteIds(:)
-    integer, pointer     :: UnitLJ(:),UnitC(:),UnitDP(:),UnitQP(:)
+    integer, pointer, contiguous :: UnitLJ(:), UnitC(:), UnitDP(:), UnitQP(:)
 
     ! Bond for internal degree of freedom
     integer :: NBond

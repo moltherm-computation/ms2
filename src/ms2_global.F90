@@ -418,9 +418,9 @@ module ms2_global
   character(*), parameter :: IdBond_R0                     = 'R0'
   character(*), parameter :: IdAngle_ForConst              = 'ForConst'
   character(*), parameter :: IdAngle_Angle0                = 'Angle0'
-  character(*), parameter :: IdDihedral_PotBarrier         = 'PotBarrier'
-  character(*), parameter :: IdDihedral_n                  = 'n'
-  character(*), parameter :: IdDihedral_gamma              = 'gamma'
+  character(*), parameter :: IdDihedral_nmax               = 'nmax'
+  character(*), parameter :: IdDihedral_ForConst           = 'ForConst'
+  character(*), parameter :: IdDihedral_gamma0             = 'gamma0'
   character(*), parameter :: IdDihedral_ScaleLJ14          = 'ScaleLJ14'
   character(*), parameter :: IdDihedral_ScaleEl14          = 'ScaleEl14'
   character(*), parameter :: IdNFluct                      = 'NFluct'
@@ -468,9 +468,6 @@ module ms2_global
   real(RK)            :: DebyesInSI
   real(RK)            :: BuckinghamsInSI
   real(RK)            :: kForceOsmoticPressure
-
-  ! Upper value of the standard deviation of the velocity distribution for the force cricteria used in GE + MD Simulations
-  real(RK), parameter :: root8PIplus1 = sqrt(8._RK / PI + 1._RK)  !rootkB8PIplus1 = sqrt((8._RK / PI + 1._RK) * kBoltzmann)
 
   ! Version of the parameter file
   real(RK) :: parVersionNr
@@ -614,7 +611,6 @@ module ms2_global
   integer :: NSteps
 
   ! Number of MC overlap reduction steps
-  integer :: NStepsMC
   integer :: NStepsMCOR
 
   ! Number of energy minimization steps; 1. rigid type, 2. flexible type
