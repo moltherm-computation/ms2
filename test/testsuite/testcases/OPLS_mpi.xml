@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>C4H10_OPLS_p3T2_Ring.par</parFile>
+	<np>3</np>
+	<name>OPLS_mpi</name>
+	<reference>
+		<file>C4H10_OPLS_p3T2_Ring_1.rav</file>
+	</reference>
+	<reference>
+		<file>C4H10_OPLS_p3T2_Ring_1.res</file>
+	</reference>
+	<reference>
+		<file>C4H10_OPLS_p3T2_Ring_1.run</file>
+	</reference>
+	<reference>
+		<file>C4H10_OPLS_p3T2_Ring.rst</file>
+		<relativeTolerance>1e-6</relativeTolerance>
+	</reference>
+</testcase>

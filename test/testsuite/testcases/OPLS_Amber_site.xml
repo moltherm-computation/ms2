@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>C3H8_OPLSAmb_p3T2_Ring.par</parFile>
+	<name>OPLS_Amber_site</name>
+	<reference>
+		<file>C3H8_OPLSAmb_p3T2_Ring_1.rav</file>
+	</reference>
+	<reference>
+		<file>C3H8_OPLSAmb_p3T2_Ring_1.res</file>
+	</reference>
+	<reference>
+		<file>C3H8_OPLSAmb_p3T2_Ring_1.run</file>
+	</reference>
+	<reference>
+		<file>C3H8_OPLSAmb_p3T2_Ring.rst</file>
+	</reference>
+</testcase>
