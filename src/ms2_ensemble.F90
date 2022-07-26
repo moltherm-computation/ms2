@@ -12890,6 +12890,7 @@ loop5:        do nu = 1, this%Component(ncf)%Molecule%NUnit
     if( ConstantPressure ) then
       call Update( this%SumEnthalpy, this%EPotInter / real( this%NPart, RK ) + this%RefPressure / this%Density - &
 &      (1-this%NUnitTotal/this%Npart)*this%RefTemperature )
+!       call Update( this%SumEnthalpy, this%EPot/real(this%NPart,RK) + this%Pressure/this%Density - this%RefTemperature) - refT to adjust H=U+pv with p_res, u already u_res
     else
       call Update( this%SumEnthalpy, this%EPot/real(this%NPart,RK) + this%Pressure/this%Density)
     end if
