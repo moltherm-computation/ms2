@@ -1,5 +1,5 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
 !  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
@@ -36,6 +36,13 @@
 # endif
 #endif
 
+#ifndef OSMOP
+#define OSMOP 0
+#endif
+
+#ifndef HBOND
+#define HBOND 0
+#endif
 
 module ms2_global
 
@@ -46,7 +53,6 @@ module ms2_global
 #ifdef __INTEL_COMPILER
   use IFPORT
 #endif
-
 
 !==============================================================!
 !  Global constants and variables                              !
@@ -80,7 +86,7 @@ module ms2_global
 #endif
 
   ! Version of program
-  character(*), parameter :: VersionString  = 'v2.1'
+  character(*), parameter :: VersionString = 'v2.1'
   Real(RK)                :: ms2VersionNr = 2.1_RK
 #ifdef __DATE__
 #ifdef __TIME__
@@ -172,9 +178,9 @@ module ms2_global
   ! Extension fo result correlation fucntion
   character(*), parameter :: ResultTransportExtension = '.rtr'
 
-  ! Extension of DCP file
+  ! Extension of DCP file 
   character(*), parameter :: DCPFileExtension = '.dcp'
-
+  
   ! Marker within a result file for each ensemble data
   character(*), parameter :: RstEnsembleMarker = 'ENSEMBLE'
 
@@ -232,7 +238,7 @@ module ms2_global
 
   ! Define comment character
   character, parameter :: CommentSign = '#'
-  ! Define whitespaces                     TAB       CR
+  ! Define whitespaces                            TAB       CR
   character(*), parameter :: Whitespaces=' '//char(9)//char(13)
 
   ! Define identifiers used in configuration file
@@ -258,10 +264,10 @@ module ms2_global
   character(*), parameter :: IdNStepsMCOR                  = 'MCORSteps'
   character(*), parameter :: IdNStepsrigEmin               = 'rigEminSteps'
   character(*), parameter :: IdNStepsflexEmin              = 'flexEminSteps'
-  character(*), parameter :: IdNStepsE                     = 'NVESteps'
   character(*), parameter :: IdNStepsV                     = 'NVTSteps'
+  character(*), parameter :: IdNStepsE                     = 'NVESteps'
   character(*), parameter :: IdNStepsP                     = 'NPTSteps'
-  character(*), parameter :: IdNStepsH                     = 'NPHSteps'
+  character(*), parameter :: IdNStepsH                     = 'NPHSteps'  
   character(*), parameter :: IdNStepsMue                   = 'mueVTSteps'
   character(*), parameter :: IdNStepsMueP                  = 'muePTSteps'
   character(*), parameter :: IdNSteps                      = 'RunSteps'
@@ -308,6 +314,7 @@ module ms2_global
   character(*), parameter :: IdChemPotMethod               = 'ChemPotMethod'
   character(*), parameter :: IdPermeability                = 'Permeability'
   character(*), parameter :: IdNHBonds                     = 'NHBondCriteria'
+  !Koester
   character(*), parameter :: IdGradInsInit                 = 'GISteps'
   character(*), parameter :: IdWeightFactors               = 'WeightFactors'
   character(*), parameter :: IdNTest                       = 'NTest'
@@ -424,6 +431,15 @@ module ms2_global
   character(*), parameter :: IdDihedral_ScaleLJ14          = 'ScaleLJ14'
   character(*), parameter :: IdDihedral_ScaleEl14          = 'ScaleEl14'
   character(*), parameter :: IdNFluct                      = 'NFluct'
+
+#if CONSTR > 0
+  character(*), parameter :: IdNCons                       = 'NConstr'
+  character(*), parameter :: IdCons1Comp                   = 'Constr1Typ'
+  character(*), parameter :: IdCons2Comp                   = 'Constr2Typ'
+  character(*), parameter :: IdCons1                       = 'Constr1'
+  character(*), parameter :: IdCons2                       = 'Constr2'
+  character(*), parameter :: IdConsR                       = 'ConstrDist'
+#endif
   character(*), parameter :: IdOptPressure                 = 'OptPressure'
   character(*), parameter :: IdCommonEqui                  = 'CommonEqui'
 
@@ -467,15 +483,15 @@ module ms2_global
   real(RK), parameter :: DegreesInRadian = 180._RK / Pi
   real(RK)            :: DebyesInSI
   real(RK)            :: BuckinghamsInSI
-  real(RK)            :: kForceOsmoticPressure
-
+  real(RK)            :: kForceOsmoticPressure 
+  
   ! Version of the parameter file
   real(RK) :: parVersionNr
   
   ! Walltime settings
   integer :: max_time
   integer :: time_limit
-
+  
   ! Use reduced units for temperature, pressure, density
   logical :: UseReducedUnits
 
@@ -567,9 +583,9 @@ module ms2_global
   real(RK) :: ScaleLJ14   ! Scaling factor for Lennard-Jones terms in intramolecular 1,4 interactions
 
   ! Type of method for chemical potential
-  integer, parameter :: ChemPotMethodNone      = 0
-  integer, parameter :: ChemPotMethodWidom     = 1
-  integer, parameter :: ChemPotMethodGradIns   = 2
+  integer, parameter :: ChemPotMethodNone    = 0
+  integer, parameter :: ChemPotMethodWidom   = 1
+  integer, parameter :: ChemPotMethodGradIns = 2
   integer, parameter :: ChemPotMethodThermoInt = 3
 
   ! Type of method for weighting factors
@@ -613,15 +629,15 @@ module ms2_global
   ! Number of MC overlap reduction steps
   integer :: NStepsMCOR
 
+  ! Number of NVT equilibration time steps
+  integer :: NStepsV
+
   ! Number of energy minimization steps; 1. rigid type, 2. flexible type
   integer :: NStepsrigEmin
   integer :: NStepsflexEmin
-  
+
   ! Number of NVE equilibration time steps
   integer :: NStepsE
-
-  ! Number of NVT equilibration time steps
-  integer :: NStepsV
 
   ! Number of NPT equilibration time steps
   integer :: NStepsP
@@ -718,23 +734,23 @@ module ms2_global
   ! MPI variables
 #if MPI_VER > 0
   integer :: ierror
-  integer :: Communicator       ! actual MPI communicator
-  !integer :: Communicator_W    ! =MPI_COMM_WORLD
-  integer :: Communicator_R     ! MPI communicator containing all roots
-  integer :: NProcs     ! number of PEs within actual MPI communicator
-  integer :: NProc      ! MPI rank of actual MPI communicator
-  integer :: NRootProc  ! MPI rank of root of actual MPI communicator
-  logical :: RootProc   ! is PE root within actual MPI communicator
-  integer :: NProcs_W   ! number of PEs within MPI_COMM_WORLD
-  integer :: NProc_W    ! MPI rank within MPI_COMM_WORLD
-  integer :: NRootProc_W        ! MPI rank of root PE within MPI_COMM_WORLD
-  logical :: RootProc_W         ! is PE root of MPI_COMM_WORLD?
-  integer :: NProcs_R   ! number of PEs within actual Communicator_R
-  integer :: NProc_R    ! MPI rank within actual Communicator_R
-  integer :: NRootProc_R        ! MPI rank of root PE within actual Communicator_R
-  logical :: RootProc_R         ! is PE root of actual Communicator_R?
-  integer :: NCommunicators     ! number of Communicators (useful after MPI_Comm_Split)
-  integer :: NCommunicator      ! ID of the Communicator
+  integer :: Communicator	! actual MPI communicator
+  !integer :: Communicator_W	! =MPI_COMM_WORLD
+  integer :: Communicator_R	! MPI communicator containing all roots
+  integer :: NProcs	! number of PEs within actual MPI communicator
+  integer :: NProc	! MPI rank of actual MPI communicator
+  integer :: NRootProc	! MPI rank of root of actual MPI communicator
+  logical :: RootProc	! is PE root within actual MPI communicator
+  integer :: NProcs_W	! number of PEs within MPI_COMM_WORLD
+  integer :: NProc_W	! MPI rank within MPI_COMM_WORLD
+  integer :: NRootProc_W	! MPI rank of root PE within MPI_COMM_WORLD
+  logical :: RootProc_W 	! is PE root of MPI_COMM_WORLD?
+  integer :: NProcs_R	! number of PEs within actual Communicator_R
+  integer :: NProc_R	! MPI rank within actual Communicator_R
+  integer :: NRootProc_R	! MPI rank of root PE within actual Communicator_R
+  logical :: RootProc_R 	! is PE root of actual Communicator_R?
+  integer :: NCommunicators	! number of Communicators (useful after MPI_Comm_Split)
+  integer :: NCommunicator	! ID of the Communicator
   !
   !integer, parameter :: mpimsgtag_log    = 0
   integer, parameter :: mpimsgtag_simTerm = 1
@@ -754,18 +770,21 @@ module ms2_global
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
   ! Flag for catched terminate signal
   logical :: TerminateProgram
+
 ! PGF compiler version < 6.0 seems to need this
-! #ifdef _PGF || defined __PGI
+! #ifdef _PGF
 !   ! External funtion for signal handling
 !   external SetTerminateProgram
 ! #endif
+
 #else
   logical, parameter :: TerminateProgram = .false.
 #endif
 
-  integer, parameter :: IdErrorCodeBase = b'1000000000000000'   !=32768
+  integer, parameter :: IdErrorCodeBase = b'1000000000000000'	!=32768
   ! e.g. 10000 would be better to read for pure addition, but
   ! bits might code error type, origin (module&function),...
+
 
 !==============================================================!
 !  Global procedure interfaces                                 !
@@ -837,10 +856,28 @@ module ms2_global
     module procedure Global_FileReset
   end interface
 
+# if MPI_VER > 0 
+  interface FileRewrite_parallel
+    module procedure Global_FileRewrite_parallel
+  end interface
+
+  interface FileWriteNoAdvance_parallel
+    module procedure Global_FileWriteNoAdvance_parallel
+  end interface
+
+  interface FileAppend_parallel
+    module procedure Global_FileAppend_parallel
+  end interface
+
+  interface FileClose_parallel
+    module procedure Global_FileClose_parallel
+  end interface
+#endif
+
   interface FileRewind
    module procedure Global_FileRewind !Michael Sch.: only needed in ms2_molecule.F90 ... really needed
   end interface
-  
+
   interface FileRewrite
     module procedure Global_FileRewrite
   end interface
@@ -865,24 +902,6 @@ module ms2_global
     module procedure Global_FileWriteBlank
   end interface
 
-# if MPI_VER > 0 
-  interface FileRewrite_parallel
-    module procedure Global_FileRewrite_parallel
-  end interface
-
-  interface FileWriteNoAdvance_parallel
-    module procedure Global_FileWriteNoAdvance_parallel
-  end interface
-
-  interface FileAppend_parallel
-    module procedure Global_FileAppend_parallel
-  end interface
-
-  interface FileClose_parallel
-    module procedure Global_FileClose_parallel
-  end interface
-#endif
-  
   ! backward compatible version of FileReadParameter
   interface FileReadParameter_IOBuffer
     module procedure Global_FileReadParameter_buffer
@@ -953,7 +972,7 @@ module ms2_global
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
   ! Flush of I/O units
   external flush
-
+  
   ! get/set file position
   integer, external :: ftell
 #ifdef __GNUC__
@@ -961,7 +980,7 @@ module ms2_global
 #else
   integer, external :: fseek
 #endif
-
+  
   ! change current directory
 #if defined _PGF || defined __PGI
   integer, external :: chdir
@@ -1002,8 +1021,6 @@ contains
 &            , ' (compiled at ', CompileTime, ')'
     end if
   end subroutine Global_printVersion
-  
-!==============================================================!
 
   subroutine Global_printUsage()
     implicit none
@@ -1013,9 +1030,9 @@ contains
 &            , ParameterFileExtension, '] [<OutputPrefix>]', '}'
     end if
   end subroutine Global_printUsage
-
+  
 !==============================================================!
-
+  
 #if ARCH == 3
   function new_line( c  ) result(newline)
     implicit none
@@ -1027,10 +1044,10 @@ contains
 !==============================================================!
 
 #if MPI_VER > 0
+
 !==============================================================!
 !  Subroutine Global_SetCommunicator                           !
 !==============================================================!
-
 ! setting Communicator, NProc, NProcs, NRootProc, RootProc
 
   subroutine Global_SetCommunicator(comm)
@@ -1053,9 +1070,8 @@ contains
     end if
     NRootProc = 0
     RootProc = NProc == NRootProc
-
+    
   end subroutine Global_SetCommunicator
-
 
 !==============================================================!
 !  Subroutine Global_SplitCommunicator                         !
@@ -1083,9 +1099,9 @@ contains
       NCommunicators=ngroups
     endif
     
-    write( IOBuffer, '("splitting communicator with",I4," PEs to ",I3," subcommunicators")') NProcs,NCommunicators
+    write( IOBuffer, '("splitting communicator with",I4," PEs to ",I3," subcommunicators")') NProcs, NCommunicators
     call LogWrite
-     write( IOBuffer, '("closing (and reopening) logfile - opening ",I3," additional new logfile(s) ",A,"_*",A," ...")') &
+    write( IOBuffer, '("closing (and reopening) logfile - opening ",I3," additional new logfile(s) ",A,"_*",A," ...")') &
 &          NCommunicators-1,trim(OutputNameTag), LogFileExtension
     call LogWrite
     write( IOBuffer, '(72("#"))')
@@ -1099,8 +1115,8 @@ contains
     ! NCommunicator -> color, NProc -> key (NProc_W also could be used)
     call MPI_Comm_Split(oldCommunicator,NCommunicator,NProc,newCommunicator,ierror)
     ! MPI_Comm_Group + MPI_Group_Range_incl + MPI_Comm_Create might be more efficient
-    ! (avoiding some internal communication within the MPI library)
-    call SetCommunicator(newCommunicator)       !   RootProc is now true for the root of the new communicator(s)
+    ! (avoiding some internal communication within the MPI library)    
+    call SetCommunicator(newCommunicator)	!   RootProc is now true for the root of the new communicator(s)
     ! (re)open log files
     call LogOpen
     
@@ -1148,7 +1164,7 @@ contains
     character*(MPI_MAX_PROCESSOR_NAME),pointer, contiguous :: procnames(:)
     integer                                    :: hostrank = MPI_PROC_NULL
     integer                                    :: iorank = MPI_PROC_NULL
-    integer,pointer, contiguous                :: ioranks(:)
+    integer,pointer, contiguous                            :: ioranks(:)
     logical                                    :: flag
 #endif
 #ifdef ENABLE_OMP
@@ -1185,7 +1201,7 @@ contains
       color=1
     endif
     call MPI_Comm_Split(Communicator,color,NProc,Communicator_R,ierror)
-
+    
     ! better define and initialize as parameter...
     if ( RK == 8 ) then
       !MPI_RK = MPI_DOUBLE_PRECISION
@@ -1223,8 +1239,8 @@ contains
       narg = iargc()
 #endif
       if( narg .lt. 1 ) then
-        call Global_printVersion()
-        call Global_printUsage()
+	call Global_printVersion()
+	call Global_printUsage()
         ! Abort program
 #if MPI_VER > 0
         call MPI_Abort( MPI_COMM_WORLD, 2, ierror )
@@ -1235,7 +1251,7 @@ contains
       do i = 1,narg
         argpos=i
         call getarg( argpos, buffer )
-        !print *,"processing command line argument ",trim(buffer)
+      	!print *,"processing command line argument ",trim(buffer)
         if (trim(buffer).eq."-V" .or. trim(buffer).eq."--version") then
           call Global_printVersion()
 #if MPI_VER > 0
@@ -1250,10 +1266,10 @@ contains
           stop
         else if (trim(buffer).eq."-r" .or. trim(buffer).eq."--restart") then
           Restart = .true.
-        else
-        !  print *,"WARNING: command line argument not known and disregarded: ",trim(buffer)
-          exit
-        end if
+	else
+	!  print *,"WARNING: command line argument not known and disregarded: ",trim(buffer)
+	  exit
+      	end if
       end do
       if (argpos>narg) then
 #if MPI_VER > 0
@@ -1267,6 +1283,7 @@ contains
       ! 
       buffer = trim( buffer )
       ParameterFileName =  trim(buffer)
+
       ! separate directory and filename
       i = scan(buffer, FileSep, .true.)
       if( i>0 ) then
@@ -1293,17 +1310,16 @@ contains
       dot = index( buffer, '.', BACK=.true. )
       if( dot > 0 ) then
         if( buffer( dot:len( buffer ) ) .eq. ParameterFileExtension ) then
-
 !           buffer = buffer( 1:dot - 1 )
           ParameterFileName =  trim( buffer )    ! possible truncation
-        !else
+	!else
         !  ParameterFileName =  trim(buffer)//ParameterFileExtension
         end if
         !RestartFileName=trim(buffer(1:dot-1))//RestartFileExtension
       end if
 
       if( narg .ge. argpos ) then
-        ! if present, the third argument should be the input file name
+        ! if present, the third argument should be the output file name
         call getarg( argpos, buffer )
         OutputNameTagfromCommandline = .true.
       else
@@ -1328,6 +1344,7 @@ contains
     ! Open log file
     call LogOpen
 
+    ! Open log file
     call LogWriteBlank
     write( IOBuffer, '(72("*"))')
     call LogWrite
@@ -1460,7 +1477,6 @@ contains
     write( IOBuffer, '(72("-"))')
     call LogWrite
 
-
     write( IOBuffer, '("Parallelization:")' )
     call LogWrite
 
@@ -1532,18 +1548,18 @@ contains
 #if ARCH == 1 || ARCH == 2
 #ifdef _CRAYFTN
 #elif defined  __GNUC__
-    call signal( 1, IgnoreSignal )             ! Ignore SIGHUP
-    call signal( 2, SetTerminateProgram )      ! Catch SIGINT
-    call signal( 3, SetTerminateProgram )      ! Catch SIGQUIT
-    call signal( 15, SetTerminateProgram )     ! Catch SIGTERM
+    call signal( 1, IgnoreSignal )	! Ignore SIGHUP
+    call signal( 2, SetTerminateProgram )	! Catch SIGINT
+    call signal( 3, SetTerminateProgram )	! Catch SIGQUIT
+    call signal( 15, SetTerminateProgram )	! Catch SIGTERM
 #else
-    i = signal( 1, SetTerminateProgram, 1 )    ! Ignore SIGHUP (HangUP)
-    i = signal( 2, SetTerminateProgram, -1 )   ! Catch SIGINT (INTerrupt)
-    i = signal( 3, SetTerminateProgram, -1 )   ! Catch SIGQUIT (QUIT)
-    i = signal( 15, SetTerminateProgram, -1 )  ! Catch SIGTERM (TERMinate)
+    i = signal( 1, SetTerminateProgram, 1 )	! Ignore SIGHUP (HangUP)
+    i = signal( 2, SetTerminateProgram, -1 )	! Catch SIGINT (INTerrupt)
+    i = signal( 3, SetTerminateProgram, -1 )	! Catch SIGQUIT (QUIT)
+    i = signal( 15, SetTerminateProgram, -1 )	! Catch SIGTERM (TERMinate)
 #endif
 #elif ARCH == 3
-    i = signal( 15, SetTerminateProgram )      ! Catch SIGTERM
+    i = signal( 15, SetTerminateProgram )	! Catch SIGTERM
 #endif
     write( IOBuffer, '(72("-"))')
     call LogWrite
@@ -1596,9 +1612,10 @@ contains
     call LogWriteTime
     write( IOBuffer, '(72("*"))')
     call LogWrite
-
+    
     ! Close log file
     call LogClose
+
 
     ! Finalize MPI
 #if MPI_VER > 0
@@ -1648,11 +1665,9 @@ contains
 
     ! Declare arguments
     character(*), intent(in), optional :: ErrorString
-    integer, intent(in), optional      :: ErrorCode
-
-    ! Declare local variables 
+    integer, intent(in), optional :: ErrorCode
     integer :: GlobalErrorCode = IdErrorCodeBase
-
+    
     ! Output error message (might not show up in the MPI version if not initiated by NRootProc!)
     call LogWriteBlank
     if( present( ErrorString ) ) then
@@ -1675,7 +1690,7 @@ contains
     call LogWriteTime
     write( IOBuffer, '(72("*"))')
     call LogWrite
-
+    
     ! Close log file
     call LogClose
 
@@ -1686,11 +1701,12 @@ contains
 #endif
     !    GlobalErrorCode is not a constant and therefore not accepted by older Fortran versions :-( ...
     stop IdErrorCodeBase
-    !error stop IdErrorCodeBase ! this is an error, so error stop might be favorable
-    !stop 4     ! very old Fortran versions only support char (0-255)
+    !error stop IdErrorCodeBase	! this is an error, so error stop might be favorable
+    !stop 4	! very old Fortran versions only support char (0-255)
     ! should check for Fortran2008+ solution...
 
   end subroutine Global_Error
+
 
 
 !==============================================================!
@@ -1746,10 +1762,11 @@ contains
 
     ! Declare local variables
     character(FileNameLength) :: filename
-
+    
     ! Check for root process
     if( .not. RootProc ) return
 
+  
     ! using <OutputNameTag>.log, if only one communicator exists date_and_time
     ! and   <OutputNameTag>_<CommId>.log for several
     ! could be extended to <OutputNameTag>_<Phase>.<CommId>.log, for multiple communicator splits/phases
@@ -1766,14 +1783,15 @@ contains
       write( IOBuffer, '("ms2 logfile ",A," reopened")' ) trim(filename)
     else
       call FileRewrite( iounit_log, trim(filename) )
-       write( IOBuffer, '("ms2 logfile ",A," created")' ) trim(filename)
+      write( IOBuffer, '("ms2 logfile ",A," created")' ) trim(filename)
     endif
 #if MPI_VER > 0
     write( IOBuffer(len_trim(IOBuffer)+1:), '(" by PE",I0)' ) NProc_W
 #endif
+
     call LogWriteTime
     !call LogWriteBlank
-
+      
   end subroutine Global_LogOpen
 
 
@@ -1794,6 +1812,28 @@ contains
 
   end subroutine Global_LogClose
 
+
+
+!==============================================================!
+!  Subroutine Global_LogWrite                                  !
+!==============================================================!
+
+  subroutine Global_LogWrite()
+
+    implicit none
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Write contents of buffer to log file
+    call FileWrite( iounit_log )
+
+    ! Update log file
+#if ARCH == 1 || ARCH == 2 || ARCH == 3
+    call flush( iounit_log )
+#endif
+
+  end subroutine Global_LogWrite
 
 ! #if MPI_VER > 0
 ! !==============================================================!
@@ -1823,29 +1863,6 @@ contains
 ! 
 !   end subroutine Global_LogWrite_MPI
 ! #endif
-
-
-!==============================================================!
-!  Subroutine Global_LogWrite                                  !
-!==============================================================!
-
-  subroutine Global_LogWrite()
-
-    implicit none
-
-    ! Check for root process
-    if( .not. RootProc ) return
-
-    ! Write contents of buffer to log file
-    call FileWrite( iounit_log )
-
-    ! Update log file
-#if ARCH == 1 || ARCH == 2 || ARCH == 3
-    call flush( iounit_log )
-#endif
-
-  end subroutine Global_LogWrite
-
 
 
 !==============================================================!
@@ -1883,13 +1900,87 @@ contains
   end subroutine Global_LogWriteBlank
 
 
+
+!==============================================================!
+!  Subroutine Global_LogWriteTime                              !
+!==============================================================!
+
+  subroutine Global_LogWriteTime()
+
+    implicit none
+
+    ! Declare local variables
+    character(8)  :: date_string
+    character(10) :: time_string
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Update log file
+    call LogWriteNoAdvance
+    call date_and_time( date_string, time_string )
+    write( IOBuffer, &
+&     '(" on ", A, ".", A, ".", A, " at ", A, ":", A, ":", A)' ) &
+&     date_string(7:8), date_string(5:6), date_string(1:4), &
+&     time_string(1:2), time_string(3:4), time_string(5:6)
+    call LogWrite
+
+  end subroutine Global_LogWriteTime
+
+
+
+!==============================================================!
+!  Subroutine Global_LogWriteStep                              !
+!==============================================================!
+
+  subroutine Global_LogWriteStep()
+
+    implicit none
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Update log file
+    write( IOBuffer, '(I9, " steps completed")' ) Step
+    call LogWriteTime
+
+  end subroutine Global_LogWriteStep
+
+
+
+!==============================================================!
+!  Subroutine Global_FileReset                                 !
+!==============================================================!
+
+  subroutine Global_FileReset( iounit, filename )
+
+    implicit none
+
+    ! Declare arguments
+    integer, intent(in)      :: iounit
+    character(*), intent(in) :: filename
+
+    ! Declare local variables
+    integer :: stat
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Open file for reading
+    write( IOBuffer, '("Opening file <", A, "> for reading (unit",I5,")")' ) trim( filename ), iounit
+    call LogWrite
+    open( iounit, file = filename, action = 'READ', status = 'OLD', iostat = stat )
+    if( stat /= 0 ) call Error( 'Cannot open file '//trim( filename )//' for reading' )
+
+  end subroutine Global_FileReset
+
 #if MPI_VER > 0
 !==============================================================!
 !  Subroutine Global_FileClose_parallel                        !
 !==============================================================!
- 
+
   subroutine Global_FileClose_parallel( iounit )
- 
+
     implicit none
 
     ! Declare arguments
@@ -1898,8 +1989,8 @@ contains
     call MPI_File_Close(iounit, ierror)
 
     if( RootProc )then 
-      write( IOBuffer, '("File <", A, "> closed")' )"*.run or *.rav" 
-      call LogWrite
+        write( IOBuffer, '("File <", A, "> closed")' )"*.run or *.rav"  
+        call LogWrite
     endif
 
   end subroutine Global_FileClose_parallel
@@ -1935,7 +2026,6 @@ contains
     end if
 
   end subroutine Global_FileRewrite_parallel
-
 
 !==============================================================!
 !  Subroutine Global_FileAppend_parallel                       !
@@ -1983,7 +2073,6 @@ contains
 
   end subroutine Global_FileAppend_parallel
 
-
 !==============================================================!
 !  Subroutine Global_FileWriteNoAdvance_parallel               !
 !==============================================================!
@@ -1997,112 +2086,12 @@ contains
     integer, intent(in) :: iounit
 
     ! Write contents of buffer to file
-    call MPI_File_write(iounit, IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER ,status, ierror)
+    call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER ,status, ierror)
+
 
   end subroutine Global_FileWriteNoAdvance_parallel
 
 #endif
-
-!==============================================================!
-!  Subroutine Global_LogWriteTime                              !
-!==============================================================!
-
-  subroutine Global_LogWriteTime()
-
-    implicit none
-
-    ! Declare local variables
-    character(8)  :: date_string
-    character(10) :: time_string
-
-    ! Check for root process
-    if( .not. RootProc ) return
-
-    ! Update log file
-    call LogWriteNoAdvance
-    call date_and_time( date_string, time_string )
-    write( IOBuffer, &
-&     '(" on ", A, ".", A, ".", A, " at ", A, ":", A, ":", A)' ) &
-&     date_string(7:8), date_string(5:6), date_string(1:4), &
-&     time_string(1:2), time_string(3:4), time_string(5:6)
-    call LogWrite
-
-  end subroutine Global_LogWriteTime
-
-
-!==============================================================!
-!  Subroutine Global_LogWriteStep                              !
-!==============================================================!
-
-  subroutine Global_LogWriteStep()
-
-    implicit none
-
-    ! Check for root process
-    if( .not. RootProc ) return
-
-    ! Update log file
-    write( IOBuffer, '(I9, " steps completed")' ) Step
-    call LogWriteTime
-
-  end subroutine Global_LogWriteStep
-
-
-!==============================================================!
-!  Subroutine Global_FileReset                                 !
-!==============================================================!
-
-  subroutine Global_FileReset( iounit, filename )
-
-    implicit none
-
-    ! Declare arguments
-    integer, intent(in)      :: iounit
-    character(*), intent(in) :: filename
-
-    ! Declare local variables
-    integer :: stat
-
-    ! Check for root process
-    if( .not. RootProc ) return
-
-    ! Open file for reading
-    write( IOBuffer, '("Opening file <", A, "> for reading (unit",I5,")")' ) trim( filename ), iounit
-    call LogWrite
-    open( iounit, file = filename, action = 'READ', status = 'OLD', iostat = stat )
-    if( stat /= 0 ) call Error( 'Cannot open file '//trim( filename )//' for reading' )
-
-  end subroutine Global_FileReset
-
-
-!==============================================================!
-!  Subroutine Global_FileRewind                                !
-!==============================================================!
-
-  subroutine Global_FileRewind( iounit, filename )
-
-    implicit none  !Michael Sch.: only needed in ms2_molecule.F90 ... really needed
-
-    ! Declare arguments
-    integer, intent(in)      :: iounit
-    character(*), intent(in) :: filename
-
-    ! Declare local variables
-    integer :: stat
-
-    ! Check for root process
-    if( .not. RootProc ) return
-
-    ! Open file for reading
-    write( IOBuffer, '("Opening file <", A, "> for reading")' ) &
-&     trim( filename )
-    call LogWrite
-    rewind( iounit, iostat = stat )
-    if( stat /= 0 ) &
-&     call Error( 'Cannot rewind file '//trim( filename )//' for reading' )
-
-  end subroutine Global_FileRewind
-
 
 !==============================================================!
 !  Subroutine Global_FileRewrite                               !
@@ -2127,6 +2116,7 @@ contains
     open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
 
   end subroutine Global_FileRewrite
+
 
 
 !==============================================================!
@@ -2164,6 +2154,7 @@ contains
   end subroutine Global_FileAppend
 
 
+
 !==============================================================!
 !  Subroutine Global_FileClose                                 !
 !==============================================================!
@@ -2199,6 +2190,7 @@ contains
   end subroutine Global_FileClose
 
 
+
 !==============================================================!
 !  Subroutine Global_FileWrite                                 !
 !==============================================================!
@@ -2220,6 +2212,7 @@ contains
   end subroutine Global_FileWrite
 
 
+
 !==============================================================!
 !  Subroutine Global_FileWriteNoAdvance                        !
 !==============================================================!
@@ -2238,6 +2231,7 @@ contains
     write( iounit, '(A)', advance = 'NO' ) trim( IOBuffer )
 
   end subroutine Global_FileWriteNoAdvance
+
 
 
 !==============================================================!
@@ -2604,6 +2598,7 @@ contains
   end subroutine Global_FileReadParameter_RKdim1
 
 
+
 !==============================================================!
 !  Subroutine Global_FileWriteParameter                        !
 !==============================================================!
@@ -2623,6 +2618,7 @@ contains
     write( iounit, '(A, T12, "=", A)' ) trim( parameter ), trim( IOBuffer )
 
   end subroutine Global_FileWriteParameter
+
 
 
 !==============================================================!
@@ -2659,6 +2655,7 @@ contains
   end subroutine Global_Randomize
 
 
+
 !==============================================================!
 !  Function Global_Irnd                                        !
 !==============================================================!
@@ -2686,6 +2683,7 @@ contains
     iharvest = 1 + ishft(int(range, RK) * ior(iand(IM, ieor(ix, iy)), 1), -31)
 
   end function Global_Irnd
+
 
 
 !==============================================================!
@@ -2795,7 +2793,6 @@ contains
 
   end function Global_String_TrimR
 
-
 !==============================================================!
 !  Function Global_String_TrimL                                !
 !==============================================================!
@@ -2827,7 +2824,6 @@ contains
     end if
 
   end function Global_String_TrimL
-
 
 !==============================================================!
 !  Function Global_String_TrimLR                               !
@@ -2965,7 +2961,6 @@ contains
 
   end function Global_GetProcRange
 
-
 !==============================================================!
 !  Subroutine Write Restart File when more writing time needed !
 !==============================================================!
@@ -2979,14 +2974,13 @@ contains
     include 'mpif.h'
 
     real(RK) :: time_remaining
-    real(RK) :: cputime
+    real(RK) :: cputime,max_cpu_time
     integer  :: time_limit
-
+    
 !     integer  :: ierror
 #ifdef __INTEL_COMPILER
     integer  :: err
 #endif
-
 #ifdef KARLS
     character*10 string_max_time
 #endif
@@ -3001,7 +2995,8 @@ contains
        FirstCall = .FALSE.
     end if
     time_elapsed = MPI_WTIME() - first_time
-#else
+
+#else 
 ! Get CPU time consumed by each task and compute the maximum value
     call cpu_time(cputime)
 #endif
@@ -3013,7 +3008,6 @@ contains
 ! Convert to integer
     read(string_max_time,*) max_time
 #endif
-
 #ifdef ITWM
 ! getenv WALLTIME
     call getenv('WALLTIME',string_max_time)
@@ -3022,6 +3016,7 @@ contains
 #endif
 
 ! Compute the remaining CPU time
+
 #ifdef SMUC
     time_remaining = max_time - real(time_elapsed)/60.
 #else
@@ -3042,6 +3037,36 @@ contains
 
   end subroutine time_left
 #endif
+
+
+!==============================================================!
+!  Subroutine Global_FileRewind                                !
+!==============================================================!
+
+  subroutine Global_FileRewind( iounit, filename )
+
+    implicit none  !Michael Sch.: only needed in ms2_molecule.F90 ... really needed
+
+    ! Declare arguments
+    integer, intent(in)      :: iounit
+    character(*), intent(in) :: filename
+
+    ! Declare local variables
+    integer :: stat
+
+    ! Check for root process
+    if( .not. RootProc ) return
+
+    ! Open file for reading
+    write( IOBuffer, '("Opening file <", A, "> for reading")' ) &
+&     trim( filename )
+    call LogWrite
+    rewind( iounit, iostat = stat )
+    if( stat /= 0 ) &
+&     call Error( 'Cannot rewind file '//trim( filename )//' for reading' )
+
+  end subroutine Global_FileRewind
+
 
 end module ms2_global
 
