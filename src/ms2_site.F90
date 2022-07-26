@@ -1,5 +1,5 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
 !  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
@@ -41,9 +41,8 @@ module ms2_site
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK)          :: r(3)
-    real(RK)          :: sig, eps
-    real(RK)          :: mass
+    real(RK),pointer  :: r(:)
+    real(RK)          :: sig, eps, mass
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2
@@ -51,8 +50,8 @@ module ms2_site
     real(RK), pointer, contiguous :: FX(:), FY(:), FZ(:)
     real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
     real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
-    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
-    integer, pointer, contiguous          :: RDFSum(:)
+    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
+    integer, pointer, contiguous  :: RDFSum(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
@@ -98,10 +97,8 @@ module ms2_site
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK)          :: r(3)
-    real(RK)          :: e
-    real(RK)          :: mass
-    real(RK)          :: shield
+    real(RK),pointer  :: r(:)
+    real(RK)          :: e, mass, shield
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2
@@ -109,7 +106,7 @@ module ms2_site
     real(RK), pointer, contiguous :: FX(:), FY(:), FZ(:)
     real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
     real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
-    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
+    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
@@ -156,10 +153,8 @@ module ms2_site
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK)          :: r(3), or(3)
-    real(RK)          :: D
-    real(RK)          :: mass
-    real(RK)          :: shield
+    real(RK),pointer  :: r(:), or(:)
+    real(RK)          :: D, mass, shield
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2
@@ -170,7 +165,7 @@ module ms2_site
     real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
     real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer, contiguous :: OXTest(:), OYTest(:), OZTest(:)
-    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
+    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
@@ -217,10 +212,8 @@ module ms2_site
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK)          :: r(3), or(3)
-    real(RK)          :: Q
-    real(RK)          :: mass
-    real(RK)          :: shield
+    real(RK),pointer  :: r(:), or(:)
+    real(RK)          :: Q, mass, shield
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2
@@ -231,7 +224,7 @@ module ms2_site
     real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
     real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer, contiguous :: OXTest(:), OYTest(:), OZTest(:)
-    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
+    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
@@ -282,11 +275,18 @@ contains
 
     ! Declare arguments
     type(TSiteLJ126) :: this
+    
+    ! Declare local variables
+    integer          :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
         call FileReadParameter( this%SiteId, iounit_potmod, IdLJ126_SiteId, .false. )
     end if
+    
+    nullify ( this%r )
+    allocate( this%r( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
 
     call FileReadParameter( this%r(1), iounit_potmod, IdLJ126_r1, .false. )
     call FileReadParameter( this%r(2), iounit_potmod, IdLJ126_r2, .false. )
@@ -389,7 +389,7 @@ contains
     call AllocationError( stat, 'particles', np )
     allocate( this%RY( np ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-    allocate( this%RZ( np ), STAT = stat )    
+    allocate( this%RZ( np ), STAT = stat )
     call AllocationError( stat, 'particles', np )
     if( RDFUpdateFrequency > 0 ) then
       allocate( this%RDFSum(RDFNumberShells+10), STAT = stat )
@@ -623,11 +623,18 @@ contains
 
     ! Declare arguments
     type(TSiteCharge) :: this
+    
+    ! Declare local variables
+    integer          :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
       call FileReadParameter( this%SiteId, iounit_potmod, IdCharge_SiteId, .false. )
     end if
+    
+    nullify ( this%r )
+    allocate( this%r( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
 
     call FileReadParameter( this%r(1), iounit_potmod, IdCharge_r1, .false. )
     call FileReadParameter( this%r(2), iounit_potmod, IdCharge_r2, .false. )
@@ -950,11 +957,19 @@ contains
 
     ! Declare local variables
     real(RK) :: theta, phi
+    integer  :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
         call FileReadParameter( this%SiteId, iounit_potmod, IdDipole_SiteId, .false. )
     end if
+
+    nullify ( this%r )
+    allocate( this%r( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
+    nullify ( this%or )
+    allocate( this%or( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
 
     call FileReadParameter( this%r(1), iounit_potmod, IdDipole_r1, .false. )
     call FileReadParameter( this%r(2), iounit_potmod, IdDipole_r2, .false. )
@@ -1356,11 +1371,19 @@ contains
 
     ! Declare local variables
     real(RK) :: theta, phi
+    integer  :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
         call FileReadParameter( this%SiteId, iounit_potmod, IdQuadrupole_SiteId, .false. )
     end if
+
+    nullify ( this%r )
+    allocate( this%r( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
+    nullify ( this%or )
+    allocate( this%or( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
 
     call FileReadParameter( this%r(1), iounit_potmod, IdQuadrupole_r1, .false. )
     call FileReadParameter( this%r(2), iounit_potmod, IdQuadrupole_r2, .false. )

@@ -1,13 +1,17 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 2.0                !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  (c) 2014 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
-!> Module: ms2_stopwatch                                       !
-!          contains TStopwatch class                           !
-!> \author Martin Bernreuther <bernreuther@hlrs.de>            !
-!> \date   06.2009                                             !
+!  Program ms2                                                 !
+!  This file contains the main routine                         !
 !==============================================================!
-! alternative: http://math.nist.gov/StopWatch/                 !
-!==============================================================!
+
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
 
 #ifndef ARCH
 #define ARCH    0
@@ -103,9 +107,9 @@ module ms2_stopwatch
   integer, parameter :: CStopwatch_doMPIReduce = 1024
 
 
-!#ifdef USE_MPI
-!  integer :: mpi_defaultCommunicator
-!#endif
+! #ifdef USE_MPI
+!   integer :: mpi_defaultCommunicator
+! #endif
 
 !==============================================================!
 !  Type TStopwatch                                             !
