@@ -1113,7 +1113,7 @@ contains
      if (LJEl14) then
        k=1
        do i=1, this%NDihedral
-         if (this%IdfDihedral(i)%multi>=0) then  !If proper dihedral
+         if (this%IdfDihedral(i)%nmax>=0) then  !If proper dihedral
            Site1=this%IdfDihedral(i)%SiteId1
            Site4=this%IdfDihedral(i)%SiteId4
            if (Site1>Site4) then
