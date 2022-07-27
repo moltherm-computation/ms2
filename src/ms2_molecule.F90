@@ -1,5 +1,5 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
 !  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
@@ -217,10 +217,11 @@ contains
 
     ! Declare local variables
     integer       :: i, j
-    integer       :: ntypes, npossPartners
+    integer       :: ntypes
     character(16) :: stype
     integer       :: stat
     real(RK)      :: scalegeo, scalesig, scaleeps, scaleest
+    integer       :: npossPartners
     
     ! Inner Degrees of Freedom
     integer       :: k, index, index1, index2
@@ -283,7 +284,7 @@ contains
     this%NConstraint = 0
     this%NNotConstraint = 0
     
-    ! Zero number of Sites
+    ! Zero number of sites
     this%NSite = 0
     this%NLJ126 = 0
     this%NCharge = 0
@@ -1076,7 +1077,6 @@ contains
        allocate (this%IntCC15(cc-1, 2), STAT = stat)
        call AllocationError( stat, 'this%IntCC15', (cc-1)*2 )
        this%IntCC15 = IntCC15(1:cc-1,:)
-!       print *, "this%IntCC15=", this%IntCC15(:,:)
        if (this%NDipole>0) then
          allocate (this%IntCD15(cd-1, 2), STAT = stat)
          call AllocationError( stat, 'this%IntCD15', (cd-1)*2 )
@@ -1363,22 +1363,18 @@ contains
       ! For Unit Sites as well
       do i = 1, this%NUnit
         do j = 1, this%Unit(i)%NLJ126
-!           this%Unit(i)%SiteLJ126(j)%r   = this%Unit(i)%SiteLJ126(j)%r * scalegeo
           this%Unit(i)%SiteLJ126(j)%sig = this%Unit(i)%SiteLJ126(j)%sig * scalesig
           this%Unit(i)%SiteLJ126(j)%eps = this%Unit(i)%SiteLJ126(j)%eps * scaleeps
         end do
         do j = 1, this%Unit(i)%NCharge
-!           this%Unit(i)%SiteCharge(j)%r      = this%Unit(i)%SiteCharge(j)%r * scalegeo
           this%Unit(i)%SiteCharge(j)%shield = this%Unit(i)%SiteCharge(j)%shield * scalegeo
           this%Unit(i)%SiteCharge(j)%e      = this%Unit(i)%SiteCharge(j)%e * scaleest
         end do
         do j = 1, this%Unit(i)%NDipole
-!           this%Unit(i)%SiteDipole(j)%r      = this%Unit(i)%SiteDipole(j)%r * scalegeo
           this%Unit(i)%SiteDipole(j)%shield = this%Unit(i)%SiteDipole(j)%shield * scalegeo
           this%Unit(i)%SiteDipole(j)%D      = this%Unit(i)%SiteDipole(j)%D * scaleest
         end do
         do j = 1, this%Unit(i)%NQuadrupole
-!           this%Unit(i)%SiteQuadrupole(j)%r      = this%Unit(i)%SiteQuadrupole(j)%r * scalegeo
           this%Unit(i)%SiteQuadrupole(j)%shield = this%Unit(i)%SiteQuadrupole(j)%shield * scalegeo
           this%Unit(i)%SiteQuadrupole(j)%Q      = this%Unit(i)%SiteQuadrupole(j)%Q * scaleest
         end do
@@ -1423,7 +1419,6 @@ contains
       this%Unit(i)%MueSquared = sum( this%Unit(i)%Mue(:)**2 )
     end do
 
-    ! Michael Sch.: block below not needed anymore(?) - delete it!!!
     ! Reduction of point charges and dipoles to body fixed dipole vector
     this%Mue(:) = 0._RK
     if( (this%NCharge > 0).or.(this%NDipole > 0) ) then
@@ -1787,91 +1782,6 @@ contains
 
 
   
-!==============================================================!
-!  Subroutine TMolecule_SaveIDF                                !
-!==============================================================!
-
-  subroutine TMolecule_SaveIDF( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TMolecule) :: this
-
-    ! Declare local variables
-    integer                        :: nidftypes
-    integer                        :: i
-
-    ! Save information about Idf
-    ! Save number of potential types
-    call FileWriteBlank( iounit_normal )
-    call FileWriteBlank( iounit_normal )
-    nidftypes = 0
-    if( this%NBond > 0 ) nidftypes = nidftypes + 1
-    if( this%NAngle > 0 ) nidftypes = nidftypes + 1
-    if( this%NDihedral > 0 ) nidftypes = nidftypes + 1
-    write( IOBuffer, '(I2)' ) nidftypes
-    call FileWriteParameter( iounit_normal, IdIdf_ntypes )
-
-    ! Save Bonds
-    if( this%NBond > 0 ) then
-      call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(1X, A)' ) 'Bond'
-      call FileWriteParameter( iounit_normal, IdIdf_stype )
-      write( IOBuffer, '(I2)' ) this%NBond
-      call FileWriteParameter( iounit_normal, IdIdf_NBond )
-      do i = 1, this%NBond
-        call FileWriteBlank( iounit_normal )
-        call Save( this%IdfBond(i) )
-      end do
-    end if
-
-   ! Save Angles
-   if( this%NAngle > 0 ) then
-      call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(1X, A)' ) 'Angle'
-      call FileWriteParameter( iounit_normal, IdIdf_stype )
-      write( IOBuffer, '(I2)' ) this%NAngle
-      call FileWriteParameter( iounit_normal, IdIdf_NAngle )
-      do i = 1, this%NAngle
-        call FileWriteBlank( iounit_normal )
-        call Save( this%IdfAngle(i) )
-      end do
-   end if
-
-   ! Save Dihedrals
-   if( this%NDihedral > 0 ) then
-      call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(1X, A)' ) 'Dihedral'
-      call FileWriteParameter( iounit_normal, IdIdf_stype )
-      write( IOBuffer, '(I2)' ) this%NDihedral
-      call FileWriteParameter( iounit_normal, IdIdf_NDihedral )
-      do i = 1, this%NDihedral
-        call FileWriteBlank( iounit_normal )
-        call Save( this%IdfDihedral(i) )
-      end do
-    end if
-
-   ! Save information about Constraint Units
-   ! Save number of constraint unites
-     call FileWriteBlank( iounit_normal )
-     write( IOBuffer, '(I2)' ) this%NConstraint
-     call FileWriteParameter( iounit_normal, IdUnit_NConstraint )
-     if( this%NConstraint > 0 ) then
-       call FileWriteBlank( iounit_normal )
-       do i = 1, this%NConstraint
-         call FileWriteBlank( iounit_normal )
-         call Save( this%Unit(i) )
-       end do
-     end if
-
-    ! Update log file
-    write( IOBuffer, '("Added IDf to the normalized potential model for ", A)' )trim( this%PotModFileName )
-    call LogWrite
-
-  end subroutine TMolecule_SaveIDF
-
-
 !==============================================================!
 !  Subroutine TMolecule_FindCOM                                !
 !==============================================================!
@@ -2785,6 +2695,90 @@ contains
   end subroutine TMolecule_FindDihedral
 
   
+!==============================================================!
+!  Subroutine TMolecule_SaveIDF                                !
+!==============================================================!
+
+  subroutine TMolecule_SaveIDF( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TMolecule) :: this
+
+    ! Declare local variables
+    integer                        :: nidftypes
+    integer                        :: i
+
+    ! Save information about Idf
+    ! Save number of potential types
+    call FileWriteBlank( iounit_normal )
+    call FileWriteBlank( iounit_normal )
+    nidftypes = 0
+    if( this%NBond > 0 ) nidftypes = nidftypes + 1
+    if( this%NAngle > 0 ) nidftypes = nidftypes + 1
+    if( this%NDihedral > 0 ) nidftypes = nidftypes + 1
+    write( IOBuffer, '(I2)' ) nidftypes
+    call FileWriteParameter( iounit_normal, IdIdf_ntypes )
+
+    ! Save Bonds
+    if( this%NBond > 0 ) then
+      call FileWriteBlank( iounit_normal )
+      write( IOBuffer, '(1X, A)' ) 'Bond'
+      call FileWriteParameter( iounit_normal, IdIdf_stype )
+      write( IOBuffer, '(I2)' ) this%NBond
+      call FileWriteParameter( iounit_normal, IdIdf_NBond )
+      do i = 1, this%NBond
+        call FileWriteBlank( iounit_normal )
+        call Save( this%IdfBond(i) )
+      end do
+    end if
+
+   ! Save Angles
+   if( this%NAngle > 0 ) then
+      call FileWriteBlank( iounit_normal )
+      write( IOBuffer, '(1X, A)' ) 'Angle'
+      call FileWriteParameter( iounit_normal, IdIdf_stype )
+      write( IOBuffer, '(I2)' ) this%NAngle
+      call FileWriteParameter( iounit_normal, IdIdf_NAngle )
+      do i = 1, this%NAngle
+        call FileWriteBlank( iounit_normal )
+        call Save( this%IdfAngle(i) )
+      end do
+   end if
+
+   ! Save Dihedrals
+   if( this%NDihedral > 0 ) then
+      call FileWriteBlank( iounit_normal )
+      write( IOBuffer, '(1X, A)' ) 'Dihedral'
+      call FileWriteParameter( iounit_normal, IdIdf_stype )
+      write( IOBuffer, '(I2)' ) this%NDihedral
+      call FileWriteParameter( iounit_normal, IdIdf_NDihedral )
+      do i = 1, this%NDihedral
+        call FileWriteBlank( iounit_normal )
+        call Save( this%IdfDihedral(i) )
+      end do
+    end if
+
+   ! Save information about Constraint Units
+   ! Save number of constraint unites
+     call FileWriteBlank( iounit_normal )
+     write( IOBuffer, '(I2)' ) this%NConstraint
+     call FileWriteParameter( iounit_normal, IdUnit_NConstraint )
+     if( this%NConstraint > 0 ) then
+       call FileWriteBlank( iounit_normal )
+       do i = 1, this%NConstraint
+         call FileWriteBlank( iounit_normal )
+         call Save( this%Unit(i) )
+       end do
+     end if
+
+    ! Update log file
+    write( IOBuffer, '("Added IDf to the normalized potential model for ", A)' )trim( this%PotModFileName )
+    call LogWrite
+
+  end subroutine TMolecule_SaveIDF
+
 
 end module ms2_molecule
 
