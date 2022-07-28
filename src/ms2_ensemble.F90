@@ -3266,37 +3266,39 @@ contains
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. &
 &       SimulationType .eq. Gibbs .or. SimulationType .eq. SecondVirialCoeff ) then       
 
-      do i = 1, this%NComponents
-        this%Component(i)%NPartMax => this%NPartMax
-        this%Component(i)%NUnitMax => this%NUnitMax
-        if( this%Component(i)%NTest > 0 ) then
-          this%Component(i)%P0Test => this%P0Test ! wtf Michael Sch.: may lead to errors with 2+ chemPotMethods
-          this%Component(i)%Q0Test => this%Q0Test ! wtf Michael Sch.: like this test particles of all comp with same Pos and Orient
-        end if
+       do i = 1, this%NComponents
+         this%Component(i)%NPartMax => this%NPartMax
+         this%Component(i)%NUnitMax => this%NUnitMax
 
-        this%Component(i)%BoxLength => this%BoxLength
-        call Allocate( this%Component(i) )
-      end do
+         if( this%Component(i)%NTest > 0 ) then
+           this%Component(i)%P0Test => this%P0Test
+           this%Component(i)%Q0Test => this%Q0Test
+         end if
+
+         this%Component(i)%BoxLength => this%BoxLength
+         call Allocate( this%Component(i) )
+       end do
 
     else
-      do i = 1, this%NComponents
-        if (i .le. this%NRealComponents) then
-          this%Component(i)%NPartMax => this%Component(i)%NPart
-          this%Component(i)%NUnitMax => this%Component(i)%Molecule%NUnit
-        else 
-          this%Component(i)%NPartMax => this%NPartMaxFluct
-          this%Component(i)%NUnitMax => this%NUnitMax
-        end if
+       do i = 1, this%NComponents
+         if (i .le. this%NRealComponents) then
+           this%Component(i)%NPartMax => this%Component(i)%NPart
+           this%Component(i)%NUnitMax => this%Component(i)%Molecule%NUnit
 
-        if( this%Component(i)%NTest > 0 ) then
-          this%Component(i)%P0Test => this%P0Test
-          this%Component(i)%Q0Test => this%Q0Test
-        end if
+         else 
+           this%Component(i)%NPartMax => this%NPartMaxFluct
+           this%Component(i)%NUnitMax => this%NUnitMax
+         end if
 
-        this%Component(i)%BoxLength => this%BoxLength
-        call Allocate( this%Component(i) )
+         if( this%Component(i)%NTest > 0 ) then
+           this%Component(i)%P0Test => this%P0Test
+           this%Component(i)%Q0Test => this%Q0Test
+         end if
 
-      end do
+         this%Component(i)%BoxLength => this%BoxLength
+         call Allocate( this%Component(i) )
+
+       end do
     end if
 
 
@@ -4468,7 +4470,6 @@ loop:do l = 1, NPartInCell
     integer                   :: i
     integer                   :: np
     real(RK)                  :: scale, Reference
-    real(RK)                  :: maxmolEkin
     type(TComponent), pointer :: pc
 
     ! Check for root process

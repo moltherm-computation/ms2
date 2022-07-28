@@ -428,7 +428,6 @@ module ms2_global
   character(*), parameter :: IdDihedral_nmax               = 'nmax'
   character(*), parameter :: IdDihedral_ForConst           = 'ForConst'
   character(*), parameter :: IdDihedral_gamma0             = 'gamma0'
-  character(*), parameter :: IdDihedral_n                  = 'n'
   character(*), parameter :: IdDihedral_ScaleLJ14          = 'ScaleLJ14'
   character(*), parameter :: IdDihedral_ScaleEl14          = 'ScaleEl14'
   character(*), parameter :: IdNFluct                      = 'NFluct'

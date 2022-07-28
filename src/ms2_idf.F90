@@ -308,10 +308,17 @@ end subroutine TIdfAngle_Construct
     read( IOBuffer, * ) this%SiteId1, this%SiteId2, this%SiteId3, this%SiteId4
     call FileReadParameter( this%nmax, iounit_potmod, IdDihedral_nmax, .false. )
 
+    if (this%nmax > 0 ) then
       allocate( this%ForConst(1:this%nmax+1), STAT = stat )
       call AllocationError( stat, 'dihedral ForConst for internal degrees of freedom', this%nmax )
       allocate( this%gamma0(1:this%nmax+1), STAT = stat )
       call AllocationError( stat, 'dihedral gamm0 for internal degrees of freedom', this%nmax )
+    else
+      allocate( this%ForConst(1), STAT = stat )
+      call AllocationError( stat, 'dihedral ForConst for internal degrees of freedom', this%nmax )
+      allocate( this%gamma0(1), STAT = stat )
+      call AllocationError( stat, 'dihedral gamm0 for internal degrees of freedom', this%nmax )
+    end if
 
     call FileReadParameter( this%ForConst(1), iounit_potmod, IdDihedral_ForConst//'0', .false. )
     call FileReadParameter(this%gamma0(1), iounit_potmod, IdDihedral_gamma0//'0',.false. )
