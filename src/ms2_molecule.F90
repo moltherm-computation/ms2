@@ -81,7 +81,7 @@ module ms2_molecule
     integer, allocatable :: QuadrupoleSiteIds(:)
     integer, allocatable :: ConstraintSiteIds(:)
     integer, allocatable :: NotConstraintSiteIds(:)
-    integer, pointer     :: UnitLJ(:),UnitC(:),UnitDP(:),UnitQP(:)
+    integer, pointer, contiguous :: UnitLJ(:), UnitC(:), UnitDP(:), UnitQP(:)
 
     ! Bond for internal degree of freedom
     integer :: NBond
@@ -101,7 +101,6 @@ module ms2_molecule
 
     ! Units of molecule
     integer, pointer :: NUnit ! Michael Sch. pointer needed?
-    integer :: NEUnit         ! number of elongated Units
     type(TUnit), pointer, contiguous ::Unit(:)
     
     ! File name for potential model
@@ -273,7 +272,6 @@ contains
     this%NDihedral = 0
 
     ! Zero number of Units
-    this%NEUnit = 0
     allocate( this%NUnit, STAT = stat )
     call AllocationError( stat, 'number of units' )
 
@@ -741,6 +739,7 @@ contains
     end do
 
     ! For all Units find mass, COM, moment of inertia, number of degree of freedom
+    this%NDF = 0
     do i = 1, this%NUnit
       call FindCOM ( this%Unit(i) )
        if( this%Unit(i)%NDFRot < 0 ) then
@@ -749,18 +748,16 @@ contains
           call ReadMOI( this%Unit(i) )
       end if
       call FindNDF( this%Unit(i) )
-      if  (this%Unit(i)%isElongated) this%NEUnit = this%NEunit + 1
+      this%NDF = this%NDF + this%Unit(i)%NDF
     end do
 
-    !Consider Intramolecular interactions
-    if (IntraLJEl .and. (this%NLJ126 < 4) .and. (this%NUnit < 2)) then
-       call Error('Check *.par file, molecule too small, &
-&                  no intramolecular interactions can be used' )
-    end if
-    if (UseIntDegFreed .and. IntraLJEl) then
-!      do k = 1, this%NUnit
-!        call sort_array(this%Unit(k)%SiteIds)
-!      end do
+    ! check for elongation of rigid molecules
+    this%isElongated = .false.
+    this%isElongated = this%NUnit > 1
+    if ( this%Unit(1)%NDFRot > 0 ) this%isElongated = .true.
+
+    ! sort SiteIds
+    if (IntraLJEl) then
       do k = 1, this%NLJ126
         call sort_array(this%LJSiteIds)
       end do
@@ -775,15 +772,32 @@ contains
       end do
     end if
 
-   ! create list of 1-4, 1-5 interactions
+    !Consider Intramolecular interactions
+    this%hasIntraLJEl = .true.
+    if (IntraLJEl ) then
+      if (.not. this%isElongated) then
+        this%hasIntraLJEl = .false.
+      elseif (LJEl14 .and. (this%NSite < 4)) then
+        this%hasIntraLJEl = .false.
+      elseif (this%NSite < 5) then
+        this%hasIntraLJEl = .false.
+      endif
+!        call Error('Check *.par file, molecule too small, &
+! &                  no intramolecular interactions can be used' )
+    else
+      this%hasIntraLJEl = .false.
+    end if
 
-   if (IntraLJEl) then
+   ! create list of 1-4, 1-5 interactions
+   ! Michael Sch.: instead of "this%NSite-3" "..-4" should be sufficient...testing needed!
+   npossPartners = (this%NSite-4)*(this%NSite-3)/2
+   if (this%hasIntraLJEl) then
      allocate (AllSites(this%NSite, this%NSite))
      call AllocationError( stat, 'AllSites', this%NSite*this%NSite )
      allocate (SameCoord(this%NLJ126, 3))
      call AllocationError( stat, 'SameCoord', this%NLJ126*3 )
-     allocate (IntLJ15((this%NSite-3)*2, 2), STAT = stat)
-     call AllocationError( stat, 'Int15', (this%NSite-3)*4 )
+     allocate (IntLJ15(npossPartners, 2), STAT = stat)
+     call AllocationError( stat, 'Int15', npossPartners*2 )
      if (this%NCharge>0) then
        allocate (IntCC15(npossPartners, 2), STAT = stat)
        call AllocationError( stat, 'IntCC15', npossPartners*2 )
@@ -2485,7 +2499,7 @@ contains
     ! Declare arguments
     type(TMolecule)     :: this
     type(TIdfDihedral)  :: Dihedral
-    integer, intent(in out) :: j
+    integer, intent(in) :: j
 
     ! Declare local variables
 

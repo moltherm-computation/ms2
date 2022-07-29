@@ -666,7 +666,7 @@ contains
     this%Epsilon4 = 4._RK * this%Epsilon
 
     ! if this potential is intra
-    if (this%SameComponent .and. IntraLJEL ) then
+    if (this%SameComponent .and. Molecule1%hasIntraLJEl ) then
       ende = size (Molecule1%IntLJ15(:,1))
       do k=1, ende
         if (Molecule1%IntLJ15(k,1)==this%Site1%SiteId .and. Molecule1%IntLJ15(k,2)==this%Site2%SiteId) then
@@ -760,13 +760,11 @@ contains
     else ! Site-site cutoff or both sites in center of mass
       RCutoff3Inv = (this%Sigma / RCutoff)**3
       RCutoff9Inv = RCutoff3Inv**3
-      this%EPotCorr = Pi89 * this%Epsilon &
-&       * (RCutoff9Inv - 3._RK * RCutoff3Inv)
-      this%VirialCorr = Pi329 * this%Epsilon &
-&       * (RCutoff9Inv - 1.5_RK * RCutoff3Inv)
+      this%EPotCorr = Pi89 * this%Epsilon * (RCutoff9Inv - 3._RK * RCutoff3Inv)
 
-      this%d2EpotdV2Corr = Pi89 * this%Epsilon *  ( TICCd2EpotdV2(-6, RCutoff, this%Sigma**2) - &
-&                        TICCd2EpotdV2(-3, RCutoff, this%Sigma**2) )
+      this%VirialCorr = Pi329 * this%Epsilon * (RCutoff9Inv - 1.5_RK * RCutoff3Inv)
+
+      this%d2EpotdV2Corr = Pi89 * this%Epsilon *  ( TICCd2EpotdV2(-6, RCutoff, this%Sigma**2) - TICCd2EpotdV2(-3, RCutoff, this%Sigma**2) )
 
     end if
     this%EPotTestCorr = 2._RK * this%EPotCorr
@@ -16598,7 +16596,7 @@ loop2:  do j = 1, j1
     deri = 0._RK
     if (this%nmax .eq. 0) then
         earg = 1._RK + cos(-this%gamma0(1))
-!        EDihedral = EDihedral + earg * this%ForConst(1)
+        EDihedral = EDihedral + earg * this%ForConst(1)
     else
       ! Calculate vectors IJ, JK, KL
       ax = this%Dihedral%RX2(np) - this%Dihedral%RX1(np)
@@ -16652,16 +16650,16 @@ loop2:  do j = 1, j1
         if (this%nmax > 0) then
           ! Normal Amber-type torsion angle
           earg = 1._RK + cos(-this%gamma0(1))
-!          EDihedral = EDihedral + earg * this%ForConst(1)
+          EDihedral = EDihedral + earg * this%ForConst(1)
           do j = 1,this%nmax
             earg= j*arg-this%gamma0(j+1)
 
-!            EDihedral = EDihedral + this%ForConst(j+1)*(1._RK+cos(earg))
+            EDihedral = EDihedral + this%ForConst(j+1)*(1._RK+cos(earg))
           end do
 
         else ! Improper dihedral angle
           earg= arg-this%gamma0(1)
-!          EDihedral = EDihedral + this%ForConst(1)*earg**2
+          EDihedral = EDihedral + this%ForConst(1)*earg**2
         end if
 
       endif ! den>0

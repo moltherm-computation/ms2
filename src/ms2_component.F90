@@ -1260,9 +1260,8 @@ contains
 
     ! Declare local variables
     integer :: np, ntest, nf
-    integer :: nu, nup, neu, neup
-    integer :: i, j
-    integer :: nlj, nch, ndi, nqu
+    integer :: nu, nup, nlj, nch, ndi, nqu, j
+    integer :: i
     integer :: stat
     logical :: Site1, Site2, Site3, Site4
     integer :: SiteId1, SiteId2, SiteId3, SiteId4
@@ -1270,9 +1269,8 @@ contains
     ! Set maximum number of particles and number of test particles
     np = this%NPartMax
     nu = this%Molecule%NUnit
-    neu = this%Molecule%NEUnit ! number of elongated Units in molecule
     nup = nu*np
-    neup = neu*np
+
     ntest = this%NTest
 
     ! Nullify pointers
@@ -4557,7 +4555,7 @@ loop1:do i = 1, this%NPart
     integer           :: np, nu, k
     integer           :: i, j
     real(RK)          :: r(3)
-    real(RK)          :: Corr0(merge(4,3,this%Molecule%isElongated)), Corr1
+    real(RK)          :: Corr0(4), Corr1
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength

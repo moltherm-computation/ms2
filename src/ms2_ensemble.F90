@@ -113,7 +113,7 @@ module ms2_ensemble
     logical :: OptPressure
 
     ! Positions and orientations of test particles
-    real(RK), pointer :: P0Test(:, :, :), Q0Test(:, :, :)
+    real(RK), pointer, contiguous :: P0Test(:, :, :), Q0Test(:, :, :)
 
     ! Number of unit cells in one dimension of lattice
     integer :: NCells
@@ -128,7 +128,7 @@ module ms2_ensemble
     integer :: NUnitTotal
 
     ! Components
-    type(TComponent), pointer :: Component(:)
+    type(TComponent), pointer, contiguous :: Component(:)
 
     ! Interactions
     type(TInteraction), pointer :: Interaction(:, :)
@@ -11691,10 +11691,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       Beta    = 1._RK/this%RefTemperature
       Beta2   = Beta*Beta
       Beta3   = Beta*Beta2
-      Numb    = real( this%NUnitTotal, RK )
-      specv   = this%Volume0/this%NUnitTotal !1._RK/this%Density
+      specv   = this%Volume0/this%NUnitTotal
       specv2  = specv*specv
-      U       = this%SumEpot%Average*real( this%NPart, RK ) ! diff to trunk
+      Numb    = real( this%NUnitTotal, RK )
+      U       = this%SumEpot%Average*real( this%NPart, RK )
       U2      = this%SumEpotSquared%Average*real( this%NPart, RK )**2
       U3      = this%SumEpotCubic%Average
       dUdV    = this%SumdEpotdV%Average

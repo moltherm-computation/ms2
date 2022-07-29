@@ -75,7 +75,7 @@ module ms2_interaction
     integer, pointer, contiguous :: NInCutoff(:), CutoffPartner(:, :)
 
     ! Center of mass positions
-    real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
 
     ! Total dipole moments of molecules for reaction field
     real(RK), pointer, contiguous :: MueX1(:,:), MueY1(:,:), MueZ1(:,:)
@@ -86,7 +86,7 @@ module ms2_interaction
     real(RK), pointer, contiguous :: tRFX2(:,:), tRFY2(:,:), tRFZ2(:,:)
 
     ! Center of mass positions of test particles
-    real(RK), pointer, contiguous :: PX1Test(:,:), PY1Test(:,:), PZ1Test(:,:)
+    real(RK), pointer :: PX1Test(:,:), PY1Test(:,:), PZ1Test(:,:)
 
     ! Total dipole moments of test particles for reaction field
     real(RK), pointer, contiguous :: MueX1Test(:,:), MueY1Test(:,:), MueZ1Test(:,:)
@@ -835,12 +835,14 @@ contains
 
     ! Calculate dimension of arrays
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
-      N1 = this%NPartMax*this%NUnitMax
-      N2 = this%NPartMax*this%NUnitMax
+      NP1 = this%NPartMax
+      N1 = NP1*this%NUnitMax
+      N2 = NP1*this%NUnitMax
 
     else
-      N1 = max(this%NPart1*this%NUnit1, this%NUnit1)
-      N2 = max(this%NPart2*this%NUnit2, this%NUnit2)
+      NP1 = max(this%NPart1, 1)
+      N1 = NP1*this%NUnit1
+      N2 = max(this%NPart2, 1)*this%NUnit2
     end if
 
     ! Allocate arrays
@@ -948,12 +950,6 @@ contains
     if( associated( this%EPotMol ) ) then
       deallocate( this%EPotMol )
     end if
-    !if( associated( this%EPotBond ) ) then
-    !  deallocate( this%EPotBond )
-    !end if
-    !if( associated( this%EPot1Bond ) ) then
-    !  deallocate( this%EPot1Bond )
-    !end if
     if( associated( this%EPotAngle ) ) then
       deallocate( this%EPotAngle )
     end if
@@ -3923,7 +3919,7 @@ end subroutine TInteraction_Energy
         NInCutoff = this%NInCutoff(i)
         m = CEILING(real(i)/NU)
         NUm=NU*m
-        do j = NUm+1, (NNU/2) + i ! without intramolecular interaction
+        do j = NUm + 1, (NNU/2) + i ! without intramolecular interaction
           PXij = PXi - PX2d(j)
           PYij = PYi - PY2d(j)
           PZij = PZi - PZ2d(j)
@@ -3962,7 +3958,7 @@ end subroutine TInteraction_Energy
           end if
         end do
 
-        do j = m*NU+1, NNU
+        do j = m*NU + 1, NNU
           PXij = PXi - PX2d(j)
           PYij = PYi - PY2d(j)
           PZij = PZi - PZ2d(j)
@@ -4231,8 +4227,7 @@ end subroutine TInteraction_Energy
     real(RK)          :: r, dr, rsquared
     real(RK)          :: Angle, dAngle, cosa, RkjSquared, abc
     real(RK)          :: f0
-    real(RK)          :: ForConst, gamma
-    integer           :: N, nmax, multi
+    integer           :: N, nmax
     integer           :: s1, s2, i, j, k
     integer           :: bi, u1, u2, u3, u4
     integer           :: unit1,unit2, nu2
@@ -6055,19 +6050,19 @@ end subroutine TInteraction_Energy
 
             if (nmax > 0) then
               ! Normal Amber-type torsion angle
-!              earg = 1._RK + cos(-pto%gamma0(1))
-!              EPotAdd = earg * pto%ForConst(1)
+              earg = 1._RK + cos(-pto%gamma0(1))
+              EPotAdd = earg * pto%ForConst(1)
               do i =1, nmax
-!                earg= i*arg-pto%gamma0(i+1)
+                earg= i*arg-pto%gamma0(i+1)
                 ! Energy:
                 ! formulae  E = ForConst*( 1 + cos(earg) )
-!                EPotAdd = EPotAdd + pto%ForConst(i+1)*(1._RK+cos(earg))
+                EPotAdd = EPotAdd + pto%ForConst(i+1)*(1._RK+cos(earg))
               end do
             else ! Improper dihedral angle
-!              earg= arg-pto%gamma0(1)
+              earg= arg-pto%gamma0(1)
               ! Energy
               ! formulae  E = ForConst*earg**2
-!              EPotAdd = pto%ForConst(1)*earg**2
+              EPotAdd = pto%ForConst(1)*earg**2
             end if
           endif ! den>0
         endif ! nmax/=0
