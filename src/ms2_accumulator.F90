@@ -15,6 +15,7 @@
 
 #ifndef ARCH
 #define ARCH    0
+#define FORTRAN 90
 #define MPI_VER 0
 #endif
 
@@ -159,11 +160,6 @@ contains
   subroutine TAccumulator_Allocate( this, trans )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TAccumulator)            :: this

@@ -19,10 +19,6 @@
 #define MPI_VER 0
 #endif
 
-#ifndef TRANS
-#define TRANS 0
-#endif
-
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_interaction.F90...'
 #endif
@@ -1118,7 +1114,7 @@ contains
     real(RK)          :: RFTX, RFTY, RFTZ
     real(RK)          :: EPotLocal, TXi, TYi, TZi
     integer           :: i, j, k, i1
-    integer           :: globalUnitIndex, iUnit, u2, ju
+    integer           :: iu, u, u2, ju, nu1, nu2
 #if MPI_VER > 0
     integer           :: i0
 #endif
@@ -1269,6 +1265,8 @@ contains
       TY2 => this%tRFY2
       TZ2 => this%tRFZ2
       EPotLocal = 0._RK
+      nu1 = this%NUnit1  ! Number of units in molecule of first component
+      nu2 = this%NUnit2
 
 #if MPI_VER > 0
       i0 = this%NPart10
@@ -1278,23 +1276,23 @@ contains
       i1 = this%NPart1
       do i = 1, i1
 #endif
-        do iUnit = 1, this%NUnit1
+         do u = 1, nu1
+          iu = (i-1)*nu1+u ! unit's number
           TXi = 0._RK
           TYi = 0._RK
           TZi = 0._RK
-          mueXi = MueX1(i, iUnit)    ! mue for unit  iUnit of i-th molecule
-          mueYi = MueY1(i, iUnit)
-          mueZi = MueZ1(i, iUnit)
-          globalUnitIndex = (i-1)*this%NUnit1+iUnit ! unit's number
-          do k = 1, this%NInCutoff(globalUnitIndex)
-            ! number of unit, which is in the cutoff radius of our unit globalUnitIndex
-            j = this%CutoffPartner(k, globalUnitIndex)
-            u2 = mod (j, this%NUnit2)
+          mueXi = MueX1(i, u)    ! mue for unit  u of i-th molecule
+          mueYi = MueY1(i, u)
+          mueZi = MueZ1(i, u)
+          do k = 1, this%NInCutoff(iu)
+            ! number of unit, which is in the cutoff radius of our unit iu
+            j = this%CutoffPartner(k, iu)
+            u2 = mod (j, nu2)
             if (u2 == 0) then
-              ju = INT(j / this%NUnit2) ! number of molecule, to which this unit corresponds
-              u2 = this%NUnit2
+              ju = INT(j/nu2) ! number of molecule, to which this unit corresponds
+              u2 = nu2
             else
-              ju = INT(j / this%NUnit2) + 1
+              ju = INT(j/nu2) + 1
             end if
             mueXj = MueX2(ju, u2)
             mueYj = MueY2(ju, u2)
@@ -1309,15 +1307,15 @@ contains
             TY2(ju, u2) = TY2(ju, u2) - RFTY
             TZ2(ju, u2) = TZ2(ju, u2) - RFTZ
 
-            EPotLocal = EPotLocal + (mueXi * mueXj + mueYi * mueYj + mueZi * mueZj)
+            EPotLocal = EPotLocal + mueXi * mueXj + mueYi * mueYj + mueZi * mueZj
           end do
-          TX1(i, iUnit) = TX1(i, iUnit) + TXi
-          TY1(i, iUnit) = TY1(i, iUnit) + TYi
-          TZ1(i, iUnit) = TZ1(i, iUnit) + TZi
+          TX1(i, u) = TX1(i, u) + TXi
+          TY1(i, u) = TY1(i, u) + TYi
+          TZ1(i, u) = TZ1(i, u) + TZi
         end do
       end do
 
-      EPot = EPot + this%RFConst2 * EPotlocal
+      EPot = EPot + this%RFConst2 * EPotLocal
       EPotInter = EPotInter + this%RFConst2 * EPotLocal
     end if
 
@@ -1562,7 +1560,7 @@ contains
             TX2(ju, u2) = TX2(ju, u2) - RFTX
             TY2(ju, u2) = TY2(ju, u2) - RFTY
             TZ2(ju, u2) = TZ2(ju, u2) - RFTZ 
-            EPotLocal = EPotLocal + (mueXi * mueXj + mueYi * mueYj + mueZi * mueZj)
+            EPotLocal = EPotLocal + mueXi * mueXj + mueYi * mueYj + mueZi * mueZj
           end do
           TX1(i, u) = TX1(i, u) + TXi
           TY1(i, u) = TY1(i, u) + TYi
@@ -1765,8 +1763,8 @@ contains
     logical           :: OptPressure
 
     ! Zero energy
-    this%EPot1(:)=0._RK
     EPot => this%EPot1
+    EPot(:) = 0._RK
     
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
@@ -3716,20 +3714,25 @@ end subroutine TInteraction_Energy
     real(RK)          :: PY2d(this%NPart2*this%NUnit2)
     real(RK)          :: PZ2d(this%NPart2*this%NUnit2)
     real(RK)          :: RijSquared
-    real(RK)          :: RCutoffSquaredScaled
+    real(RK)          :: RCutoff
     integer           :: j, NInCutoff
-    integer           :: i, k, unit1, nup
+    integer           :: i, k, NU2, N2, unit1, nup
 
     ! Set cutoff radius
-    RCutoffSquaredScaled = this%RCutoffSquaredScaled
+    RCutoff = this%RCutoffSquaredScaled
+
+    ! Assigning local variables
+    N2    = this%NPart2
+    NU2   = this%NUnit2
+    unit1 = (np-1)*this%NUnit1 + nu
 
     ! Assign local pointers
     PX2 => this%PX2
     PY2 => this%PY2
     PZ2 => this%PZ2
-    do i=1, this%NPart2
-      do k=1, this%NUnit2
-        nup = (i-1)*this%NUnit2 + k
+    do i=1, N2
+      do k=1, NU2
+        nup = (i-1)*NU2 + k
         PX2d(nup)=PX2(i,k)
         PY2d(nup)=PY2(i,k)
         PZ2d(nup)=PZ2(i,k)
@@ -3741,13 +3744,12 @@ end subroutine TInteraction_Energy
     PYi = this%PY1(np, nu)
     PZi = this%PZ1(np, nu)
     NInCutoff = 0
-    unit1 = (np-1)*this%NUnit1 + nu
 #if MPI_VER > 0
     do j = (this%NPart20-1)*this%NUnit2+1, this%NPart22*this%NUnit2
 #else
-    do j = 1, this%NPart2*this%NUnit2
+    do j = 1, N2*NU2
 #endif
-      k = CEILING(real(j)/this%NUnit2)
+      k = CEILING(real(j)/NU2)
       if( this%SameComponent .and. k == np ) cycle
       PXij = PXi - PX2d(j)
       PYij = PYi - PY2d(j)
@@ -3757,7 +3759,7 @@ end subroutine TInteraction_Energy
       PZij = PZij - anint( PZij )
       RijSquared = PXij**2 + PYij**2 + PZij**2
 
-      if( RijSquared < RCutoffSquaredScaled ) then
+      if( RijSquared < RCutoff ) then
         NInCutoff = NInCutoff + 1
         this%CutoffPartner(NInCutoff, unit1) = j
       end if
@@ -4229,6 +4231,7 @@ end subroutine TInteraction_Energy
     integer           :: s1, s2, i, j, k
     integer           :: bi, u1, u2, u3, u4
     integer           :: unit1,unit2, nu2
+    logical           :: intra15, intra14
     logical           :: SameComponent
     real(RK)          :: num, den, ax, ay, az, bx, by, bz, cx, cy, cz, EPotAdd
     real(RK)          :: ab, bc, ac, aa, bb, cc, axb, bxc, co, signum, arg, earg!, si
@@ -4287,10 +4290,14 @@ end subroutine TInteraction_Energy
             ! Set site specific variables
             plj => this%PotLJ126LJ126(s1, s2)
 
+            ! Intramolecular Energies
+            intra14 = plj%potintra14
+            intra15 = plj%potintra15
+
             ! Abort
-            if (plj%potintra14) then
+            if (intra14) then
               coeff = plj%ScaleLJ14  !Scale 1,4 LJ interaction
-            else if (plj%potintra15) then
+            else if (intra15) then
               coeff = 1._RK
             else
               cycle
@@ -4361,9 +4368,12 @@ end subroutine TInteraction_Energy
           do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
             pcc => this%PotChargeCharge(s1, s2)
 
-            if (pcc%potintra14) then
+            ! Inner Degrees of Freedom
+            intra15 = pcc%potintra15
+            intra14 = pcc%potintra14
+            if (intra14) then
               coeff = pcc%ScaleEl14 ! Scale 1,4 El interaction
-            else if (pcc%potintra15) then
+            else if (intra15) then
               coeff = 1._RK
             else
               cycle
@@ -4485,9 +4495,12 @@ end subroutine TInteraction_Energy
           do s2 = this%UnitDP2(j), this%UnitDP2(j+1) - 1
             pcd => this%PotChargeDipole(s1, s2)
 
-            if (pcd%potintra14) then
+            ! Inner Degrees of Freedom
+            intra14 = pcd%potintra14
+            intra15 = pcd%potintra15
+            if (intra14) then
               coeff = pcd%ScaleEl14
-            else if (pcd%potintra15) then
+            else if (intra15) then
               coeff = 1._Rk
             else
               cycle
@@ -4570,9 +4583,12 @@ end subroutine TInteraction_Energy
           do s2=this%UnitQP2(j), this%UnitQP2(j+1) - 1
             pcq => this%PotChargeQuadrupole(s1, s2)
 
-            if (pcq%potintra14) then
+            ! Inner Degrees of Freedom
+            intra14 = pcq%potintra14
+            intra15 = pcq%potintra15
+            if (intra14) then
               coeff = pcq%ScaleEl14
-            else if (pcq%potintra15) then
+            else if (intra15) then
               coeff = 1._Rk
             else
               cycle
@@ -4661,9 +4677,12 @@ end subroutine TInteraction_Energy
           do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
             pdc => this%PotDipoleCharge(s1, s2)
 
-            if (pdc%potintra14) then
+            ! Inner Degrees of Freedom
+            intra14 = pdc%potintra14
+            intra15 = pdc%potintra15
+            if (intra14) then
               coeff = pdc%ScaleEl14 !Scale 1,4 El interactions
-            else if (pdc%potintra15) then
+            else if (intra15) then
               coeff = 1._RK
             else
               cycle
@@ -4741,9 +4760,12 @@ end subroutine TInteraction_Energy
           do s2 = this%UnitDP2(j), this%UnitDP2(j+1) - 1
             pdd => this%PotDipoleDipole(s1, s2)
 
-            if (pdd%potintra14) then
+            ! Inner Degrees of Freedom
+            intra14 = pdd%potintra14
+            intra15 = pdd%potintra15
+            if (intra14) then
               coeff = pdd%ScaleEl14 !Scale 1,4 El interactions
-            else if (pdd%potintra15) then
+            else if (intra15) then
               coeff = 1._RK
             else
               cycle
@@ -4836,10 +4858,12 @@ end subroutine TInteraction_Energy
           end do !s2-cycle
           do s2=this%UnitQP2(j), this%UnitQP2(j+1) - 1
             pdq => this%PotDipoleQuadrupole(s1, s2)
-
-            if (pdq%potintra14) then
+            ! Inner Degrees of Freedom
+            intra14 = pdq%potintra14
+            intra15 = pdq%potintra15
+            if (intra14) then
               coeff = pdq%ScaleEl14 !Scale 1,4 El interactions
-            else if (pdq%potintra15) then
+            else if (intra15) then
               coeff = 1._RK
             else
               cycle
@@ -4946,9 +4970,12 @@ end subroutine TInteraction_Energy
           do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
             pqc => this%PotQuadrupoleCharge(s1, s2)
 
-            if (pqc%potintra14) then
+            ! Inner Degrees of Freedom
+            intra14 = pqc%potintra14
+            intra15 = pqc%potintra15
+            if (intra14) then
               coeff = pqc%ScaleEl14 !Scale 1,4 El interactions
-            else if (pqc%potintra15) then
+            else if (intra15) then
               coeff = 1._RK
             else
               cycle
@@ -5030,10 +5057,12 @@ end subroutine TInteraction_Energy
           end do !s2-cycle
           do s2 = this%UnitDP2(j), this%UnitDP2(j+1) - 1
             pqd => this%PotQuadrupoleDipole(s1, s2)
-
-            if (pqd%potintra14) then
+            ! Inner Degrees of Freedom
+            intra14 = pqd%potintra14
+            intra15 = pqd%potintra15
+            if (intra14) then
               coeff = pqd%ScaleEl14 !Scale 1,4 El interactions
-            else if (pqd%potintra15) then
+            else if (intra15) then
               coeff = 1._RK
             else
               cycle
@@ -5131,9 +5160,12 @@ end subroutine TInteraction_Energy
           do s2 = this%UnitQP2(j), this%UnitQP2(j+1) - 1
             pqq => this%PotQuadrupoleQuadrupole(s1, s2)
 
-            if (pqq%potintra14) then
+            ! Inner Degrees of Freedom
+            intra14 = pqq%potintra14
+            intra15 = pqq%potintra15
+            if (intra14) then
               coeff = pqq%ScaleEl14 !Scale 1,4 El interactions
-            else if (pqq%potintra15) then
+            else if (intra15) then
               coeff = 1._RK
             else
               cycle
@@ -5277,9 +5309,12 @@ end subroutine TInteraction_Energy
           if ( OptPressure ) &
 &            Epsilon48 = plj%Epsilon48
 
-          if (plj%potintra14) then
+          ! Intramolecular Energies
+          intra15 = plj%potintra15
+          intra14 = plj%potintra14
+          if (intra14) then
             coeff = plj%ScaleLJ14  !Scale 1,4 LJ interaction
-          else if (plj%potintra15) then
+          else if (intra15) then
             coeff = 1._RK
           else
             cycle
@@ -5343,9 +5378,12 @@ end subroutine TInteraction_Energy
         do s2 = 1, this%N2Dipole
           pdd => this%PotDipoleDipole(s1, s2)
 
-          if (pdd%potintra14) then
+         ! Inner Degrees of Freedom
+          intra14 = pdd%potintra14
+          intra15 = pdd%potintra15
+          if (intra14) then
             coeff = pdd%ScaleEl14 !Scale 1,4 El interactions
-          else if (pdd%potintra15) then
+          else if (intra15) then
             coeff = 1._RK
           else
             cycle
@@ -5442,9 +5480,12 @@ end subroutine TInteraction_Energy
 !         do s2=this%UnitQP2(nu), this%UnitQP2(nu+1) - 1
           pdq => this%PotDipoleQuadrupole(s1, s2)
 
-          if (pdq%potintra14) then
+          ! Inner Degrees of Freedom
+          intra14 = pdq%potintra14
+          intra15 = pdq%potintra15
+          if (intra14) then
             coeff = pdq%ScaleEl14 !Scale 1,4 El interactions
-          else if (pdq%potintra15) then
+          else if (intra15) then
             coeff = 1._RK
           else
             cycle
@@ -5549,9 +5590,12 @@ end subroutine TInteraction_Energy
         do s2 = 1, this%N2Dipole
           pqd => this%PotQuadrupoleDipole(s1, s2)
 
-          if (pqd%potintra14) then
+          ! Inner Degrees of Freedom
+          intra14 = pqd%potintra14
+          intra15 = pqd%potintra15
+          if (intra14) then
             coeff = pqd%ScaleEl14 !Scale 1,4 El interactions
-          else if (pqd%potintra15) then
+          else if (intra15) then
             coeff = 1._RK
           else
             cycle
@@ -5651,9 +5695,12 @@ end subroutine TInteraction_Energy
         do s2 = 1, this%N2Quadrupole
           pqq => this%PotQuadrupoleQuadrupole(s1, s2)
 
-          if (pqq%potintra14) then
+          ! Inner Degrees of Freedom
+          intra14 = pqq%potintra14
+          intra15 = pqq%potintra15
+          if (intra14) then
             coeff = pqq%ScaleEl14 !Scale 1,4 El interactions
-          else if (pqq%potintra15) then
+          else if (intra15) then
             coeff = 1._RK
           else
             cycle
