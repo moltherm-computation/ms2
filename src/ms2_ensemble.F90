@@ -134,7 +134,7 @@ module ms2_ensemble
     type(TComponent), pointer, contiguous :: Component(:)
 
     ! Interactions
-    type(TInteraction), pointer :: Interaction(:, :)
+    type(TInteraction), pointer, contiguous :: Interaction(:, :)
 
     ! Initial values of temperature, pressure, density, hamiltonian and enthalpy
     real(RK) :: RefTemperature, RefPressure, RefDensity, RefHamiltonian, RefEnthalpy
@@ -592,22 +592,6 @@ module ms2_ensemble
     module procedure TEnsemble_Atom2Unit
   end interface
 
-  interface Mol2Unit
-    module procedure TEnsemble_Mol2Unit
-  end interface
-
-  interface Unit2Mol
-    module procedure TEnsemble_Unit2Mol
-  end interface
-
-  interface PredictVol
-    module procedure TEnsemble_PredictVol
-  end interface
-
-  interface CorrectVol
-    module procedure TEnsemble_CorrectVol
-  end interface
-
   interface Predict
     module procedure TEnsemble_Predict
   end interface
@@ -997,9 +981,6 @@ contains
     integer :: i, j
     integer :: stat
     character( IOBufferLength ) :: str
-    
-    !Declare variable for walltime solution in ms2_global
-    integer :: time_limit
 
     ! Allocate simulation box length
     allocate( this%BoxLength, STAT = stat )
@@ -1849,9 +1830,6 @@ contains
       end if
      
       if( SimulationType .eq. MolecularDynamics .and. .not. MCOverlapReduction ) then
-
-        ! Calculate positions of units
-        call Mol2Unit( this)   ! Calculate initial orientations and positions of units
 
         ! Initialize molecular dynamics simulation
         call InitMolecularDynamics( this, .false. )
@@ -3006,12 +2984,8 @@ contains
         pc%NDFRot = pc%NDFRot + pc%Molecule%Unit(j)%NDFRot ! for one molecule
       end do
      ! Inner Degrees of Freedom of one particle
-      if (UseIntDegFreed) then
-        pc%Molecule%NDF = pc%Molecule%NUnit * 3
-        pc%Molecule%NDF = pc%Molecule%NDF + pc%NDFRot
-        if ( Shake > 0 ) then
-          this%constrNDF = this%constrNDF + pc%NPart*pc%Molecule%NBond
-        end if
+      if (UseIntDegFreed .and. Shake > 0 ) then
+        this%constrNDF = this%constrNDF + pc%NPart*pc%Molecule%NBond
       end if
       pc%NDFRot = pc%NPart * pc%NDFRot
       pc%NDF = pc%NDFTran + pc%NDFRot
@@ -4168,7 +4142,7 @@ xloop:do i = 1, NCells1dim(1)
 #endif
 
     do i = 1, this%NComponents
-      this%Component(i)%P0 = this%Component(i)%P0 - 0.5_RK
+      this%Component(i)%Pm0 = this%Component(i)%Pm0 - 0.5_RK
     end do
 
     ! Save old positions
@@ -4227,7 +4201,7 @@ xloop:do i = 1, NCells1dim(1)
 
     ! Declare local variables
     integer                   :: i, j, k
-    real(RK)                  :: r
+    real(RK)                  :: dq(3), pm(3)
     type(TComponent), pointer :: pc
 
     ! Set random orientations of particles
@@ -4235,15 +4209,19 @@ xloop:do i = 1, NCells1dim(1)
       pc => this%Component(i)
       if(pc%Molecule%isElongated ) then
         do j = 1, pc%NPart
-          do
-            do k = 1, 4
-              pc%Qm0(j, k) = rnd( -1._RK, 1._RK )
-            end do
-            r = sum( pc%Qm0(j, :)**2 )
-            if( r <= 1._RK ) exit
+          pm(:) = pc%Pm0(j,:)
+          do k = 1, 3
+            dq(k) = rnd( -1._RK, 1._RK )
           end do
-          pc%Qm0(j, :) = pc%Qm0(j, :) / sqrt( r )
+          call InitUnit(pc,j,dq)
+          call Unit2Mol( pc, j )
+          do k = 1, pc%Molecule%NUnit
+            pc%P0(j,:,k) = pc%P0(j,:,k) + pm(:) - pc%Pm0(j,:)
+          end do
+          pc%Pm0(j,:) = pm(:)
         end do
+      else
+        pc%P0(:,:,1) = pc%Pm0(:,:) ! if P0' 3.dim is over 1 -> elongated
       end if
     end do
 
@@ -4598,7 +4576,6 @@ xloop:do i = 1, NCells1dim(1)
     call InitOrientations( this )
 
     ! Convert unit coordinates to atom positions
-    call Mol2Unit( this )
     call Unit2Atom( this )
 
     if( SimulationType .eq. MolecularDynamics .and. .not. MCOverlapReduction ) then
@@ -4685,6 +4662,9 @@ loop5:  do nc = 1, this%NComponents
 
     call Force( this )
     call Atom2Unit( this )
+    if ( Shake > 0 ) then
+      call QShake(this)
+    end if
     call Correct( this )
 
 #if CONSTR > 0
@@ -5266,52 +5246,6 @@ loop5:    do nc = 1, this%NComponents
 
 
 !==============================================================!
-!  Subroutine TEnsemble_Mol2Unit                               !
-!==============================================================!
-
-  subroutine TEnsemble_Mol2Unit( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer      :: i
-
-    ! Call Mol2Unit for each component
-    do i = 1, this%NComponents
-      call Mol2Unit( this%Component(i), this%Component(i)%NPart, &
-&                      this%Component(i)%Molecule%NUnit )
-    end do
-
-  end subroutine TEnsemble_Mol2Unit
-
-
-!==============================================================!
-!  Subroutine TEnsemble_Unit2Mol                               !
-!==============================================================!
-
-  subroutine TEnsemble_Unit2Mol( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer      :: i
-
-    ! Call Unit2Mol for each component
-    do i = 1, this%NComponents
-      call Mol2Unit( this%Component(i), this%Component(i)%NPart, &
-&                      this%Component(i)%Molecule%NUnit )
-    end do
-
-  end subroutine TEnsemble_Unit2Mol
-
-
-!==============================================================!
 !  Subroutine TEnsemble_ResizeMol                              !
 !==============================================================!
 
@@ -5357,10 +5291,6 @@ loop5:    do nc = 1, this%NComponents
       call PredictVV( this )
     end select
 
-    if( ConstantPressure .and. .not. NVTEquilibration ) then
-      call PredictVol( this )
-    end if
-
   end subroutine TEnsemble_Predict
 
 
@@ -5387,10 +5317,6 @@ loop5:    do nc = 1, this%NComponents
       call CorrectVV( this )
     end select
 
-    if( ConstantPressure .and. .not. NVTEquilibration ) then
-      call CorrectVol(this)
-    end if
-
   end subroutine TEnsemble_Correct
 
 
@@ -5412,6 +5338,7 @@ loop5:    do nc = 1, this%NComponents
 
     ! Declare local variables
     integer :: i
+    real(RK) :: BoxLengthOld, DelBoxL
 
     ! Call predictor for each component
     if( RootProc ) then
@@ -5421,8 +5348,8 @@ loop5:    do nc = 1, this%NComponents
     end if
 
     ! Predict volume of simulation box
-    if ( RootProc ) then
-
+    if( ConstantPressure .and. .not. NVTEquilibration ) then
+      if( RootProc ) then
         this%Volume0 = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
 
         this%Volume1 = this%Volume1 + 2._RK * this%Volume2 + 3._RK * this%Volume3 &
@@ -5435,6 +5362,16 @@ loop5:    do nc = 1, this%NComponents
 
         this%Volume4 = this%Volume4 + 5._RK * this%Volume5
 
+      end if
+#if MPI_VER > 0
+      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+      call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
+#endif
+      BoxLengthOld = this%BoxLength
+      call UpdateBoxLength( this )
+
+      DelBoxL = this%BoxLength / BoxLengthOld
+      call ResizeMol(this, DelBoxL)
     end if
 
   end subroutine TEnsemble_PredictGear
@@ -5515,6 +5452,7 @@ loop5:    do nc = 1, this%NComponents
       call UpdateBoxLength( this )
 
       DelBoxL = this%BoxLength / BoxLengthOld
+      call ResizeMol(this, DelBoxL)
     end if
 
   end subroutine TEnsemble_CorrectGear
@@ -5539,12 +5477,30 @@ loop5:    do nc = 1, this%NComponents
 
     ! Declare local variables
     integer :: i
+    real(RK) :: BoxLengthOld, DelBoxL
 
     ! Call predictor for each component
     if( RootProc ) then
       do i = 1, this%NComponents
         call PredictLeapFrog( this%Component(i), this%scale )
       end do
+    end if
+
+    ! Predict volume of simulation box
+    if( ConstantPressure .and. .not. NVTEquilibration ) then
+      if( RootProc ) then
+        this%Volume1 = this%Volume1 + this%Volume2
+        this%Volume0 = this%Volume0 + this%Volume1
+      end if
+#if MPI_VER > 0
+      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+      call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
+#endif
+      BoxLengthOld = this%BoxLength
+      call UpdateBoxLength( this )
+
+      DelBoxL = this%BoxLength / BoxLengthOld
+      call ResizeMol(this, DelBoxL)
     end if
 
   end subroutine TEnsemble_PredictLeapFrog
@@ -5572,6 +5528,14 @@ loop5:    do nc = 1, this%NComponents
       do i = 1, this%NComponents
         call CorrectLeapFrog( this%Component(i), dLogVolumeThird )
       end do
+    end if
+
+    ! Correct volume of simulation box
+    if( ConstantPressure .and. .not. NVTEquilibration ) then
+      if( RootProc ) then
+        this%Volume2 = (this%Pressure - this%RefPressure) * TimeStepSquared2 / this%PistonMass
+        this%Volume1 = this%Volume1 + this%Volume2
+      end if
     end if
 
   end subroutine TEnsemble_CorrectLeapFrog
@@ -6084,8 +6048,8 @@ loop5:    do nc = 1, this%NComponents
       end if
     end if
 
-
-    this%Pressure = (this%NUnitTotal * this%Temperature + this%Virial) / this%Volume0
+    ! constraints bonds due to Shake decrease the ideal gas pressure value
+    this%Pressure = ((this%NUnitTotal-this%constrNDF/3._RK) * this%Temperature + this%Virial) / this%Volume0
 
   end subroutine TEnsemble_Force
 
@@ -11686,19 +11650,15 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call Update( this%SumHBondN(i), real(this%NHBondN(i),RK) )
     end do
 #endif
-    if( ConstantPressure ) then
-      call Update( this%SumEnthalpy, this%EPotInter / real( this%NPart, RK ) + this%RefPressure / this%Density - &
-&      (1-this%NUnitTotal/this%Npart)*this%RefTemperature )
-!       call Update( this%SumEnthalpy, this%EPot/real(this%NPart,RK) + this%Pressure/this%Density - this%RefTemperature) - refT to adjust H=U+pv with p_res, u already u_res
+
+    if( ConstantPressure ) then  ! MichaelGE: fix Enthalpy
+      call Update( this%SumEnthalpy, this%EPot/real(this%NPart,RK) + this%RefPressure/this%Density)
     else
       call Update( this%SumEnthalpy, this%EPot/real(this%NPart,RK) + this%Pressure/this%Density)
     end if
 
-    call Update( this%SumVirialIntra, -3._RK * this%VirialIntra )
-    call Update( this%SumVirialInter, -3._RK * this%VirialInter )
-
-    currentdEpotdV   = -(this%Virial+(this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0
-    currentd2EpotdV2 =  ((2._RK*this%Virial/3._RK + this%d2EpotdV2) + (this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0**2 ! diff to trunk...wrong! GABOR!!!
+    currentdEpotdV   = -this%Virial/this%Volume0
+    currentd2EpotdV2 =  (2._RK*this%Virial/3._RK + this%d2EpotdV2) / this%Volume0**2
     call Update( this%SumdEpotdV,   currentdEpotdV)
     call Update( this%Sumd2EpotdV2, currentd2EpotdV2)
 
@@ -11712,13 +11672,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     end if
 
     ! 2.) Combined sums
-    call Update( this%SumEPotSquared,      ( this%EPotInter / real( this%NPart, RK ) )**2 ) ! diff to trunk all 7 lines
-    call Update( this%SumEPotCubic,          this%EPotInter**3 )
+    call Update( this%SumEPotSquared,      ( this%EPot / real( this%NPart, RK ) )**2 )
+    call Update( this%SumEPotCubic,          this%EPot**3 )
     call Update( this%SumdEpotdVSquared,                    currentdEpotdV**2 )
-    call Update( this%SumEPotdEpotdV,        this%EPotInter    * currentdEpotdV    )             
-    call Update( this%SumEPotSquareddEpotdV, this%EPotInter**2 * currentdEpotdV    )
-    call Update( this%SumEPotdEpotdVSquared, this%EPotInter    * currentdEpotdV**2 )
-    call Update( this%SumEPotd2EpotdV2,      this%EPotInter    * currentd2EpotdV2  )
+    call Update( this%SumEPotdEpotdV,        this%EPot    * currentdEpotdV    )             
+    call Update( this%SumEPotSquareddEpotdV, this%EPot**2 * currentdEpotdV    )
+    call Update( this%SumEPotdEpotdVSquared, this%EPot    * currentdEpotdV**2 )
+    call Update( this%SumEPotd2EpotdV2,      this%EPot    * currentd2EpotdV2  )
 
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then
       !Following was part was commented, even if J.Chem.Phys.100(4)1994 prescribes it for NVEMom MD, because the results are identical with and without it.
@@ -11751,16 +11711,16 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call Update( this%SumHmUm3dUdV2,     currentHmUm1**3  * currentdEpotdV**2 )
     endif
 
-    call Update( this%SumEPotV, this%EPotInter / this%Volume0  )
+    call Update( this%SumEPotV, this%EPot / ( real( this%NPart, RK ) * this%Density ) )
 
     call Update( this%SumEPotVirial, -3. * this%Virial * this%EPot / real( this%NPart, RK ) )
 
     if( ConstantPressure ) then
-       call Update( this%SumEnthalpySquared, ( this%EPotInter / real( this%NPart, RK ) + &
-&                this%RefPressure / this%Density - (1-this%NUnitTotal/this%Npart)*this%RefTemperature )**2 )
+       call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
+&                this%RefPressure / this%Density)**2 )
    
-       call Update( this%SumEnthalpyV, ( this%EPotInter / real( this%NPart, RK ) + &
-&                this%RefPressure / this%Density - (1-this%NUnitTotal/this%Npart)*this%RefTemperature ) / this%Density )
+       call Update( this%SumEnthalpyV, ( this%EPot / real( this%NPart, RK ) + &
+&                this%RefPressure / this%Density ) / this%Density )
     else
        call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
 &                this%Pressure / this%Density )**2 )
@@ -11777,7 +11737,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 &                * ( this%SumVolumeSquared%Average / this%SumVolume%Average - this%SumVolume%Average ) )
 
       call Update( this%SumdHdP, this%SumVolume%Average - real( this%NPart, RK ) / this%RefTemperature &
-&                * ( this%SumEPotV%Average - this%SumEPotInter%Average * this%SumVolume%Average + this%RefPressure &
+&                * ( this%SumEPotV%Average - this%SumEPot%Average * this%SumVolume%Average + this%RefPressure &
 &                * ( this%SumVolumeSquared%Average - this%SumVolume%Average**2 ) ) )
 
       call Update( this%SumCP, real( this%NPart, RK ) / this%RefTemperature**2 &
@@ -15971,7 +15931,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWrite( this%iounit_visual )
         end do
       end do
-      num = num+(i)*this%Component(i)%Molecule%NUnit
+      num = num+this%Component(i)%Molecule%NUnit
     end do
     call FileWriteBlank( this%iounit_visual )
 
@@ -20565,38 +20525,6 @@ contains
 #endif
 
 
-!==============================================================!
-!  Subroutine TEnsemble_PredictVol                             !
-!==============================================================!
-
-  subroutine TEnsemble_PredictVol( this )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    real(RK) :: BoxLengthOld, DelBoxL
-
-
-
-#if MPI_VER > 0
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-    call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
-#endif
-    BoxLengthOld = this%BoxLength
-    call UpdateBoxLength( this )
-
-    DelBoxL = this%BoxLength / BoxLengthOld
-
-  end subroutine TEnsemble_PredictVol
-
 
 !==============================================================!
 !  Subroutine TEnsemble_ChangeFluctTI                          !
@@ -21944,8 +21872,21 @@ contains
 
     ! calculate unconstrained and unscaled(T) positions
     this%scale = 1._RK ! shutoff Thermostat for unconstrained timestep
-    call CorrectLeapFrog( this )
-    call PredictLeapFrog( this )
+
+    ! Call corrector for each component
+    if( RootProc ) then
+      dLogVolumeThird = this%Volume1 / (3._RK * this%Volume0)
+      do i = 1, this%NComponents
+        call CorrectLeapFrog( this%Component(i), dLogVolumeThird )
+      end do
+    end if
+
+    if( RootProc ) then
+      do i = 1, this%NComponents
+        call PredictLeapFrog( this%Component(i), this%scale )
+      end do
+    end if
+
     do i =1, this%NComponents
       pc => this%Component(i)
       if (RootProc) then
@@ -21976,41 +21917,5 @@ contains
     this%Pressure = this%Pressure + VirialShake/this%Volume0
 
   end subroutine TEnsemble_QShake
-
-
-!==============================================================!
-!  Subroutine TEnsemble_CorrectVol                             !
-!==============================================================!
-
-  subroutine TEnsemble_CorrectVol( this )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-
-
-    ! Correct volume of simulation box
-    if( RootProc ) then
-      ! Call corrector
-      select case( IntegratorType )
-
-      case( IntegratorTypeLeapFrog )
-        this%Volume2 = (this%Pressure - this%RefPressure) * TimeStepSquared2 / this%PistonMass
-        this%Volume1 = this%Volume1 + this%Volume2
-
-      end select
-
-    end if
-
-
-  end subroutine TEnsemble_CorrectVol
-
 
 end module ms2_ensemble
