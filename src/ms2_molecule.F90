@@ -732,7 +732,24 @@ contains
 
     ! Find moments of inertia for molecule
     if( this%NDFRot < 0 ) then
-      call FindMOI( this )
+    ! Calculate moment-of-inertia tensor
+    moi(:, :) = 0._RK
+    do i = 1, this%NLJ126
+      moi(1, 1) = moi(1, 1) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(2)**2 + this%SiteLJ126(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(2) * this%SiteLJ126(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(2)**2 )
+    end do
+
+    ! Transform to principal axes
+    call eigen_find( moi(:,:), this%MOI(:), rotation(:,:) )
+    call eigen_sort( this%MOI(:), rotation(:,:) )
+    do i = 1, this%NLJ126
+      this%SiteLJ126(i)%r(:) = matmul( this%SiteLJ126(i)%r(:), rotation(:, :) )
+    end do
+
     end if
 
     ! For all Units find mass, COM, moment of inertia, number of degree of freedom
@@ -741,120 +758,7 @@ contains
       call FindCOM ( this%Unit(i) )
     end do
 
-    do iUnit = 1, this%NUnit
-
-      unit => this%Unit(iUnit)
-
-      if( unit%NDFRot < 0 ) then
-
-        ! Calculate moment-of-inertia tensor
-        moi(:, :) = 0._RK
-        do i = 1, unit%NLJ126
-          moi(1, 1) = moi(1, 1) + unit%SiteLJ126(i)%mass * ( unit%SiteLJ126(i)%r(2)**2 + unit%SiteLJ126(i)%r(3)**2 )
-          moi(1, 2) = moi(1, 2) - unit%SiteLJ126(i)%mass * unit%SiteLJ126(i)%r(1) * unit%SiteLJ126(i)%r(2)
-          moi(1, 3) = moi(1, 3) - unit%SiteLJ126(i)%mass * unit%SiteLJ126(i)%r(1) * unit%SiteLJ126(i)%r(3)
-          moi(2, 2) = moi(2, 2) + unit%SiteLJ126(i)%mass * ( unit%SiteLJ126(i)%r(1)**2 + unit%SiteLJ126(i)%r(3)**2 )
-          moi(2, 3) = moi(2, 3) - unit%SiteLJ126(i)%mass * unit%SiteLJ126(i)%r(2) * unit%SiteLJ126(i)%r(3)
-          moi(3, 3) = moi(3, 3) + unit%SiteLJ126(i)%mass * ( unit%SiteLJ126(i)%r(1)**2 + unit%SiteLJ126(i)%r(2)**2 )
-        end do
-
-        do i = 1, unit%NCharge
-          moi(1, 1) = moi(1, 1) + unit%SiteCharge(i)%mass * ( unit%SiteCharge(i)%r(2)**2 + unit%SiteCharge(i)%r(3)**2 )
-          moi(1, 2) = moi(1, 2) - unit%SiteCharge(i)%mass * unit%SiteCharge(i)%r(1) * unit%SiteCharge(i)%r(2)
-          moi(1, 3) = moi(1, 3) - unit%SiteCharge(i)%mass * unit%SiteCharge(i)%r(1) * unit%SiteCharge(i)%r(3)
-          moi(2, 2) = moi(2, 2) + unit%SiteCharge(i)%mass * ( unit%SiteCharge(i)%r(1)**2 + unit%SiteCharge(i)%r(3)**2 )
-          moi(2, 3) = moi(2, 3) - unit%SiteCharge(i)%mass * unit%SiteCharge(i)%r(2) * unit%SiteCharge(i)%r(3)
-          moi(3, 3) = moi(3, 3) + unit%SiteCharge(i)%mass * ( unit%SiteCharge(i)%r(1)**2 + unit%SiteCharge(i)%r(2)**2 )
-        end do
-
-        do i = 1, unit%NDipole
-          moi(1, 1) = moi(1, 1) + unit%SiteDipole(i)%mass * ( unit%SiteDipole(i)%r(2)**2 + unit%SiteDipole(i)%r(3)**2 )
-          moi(1, 2) = moi(1, 2) - unit%SiteDipole(i)%mass * unit%SiteDipole(i)%r(1) * unit%SiteDipole(i)%r(2)
-          moi(1, 3) = moi(1, 3) - unit%SiteDipole(i)%mass * unit%SiteDipole(i)%r(1) * unit%SiteDipole(i)%r(3)
-          moi(2, 2) = moi(2, 2) + unit%SiteDipole(i)%mass * ( unit%SiteDipole(i)%r(1)**2 + unit%SiteDipole(i)%r(3)**2 )
-          moi(2, 3) = moi(2, 3) - unit%SiteDipole(i)%mass * unit%SiteDipole(i)%r(2) * unit%SiteDipole(i)%r(3)
-          moi(3, 3) = moi(3, 3) + unit%SiteDipole(i)%mass * ( unit%SiteDipole(i)%r(1)**2 + unit%SiteDipole(i)%r(2)**2 )
-        end do
-
-        do i = 1, unit%NQuadrupole
-          moi(1, 1) = moi(1, 1) + unit%SiteQuadrupole(i)%mass * ( unit%SiteQuadrupole(i)%r(2)**2 + unit%SiteQuadrupole(i)%r(3)**2 )
-          moi(1, 2) = moi(1, 2) - unit%SiteQuadrupole(i)%mass * unit%SiteQuadrupole(i)%r(1) * unit%SiteQuadrupole(i)%r(2)
-          moi(1, 3) = moi(1, 3) - unit%SiteQuadrupole(i)%mass * unit%SiteQuadrupole(i)%r(1) * unit%SiteQuadrupole(i)%r(3)
-          moi(2, 2) = moi(2, 2) + unit%SiteQuadrupole(i)%mass * ( unit%SiteQuadrupole(i)%r(1)**2 + unit%SiteQuadrupole(i)%r(3)**2 )
-          moi(2, 3) = moi(2, 3) - unit%SiteQuadrupole(i)%mass * unit%SiteQuadrupole(i)%r(2) * unit%SiteQuadrupole(i)%r(3)
-          moi(3, 3) = moi(3, 3) + unit%SiteQuadrupole(i)%mass * ( unit%SiteQuadrupole(i)%r(1)**2 + unit%SiteQuadrupole(i)%r(2)**2 )
-        end do
-
-        ! Transform to principal axes
-        call eigen_find( moi(:,:), unit%MOI(:), rotation(:,:) )
-        call eigen_sort( unit%MOI(:), rotation(:,:) )
-        do i = 1, unit%NLJ126
-          unit%SiteLJ126(i)%r(:) = matmul( unit%SiteLJ126(i)%r(:), rotation(:, :) )
-        end do
-
-        do i = 1, unit%NCharge
-          unit%SiteCharge(i)%r(:) = matmul( unit%SiteCharge(i)%r(:), rotation(:, :) )
-        end do
-
-        do i = 1, unit%NDipole
-          unit%SiteDipole(i)%r(:) = matmul( unit%SiteDipole(i)%r(:), rotation(:, :) )
-          unit%SiteDipole(i)%or(:) = matmul( unit%SiteDipole(i)%or(:), rotation(:, :) )
-        end do
-
-        do i = 1, unit%NQuadrupole
-          unit%SiteQuadrupole(i)%r(:) = matmul( unit%SiteQuadrupole(i)%r(:), rotation(:, :) )
-          unit%SiteQuadrupole(i)%or(:) = matmul( unit%SiteQuadrupole(i)%or(:), rotation(:, :) )
-        end do
-
-        if( (unit%NCharge > 0).or.(unit%NDipole > 0) ) unit%Mue(:) = matmul( unit%Mue(:), rotation(:, :) )
- 
-        ! Calculate inverse of rotation matrix - from body coordinate to space axes
-        Rot2(:,:) = rotation
-
-        ! Implemented according to Bronstein et al. 2008, Revision 7
-        T = Rot2(1,1)+Rot2(2,2)+Rot2(3,3)+1._RK
-        if (T>0) then
-           S = 0.5_RK/sqrt(T)
-           qu1 = 0.25_RK/S
-           qu2 = (Rot2(3,2)-Rot2(2,3))*S
-           qu3 = (Rot2(1,3)-Rot2(3,1))*S
-           qu4 = (Rot2(2,1)-Rot2(1,2))*S
-        else if ( (Rot2(1,1)>Rot2(2,2)) .and. (Rot2(1,1)>Rot2(3,3)) ) then
-           S = 2._RK*sqrt(1._RK + Rot2(1,1) - Rot2(2,2) - Rot2(3,3)) ! S = 4*qu2
-           SInv = 1._RK/S
-           qu1 = (Rot2(3,2) - Rot2(2,3))*SInv
-           qu2 = 0.25_RK*S
-           qu3 = (Rot2(1,2) + Rot2(2,1))*SInv
-           qu4 = (Rot2(1,3) + Rot2(3,1))*SInv
-        else if (Rot2(2,2)>Rot2(3,3)) then
-           S = 2._RK*sqrt(1._RK + Rot2(2,2) - Rot2(1,1) - Rot2(3,3)) ! S = 4*qu3
-           SInv = 1._RK/S
-           qu1 = (Rot2(1,3)-Rot2(3,1))*SInv
-           qu2 = (Rot2(1,2)+Rot2(2,1))*SInv
-           qu3 = 0.25_RK*S
-           qu4 = (Rot2(2,3)+Rot2(3,2))*SInv
-        else
-           S = 2._RK*sqrt(1._RK + Rot2(3,3) - Rot2(1,1) - Rot2(2,2)) ! S = 4*qu4
-           SInv = 1._RK/S
-           qu1 = (Rot2(1,2)-Rot2(2,1))*SInv
-           qu2 = (Rot2(1,3)+Rot2(3,1))*SInv
-           qu3 = (Rot2(2,3)+Rot2(3,2))*SInv
-           qu4 = 0.25_RK*S
-        end if
-        quinv = 1._RK / sqrt( qu1**2 + qu2**2 + qu3**2 + qu4**2 )
-        qu1 = qu1 * quinv
-        qu2 = qu2 * quinv
-        qu3 = qu3 * quinv
-        qu4 = qu4 * quinv
-        unit%Q0(1) = qu1
-        unit%Q0(2) = qu2
-        unit%Q0(3) = qu3
-        unit%Q0(4) = qu4
-
-
-      end if
-    end do
-
+    call FindMOI(this) ! if NDFRot < 0
     call ReadMOI(this) ! if NDFRot >= 0
 
     call FindNDF(this)
@@ -2085,69 +1989,123 @@ contains
     type(TMolecule) :: this
 
     ! Declare local variables
-    integer  :: i
-    real(RK) :: moi(3, 3), rotation(3, 3)
+    type(TUnit), pointer :: unit
+    integer  :: i, iUnit
+    real(RK) :: moi(3, 3), rotation(3, 3), Rot2(3, 3)
+    real(RK) :: qu1,qu2,qu3,qu4,quinv, T,S,SInv
 
-    ! Calculate moment-of-inertia tensor
-    moi(:, :) = 0._RK
-    do i = 1, this%NLJ126
-      moi(1, 1) = moi(1, 1) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(2)**2 + this%SiteLJ126(i)%r(3)**2 )
-      moi(1, 2) = moi(1, 2) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(2)
-      moi(1, 3) = moi(1, 3) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(3)
-      moi(2, 2) = moi(2, 2) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(3)**2 )
-      moi(2, 3) = moi(2, 3) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(2) * this%SiteLJ126(i)%r(3)
-      moi(3, 3) = moi(3, 3) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(2)**2 )
+    do iUnit = 1, this%NUnit
+
+      unit => this%Unit(iUnit)
+
+      if( unit%NDFRot < 0 ) then
+
+        ! Calculate moment-of-inertia tensor
+        moi(:, :) = 0._RK
+        do i = 1, unit%NLJ126
+          moi(1, 1) = moi(1, 1) + unit%SiteLJ126(i)%mass * ( unit%SiteLJ126(i)%r(2)**2 + unit%SiteLJ126(i)%r(3)**2 )
+          moi(1, 2) = moi(1, 2) - unit%SiteLJ126(i)%mass * unit%SiteLJ126(i)%r(1) * unit%SiteLJ126(i)%r(2)
+          moi(1, 3) = moi(1, 3) - unit%SiteLJ126(i)%mass * unit%SiteLJ126(i)%r(1) * unit%SiteLJ126(i)%r(3)
+          moi(2, 2) = moi(2, 2) + unit%SiteLJ126(i)%mass * ( unit%SiteLJ126(i)%r(1)**2 + unit%SiteLJ126(i)%r(3)**2 )
+          moi(2, 3) = moi(2, 3) - unit%SiteLJ126(i)%mass * unit%SiteLJ126(i)%r(2) * unit%SiteLJ126(i)%r(3)
+          moi(3, 3) = moi(3, 3) + unit%SiteLJ126(i)%mass * ( unit%SiteLJ126(i)%r(1)**2 + unit%SiteLJ126(i)%r(2)**2 )
+        end do
+
+        do i = 1, unit%NCharge
+          moi(1, 1) = moi(1, 1) + unit%SiteCharge(i)%mass * ( unit%SiteCharge(i)%r(2)**2 + unit%SiteCharge(i)%r(3)**2 )
+          moi(1, 2) = moi(1, 2) - unit%SiteCharge(i)%mass * unit%SiteCharge(i)%r(1) * unit%SiteCharge(i)%r(2)
+          moi(1, 3) = moi(1, 3) - unit%SiteCharge(i)%mass * unit%SiteCharge(i)%r(1) * unit%SiteCharge(i)%r(3)
+          moi(2, 2) = moi(2, 2) + unit%SiteCharge(i)%mass * ( unit%SiteCharge(i)%r(1)**2 + unit%SiteCharge(i)%r(3)**2 )
+          moi(2, 3) = moi(2, 3) - unit%SiteCharge(i)%mass * unit%SiteCharge(i)%r(2) * unit%SiteCharge(i)%r(3)
+          moi(3, 3) = moi(3, 3) + unit%SiteCharge(i)%mass * ( unit%SiteCharge(i)%r(1)**2 + unit%SiteCharge(i)%r(2)**2 )
+        end do
+
+        do i = 1, unit%NDipole
+          moi(1, 1) = moi(1, 1) + unit%SiteDipole(i)%mass * ( unit%SiteDipole(i)%r(2)**2 + unit%SiteDipole(i)%r(3)**2 )
+          moi(1, 2) = moi(1, 2) - unit%SiteDipole(i)%mass * unit%SiteDipole(i)%r(1) * unit%SiteDipole(i)%r(2)
+          moi(1, 3) = moi(1, 3) - unit%SiteDipole(i)%mass * unit%SiteDipole(i)%r(1) * unit%SiteDipole(i)%r(3)
+          moi(2, 2) = moi(2, 2) + unit%SiteDipole(i)%mass * ( unit%SiteDipole(i)%r(1)**2 + unit%SiteDipole(i)%r(3)**2 )
+          moi(2, 3) = moi(2, 3) - unit%SiteDipole(i)%mass * unit%SiteDipole(i)%r(2) * unit%SiteDipole(i)%r(3)
+          moi(3, 3) = moi(3, 3) + unit%SiteDipole(i)%mass * ( unit%SiteDipole(i)%r(1)**2 + unit%SiteDipole(i)%r(2)**2 )
+        end do
+
+        do i = 1, unit%NQuadrupole
+          moi(1, 1) = moi(1, 1) + unit%SiteQuadrupole(i)%mass * ( unit%SiteQuadrupole(i)%r(2)**2 + unit%SiteQuadrupole(i)%r(3)**2 )
+          moi(1, 2) = moi(1, 2) - unit%SiteQuadrupole(i)%mass * unit%SiteQuadrupole(i)%r(1) * unit%SiteQuadrupole(i)%r(2)
+          moi(1, 3) = moi(1, 3) - unit%SiteQuadrupole(i)%mass * unit%SiteQuadrupole(i)%r(1) * unit%SiteQuadrupole(i)%r(3)
+          moi(2, 2) = moi(2, 2) + unit%SiteQuadrupole(i)%mass * ( unit%SiteQuadrupole(i)%r(1)**2 + unit%SiteQuadrupole(i)%r(3)**2 )
+          moi(2, 3) = moi(2, 3) - unit%SiteQuadrupole(i)%mass * unit%SiteQuadrupole(i)%r(2) * unit%SiteQuadrupole(i)%r(3)
+          moi(3, 3) = moi(3, 3) + unit%SiteQuadrupole(i)%mass * ( unit%SiteQuadrupole(i)%r(1)**2 + unit%SiteQuadrupole(i)%r(2)**2 )
+        end do
+
+        ! Transform to principal axes
+        call eigen_find( moi(:,:), unit%MOI(:), rotation(:,:) )
+        call eigen_sort( unit%MOI(:), rotation(:,:) )
+        do i = 1, unit%NLJ126
+          unit%SiteLJ126(i)%r(:) = matmul( unit%SiteLJ126(i)%r(:), rotation(:, :) )
+        end do
+
+        do i = 1, unit%NCharge
+          unit%SiteCharge(i)%r(:) = matmul( unit%SiteCharge(i)%r(:), rotation(:, :) )
+        end do
+
+        do i = 1, unit%NDipole
+          unit%SiteDipole(i)%r(:) = matmul( unit%SiteDipole(i)%r(:), rotation(:, :) )
+          unit%SiteDipole(i)%or(:) = matmul( unit%SiteDipole(i)%or(:), rotation(:, :) )
+        end do
+
+        do i = 1, unit%NQuadrupole
+          unit%SiteQuadrupole(i)%r(:) = matmul( unit%SiteQuadrupole(i)%r(:), rotation(:, :) )
+          unit%SiteQuadrupole(i)%or(:) = matmul( unit%SiteQuadrupole(i)%or(:), rotation(:, :) )
+        end do
+
+        if( (unit%NCharge > 0).or.(unit%NDipole > 0) ) unit%Mue(:) = matmul( unit%Mue(:), rotation(:, :) )
+
+        ! Calculate inverse of rotation matrix - from body coordinate to space axes
+        Rot2(:,:) = rotation
+
+        ! Implemented according to Bronstein et al. 2008, Revision 7
+        T = Rot2(1,1)+Rot2(2,2)+Rot2(3,3)+1._RK
+        if (T>0) then
+           S = 0.5_RK/sqrt(T)
+           qu1 = 0.25_RK/S
+           qu2 = (Rot2(3,2)-Rot2(2,3))*S
+           qu3 = (Rot2(1,3)-Rot2(3,1))*S
+           qu4 = (Rot2(2,1)-Rot2(1,2))*S
+        else if ( (Rot2(1,1)>Rot2(2,2)) .and. (Rot2(1,1)>Rot2(3,3)) ) then
+           S = 2._RK*sqrt(1._RK + Rot2(1,1) - Rot2(2,2) - Rot2(3,3)) ! S = 4*qu2
+           SInv = 1._RK/S
+           qu1 = (Rot2(3,2) - Rot2(2,3))*SInv
+           qu2 = 0.25_RK*S
+           qu3 = (Rot2(1,2) + Rot2(2,1))*SInv
+           qu4 = (Rot2(1,3) + Rot2(3,1))*SInv
+        else if (Rot2(2,2)>Rot2(3,3)) then
+           S = 2._RK*sqrt(1._RK + Rot2(2,2) - Rot2(1,1) - Rot2(3,3)) ! S = 4*qu3
+           SInv = 1._RK/S
+           qu1 = (Rot2(1,3)-Rot2(3,1))*SInv
+           qu2 = (Rot2(1,2)+Rot2(2,1))*SInv
+           qu3 = 0.25_RK*S
+           qu4 = (Rot2(2,3)+Rot2(3,2))*SInv
+        else
+           S = 2._RK*sqrt(1._RK + Rot2(3,3) - Rot2(1,1) - Rot2(2,2)) ! S = 4*qu4
+           SInv = 1._RK/S
+           qu1 = (Rot2(1,2)-Rot2(2,1))*SInv
+           qu2 = (Rot2(1,3)+Rot2(3,1))*SInv
+           qu3 = (Rot2(2,3)+Rot2(3,2))*SInv
+           qu4 = 0.25_RK*S
+        end if
+        quinv = 1._RK / sqrt( qu1**2 + qu2**2 + qu3**2 + qu4**2 )
+        qu1 = qu1 * quinv
+        qu2 = qu2 * quinv
+        qu3 = qu3 * quinv
+        qu4 = qu4 * quinv
+        unit%Q0(1) = qu1
+        unit%Q0(2) = qu2
+        unit%Q0(3) = qu3
+        unit%Q0(4) = qu4
+
+      end if
     end do
-
-    do i = 1, this%NCharge
-      moi(1, 1) = moi(1, 1) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(2)**2 + this%SiteCharge(i)%r(3)**2 )
-      moi(1, 2) = moi(1, 2) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(2)
-      moi(1, 3) = moi(1, 3) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(3)
-      moi(2, 2) = moi(2, 2) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(1)**2 + this%SiteCharge(i)%r(3)**2 )
-      moi(2, 3) = moi(2, 3) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(2) * this%SiteCharge(i)%r(3)
-      moi(3, 3) = moi(3, 3) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(1)**2 + this%SiteCharge(i)%r(2)**2 )
-    end do
-
-    do i = 1, this%NDipole
-      moi(1, 1) = moi(1, 1) + this%SiteDipole(i)%mass * ( this%SiteDipole(i)%r(2)**2 + this%SiteDipole(i)%r(3)**2 )
-      moi(1, 2) = moi(1, 2) - this%SiteDipole(i)%mass * this%SiteDipole(i)%r(1) * this%SiteDipole(i)%r(2)
-      moi(1, 3) = moi(1, 3) - this%SiteDipole(i)%mass * this%SiteDipole(i)%r(1) * this%SiteDipole(i)%r(3)
-      moi(2, 2) = moi(2, 2) + this%SiteDipole(i)%mass * ( this%SiteDipole(i)%r(1)**2 + this%SiteDipole(i)%r(3)**2 )
-      moi(2, 3) = moi(2, 3) - this%SiteDipole(i)%mass * this%SiteDipole(i)%r(2) * this%SiteDipole(i)%r(3)
-      moi(3, 3) = moi(3, 3) + this%SiteDipole(i)%mass * ( this%SiteDipole(i)%r(1)**2 + this%SiteDipole(i)%r(2)**2 )
-    end do
-
-    do i = 1, this%NQuadrupole
-      moi(1, 1) = moi(1, 1) + this%SiteQuadrupole(i)%mass * ( this%SiteQuadrupole(i)%r(2)**2 + this%SiteQuadrupole(i)%r(3)**2 )
-      moi(1, 2) = moi(1, 2) - this%SiteQuadrupole(i)%mass * this%SiteQuadrupole(i)%r(1) * this%SiteQuadrupole(i)%r(2)
-      moi(1, 3) = moi(1, 3) - this%SiteQuadrupole(i)%mass * this%SiteQuadrupole(i)%r(1) * this%SiteQuadrupole(i)%r(3)
-      moi(2, 2) = moi(2, 2) + this%SiteQuadrupole(i)%mass * ( this%SiteQuadrupole(i)%r(1)**2 + this%SiteQuadrupole(i)%r(3)**2 )
-      moi(2, 3) = moi(2, 3) - this%SiteQuadrupole(i)%mass * this%SiteQuadrupole(i)%r(2) * this%SiteQuadrupole(i)%r(3)
-      moi(3, 3) = moi(3, 3) + this%SiteQuadrupole(i)%mass * ( this%SiteQuadrupole(i)%r(1)**2 + this%SiteQuadrupole(i)%r(2)**2 )
-    end do
-
-    ! Transform to principal axes
-    call eigen_find( moi(:,:), this%MOI(:), rotation(:,:) )
-    call eigen_sort( this%MOI(:), rotation(:,:) )
-    do i = 1, this%NLJ126
-      this%SiteLJ126(i)%r(:) = matmul( this%SiteLJ126(i)%r(:), rotation(:, :) )
-    end do
-
-    do i = 1, this%NCharge
-      this%SiteCharge(i)%r(:) = matmul( this%SiteCharge(i)%r(:), rotation(:, :) )
-    end do
-
-    do i = 1, this%NDipole
-      this%SiteDipole(i)%r(:) = matmul( this%SiteDipole(i)%r(:), rotation(:, :) )
-      this%SiteDipole(i)%or(:) = matmul( this%SiteDipole(i)%or(:), rotation(:, :) )
-    end do
-
-    do i = 1, this%NQuadrupole
-      this%SiteQuadrupole(i)%r(:) = matmul( this%SiteQuadrupole(i)%r(:), rotation(:, :) )
-      this%SiteQuadrupole(i)%or(:) = matmul( this%SiteQuadrupole(i)%or(:), rotation(:, :) )
-    end do
-
-    if( (this%NCharge > 0).or.(this%NDipole > 0) ) this%Mue(:) = matmul( this%Mue(:), rotation(:, :) )
 
   contains
 
