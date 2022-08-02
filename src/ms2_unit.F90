@@ -108,10 +108,6 @@ module ms2_unit
     module procedure TUnit_FindMOI
   end interface
 
-  interface FindNDF
-    module procedure TUnit_FindNDF
-  end interface
-
 contains
 
 
@@ -604,59 +600,5 @@ contains
 
   end subroutine TUnit_FindMOI
 
-!==============================================================!
-!  Subroutine TUnit_FindNDF                                    !
-!==============================================================!
-
-  subroutine TUnit_FindNDF( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TUnit) :: this
-
-    ! Declare local variables
-    logical :: disoriented
-    integer :: i
-
-    ! Calculate number of rotation axes
-    if( this%NDFRot < 0 ) then
-      if( maxval( abs( this%MOI(:) ) ) > Zero ) then
-        if( abs( this%MOI(3) ) > Zero ) then
-          this%NDFRot = 3
-        else
-          this%NDFRot = 2
-          this%MOI(3) = 0._RK
-        end if
-      else
-        this%NDFRot = 0
-        this%MOI(:) = 0._RK
-      end if
-    end if
-
-    ! Check orientation of dipoles and quadrupoles
-    if( this%NDFRot < 3 ) then
-      disoriented = this%NDFRot < 2 &
-&       .and. (this%NDipole > 0 .or. this%NQuadrupole > 0)
-      do i = 1, this%NDipole
-        disoriented = disoriented &
-&         .or. ( maxval( abs( this%SiteDipole(i)%or(1:2) ) ) > Zero )
-      end do
-      do i = 1, this%NQuadrupole
-        disoriented = disoriented &
-&         .or. ( maxval( abs( this%SiteQuadrupole(i)%or(1:2) ) ) > Zero )
-      end do
-      if( disoriented ) &
-&       call Error( 'Must specify moments of inertia manually for unit' )
-    end if
-
-    ! Calculate total number of degrees of freedom
-    this%NDF = 3 + this%NDFRot
-
-    ! Set logical flags according to the number of rotation axes
-    this%isElongated = this%NDFRot > 0
-    this%is3D = this%NDFRot == 3
-
-  end subroutine TUnit_FindNDF
 
 end module ms2_unit

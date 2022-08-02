@@ -213,7 +213,7 @@ contains
     integer, intent(in)      :: fluctstate
 
     ! Declare local variables
-    integer       :: i, j
+    integer       :: i, j, iUnit
     integer       :: ntypes
     character(16) :: stype
     integer       :: stat
@@ -226,7 +226,7 @@ contains
     character(16) :: sidftype  !type of internal degree of freedom
     integer                :: ncs        ! number of all constraint sites
     integer, allocatable   :: ncspu(:)   ! number of constraint sites pro unit
-    logical                :: ok, ok1, LJ1, LJ2, same
+    logical                :: ok, ok1, LJ1, LJ2, same, disoriented
     logical                :: charge1, charge2, dipole1, dipole2, quadrupole1, quadrupole2
     integer                :: cc, cd, cq, dc, dd, dq, qc, qd, qq, lj
     integer                :: Site1, Site2, Site3, Site4
@@ -341,32 +341,9 @@ contains
       end select
     end do
 
-    ! Read number of rotation axes
-    call FileReadParameter( stype, iounit_potmod, IdSite_NDFRot, .false. )
-    select case( stype )
-    case( '0' )
-      this%NDFRot = 0
-    case( '2' )
-      this%NDFRot = 2
-    case( '3' )
-      this%NDFRot = 3
-    case( 'AUTO', 'Auto', 'auto' )
-      this%NDFRot = -1
-    case default
-      call Error( IdSite_NDFRot//' cannot be equal to '//trim( stype ) )
-    end select
-
     ! Find center of mass position
     call FindCOM( this )
 
-    ! Find moments of inertia for molecule
-    if( this%NDFRot < 0 ) then
-      call FindMOI( this )
-    end if
-
-    ! Find number of degrees of freedom
-    call FindNDF( this )
-    
     ! Internal degrees of freedom
     ! Calculate the total number of sites
     this%NSite = this%NLJ126+this%NCharge+this%NDipole+this%NQuadrupole
@@ -736,18 +713,41 @@ contains
       this%UnitQP(i) = this%Unit(i-1)%NQuadrupole + this%UnitQP(i-1)
     end do
 
+    ! Read number of rotation axes
+    call FileReadParameter( stype, iounit_potmod, IdSite_NDFRot, .false. )
+    select case( stype )
+    case( '0' )
+      this%NDFRot = 0
+    case( '2' )
+      this%NDFRot = 2
+    case( '3' )
+      this%NDFRot = 3
+    case( 'AUTO', 'Auto', 'auto' )
+      this%NDFRot = -1
+    case default
+      call Error( IdSite_NDFRot//' cannot be equal to '//trim( stype ) )
+    end select
+
+    ! Find moments of inertia for molecule
+    if( this%NDFRot < 0 ) then
+      call FindMOI( this )
+    end if
+
     ! For all Units find mass, COM, moment of inertia, number of degree of freedom
     this%NDF = 0
     do i = 1, this%NUnit
       call FindCOM ( this%Unit(i) )
+    end do
+
+    do i = 1, this%NUnit
        if( this%Unit(i)%NDFRot < 0 ) then
           call FindMOI( this%Unit(i) )
       end if
-      call FindNDF( this%Unit(i) )
-      this%NDF = this%NDF + this%Unit(i)%NDF
     end do
 
     call ReadMOI(this) ! if NDFRot >= 0
+
+    call FindNDF(this)
 
     ! check for elongation of rigid molecules
     this%isElongated = .false.
@@ -2111,46 +2111,55 @@ contains
     type(TMolecule) :: this
 
     ! Declare local variables
+    type(TUnit), pointer :: unit
     logical :: disoriented
-    integer :: i
+    integer :: i, iUnit
 
-    ! Calculate number of rotation axes
-    if( this%NDFRot < 0 ) then
-      if( maxval( abs( this%MOI(:) ) ) > Zero ) then
-        if( abs( this%MOI(3) ) > Zero ) then
-          this%NDFRot = 3
-        else
-          this%NDFRot = 2
-          this%MOI(3) = 0._RK
+    do iUnit = 1, this%NUnit
+
+        unit => this%Unit(iUnit)
+
+        ! Calculate number of rotation axes
+        if( unit%NDFRot < 0 ) then
+          if( maxval( abs( unit%MOI(:) ) ) > Zero ) then
+            if( abs( unit%MOI(3) ) > Zero ) then
+              unit%NDFRot = 3
+            else
+              unit%NDFRot = 2
+              unit%MOI(3) = 0._RK
+            end if
+          else
+            unit%NDFRot = 0
+            unit%MOI(:) = 0._RK
+          end if
         end if
-      else
-        this%NDFRot = 0
-        this%MOI(:) = 0._RK
-      end if
-    end if
 
-    ! Check orientation of dipoles and quadrupoles
-    if( this%NDFRot < 3 ) then
-      disoriented = this%NDFRot < 2 .and. (this%NDipole > 0 .or. this%NQuadrupole > 0)
+        ! Check orientation of dipoles and quadrupoles
+        if( unit%NDFRot < 3 ) then
+          disoriented = unit%NDFRot < 2 .and. (unit%NDipole > 0 .or. unit%NQuadrupole > 0)
 
-      do i = 1, this%NDipole
-        disoriented = disoriented .or. ( maxval( abs( this%SiteDipole(i)%or(1:2) ) ) > Zero )
-      end do
+          do i = 1, unit%NDipole
+            disoriented = disoriented .or. ( maxval( abs( unit%SiteDipole(i)%or(1:2) ) ) > Zero )
+          end do
 
-      do i = 1, this%NQuadrupole
-        disoriented = disoriented .or. ( maxval( abs( this%SiteQuadrupole(i)%or(1:2) ) ) > Zero )
-      end do
+          do i = 1, unit%NQuadrupole
+            disoriented = disoriented .or. ( maxval( abs( unit%SiteQuadrupole(i)%or(1:2) ) ) > Zero )
+          end do
 
-      if( disoriented ) call Error( 'Must specify moments of inertia manually' )
-    end if
+          if( disoriented ) call Error( 'Must specify moments of inertia manually' )
+        end if
 
-    ! Calculate total number of degrees of freedom
-    this%NDF = 3 + this%NDFRot
+        ! Calculate total number of degrees of freedom
+        unit%NDF = 3 + unit%NDFRot
 
-    ! Set logical flags according to the number of rotation axes
-    this%isElongated = this%NDFRot > 0
+        ! Set logical flags according to the number of rotation axes
+        unit%isElongated = unit%NDFRot > 0
+        unit%is3D = unit%NDFRot == 3
 
+        this%NDF = this%NDF + unit%NDF
+    end do
   end subroutine TMolecule_FindNDF
+
 
 
 !==============================================================!
