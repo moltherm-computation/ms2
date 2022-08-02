@@ -108,10 +108,6 @@ module ms2_unit
     module procedure TUnit_FindMOI
   end interface
 
-  interface ReadMOI
-    module procedure TUnit_ReadMOI
-  end interface
-
   interface FindNDF
     module procedure TUnit_FindNDF
   end interface
@@ -607,46 +603,6 @@ contains
     end subroutine eigen_sort
 
   end subroutine TUnit_FindMOI
-
-
-!==============================================================!
-!  Subroutine TUnit_ReadMOI                                    !
-!==============================================================!
-
-  subroutine TUnit_ReadMOI( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TUnit) :: this
-
-    ! Declare local variables
-    integer :: i
-
-    ! Read moments of inertia
-    this%MOI(:) = 0._RK
-    if( this%NDFRot > 0 ) then
-      call FileReadParameter( this%MOI(1), iounit_potmod, IdConstraint_MOI1, .false. )
-      call FileReadParameter( this%MOI(2), iounit_potmod, IdConstraint_MOI2, .false. )
-      if( this%NDFRot == 3 ) then
-        call FileReadParameter( this%MOI(3), iounit_potmod, IdConstraint_MOI3, .false. )
-      end if
-    end if
-
-    ! Convert to derived units
-    do i = 1, 3
-      this%MOI(i) = this%MOI(i) * .001_RK / NAvogadro * Angstroem**2
-      this%MOI(i) = this%MOI(i) / UnitInertia
-    end do
-
-    if ( this%NDipole .gt. 0 .or. this%NQuadrupole .gt. 0 ) then
-      this%Q0(1) = 1._RK
-      this%Q0(2) = 0._RK
-      this%Q0(3) = 0._RK
-      this%Q0(4) = 0._RK
-    end if
-
-  end subroutine TUnit_ReadMOI
 
 !==============================================================!
 !  Subroutine TUnit_FindNDF                                    !

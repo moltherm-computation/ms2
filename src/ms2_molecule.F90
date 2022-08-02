@@ -362,8 +362,6 @@ contains
     ! Find moments of inertia for molecule
     if( this%NDFRot < 0 ) then
       call FindMOI( this )
-    else
-      call ReadMOI( this )
     end if
 
     ! Find number of degrees of freedom
@@ -744,12 +742,12 @@ contains
       call FindCOM ( this%Unit(i) )
        if( this%Unit(i)%NDFRot < 0 ) then
           call FindMOI( this%Unit(i) )
-        else
-          call ReadMOI( this%Unit(i) )
       end if
       call FindNDF( this%Unit(i) )
       this%NDF = this%NDF + this%Unit(i)%NDF
     end do
+
+    call ReadMOI(this) ! if NDFRot >= 0
 
     ! check for elongation of rigid molecules
     this%isElongated = .false.
@@ -2062,25 +2060,40 @@ contains
     type(TMolecule) :: this
 
     ! Declare local variables
-    integer :: i
+    type(TUnit), pointer :: unit
+    integer :: i, iUnit
 
-    ! Read moments of inertia
-    this%MOI(:) = 0._RK
-    if( this%NDFRot > 0 ) then
-      call FileReadParameter( this%MOI(1), iounit_potmod, IdSite_MOI1, .false. )
-      call FileReadParameter( this%MOI(2), iounit_potmod, IdSite_MOI2, .false. )
-      if( this%NDFRot == 3 ) then
-        call FileReadParameter( this%MOI(3), iounit_potmod, IdSite_MOI3, .false. )
-      end if
-    end if
+    do iUnit = 1, this%NUnit
 
-    ! Convert to derived units
-    do i = 1, 3
-      this%MOI(i) = this%MOI(i) * .001_RK / NAvogadro * Angstroem**2
-      this%MOI(i) = this%MOI(i) / UnitInertia
+        unit => this%Unit(iUnit)
+
+        if( unit%NDFRot >= 0 ) then
+
+            ! Read moments of inertia
+            unit%MOI(:) = 0._RK
+            if( unit%NDFRot > 0 ) then
+                call FileReadParameter( unit%MOI(1), iounit_potmod, IdSite_MOI1, .false. )
+                call FileReadParameter( unit%MOI(2), iounit_potmod, IdSite_MOI2, .false. )
+                if( unit%NDFRot == 3 ) then
+                    call FileReadParameter( unit%MOI(3), iounit_potmod, IdSite_MOI3, .false. )
+                end if
+            end if
+
+            ! Convert to derived units
+            do i = 1, 3
+                unit%MOI(i) = unit%MOI(i) * .001_RK / NAvogadro * Angstroem**2
+                unit%MOI(i) = unit%MOI(i) / UnitInertia
+            end do
+
+            if ( unit%NDipole .gt. 0 .or. unit%NQuadrupole .gt. 0 ) then
+                unit%Q0(1) = 1._RK
+                unit%Q0(2) = 0._RK
+                unit%Q0(3) = 0._RK
+                unit%Q0(4) = 0._RK
+            end if
+
+        end if
     end do
-
-
 
   end subroutine TMolecule_ReadMOI
 
