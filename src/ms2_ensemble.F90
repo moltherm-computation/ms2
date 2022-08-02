@@ -600,14 +600,6 @@ module ms2_ensemble
     module procedure TEnsemble_Unit2Mol
   end interface
 
-  interface PredictVol
-    module procedure TEnsemble_PredictVol
-  end interface
-
-  interface CorrectVol
-    module procedure TEnsemble_CorrectVol
-  end interface
-
   interface Predict
     module procedure TEnsemble_Predict
   end interface
@@ -5357,10 +5349,6 @@ loop5:    do nc = 1, this%NComponents
       call PredictVV( this )
     end select
 
-    if( ConstantPressure .and. .not. NVTEquilibration ) then
-      call PredictVol( this )
-    end if
-
   end subroutine TEnsemble_Predict
 
 
@@ -5387,10 +5375,6 @@ loop5:    do nc = 1, this%NComponents
       call CorrectVV( this )
     end select
 
-    if( ConstantPressure .and. .not. NVTEquilibration ) then
-      call CorrectVol(this)
-    end if
-
   end subroutine TEnsemble_Correct
 
 
@@ -5412,6 +5396,7 @@ loop5:    do nc = 1, this%NComponents
 
     ! Declare local variables
     integer :: i
+    real(RK) :: BoxLengthOld, DelBoxL
 
     ! Call predictor for each component
     if( RootProc ) then
@@ -5421,8 +5406,8 @@ loop5:    do nc = 1, this%NComponents
     end if
 
     ! Predict volume of simulation box
-    if ( RootProc ) then
-
+    if( ConstantPressure ) then
+      if ( RootProc ) then
         this%Volume0 = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
 
         this%Volume1 = this%Volume1 + 2._RK * this%Volume2 + 3._RK * this%Volume3 &
@@ -5434,6 +5419,16 @@ loop5:    do nc = 1, this%NComponents
         this%Volume3 = this%Volume3 + 4._RK * this%Volume4 + 10._RK * this%Volume5
 
         this%Volume4 = this%Volume4 + 5._RK * this%Volume5
+
+      end if
+#if MPI_VER > 0
+      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+      call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
+#endif
+      BoxLengthOld = this%BoxLength
+      call UpdateBoxLength( this )
+
+      DelBoxL = this%BoxLength / BoxLengthOld
 
     end if
 
@@ -5539,12 +5534,30 @@ loop5:    do nc = 1, this%NComponents
 
     ! Declare local variables
     integer :: i
+    real(RK) :: BoxLengthOld, DelBoxL
 
     ! Call predictor for each component
     if( RootProc ) then
       do i = 1, this%NComponents
         call PredictLeapFrog( this%Component(i), this%scale )
       end do
+    end if
+
+    ! Predict volume of simulation box
+    if( ConstantPressure .and. .not. NVTEquilibration ) then
+      if( RootProc ) then
+        this%Volume1 = this%Volume1 + this%Volume2
+        this%Volume0 = this%Volume0 + this%Volume1
+      end if
+#if MPI_VER > 0
+      ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
+      call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
+#endif
+      BoxLengthOld = this%BoxLength
+      call UpdateBoxLength( this )
+
+      DelBoxL = this%BoxLength / BoxLengthOld
+      call ResizeMol(this, DelBoxL)
     end if
 
   end subroutine TEnsemble_PredictLeapFrog
@@ -5572,6 +5585,14 @@ loop5:    do nc = 1, this%NComponents
       do i = 1, this%NComponents
         call CorrectLeapFrog( this%Component(i), dLogVolumeThird )
       end do
+    end if
+
+    ! Correct volume of simulation box
+    if( ConstantPressure .and. .not. NVTEquilibration ) then
+      if( RootProc ) then
+        this%Volume2 = (this%Pressure - this%RefPressure) * TimeStepSquared2 / this%PistonMass
+        this%Volume1 = this%Volume1 + this%Volume2
+      end if
     end if
 
   end subroutine TEnsemble_CorrectLeapFrog
@@ -20565,38 +20586,6 @@ contains
 #endif
 
 
-!==============================================================!
-!  Subroutine TEnsemble_PredictVol                             !
-!==============================================================!
-
-  subroutine TEnsemble_PredictVol( this )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    real(RK) :: BoxLengthOld, DelBoxL
-
-
-
-#if MPI_VER > 0
-    ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
-    call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
-#endif
-    BoxLengthOld = this%BoxLength
-    call UpdateBoxLength( this )
-
-    DelBoxL = this%BoxLength / BoxLengthOld
-
-  end subroutine TEnsemble_PredictVol
-
 
 !==============================================================!
 !  Subroutine TEnsemble_ChangeFluctTI                          !
@@ -21944,8 +21933,21 @@ contains
 
     ! calculate unconstrained and unscaled(T) positions
     this%scale = 1._RK ! shutoff Thermostat for unconstrained timestep
-    call CorrectLeapFrog( this )
-    call PredictLeapFrog( this )
+
+    ! Call corrector for each component
+    if( RootProc ) then
+      dLogVolumeThird = this%Volume1 / (3._RK * this%Volume0)
+      do i = 1, this%NComponents
+        call CorrectLeapFrog( this%Component(i), dLogVolumeThird )
+      end do
+    end if
+
+    if( RootProc ) then
+      do i = 1, this%NComponents
+        call PredictLeapFrog( this%Component(i), this%scale )
+      end do
+    end if
+
     do i =1, this%NComponents
       pc => this%Component(i)
       if (RootProc) then
@@ -21976,41 +21978,5 @@ contains
     this%Pressure = this%Pressure + VirialShake/this%Volume0
 
   end subroutine TEnsemble_QShake
-
-
-!==============================================================!
-!  Subroutine TEnsemble_CorrectVol                             !
-!==============================================================!
-
-  subroutine TEnsemble_CorrectVol( this )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-
-
-    ! Correct volume of simulation box
-    if( RootProc ) then
-      ! Call corrector
-      select case( IntegratorType )
-
-      case( IntegratorTypeLeapFrog )
-        this%Volume2 = (this%Pressure - this%RefPressure) * TimeStepSquared2 / this%PistonMass
-        this%Volume1 = this%Volume1 + this%Volume2
-
-      end select
-
-    end if
-
-
-  end subroutine TEnsemble_CorrectVol
-
 
 end module ms2_ensemble
