@@ -46,14 +46,17 @@ module ms2_molecule
     logical :: isElongated, hasIntraLJEl
 
     ! Number of degrees of freedom
-    integer :: NDF
+    integer :: NDFRot, NDF
 
     ! Total mass of a molecule
     real(RK) :: Mass
 
-    ! MIE sites
-    integer :: NMIEnm
-    type(TSiteMIEnm), pointer, contiguous :: SiteMIEnm(:)
+    ! Principal moments of inertia
+    real(RK) :: MOI(3)
+
+    ! 12-6 Lennard-Jones sites
+    integer :: NLJ126
+    type(TSiteLJ126), pointer, contiguous :: SiteLJ126(:)
 
     ! Coulomb sites
     integer :: NCharge
@@ -216,6 +219,7 @@ contains
     integer       :: stat
     real(RK)      :: scalegeo, scalesig, scaleeps, scaleest
     integer       :: npossPartners
+    real(RK) :: moi(3, 3), rotation(3, 3)
 
     ! Inner Degrees of Freedom
     integer       :: k, index, index1, index2
@@ -246,7 +250,7 @@ contains
     integer                :: Quadrupole1Id, Quadrupole2Id
 
     ! Nullify pointers.
-    nullify( this%SiteMIEnm )
+    nullify( this%SiteLJ126 )
     nullify( this%SiteCharge )
     nullify( this%SiteDipole )
     nullify( this%SiteQuadrupole )
@@ -278,7 +282,7 @@ contains
 
     ! Zero number of sites
     this%NSite = 0
-    this%NMIEnm = 0
+    this%NLJ126 = 0
     this%NCharge = 0
     this%Charge = 0._RK
     this%NDipole = 0
@@ -287,31 +291,18 @@ contains
     ! Zero number of  constraint sites and not oriented unites
     ncs = 0
 
-
-
     ! Loop over potential types
     do i = 1, ntypes
       call FileReadParameter( stype, iounit_potmod, IdSite_stype, .false. )
       select case( stype )
-      case( 'MIEnm', 'mienm', 'MIE', 'mie', 'Mie' ) !Case: Mie-Potential
-	  LJorMIE = 'MIE'
-        call FileReadParameter( this%NMIEnm, iounit_potmod, IdSite_NMIEnm, .false. )
-        if( this%NMIEnm > 0 ) then
-          allocate( this%SiteMIEnm(this%NMIEnm), STAT = stat )
-          call AllocationError( stat, 'MIE sites', this%NMIEnm )
-          do j = 1, this%NMIEnm
-            call Construct( this%SiteMIEnm(j) )
-          end do
-        end if
-		
-	  case( 'LJ126', 'lj126', 'LJ', 'lj', 'Lj' ) !Case: LJ126-Potential
-	  LJorMIE = 'LJ'
-	    call FileReadParameter( this%NMIEnm, iounit_potmod, IdSite_NMIEnm, .false. )
-        if( this%NMIEnm > 0 ) then
-          allocate( this%SiteMIEnm(this%NMIEnm), STAT = stat )
-          call AllocationError( stat, 'LJ sites', this%NMIEnm )
-          do j = 1, this%NMIEnm
-            call Construct( this%SiteMIEnm(j) )
+
+      case( 'LJ126', 'lj126', 'LJ', 'lj' )
+        call FileReadParameter( this%NLJ126, iounit_potmod, IdSite_NLJ126, .false. )
+        if( this%NLJ126 > 0 ) then
+          allocate( this%SiteLJ126(this%NLJ126), STAT = stat )
+          call AllocationError( stat, 'Lennard-Jones sites', this%NLJ126 )
+          do j = 1, this%NLJ126
+            call Construct( this%SiteLJ126(j) )
           end do
         end if
 
@@ -351,13 +342,12 @@ contains
       end select
     end do
 
-
     ! Find center of mass position
     call FindCOM( this )
 
     ! Internal degrees of freedom
     ! Calculate the total number of sites
-    this%NSite = this%NMIEnm+this%NCharge+this%NDipole+this%NQuadrupole
+    this%NSite = this%NLJ126+this%NCharge+this%NDipole+this%NQuadrupole
 
     ! Create SiteIds array, if use IDF
     if (UseIntDegFreed) then
@@ -365,8 +355,8 @@ contains
        ! Allocation
        allocate (this%SiteIds(this%NSite), STAT = stat)
        call AllocationError( stat, 'MoleculeSiteIds', this%NSite )
-       allocate (this%LJSiteIds(this%NMIEnm), STAT = stat)
-       call AllocationError( stat, 'LJSiteIds', this%NMIEnm )
+       allocate (this%LJSiteIds(this%NLJ126), STAT = stat)
+       call AllocationError( stat, 'LJSiteIds', this%NLJ126 )
        allocate (this%ChargeSiteIds(this%NCharge), STAT = stat)
        call AllocationError( stat, 'ChargeSiteIds', this%NCharge )
        allocate (this%DipoleSiteIds(this%NDipole), STAT = stat)
@@ -401,13 +391,13 @@ contains
        this%DihedralCount = 0
 
 
-       if( this%NMIEnm > 0 ) then
-          do j = 1, this%NMIEnm
-            this%SiteIds(j)=this%SiteMIEnm(j)%SiteId
-            this%LJSiteIds(j)=this%SiteMIEnm(j)%SiteId
+       if( this%NLJ126 > 0 ) then
+          do j = 1, this%NLJ126
+            this%SiteIds(j)=this%SiteLJ126(j)%SiteId
+            this%LJSiteIds(j)=this%SiteLJ126(j)%SiteId
           end do
        end if
-       i=this%NMIEnm
+       i=this%NLJ126
        if( this%NCharge > 0 ) then
           do j = 1+i, this%NCharge+i
             this%SiteIds(j)=this%SiteCharge(j-i)%SiteId
@@ -507,11 +497,11 @@ contains
           call Construct(this%Unit(i), .true., ncspu(i))
           do j=1, ncspu(i)
             this%ConstraintSiteIds(j+k)=this%Unit(i)%SiteIds(j)
-            call binar_search(this%SiteMIEnm%SiteId, this%Unit(i)%SiteIds(j), ok, index )
+            call binar_search(this%SiteLJ126%SiteId, this%Unit(i)%SiteIds(j), ok, index )
             if (ok) then
-              this%Unit(i)%NMIEnm=this%Unit(i)%NMIEnm+1
-              this%Unit(i)%SiteMIEnm(this%Unit(i)%NMIEnm)=this%SiteMIEnm(index)
-              this%SiteMIEnm(index)%UnitNumber = i
+              this%Unit(i)%NLJ126=this%Unit(i)%NLJ126+1
+              this%Unit(i)%SiteLJ126(this%Unit(i)%NLJ126)=this%SiteLJ126(index)
+              this%SiteLJ126(index)%UnitNumber = i
             end if
             if  ( .not. ok .and. this%NCharge > 0) then
               call binar_search(this%SiteCharge%SiteId, this%Unit(i)%SiteIds(j), ok, index )
@@ -568,11 +558,11 @@ contains
           call Construct(this%Unit(i), .false., 1)
           this%Unit(i)%SiteIds=this%NotConstraintSiteIds(i-this%NConstraint)
           ! To know about this site parameters like in Constraint Unit
-          call binar_search(this%SiteMIEnm%SiteId, this%Unit(i)%SiteIds(1), ok, index )
+          call binar_search(this%SiteLJ126%SiteId, this%Unit(i)%SiteIds(1), ok, index )
           if (ok) then
-            this%Unit(i)%NMIEnm=1
-            this%Unit(i)%SiteMIEnm(1)=this%SiteMIEnm(index)
-            this%SiteMIEnm(index)%UnitNumber = i
+            this%Unit(i)%NLJ126=1
+            this%Unit(i)%SiteLJ126(1)=this%SiteLJ126(index)
+            this%SiteLJ126(index)%UnitNumber = i
           end if
           if  ( .not. ok .and. this%NCharge > 0) then
             call binar_search(this%SiteCharge%SiteId, this%Unit(i)%SiteIds(1), ok, index )
@@ -604,10 +594,10 @@ contains
     else ! For rigid molecules
       ! construct one Constraint Unit for the whole molecule
       call Construct(this%Unit(1), .true., this%NSite)
-      this%Unit(1)%NMIEnm = this%NMIEnm
-      do j = 1, this%NMIEnm
-        this%Unit(1)%SiteMIEnm(j) = this%SiteMIEnm(j)
-        this%SiteMIEnm(j)%UnitNumber = 1
+      this%Unit(1)%NLJ126 = this%NLJ126
+      do j = 1, this%NLJ126
+        this%Unit(1)%SiteLJ126(j) = this%SiteLJ126(j)
+        this%SiteLJ126(j)%UnitNumber = 1
       end do
       this%Unit(1)%NCharge= this%NCharge
       do j = 1, this%NCharge
@@ -628,9 +618,9 @@ contains
     end if
 
     !sort_sitetypes
-    do i=1,this%NMIEnm
-      do j=i+1,this%NMIEnm
-        if (this%SiteMIEnm(i)%UnitNumber>this%SiteMIEnm(j)%Unitnumber) then
+    do i=1,this%NLJ126
+      do j=i+1,this%NLJ126
+        if (this%SiteLJ126(i)%UnitNumber>this%SiteLJ126(j)%Unitnumber) then
           call sort_LJsitetypes(this,i,j)
         endif
       enddo
@@ -663,7 +653,7 @@ contains
          this%BondCount(1:this%NUnit)=0  ! Zero arrays
          do j = 1, this%NBond
            !if (j<=this%NBond) then
-             call FindBondR(this,this%IdfBond(j), j) 
+             !call FindBondR(this,this%IdfBond(j), j)
              ! Number of bonds can change in this procedure!
            !else
            !  exit
@@ -675,7 +665,7 @@ contains
          this%AngleCount(1:this%NUnit)=0  ! Zero arrays
          do j = 1, this%NAngle
            !if (j<=this%NAngle) then
-             call FindAngle(this,this%IdfAngle(j), j) 
+             !call FindAngle(this,this%IdfAngle(j), j)
            !  ! Number of angles can change in this procedure!
            !else
            !  exit
@@ -687,7 +677,7 @@ contains
          this%DihedralCount(1:this%NUnit)=0
          do j = 1, this%NDihedral
            !if (j<=this%NDihedral) then
-             call FindDihedral(this,this%IdfDihedral(j), j) 
+             !call FindDihedral(this,this%IdfDihedral(j), j) 
              ! Number of angles can change in this procedure!
            !else
            !  exit
@@ -718,11 +708,48 @@ contains
     this%UnitQP = 1
 
     do i=2, this%NUnit+1
-      this%UnitLJ(i) = this%Unit(i-1)%NMIEnm  + this%UnitLJ(i-1)
+      this%UnitLJ(i) = this%Unit(i-1)%NLJ126  + this%UnitLJ(i-1)
       this%UnitC(i)  = this%Unit(i-1)%NCharge + this%UnitC(i-1)
       this%UnitDP(i) = this%Unit(i-1)%NDipole + this%UnitDP(i-1)
       this%UnitQP(i) = this%Unit(i-1)%NQuadrupole + this%UnitQP(i-1)
     end do
+
+    ! Read number of rotation axes
+    call FileReadParameter( stype, iounit_potmod, IdSite_NDFRot, .false. )
+    select case( stype )
+    case( '0' )
+      this%NDFRot = 0
+    case( '2' )
+      this%NDFRot = 2
+    case( '3' )
+      this%NDFRot = 3
+    case( 'AUTO', 'Auto', 'auto' )
+      this%NDFRot = -1
+    case default
+      call Error( IdSite_NDFRot//' cannot be equal to '//trim( stype ) )
+    end select
+
+    ! Find moments of inertia for molecule
+    if( this%NDFRot < 0 ) then
+    ! Calculate moment-of-inertia tensor
+    moi(:, :) = 0._RK
+    do i = 1, this%NLJ126
+      moi(1, 1) = moi(1, 1) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(2)**2 + this%SiteLJ126(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(1) * this%SiteLJ126(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(2) * this%SiteLJ126(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteLJ126(i)%mass * ( this%SiteLJ126(i)%r(1)**2 + this%SiteLJ126(i)%r(2)**2 )
+    end do
+
+    ! Transform to principal axes
+    call eigen_find( moi(:,:), this%MOI(:), rotation(:,:) )
+    call eigen_sort( this%MOI(:), rotation(:,:) )
+    do i = 1, this%NLJ126
+      this%SiteLJ126(i)%r(:) = matmul( this%SiteLJ126(i)%r(:), rotation(:, :) )
+    end do
+
+    end if
 
     ! For all Units find mass, COM, moment of inertia, number of degree of freedom
     this%NDF = 0
@@ -742,7 +769,7 @@ contains
 
     ! sort SiteIds
     if (IntraLJEl) then
-      do k = 1, this%NMIEnm
+      do k = 1, this%NLJ126
         call sort_array(this%LJSiteIds)
       end do
       do k = 1, this%NCharge
@@ -778,8 +805,8 @@ contains
    if (this%hasIntraLJEl) then
      allocate (AllSites(this%NSite, this%NSite))
      call AllocationError( stat, 'AllSites', this%NSite*this%NSite )
-     allocate (SameCoord(this%NMIEnm, 3))
-     call AllocationError( stat, 'SameCoord', this%NMIEnm*3 )
+     allocate (SameCoord(this%NLJ126, 3))
+     call AllocationError( stat, 'SameCoord', this%NLJ126*3 )
      allocate (IntLJ15(npossPartners, 2), STAT = stat)
      call AllocationError( stat, 'Int15', npossPartners*2 )
      if (this%NCharge>0) then
@@ -884,7 +911,7 @@ contains
       end do
      end do
 
-    do i=1, this%NMIEnm
+    do i=1, this%NLJ126
       do j=1,3
         SameCoord(i,j)=0
       end do
@@ -920,14 +947,14 @@ contains
 
 
      ! Find LJ and Charge Sites with the same coordinates (for1,4-1,5 interactions)
-     do i=1, this%NMIEnm
+     do i=1, this%NLJ126
        do j=1, this%NCharge
-         call compare_coord(this%SiteMIEnm(i)%r(:), this%SiteCharge(j)%r(:), same)
+         call compare_coord(this%SiteLJ126(i)%r(:), this%SiteCharge(j)%r(:), same)
          if (same) then
-           SameCoord(this%SiteMIEnm(i)%SiteId,1)=this%SiteCharge(j)%SiteId
-           AllSites(this%SiteMIEnm(i)%SiteId, this%SiteCharge(j)%SiteId)=0
+           SameCoord(this%SiteLJ126(i)%SiteId,1)=this%SiteCharge(j)%SiteId
+           AllSites(this%SiteLJ126(i)%SiteId, this%SiteCharge(j)%SiteId)=0
            do k=1, this%NSite
-             if (AllSites(this%SiteMIEnm(i)%SiteId, k)== 0) then
+             if (AllSites(this%SiteLJ126(i)%SiteId, k)== 0) then
                 AllSites(this%SiteCharge(j)%SiteId, k)=0
                 AllSites(k, this%SiteCharge(j)%SiteId)=0
              end if
@@ -937,14 +964,14 @@ contains
      end do
 
     ! Find LJ and Dipole Sites with the same coordinates (for1,4-1,5 interactions)
-    do i=1, this%NMIEnm
+    do i=1, this%NLJ126
        do j=1, this%NDipole
-         call compare_coord(this%SiteMIEnm(i)%r(:), this%SiteDipole(j)%r(:), same)
+         call compare_coord(this%SiteLJ126(i)%r(:), this%SiteDipole(j)%r(:), same)
          if (same) then
-           SameCoord(this%SiteMIEnm(i)%SiteId,2)=this%SiteDipole(j)%SiteId
-           AllSites(this%SiteMIEnm(i)%SiteId, this%SiteDipole(j)%SiteId)=0
+           SameCoord(this%SiteLJ126(i)%SiteId,2)=this%SiteDipole(j)%SiteId
+           AllSites(this%SiteLJ126(i)%SiteId, this%SiteDipole(j)%SiteId)=0
            do k=1, this%NSite
-             if (AllSites(this%SiteMIEnm(i)%SiteId, k)== 0) then
+             if (AllSites(this%SiteLJ126(i)%SiteId, k)== 0) then
                 AllSites(this%SiteDipole(j)%SiteId, k)=0
                 AllSites(k, this%SiteDipole(j)%SiteId)=0
              end if
@@ -954,14 +981,14 @@ contains
      end do
 
     ! Find LJ and Quadrupole Sites with the same coordinates (for1,4-1,5 interactions)
-    do i=1, this%NMIEnm
+    do i=1, this%NLJ126
        do j=1, this%NQuadrupole
-         call compare_coord(this%SiteMIEnm(i)%r(:), this%SiteQuadrupole(j)%r(:), same )
+         call compare_coord(this%SiteLJ126(i)%r(:), this%SiteQuadrupole(j)%r(:), same )
          if (same) then
-           SameCoord(this%SiteMIEnm(i)%SiteId,3)=this%SiteQuadrupole(j)%SiteId
-           AllSites(this%SiteMIEnm(i)%SiteId, this%SiteQuadrupole(j)%SiteId)=0
+           SameCoord(this%SiteLJ126(i)%SiteId,3)=this%SiteQuadrupole(j)%SiteId
+           AllSites(this%SiteLJ126(i)%SiteId, this%SiteQuadrupole(j)%SiteId)=0
            do k=1, this%NSite
-             if (AllSites(this%SiteMIEnm(i)%SiteId, k)== 0) then
+             if (AllSites(this%SiteLJ126(i)%SiteId, k)== 0) then
                 AllSites(this%SiteQuadrupole(j)%SiteId, k)=0
                 AllSites(k, this%SiteQuadrupole(j)%SiteId)=0
              end if
@@ -1329,10 +1356,10 @@ contains
 &         call Error( 'Scaling factors for fluctuating particle must be lower or equal 1' )
 
       ! Apply scaling factors
-      do i = 1, this%NMIEnm
-        this%SiteMIEnm(i)%r = this%SiteMIEnm(i)%r * scalegeo
-        this%SiteMIEnm(i)%sig = this%SiteMIEnm(i)%sig * scalesig
-        this%SiteMIEnm(i)%eps = this%SiteMIEnm(i)%eps * scaleeps
+      do i = 1, this%NLJ126
+        this%SiteLJ126(i)%r = this%SiteLJ126(i)%r * scalegeo
+        this%SiteLJ126(i)%sig = this%SiteLJ126(i)%sig * scalesig
+        this%SiteLJ126(i)%eps = this%SiteLJ126(i)%eps * scaleeps
       end do
 
       do i = 1, this%NCharge
@@ -1355,9 +1382,9 @@ contains
 
       ! For Unit Sites as well
       do i = 1, this%NUnit
-        do j = 1, this%Unit(i)%NMIEnm
-          this%Unit(i)%SiteMIEnm(j)%sig = this%Unit(i)%SiteMIEnm(j)%sig * scalesig
-          this%Unit(i)%SiteMIEnm(j)%eps = this%Unit(i)%SiteMIEnm(j)%eps * scaleeps
+        do j = 1, this%Unit(i)%NLJ126
+          this%Unit(i)%SiteLJ126(j)%sig = this%Unit(i)%SiteLJ126(j)%sig * scalesig
+          this%Unit(i)%SiteLJ126(j)%eps = this%Unit(i)%SiteLJ126(j)%eps * scaleeps
         end do
         do j = 1, this%Unit(i)%NCharge
           this%Unit(i)%SiteCharge(j)%shield = this%Unit(i)%SiteCharge(j)%shield * scalegeo
@@ -1464,12 +1491,12 @@ contains
     integer, intent( in )   :: i, j
 
     !Declare local variables
-    type(TSiteMIEnm), allocatable :: temptype
+    type(TSiteLJ126), allocatable :: temptype
 
     allocate(temptype)
-    temptype = this%SiteMIEnm(i)
-    this%SiteMIEnm(i) = this%SiteMIEnm(j)
-    this%SiteMIEnm(j) = temptype
+    temptype = this%SiteLJ126(i)
+    this%SiteLJ126(i) = this%SiteLJ126(j)
+    this%SiteLJ126(j) = temptype
 
     end subroutine sort_LJsitetypes
 
@@ -1591,6 +1618,120 @@ contains
 
     end subroutine FindEdgeFrom
 
+    subroutine jrotate( a1, a2, s, tau )
+
+      ! Declare arguments
+      real(RK), intent(in out) :: a1(:), a2(:)
+      real(RK), intent(in)     :: s, tau
+
+      ! Declare local variables
+      real(RK) :: a3(size( a1 ))
+
+      ! Rotate
+      a3(:) = a1(:)
+      a1(:) = a1(:) - s * (a2(:) + a1(:) * tau)
+      a2(:) = a2(:) + s * (a3(:) - a2(:) * tau)
+
+    end subroutine jrotate
+
+
+
+    subroutine eigen_find( a, d, v )
+
+      ! Declare arguments
+      real(RK), intent(in out) :: a(3, 3)
+      real(RK), intent(out)    :: d(3), v(3, 3)
+
+      ! Declare local variables
+      integer  :: i, ip, iq
+      real(RK) :: c, g, h, s, sm, t, tau, theta, thresh, b(3), z(3)
+
+      ! Compute eigenvalues and eigenvectors using Jacobi rotations
+      v(:, :) = 0._RK
+      do i = 1, 3
+        v(i, i) = 1._RK
+        b(i) = a(i, i)
+      end do
+      d(:) = b(:)
+      do i = 1, 50
+        z(:) = 0._RK
+        sm = 0._RK
+        do ip = 1, 2
+          do iq = ip + 1, 3
+            sm = sm + abs( a(ip, iq) )
+          end do
+        end do
+        if( sm == 0._RK ) return
+        thresh = merge( sm / 45._RK, 0._RK, i < 4 )
+        do ip = 1, 2
+          do iq = ip + 1, 3
+            g = 100._RK * abs( a(ip, iq ) )
+            if((i > 4) .and. (abs( d(ip) ) + g == abs( d(ip) )) .and. (abs( d(iq) ) + g == abs( d(iq) ))) then
+              a(ip, iq) = 0._RK
+
+            else if( abs( a(ip, iq) ) > thresh ) then
+              h = d(iq) - d(ip)
+
+              if( abs( h ) + g == abs( h ) ) then
+                t = a(ip, iq) / h
+              else
+                theta = .5_RK * h / a(ip, iq)
+                t = 1._RK / (abs( theta ) + sqrt( 1._RK + theta**2 ))
+                if( theta < 0._RK ) t = -t
+              end if
+
+              c = 1._RK / sqrt( 1._RK + t**2 )
+              s = t * c
+              tau = s / (1._RK + c)
+              h = t * a(ip, iq)
+              z(ip) = z(ip) - h
+              z(iq) = z(iq) + h
+              d(ip) = d(ip) - h
+              d(iq) = d(iq) + h
+              a(ip, iq) = 0._RK
+              call jrotate( a(1:ip - 1, ip), a(1:ip - 1, iq), s, tau )
+              call jrotate( a(ip, ip + 1:iq - 1), a(ip + 1:iq - 1, iq), s, tau )
+              call jrotate( a(ip, iq + 1:3), a(iq, iq + 1:3), s, tau )
+              call jrotate( v(:, ip), v(:, iq), s, tau )
+            end if
+          end do
+        end do
+        b(:) = b(:) + z(:)
+        d(:) = b(:)
+      end do
+
+    end subroutine eigen_find
+
+
+
+    subroutine eigen_sort( d, v )
+
+      ! Declare arguments
+      real(RK), intent(in out) :: d(3), v(3, 3)
+
+      ! Declare local variables
+      integer     :: i
+      real(RK)    :: p, q(3)
+      integer     :: j, j1(1)
+      equivalence (j, j1)
+
+      ! Sort eigenvalues into descending order
+      ! and rearrange eigenvectors correspondingly
+      do i = 1, 2
+        j1(:) = maxloc( d(i:3) )
+        j = j + i - 1
+        if( j /= i ) then
+          p = d(j)
+          d(j) = d(i)
+          d(i) = p
+          q(:) = v(:, i)
+          v(:, i) = v(:, j)
+          v(:, j) = q(:)
+        end if
+      end do
+
+    end subroutine eigen_sort
+
   end subroutine TMolecule_Construct
 
 
@@ -1610,11 +1751,11 @@ contains
     integer :: i
 
     ! Deallocate arrays
-    if( associated( this%SiteMIEnm ) ) then
-      do i = 1, this%NMIEnm
-        call Destruct( this%SiteMIEnm(i) )
+    if( associated( this%SiteLJ126 ) ) then
+      do i = 1, this%NLJ126
+        call Destruct( this%SiteLJ126(i) )
       end do
-      deallocate( this%SiteMIEnm )
+      deallocate( this%SiteLJ126 )
     end if
     if( associated( this%SiteCharge ) ) then
       do i = 1, this%NCharge
@@ -1691,23 +1832,23 @@ contains
 
     ! Save number of potential types
     ntypes = 0
-    if( this%NMIEnm > 0 ) ntypes = ntypes + 1
+    if( this%NLJ126 > 0 ) ntypes = ntypes + 1
     if( this%NCharge > 0 ) ntypes = ntypes + 1
     if( this%NDipole > 0 ) ntypes = ntypes + 1
     if( this%NQuadrupole > 0 ) ntypes = ntypes + 1
     write( IOBuffer, '(I2)' ) ntypes
     call FileWriteParameter( iounit_normal, IdSite_ntypes )
 
-    ! Save MIE sites
-    if( this%NMIEnm > 0 ) then
+    ! Save Lennard-Jones sites
+    if( this%NLJ126 > 0 ) then
       call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(1X, A)' ) 'MIEnm'
+      write( IOBuffer, '(1X, A)' ) 'LJ126'
       call FileWriteParameter( iounit_normal, IdSite_stype )
-      write( IOBuffer, '(I2)' ) this%NMIEnm
-      call FileWriteParameter( iounit_normal, IdSite_NMIEnm )
-      do i = 1, this%NMIEnm
+      write( IOBuffer, '(I2)' ) this%NLJ126
+      call FileWriteParameter( iounit_normal, IdSite_NLJ126 )
+      do i = 1, this%NLJ126
         call FileWriteBlank( iounit_normal )
-        call Save( this%SiteMIEnm(i) )
+        call Save( this%SiteLJ126(i) )
       end do
     end if
 
@@ -1750,33 +1891,11 @@ contains
       end do
     end if
 
-    ! Save number of rotation axes
-    call FileWriteBlank( iounit_normal )
-    write( IOBuffer, '(I2)' ) this%Unit(1)%NDFRot
-    call FileWriteParameter( iounit_normal, IdSite_NDFRot )
-
     ! Save total mass of the molecule
+    call FileWriteBlank( iounit_normal )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &          this%Mass * UnitMass * 1000._RK * NAvogadro, this%Mass
     call FileWriteParameter( iounit_normal, IdSite_Mass )
-
-    ! Save moments of inertia
-    if( this%Unit(1)%NDFRot > 0 ) then
-      write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&            this%Unit(1)%MOI(1) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
-&            this%Unit(1)%MOI(1)
-
-      call FileWriteParameter( iounit_normal, IdSite_MOI1 )
-      write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&            this%Unit(1)%MOI(2) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
-&            this%Unit(1)%MOI(2)
-
-      call FileWriteParameter( iounit_normal, IdSite_MOI2 )
-      write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
-&            this%Unit(1)%MOI(3) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
-&            this%Unit(1)%MOI(3)
-      call FileWriteParameter( iounit_normal, IdSite_MOI3 )
-    end if
 
     if (UseIntDegFreed) then
       ! Save used potential model with IDF
@@ -1813,9 +1932,9 @@ contains
     ! Calculate mass of molecule and COM position
     this%Mass = 0._RK
     r(:) = 0._RK
-    do i = 1, this%NMIEnm
-      this%Mass = this%Mass + this%SiteMIEnm(i)%mass
-      r(:) = r(:) + this%SiteMIEnm(i)%mass * this%SiteMIEnm(i)%r(:)
+    do i = 1, this%NLJ126
+      this%Mass = this%Mass + this%SiteLJ126(i)%mass
+      r(:) = r(:) + this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(:)
     end do
     do i = 1, this%NCharge
       this%Mass = this%Mass + this%SiteCharge(i)%mass
@@ -1832,9 +1951,9 @@ contains
     r(:) = r(:) / this%Mass
 
     ! Move COM to zero
-    do i = 1, this%NMIEnm
+    do i = 1, this%NLJ126
       do j = 1, 3
-        this%SiteMIEnm(i)%r(j) = this%SiteMIEnm(i)%r(j) - r(j)
+        this%SiteLJ126(i)%r(j) = this%SiteLJ126(i)%r(j) - r(j)
       end do
     end do
     do i = 1, this%NCharge
@@ -1875,7 +1994,7 @@ contains
     real(RK) :: qu1,qu2,qu3,qu4,quinv, T,S,SInv
     type(TSiteCharge), pointer     :: chargeSite
     type(TSiteDipole), pointer     :: dipolSite
-    type(TSiteMIEnm), pointer      :: mieSite
+    type(TSiteLJ126), pointer      :: lj126Site
     type(TSiteQuadrupole), pointer :: quadrupoleSite
 
     do iUnit = 1, this%NUnit
@@ -1886,18 +2005,18 @@ contains
 
         ! Calculate moment-of-inertia tensor
         moi(:, :) = 0._RK
-        do i = 1, unit%NMIEnm
+        do i = 1, unit%NLJ126
           if (.not. UseIntDegFreed) then
-              mieSite => this%SiteMIEnm(i)
+              lj126Site => this%SiteLJ126(i)
           else
-              mieSite => unit%SiteMIEnm(i)
+              lj126Site => unit%SiteLJ126(i)
           end if
-          moi(1, 1) = moi(1, 1) + mieSite%mass * ( mieSite%r(2)**2 + mieSite%r(3)**2 )
-          moi(1, 2) = moi(1, 2) - mieSite%mass * mieSite%r(1) * mieSite%r(2)
-          moi(1, 3) = moi(1, 3) - mieSite%mass * mieSite%r(1) * mieSite%r(3)
-          moi(2, 2) = moi(2, 2) + mieSite%mass * ( mieSite%r(1)**2 + mieSite%r(3)**2 )
-          moi(2, 3) = moi(2, 3) - mieSite%mass * mieSite%r(2) * mieSite%r(3)
-          moi(3, 3) = moi(3, 3) + mieSite%mass * ( mieSite%r(1)**2 + mieSite%r(2)**2 )
+          moi(1, 1) = moi(1, 1) + lj126Site%mass * ( lj126Site%r(2)**2 + lj126Site%r(3)**2 )
+          moi(1, 2) = moi(1, 2) - lj126Site%mass * lj126Site%r(1) * lj126Site%r(2)
+          moi(1, 3) = moi(1, 3) - lj126Site%mass * lj126Site%r(1) * lj126Site%r(3)
+          moi(2, 2) = moi(2, 2) + lj126Site%mass * ( lj126Site%r(1)**2 + lj126Site%r(3)**2 )
+          moi(2, 3) = moi(2, 3) - lj126Site%mass * lj126Site%r(2) * lj126Site%r(3)
+          moi(3, 3) = moi(3, 3) + lj126Site%mass * ( lj126Site%r(1)**2 + lj126Site%r(2)**2 )
         end do
 
         do i = 1, unit%NCharge
@@ -1945,9 +2064,9 @@ contains
         ! Transform to principal axes
         call eigen_find( moi(:,:), unit%MOI(:), rotation(:,:) )
         call eigen_sort( unit%MOI(:), rotation(:,:) )
-        do i = 1, unit%NMIEnm
-          unit%SiteMIEnm(i)%r(:) = matmul( unit%SiteMIEnm(i)%r(:), rotation(:, :) )
-          if (.not. UseIntDegFreed) this%SiteMIEnm(i)%r(:) = matmul( this%SiteMIEnm(i)%r(:), rotation(:, :) )
+        do i = 1, unit%NLJ126
+          unit%SiteLJ126(i)%r(:) = matmul( unit%SiteLJ126(i)%r(:), rotation(:, :) )
+          if (.not. UseIntDegFreed) this%SiteLJ126(i)%r(:) = matmul( this%SiteLJ126(i)%r(:), rotation(:, :) )
         end do
 
         do i = 1, unit%NCharge
@@ -2280,22 +2399,22 @@ contains
     Site1 = .false.
     Site2 = .false.
 
-    if( this%NMIEnm > 0 ) then
-      do i = 1, this%NMIEnm
-        if (this%SiteMIEnm(i)%SiteId==SiteId1) then
-          r1(1)=this%SiteMIEnm(i)%r(1)
-          r1(2)=this%SiteMIEnm(i)%r(2)
-          r1(3)=this%SiteMIEnm(i)%r(3)
+    if( this%NLJ126 > 0 ) then
+      do i = 1, this%NLJ126
+        if (this%SiteLJ126(i)%SiteId==SiteId1) then
+          r1(1)=this%SiteLJ126(i)%r(1)
+          r1(2)=this%SiteLJ126(i)%r(2)
+          r1(3)=this%SiteLJ126(i)%r(3)
           Site1 = .true.
-          Bond%UnitId1=this%SiteMIEnm(i)%UnitNumber
+          Bond%UnitId1=this%SiteLJ126(i)%UnitNumber
           this%BondCount(Bond%UnitId1)=this%BondCount(Bond%UnitId1)+1
           this%BoPartner(Bond%UnitId1,this%BondCount(Bond%UnitId1))=j
-        else if (this%SiteMIEnm(i)%SiteId==SiteId2) then
-          r2(1)=this%SiteMIEnm(i)%r(1)
-          r2(2)=this%SiteMIEnm(i)%r(2)
-          r2(3)=this%SiteMIEnm(i)%r(3)
+        else if (this%SiteLJ126(i)%SiteId==SiteId2) then
+          r2(1)=this%SiteLJ126(i)%r(1)
+          r2(2)=this%SiteLJ126(i)%r(2)
+          r2(3)=this%SiteLJ126(i)%r(3)
           Site2 = .true.
-          Bond%UnitId2=this%SiteMIEnm(i)%UnitNumber
+          Bond%UnitId2=this%SiteLJ126(i)%UnitNumber
           this%BondCount(Bond%UnitId2)=this%BondCount(Bond%UnitId2)+1
           this%BoPartner(Bond%UnitId2,this%BondCount(Bond%UnitId2))=j
         end if
@@ -2416,32 +2535,32 @@ contains
     Site2 = .false.   !         \  /
     Site3 = .false.   !        (Site2)
 
-    if( this%NMIEnm > 0 ) then
-      do i = 1, this%NMIEnm
-        if (this%SiteMIEnm(i)%SiteId==SiteId1) then
-          r1(1)=this%SiteMIEnm(i)%r(1)
-          r1(2)=this%SiteMIEnm(i)%r(2)
-          r1(3)=this%SiteMIEnm(i)%r(3)
+    if( this%NLJ126 > 0 ) then
+      do i = 1, this%NLJ126
+        if (this%SiteLJ126(i)%SiteId==SiteId1) then
+          r1(1)=this%SiteLJ126(i)%r(1)
+          r1(2)=this%SiteLJ126(i)%r(2)
+          r1(3)=this%SiteLJ126(i)%r(3)
           Site1 = .true.
-          Angle%UnitId1=this%SiteMIEnm(i)%UnitNumber
+          Angle%UnitId1=this%SiteLJ126(i)%UnitNumber
           Angle%orientation1 = .false.
           this%AngleCount(Angle%UnitId1)=this%AngleCount(Angle%UnitId1)+1
           this%AnglePartner(Angle%UnitId1,this%AngleCount(Angle%UnitId1))=j
-        else if (this%SiteMIEnm(i)%SiteId==SiteId2) then
-          r2(1)=this%SiteMIEnm(i)%r(1)
-          r2(2)=this%SiteMIEnm(i)%r(2)
-          r2(3)=this%SiteMIEnm(i)%r(3)
+        else if (this%SiteLJ126(i)%SiteId==SiteId2) then
+          r2(1)=this%SiteLJ126(i)%r(1)
+          r2(2)=this%SiteLJ126(i)%r(2)
+          r2(3)=this%SiteLJ126(i)%r(3)
           Site2 = .true.
-          Angle%UnitId2=this%SiteMIEnm(i)%UnitNumber
+          Angle%UnitId2=this%SiteLJ126(i)%UnitNumber
           this%AngleCount(Angle%UnitId2)=this%AngleCount(Angle%UnitId2)+1
           this%AnglePartner(Angle%UnitId2,this%AngleCount(Angle%UnitId2))=j
-        else if (this%SiteMIEnm(i)%SiteId==SiteId3) then
-          r3(1)=this%SiteMIEnm(i)%r(1)
-          r3(2)=this%SiteMIEnm(i)%r(2)
-          r3(3)=this%SiteMIEnm(i)%r(3)
+        else if (this%SiteLJ126(i)%SiteId==SiteId3) then
+          r3(1)=this%SiteLJ126(i)%r(1)
+          r3(2)=this%SiteLJ126(i)%r(2)
+          r3(3)=this%SiteLJ126(i)%r(3)
           Site3=.true.
           Angle%orientation2 = .false.
-          Angle%UnitId3=this%SiteMIEnm(i)%UnitNumber
+          Angle%UnitId3=this%SiteLJ126(i)%UnitNumber
           this%AngleCount(Angle%UnitId3)=this%AngleCount(Angle%UnitId3)+1
           this%AnglePartner(Angle%UnitId3,this%AngleCount(Angle%UnitId3))=j
         end if
@@ -2633,29 +2752,29 @@ contains
     Site3 = .false.   !          \______/
     Site4 = .false.   !       (Site2) (Site3)
 
-    if( this%NMIEnm > 0 ) then
-      do i = 1, this%NMIEnm
-        if (this%SiteMIEnm(i)%SiteId==SiteId1) then
+    if( this%NLJ126 > 0 ) then
+      do i = 1, this%NLJ126
+        if (this%SiteLJ126(i)%SiteId==SiteId1) then
           Site1 = .true.
-          Dihedral%UnitId1=this%SiteMIEnm(i)%UnitNumber
+          Dihedral%UnitId1=this%SiteLJ126(i)%UnitNumber
           Dihedral%orientation1 = .false.
           this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)+1
           this%DihedralPartner(Dihedral%UnitId1,this%DihedralCount(Dihedral%UnitId1))=j
-        else if (this%SiteMIEnm(i)%SiteId==SiteId2) then
+        else if (this%SiteLJ126(i)%SiteId==SiteId2) then
           Site2 = .true.
-          Dihedral%UnitId2=this%SiteMIEnm(i)%UnitNumber
+          Dihedral%UnitId2=this%SiteLJ126(i)%UnitNumber
           this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)+1
           this%DihedralPartner(Dihedral%UnitId2,this%DihedralCount(Dihedral%UnitId2))=j
           Dihedral%orientation1 = .false.
-        else if (this%SiteMIEnm(i)%SiteId==SiteId3) then
+        else if (this%SiteLJ126(i)%SiteId==SiteId3) then
           Site3=.true.
-          Dihedral%UnitId3=this%SiteMIEnm(i)%UnitNumber
+          Dihedral%UnitId3=this%SiteLJ126(i)%UnitNumber
           this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)+1
           this%DihedralPartner(Dihedral%UnitId3,this%DihedralCount(Dihedral%UnitId3))=j
           Dihedral%orientation2 = .false.
-        else if (this%SiteMIEnm(i)%SiteId==SiteId4) then
+        else if (this%SiteLJ126(i)%SiteId==SiteId4) then
           Site4=.true.
-          Dihedral%UnitId4=this%SiteMIEnm(i)%UnitNumber
+          Dihedral%UnitId4=this%SiteLJ126(i)%UnitNumber
           this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)+1
           this%DihedralPartner(Dihedral%UnitId4,this%DihedralCount(Dihedral%UnitId4))=j
           Dihedral%orientation2 = .false.
