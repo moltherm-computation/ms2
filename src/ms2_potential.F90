@@ -16359,10 +16359,6 @@ loop2:  do j = 1, j1
     real(RK)          :: RXj, RYj, RZj
     real(RK)          :: RXk, RYk, RZk
     real(RK)          :: RXl, RYl, RZl
-    real(RK)          :: FXi, FYi, FZi
-    real(RK)          :: FXk, FYk, FZk
-    real(RK)          :: FXl, FYl, FZl
-    real(RK)          :: FXj, FYj, FZj
     real(RK)          :: EPotLocal, VirialLocal
     real(RK)          :: num, den, de1, ax, ay, az, bx, by, bz, cx, cy, cz
     real(RK)          :: ab, bc, ac, aa, bb, cc, axb, bxc, co, si, signum, arg, earg
@@ -16420,27 +16416,15 @@ loop2:  do j = 1, j1
         RXi = RX1(i)
         RYi = RY1(i)
         RZi = RZ1(i)
-        FXi = FX1(i)
-        FYi = FY1(i)
-        FZi = FZ1(i)
         RXj = RX2(i)
         RYj = RY2(i)
         RZj = RZ2(i)
-        FXj = FX2(i)
-        FYj = FY2(i)
-        FZj = FZ2(i)
         RXk = RX3(i)
         RYk = RY3(i)
         RZk = RZ3(i)
-        FXk = FX3(i)
-        FYk = FY3(i)
-        FZk = FZ3(i)
         RXl = RX4(i)
         RYl = RY4(i)
         RZl = RZ4(i)
-        FXl = FX4(i)
-        FYl = FY4(i)
-        FZl = FZ4(i)
 
 !CDIR NODEP
 
@@ -16547,10 +16531,10 @@ loop2:  do j = 1, j1
             FFK = -(ffi+ffj+ffl)
 
             ! Forces
-            FX1(i) = FXi+ffi
-            FX2(i) = FXj+ffj
-            FX3(i) = FXk+ffk
-            FX4(i) = FXl+ffl
+            FX1(i) = FX1(i)+ffi
+            FX2(i) = FX2(i)+ffj
+            FX3(i) = FX3(i)+ffk
+            FX4(i) = FX4(i)+ffl
 
             ! Y components
             dnum = cy*bb - by*bc
@@ -16565,10 +16549,10 @@ loop2:  do j = 1, j1
             FFK = -(ffi+ffj+ffl)
 
             ! Forces
-            FY1(i) = FYi+ffi
-            FY2(i) = FYj+ffj
-            FY3(i) = FYk+ffk
-            FY4(i) = FYl+ffl
+            FY1(i) = FY1(i)+ffi
+            FY2(i) = FY2(i)+ffj
+            FY3(i) = FY3(i)+ffk
+            FY4(i) = FY4(i)+ffl
 
             ! Z components
             dnum = cz*bb - bz*bc
@@ -16583,10 +16567,10 @@ loop2:  do j = 1, j1
             FFK = -(ffi+ffj+ffl)
 
             ! Forces
-            FZ1(i) = FZi+ffi
-            FZ2(i) = FZj+ffj
-            FZ3(i) = FZk+ffk
-            FZ4(i) = FZl+ffl
+            FZ1(i) = FZ1(i)+ffi
+            FZ2(i) = FZ2(i)+ffj
+            FZ3(i) = FZ3(i)+ffk
+            FZ4(i) = FZ4(i)+ffl
 
           endif ! den>0
         endif ! nmax/=0
