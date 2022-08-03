@@ -31,6 +31,8 @@
 !DEC$ MESSAGE:'Compiling ms2_potential.F90...'
 #endif
 
+#include "mathMacros.F90"
+
 module ms2_potential
 
   use ms2_molecule
@@ -15808,6 +15810,8 @@ loop2:  do j = 1, j1
 
   subroutine TPotBond_Force( this, EPot, Virial, EPotIntra_Bond, VirialIntra, d2EpotdV2, BoxLength )
 
+    use math_types
+
     implicit none
 
     ! Declare arguments
@@ -15820,16 +15824,13 @@ loop2:  do j = 1, j1
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: R, RSquared
-    real(RK)          :: RXij, RYij, RZij
-    real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: FXij, FYij, FZij, Fij
+    real(RK)          :: Fijabs
     real(RK)          :: EPotLocal, VirialLocal
     real(RK)          :: d2EpotdV2Local , Plen2, sitecorr
     real(RK)          :: dR, F0, R0, ForConst
+    type(vector)      :: P1, P2, R1, R2, Rij, Pij, Fij
 
     integer           :: i, i1
 #if MPI_VER > 0
@@ -15852,21 +15853,6 @@ loop2:  do j = 1, j1
      d2EpotdV2Local = 0._RK
 
     ! Assign pointers
-
-     RX1 => this%Bond%RX1
-     RY1 => this%Bond%RY1
-     RZ1 => this%Bond%RZ1
-     RX2 => this%Bond%RX2
-     RY2 => this%Bond%RY2
-     RZ2 => this%Bond%RZ2
-
-     PX1 => this%Bond%PX1
-     PY1 => this%Bond%PY1
-     PZ1 => this%Bond%PZ1
-     PX2 => this%Bond%PX2
-     PY2 => this%Bond%PY2
-     PZ2 => this%Bond%PZ2
-
      FX1 => this%Bond%FX1
      FY1 => this%Bond%FY1
      FZ1 => this%Bond%FZ1
@@ -15883,20 +15869,20 @@ loop2:  do j = 1, j1
 
 !CDIR NODEP
 
+        R1 = vector(this%Bond%RX1(i), this%Bond%RY1(i), this%Bond%RZ1(i))
+        R2 = vector(this%Bond%RX2(i), this%Bond%RY2(i), this%Bond%RZ2(i))
+
         ! Standard harmonic bond
         ! Energy and forces:
         ! formulae  E = ForConst*(R - R0)**2
         !           F = - 2*ForConst*(R-R0)/R - abs. value
 
         ! Calculate bond length
-        RXij = RX1(i) - RX2(i)
-        RYij = RY1(i) - RY2(i)
-        RZij = RZ1(i) - RZ2(i)
-        RXij = (RXij - anint( RXij )) * BoxLength
-        RYij = (RYij - anint( RYij )) * BoxLength
-        RZij = (RZij - anint( RZij )) * BoxLength
+        Rij = SUB_VECTOR(R1, R2)
+        Rij = SUB_ANINT_VECTOR(Rij)
+        Rij = SCALE_VECTOR(Rij, BoxLength)
 
-        RSquared=RXij**2+RYij**2+RZij**2
+        RSquared=SQR_VECTOR_NORM(Rij)
         R=sqrt(RSquared) ! Bond length
 
         ! Deviation from equilibrium
@@ -15909,35 +15895,33 @@ loop2:  do j = 1, j1
         EPotLocal = EPotLocal + dR*F0
 
         ! Force (abs. value)
-        Fij=-2.0d0*F0/R
+        Fijabs=-2.0d0*F0/R
 
         ! Force components
-        FXij = Fij * RXij
-        FYij = Fij * RYij
-        FZij = Fij * RZij
+        Fij = SCALE_VECTOR(Rij, Fijabs)
 
         ! For calculation of virial
-        PXij = PX1(i) - PX2(i)
-        PYij = PY1(i) - PY2(i)
-        PZij = PZ1(i) - PZ2(i)
-        PXij = (PXij - anint( PXij )) * BoxLength
-        PYij = (PYij - anint( PYij )) * BoxLength
-        PZij = (PZij - anint( PZij )) * BoxLength
+        P1 = vector(this%Bond%PX1(i), this%Bond%PY1(i), this%Bond%PZ1(i))
+        P2 = vector(this%Bond%PX2(i), this%Bond%PY2(i), this%Bond%PZ2(i))
+
+        Pij = SUB_VECTOR(P1, P2)
+        Pij = SUB_ANINT_VECTOR(Pij)
+        Pij = SCALE_VECTOR(Pij, BoxLength)
 
         ! Contribution to virial
-        VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
-        Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
-        sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RSquared
+        VirialLocal = VirialLocal + SCALAR_PRODUCT(Pij, Fij)
+        Plen2    = SQR_VECTOR_NORM(Pij)
+        sitecorr = SCALAR_PRODUCT(Pij, Rij) / RSquared
         d2EpotdV2Local = d2EpotdV2Local - R * 2._RK * ForConst * dR * (sitecorr * sitecorr - Plen2/RSquared)*Third*Third !xxxx Bond CC
         d2EpotdV2Local = d2EpotdV2Local + RSquared * 2._RK * ForConst * sitecorr * sitecorr *Third*Third
 
          ! New Forces
-         FX1(i) = FX1(i) + FXij
-         FY1(i) = FY1(i) + FYij
-         FZ1(i) = FZ1(i) + FZij
-         FX2(i) = FX2(i) - FXij
-         FY2(i) = FY2(i) - FYij
-         FZ2(i) = FZ2(i) - FZij
+         FX1(i) = FX1(i) + Fij%x
+         FY1(i) = FY1(i) + Fij%y
+         FZ1(i) = FZ1(i) + Fij%z
+         FX2(i) = FX2(i) - Fij%x
+         FY2(i) = FY2(i) - Fij%y
+         FZ2(i) = FZ2(i) - Fij%z
 
        end do
 
@@ -16063,6 +16047,8 @@ loop2:  do j = 1, j1
 
   subroutine TPotAngle_Force( this, EPot, EPotIntra_Angle, BoxLength )
 
+    use math_types
+
     implicit none
 
     ! Declare arguments
@@ -16072,11 +16058,9 @@ loop2:  do j = 1, j1
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:)
     real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:)
     real(RK)          :: RijRkj, RijSquared, RkjSquared
-    real(RK)          :: RXij, RYij, RZij
-    real(RK)          :: RXkj, RYkj, RZkj
+    type(vector)      :: R1, R2, R3, Rij, Rkj
     real(RK)          :: EPotLocal
     real(RK)          :: ForConst, Angle, Angle0, dAngle, cosa, sina
     real(RK)          :: abc, sab, cab, fab, fbb, faa, fax, fay, faz,  fbx, fby, fbz
@@ -16099,21 +16083,11 @@ loop2:  do j = 1, j1
      EPotLocal = 0._RK
 
     ! Assign pointers
-     RX1 => this%Angle%RX1
-     RY1 => this%Angle%RY1
-     RZ1 => this%Angle%RZ1
-     RX2 => this%Angle%RX2
-     RY2 => this%Angle%RY2
-     RZ2 => this%Angle%RZ2
-     RX3 => this%Angle%RX3
-     RY3 => this%Angle%RY3
-     RZ3 => this%Angle%RZ3
-
-     FX1 => this%Angle%FX1
-     FY1 => this%Angle%FY1
-     FZ1 => this%Angle%FZ1
-     FX2 => this%Angle%FX2
-     FY2 => this%Angle%FY2
+     FX1 => this%Angle%FX1 !           (1)    (3)
+     FY1 => this%Angle%FY1 !             \    /
+     FZ1 => this%Angle%FZ1 !            a \  / b
+     FX2 => this%Angle%FX2 !               \/
+     FY2 => this%Angle%FY2 !               (2)
      FZ2 => this%Angle%FZ2
      FX3 => this%Angle%FX3
      FY3 => this%Angle%FY3
@@ -16131,27 +16105,25 @@ loop2:  do j = 1, j1
 #endif
 
 !CDIR NODEP
-         RXij = RX1(i) - RX2(i)
-         RYij = RY1(i) - RY2(i) !           (i)    (k)
-         RZij = RZ1(i) - RZ2(i) !             \    /
-         RXkj = RX3(i) - RX2(i) !            a \  / b
-         RYkj = RY3(i) - RY2(i) !               \/
-         RZkj = RZ3(i) - RZ2(i) !               (j)
-         !
-         RXij = (RXij - anint( RXij )) * BoxLength
-         RYij = (RYij - anint( RYij )) * BoxLength
-         RZij = (RZij - anint( RZij )) * BoxLength
-         RXkj = (RXkj - anint( RXkj )) * BoxLength
-         RYkj = (RYkj - anint( RYkj )) * BoxLength
-         RZkj = (RZkj - anint( RZkj )) * BoxLength
-         !
+         R1 = vector(this%Angle%RX1(i), this%Angle%RY1(i), this%Angle%RZ1(i))
+         R2 = vector(this%Angle%RX2(i), this%Angle%RY2(i), this%Angle%RZ2(i))
+         R3 = vector(this%Angle%RX3(i), this%Angle%RY3(i), this%Angle%RZ3(i))
 
-         RijSquared=RXij**2+RYij**2+RZij**2
-         RkjSquared=RXkj**2+RYkj**2+RZkj**2
+         Rij = SUB_VECTOR(R1, R2)
+         Rkj = SUB_VECTOR(R3, R2)
+
+         Rij = SUB_ANINT_VECTOR(Rij)
+         Rij = SCALE_VECTOR(Rij, BoxLength)
+
+         Rkj = SUB_ANINT_VECTOR(Rkj)
+         Rkj = SCALE_VECTOR(Rkj, BoxLength)
+
+         RijSquared = SQR_VECTOR_NORM(Rij)
+         RkjSquared = SQR_VECTOR_NORM(Rkj)
 
          ! Calculate angle
-         RijRkj=sqrt(RijSquared*RkjSquared)
-         cosa = (RXij*RXkj+RYij*RYkj+RZij*RZkj)/RijRkj
+         RijRkj = sqrt(RijSquared*RkjSquared)
+         cosa = SCALAR_PRODUCT(Rij, Rkj) / RijRkj
          if( cosa .gt. 1._RK ) cosa = 1._RK
          if( cosa .lt.  -1._RK ) cosa = -1._RK
          Angle = acos(cosa)
@@ -16174,13 +16146,13 @@ loop2:  do j = 1, j1
          faa = cab/RijSquared
          fbb = cab/RkjSquared
 
-         fax = fab*RXkj-faa*RXij
-         fay = fab*RYkj-faa*RYij
-         faz = fab*RZkj-faa*RZij
+         fax = fab*Rkj%x-faa*Rij%x
+         fay = fab*Rkj%y-faa*Rij%y
+         faz = fab*Rkj%z-faa*Rij%z
 
-         fbx = fab*RXij-fbb*RXkj
-         fby = fab*RYij-fbb*RYkj
-         fbz = fab*RZij-fbb*RZkj
+         fbx = fab*Rij%x-fbb*Rkj%x
+         fby = fab*Rij%y-fbb*Rkj%y
+         fbz = fab*Rij%z-fbb*Rkj%z
 
          FX1(i) = FX1(i) - fax
          FY1(i) = FY1(i) - fay
@@ -16344,6 +16316,8 @@ loop2:  do j = 1, j1
 
   subroutine TPotDihedral_Force( this, EPot, EPotIntra_Dihedral,  BoxLength )
 
+    use math_types
+
     implicit none
 
     ! Declare arguments
@@ -16353,16 +16327,12 @@ loop2:  do j = 1, j1
     real(RK), intent(in)     :: BoxLength
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:), RX3(:), RY3(:), RZ3(:), RX4(:), RY4(:), RZ4(:)
     real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:), FX4(:), FY4(:), FZ4(:)
-    real(RK)          :: RXi, RYi, RZi
-    real(RK)          :: RXj, RYj, RZj
-    real(RK)          :: RXk, RYk, RZk
-    real(RK)          :: RXl, RYl, RZl
     real(RK)          :: EPotLocal, VirialLocal
-    real(RK)          :: num, den, de1, ax, ay, az, bx, by, bz, cx, cy, cz
+    real(RK)          :: num, den, de1
     real(RK)          :: ab, bc, ac, aa, bb, cc, axb, bxc, co, si, signum, arg, earg
     real(RK)          :: deri,dnum,dden,ffi,ffj,ffk,ffl
+    type(vector)      :: a, b, c, Rj, Ri, Rm, Rl
 
     integer           :: i, i1, j
 #if MPI_VER > 0
@@ -16380,28 +16350,14 @@ loop2:  do j = 1, j1
     VirialLocal = 0._RK
 
     ! Assign pointers
-
-     RX1 => this%Dihedral%RX1
-     RY1 => this%Dihedral%RY1
-     RZ1 => this%Dihedral%RZ1
-     RX2 => this%Dihedral%RX2 !                  (i)            (l)
-     RY2 => this%Dihedral%RY2 !                    \            /
-     RZ2 => this%Dihedral%RZ2 !                  a  \          / c
-     RX3 => this%Dihedral%RX3 !                      (j)-----(k)
-     RY3 => this%Dihedral%RY3 !                            b
-     RZ3 => this%Dihedral%RZ3
-     RX4 => this%Dihedral%RX4
-     RY4 => this%Dihedral%RY4
-     RZ4 => this%Dihedral%RZ4
-
      FX1 => this%Dihedral%FX1
      FY1 => this%Dihedral%FY1
      FZ1 => this%Dihedral%FZ1
-     FX2 => this%Dihedral%FX2
-     FY2 => this%Dihedral%FY2
-     FZ2 => this%Dihedral%FZ2
-     FX3 => this%Dihedral%FX3
-     FY3 => this%Dihedral%FY3
+     FX2 => this%Dihedral%FX2 !                  (i)            (l)
+     FY2 => this%Dihedral%FY2 !                    \            /
+     FZ2 => this%Dihedral%FZ2 !                  a  \          / c
+     FX3 => this%Dihedral%FX3 !                      (j)-----(m)
+     FY3 => this%Dihedral%FY3 !                            b
      FZ3 => this%Dihedral%FZ3
      FX4 => this%Dihedral%FX4
      FY4 => this%Dihedral%FY4
@@ -16413,18 +16369,10 @@ loop2:  do j = 1, j1
 #else
       do i = 1, i1
 #endif
-        RXi = RX1(i)
-        RYi = RY1(i)
-        RZi = RZ1(i)
-        RXj = RX2(i)
-        RYj = RY2(i)
-        RZj = RZ2(i)
-        RXk = RX3(i)
-        RYk = RY3(i)
-        RZk = RZ3(i)
-        RXl = RX4(i)
-        RYl = RY4(i)
-        RZl = RZ4(i)
+        Ri = vector(this%Dihedral%RX1(i), this%Dihedral%RY1(i), this%Dihedral%RZ1(i))
+        Rj = vector(this%Dihedral%RX2(i), this%Dihedral%RY2(i), this%Dihedral%RZ2(i))
+        Rm = vector(this%Dihedral%RX3(i), this%Dihedral%RY3(i), this%Dihedral%RZ3(i))
+        Rl = vector(this%Dihedral%RX4(i), this%Dihedral%RY4(i), this%Dihedral%RZ4(i))
 
 !CDIR NODEP
 
@@ -16434,33 +16382,25 @@ loop2:  do j = 1, j1
            EPotLocal = EPotLocal + earg * this%ForConst(1)
         else
           ! Calculate vectors IJ, JK, KL
-          ax = (RXj - RXi)
-          ay = (RYj - RYi)
-          az = (RZj - RZi)
-          bx = (RXk - RXj)
-          by = (RYk - RYj)
-          bz = (RZk - RZj)
-          cx = (RXl - RXk)
-          cy = (RYl - RYk)
-          cz = (RZl - RZk)
-          !
-          ax = (ax - anint( ax )) * BoxLength
-          ay = (ay - anint( ay )) * BoxLength
-          az = (az - anint( az )) * BoxLength
-          bx = (bx - anint( bx )) * BoxLength
-          by = (by - anint( by )) * BoxLength
-          bz = (bz - anint( bz )) * BoxLength
-          cx = (cx - anint( cx )) * BoxLength
-          cy = (cy - anint( cy )) * BoxLength
-          cz = (cz - anint( cz )) * BoxLength
+          a = SUB_VECTOR(Rj, Ri)
+          b = SUB_VECTOR(Rm, Rj)
+          c = SUB_VECTOR(Rl, Rm)
 
-          ! Scalar products
-          ab = ax*bx + ay*by + az*bz
-          bc = bx*cx + by*cy + bz*cz
-          ac = ax*cx + ay*cy + az*cz
-          aa = ax*ax + ay*ay + az*az
-          bb = bx*bx + by*by + bz*bz
-          cc = cx*cx + cy*cy + cz*cz
+          a = SUB_ANINT_VECTOR(a)
+          a = SCALE_VECTOR(a, BoxLength)
+
+          b = SUB_ANINT_VECTOR(b)
+          b = SCALE_VECTOR(b, BoxLength)
+
+          c = SUB_ANINT_VECTOR(c)
+          c = SCALE_VECTOR(c, BoxLength)
+
+          ab = SCALAR_PRODUCT(a, b)
+          bc = SCALAR_PRODUCT(b, c)
+          ac = SCALAR_PRODUCT(a, c)
+          aa = SCALAR_PRODUCT(a, a)
+          bb = SCALAR_PRODUCT(b, b)
+          cc = SCALAR_PRODUCT(c, c)
 
           ! Vector products
           axb = (aa*bb) - (ab*ab)
@@ -16481,7 +16421,7 @@ loop2:  do j = 1, j1
             if ( co .lt. -1._RK ) co = -1._RK
 
             ! sign of angle:
-            signum = ax*(by*cz-cy*bz)+ay*(bz*cx-cz*bx)+az*(bx*cy-cx*by)
+            signum = a%x*(b%y*c%z-c%y*b%z)+a%y*(b%z*c%x-c%z*b%x)+a%z*(b%x*c%y-c%x*b%y)
 
             ! Value of angle:
             arg = sign( acos(co), signum)
@@ -16519,14 +16459,14 @@ loop2:  do j = 1, j1
              de1 = deri/den/si
 
             ! X components
-            dnum = cx*bb - bx*bc
-            dden = ( ab*bx - ax*bb )*bxc
+            dnum = c%x*bb - b%x*bc
+            dden = ( ab*b%x - a%x*bb )*bxc
             FFI = (dnum - dden) * de1
-            dnum = ((bx-ax)*bc - ab*cx ) + (2.0*ac*bx - cx*bb)
-            dden = axb*(bc*cx-bx*cc) + (ax*bb-aa*bx-ab*(bx-ax))*bxc
+            dnum = ((b%x-a%x)*bc - ab*c%x ) + (2.0*ac*b%x - c%x*bb)
+            dden = axb*(bc*c%x-b%x*cc) + (a%x*bb-aa*b%x-ab*(b%x-a%x))*bxc
             FFJ = (dnum - dden) * de1
-            dnum = ab*bx - ax*bb
-            dden = axb*( bb*cx - bc*bx )
+            dnum = ab*b%x - a%x*bb
+            dden = axb*( bb*c%x - bc*b%x )
             FFL = (dnum - dden) * de1
             FFK = -(ffi+ffj+ffl)
 
@@ -16537,14 +16477,14 @@ loop2:  do j = 1, j1
             FX4(i) = FX4(i)+ffl
 
             ! Y components
-            dnum = cy*bb - by*bc
-            dden = ( ab*by - ay*bb )*bxc
+            dnum = c%y*bb - b%y*bc
+            dden = ( ab*b%y - a%y*bb )*bxc
             FFI = (dnum - dden) * de1
-            dnum = ((by-ay)*bc - ab*cy ) + (2.0*ac*by - cy*bb)
-            dden = axb*(bc*cy-by*cc) + (ay*bb-aa*by-ab*(by-ay))*bxc
+            dnum = ((b%y-a%y)*bc - ab*c%y ) + (2.0*ac*b%y - c%y*bb)
+            dden = axb*(bc*c%y-b%y*cc) + (a%y*bb-aa*b%y-ab*(b%y-a%y))*bxc
             FFJ = (dnum - dden) * de1
-            dnum = ab*by - ay*bb
-            dden = axb*( bb*cy - bc*by )
+            dnum = ab*b%y - a%y*bb
+            dden = axb*( bb*c%y - bc*b%y )
             FFL = (dnum - dden) * de1
             FFK = -(ffi+ffj+ffl)
 
@@ -16555,14 +16495,14 @@ loop2:  do j = 1, j1
             FY4(i) = FY4(i)+ffl
 
             ! Z components
-            dnum = cz*bb - bz*bc
-            dden = ( ab*bz - az*bb )*bxc
+            dnum = c%z*bb - b%z*bc
+            dden = ( ab*b%z - a%z*bb )*bxc
             FFI = (dnum - dden) * de1
-            dnum = ((bz-az)*bc - ab*cz ) + (2.0*ac*bz - cz*bb)
-            dden = axb*(bc*cz-bz*cc) + (az*bb-aa*bz-ab*(bz-az))*bxc
+            dnum = ((b%z-a%z)*bc - ab*c%z ) + (2.0*ac*b%z - c%z*bb)
+            dden = axb*(bc*c%z-b%z*cc) + (a%z*bb-aa*b%z-ab*(b%z-a%z))*bxc
             FFJ = (dnum - dden) * de1
-            dnum = ab*bz - az*bb
-            dden = axb*( bb*cz - bc*bz )
+            dnum = ab*b%z - a%z*bb
+            dden = axb*( bb*c%z - bc*b%z )
             FFL = (dnum - dden) * de1
             FFK = -(ffi+ffj+ffl)
 

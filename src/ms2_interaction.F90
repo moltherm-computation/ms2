@@ -3454,7 +3454,7 @@ end subroutine TInteraction_Energy
     integer           :: i, j, N, N2, NInCutoff
     integer           :: NU, NU2
     integer           :: k, l, m, o
- 
+
     ! Set cutoff radius
     RCutoff = this%RCutoffSquaredScaled
     N = this%NPart1
@@ -3706,14 +3706,10 @@ end subroutine TInteraction_Energy
     ! Declare local variables
     real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
-    real(RK)          :: PX2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PY2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PZ2d(this%NPart2*this%NUnit2)
     real(RK)          :: RijSquared
     real(RK)          :: RCutoffSquaredScaled
     integer           :: j, NInCutoff
-    integer           :: i, k, unit1, nup
-
+    integer           :: i, k, iUnitGlobalMol1, iUnitGlobalMol2
     ! Set cutoff radius
     RCutoffSquaredScaled = this%RCutoffSquaredScaled
 
@@ -3721,42 +3717,37 @@ end subroutine TInteraction_Energy
     PX2 => this%PX2
     PY2 => this%PY2
     PZ2 => this%PZ2
-    do i=1, this%NPart2
-      do k=1, this%NUnit2
-        nup = (i-1)*this%NUnit2 + k
-        PX2d(nup)=PX2(i,k)
-        PY2d(nup)=PY2(i,k)
-        PZ2d(nup)=PZ2(i,k)
-       end do
-     end do
 
     ! Calculate partners within cutoff sphere
     PXi = this%PX1(np, nu)
     PYi = this%PY1(np, nu)
     PZi = this%PZ1(np, nu)
     NInCutoff = 0
-    unit1 = (np-1)*this%NUnit1 + nu
+    iUnitGlobalMol1 = (np-1)*this%NUnit1 + nu
 #if MPI_VER > 0
-    do j = (this%NPart20-1)*this%NUnit2+1, this%NPart22*this%NUnit2
+    do j = this%NPart20, this%NPart22
 #else
-    do j = 1, this%NPart2*this%NUnit2
+    do j = 1, this%NPart2
 #endif
-      k = CEILING(real(j)/this%NUnit2)
-      if( this%SameComponent .and. k == np ) cycle
-      PXij = PXi - PX2d(j)
-      PYij = PYi - PY2d(j)
-      PZij = PZi - PZ2d(j)
-      PXij = PXij - anint( PXij )
-      PYij = PYij - anint( PYij )
-      PZij = PZij - anint( PZij )
-      RijSquared = PXij**2 + PYij**2 + PZij**2
+      do k = 1, this%NUnit2
+          !k = CEILING(real(j)/this%NUnit2)
+          if( this%SameComponent .and. j == np ) cycle
+          PXij = PXi - PX2(j, k)
+          PYij = PYi - PY2(j, k)
+          PZij = PZi - PZ2(j, k)
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+          RijSquared = PXij**2 + PYij**2 + PZij**2
 
-      if( RijSquared < RCutoffSquaredScaled ) then
-        NInCutoff = NInCutoff + 1
-        this%CutoffPartner(NInCutoff, unit1) = j
-      end if
+          if( RijSquared < RCutoffSquaredScaled ) then
+            NInCutoff = NInCutoff + 1
+            iUnitGlobalMol2 = (j-1) * this%NUnit2 + k
+            this%CutoffPartner(NInCutoff, iUnitGlobalMol1) = iUnitGlobalMol2
+          end if
+      end do
     end do
-    this%NInCutoff(unit1) = NInCutoff
+    this%NInCutoff(iUnitGlobalMol1) = NInCutoff
 
   end subroutine TInteraction_CalcPartners1
 
