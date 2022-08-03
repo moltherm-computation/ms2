@@ -16451,6 +16451,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call RestartSave( pc%SumHW_denom )
       case( ChemPotMethodThermoInt )
         call RestartSave( pc%SumChemPotV )
+        call RestartSave( pc%SumChemPotVV )
         call RestartSave( pc%SumChemPotThermoIntWidom )
         call RestartSave( pc%SumChemPotThermoIntWidomV )
         call RestartSave( pc%SumHW_counter )
@@ -16781,6 +16782,7 @@ endif
 
       case( ChemPotMethodThermoInt )
         call RestartRead( pc%SumChemPotV )
+        call RestartRead( pc%SumChemPotVV )
         call RestartRead( pc%SumChemPotThermoIntWidom )
         call RestartRead( pc%SumChemPotThermoIntWidomV )
         call RestartRead( pc%SumHW_counter )
