@@ -13,13 +13,11 @@
 	</reference>
 	<reference>
 		<file>MD_gear_methaneCO2_250_x009_1.res</file>
-		<relativeTolerance>1e-6</relativeTolerance>
 	</reference>
 	<reference>
 		<file>MD_gear_methaneCO2_250_x009_1.run</file>
 	</reference>
 	<reference>
 		<file>MD_gear_methaneCO2_250_x009.rst</file>
-		<relativeTolerance>1e-6</relativeTolerance>
 	</reference>
 </testcase>
