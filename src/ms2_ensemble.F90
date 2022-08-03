@@ -5724,10 +5724,8 @@ loop5:    do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     real(RK)            :: EPot, Virial, d2EpotdV2
     integer             :: i, j
-    real(RK)            :: EPotIntra, VirialIntra
-    real(RK)            :: EPotIntra_Bond, EPotIntra_Angle, EPotIntra_Dihedral
-    real(RK)            :: EPotIntra_Nonbonded
-    real(RK)            :: EPotInter, VirialInter
+    type(idfPotentialEnergies) :: idfEPot
+    real(RK)            :: VirialIntra, VirialInter
 #ifdef ABL
     integer             :: k,l
     integer             :: numbi, numbj, numb
@@ -5955,12 +5953,12 @@ loop5:    do nc = 1, this%NComponents
 
     ! Zero potential
     EPot = this%Density * this%EPotCorrLJ + this%EPotCorrRF
-    EPotInter = this%Density * this%EPotCorrLJ + this%EPotCorrRF
-    EPotIntra = 0._RK
-    EPotIntra_Bond = 0._RK
-    EPotIntra_Angle = 0._RK
-    EPotIntra_Dihedral = 0._RK
-    EPotIntra_Nonbonded = 0._RK
+    idfEPot%EPotInter = this%Density * this%EPotCorrLJ + this%EPotCorrRF
+    idfEPot%EPotIntra = 0._RK
+    idfEPot%EPotIntra_Bond = 0._RK
+    idfEPot%EPotIntra_Angle = 0._RK
+    idfEPot%EPotIntra_Dihedral = 0._RK
+    idfEPot%EPotIntra_Nonbonded = 0._RK
 
     ! Zero virial
     Virial = this%Density * this%VirialCorrLJ + this%VirialCorrRF*this%Volume0
@@ -6007,38 +6005,32 @@ loop5:    do nc = 1, this%NComponents
 #if TRANS == 1
 #ifndef ABL
         if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
-           call Force_Trans( this%Interaction( i, j ), EPot, Virial, EPotIntra, EPotIntra_Bond,  &
-&                           EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
+           call Force_Trans( this%Interaction( i, j ), EPot, Virial, idfEPot &
 &                           VirialIntra, VirialInter, d2EpotdV2, this%BoxLength )
         else
-          call Force( this%Interaction( i, j ), EPot, Virial, EPotIntra, EPotIntra_Bond,  &
-&                     EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
+          call Force( this%Interaction( i, j ), EPot, Virial, idfEPot &
 &                     VirialIntra, VirialInter, d2EpotdV2, this%BoxLength )
         endif
 #else
         this%Interaction(i,j)%AblPS => this%AblPS
         this%Interaction(i,j)%AblPE => this%AblPE
         if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
-           call Force_Trans( this%Interaction( i, j ), EPot, Virial, EPotIntra, EPotIntra_Bond,  &
-&                           EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
-&                           VirialIntra, VirialInter, d2EpotdV2, this%BoxLength, i, j )
+           call Force_Trans( this%Interaction( i, j ), EPot, Virial, idfEPot &
+&                           VirialIntra, VirialInter, d2EpotdV2, this%BoxLength, i, j)
         else
-          call Force( this%Interaction( i, j ), EPot, Virial, EPotIntra, EPotIntra_Bond,  &
-&                     EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
-&                     VirialIntra, VirialInter, d2EpotdV2, this%BoxLength, i, j )
+          call Force( this%Interaction( i, j ), EPot, Virial, idfEPot &
+&                     VirialIntra, VirialInter, d2EpotdV2, this%BoxLength, i, j)
         endif
 #endif
 #else
 #ifndef ABL
-        call Force( this%Interaction( i, j ), EPot, Virial, EPotIntra, EPotIntra_Bond,  &
-&                   EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
+        call Force( this%Interaction( i, j ), EPot, Virial, idfEPot, &
 &                   VirialIntra, VirialInter, d2EpotdV2, this%BoxLength )
 #else
         this%Interaction(i,j)%AblPS => this%AblPS
         this%Interaction(i,j)%AblPE => this%AblPE
-        call Force( this%Interaction( i, j ), EPot, Virial, EPotIntra, EPotIntra_Bond,  &
-&                   EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
-&                   VirialIntra, VirialInter, d2EpotdV2, this%BoxLength, i, j )
+        call Force( this%Interaction( i, j ), EPot, Virial, idfEPot &
+&                   VirialIntra, VirialInter, d2EpotdV2, this%BoxLength, i, j)
 #endif
 #endif
 
@@ -6059,13 +6051,13 @@ loop5:    do nc = 1, this%NComponents
     ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
     call MPI_Reduce( EPot, this%EPot, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( Virial, this%Virial, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    call MPI_Reduce( EPotInter, this%EPotInter, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-    call MPI_Reduce( EPotIntra, this%EPotIntra, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    call MPI_Reduce( idfEPot%EPotInter, this%EPotInter, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+    call MPI_Reduce( idfEPot%EPotIntra, this%EPotIntra, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     if (printIDF) then
-      call MPI_Reduce( EPotIntra_Bond, this%EPotIntra_Bond, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( EPotIntra_Angle, this%EPotIntra_Angle, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( EPotIntra_Dihedral, this%EPotIntra_Dihedral, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-      call MPI_Reduce( EPotIntra_Nonbonded, this%EPotIntra_Nonbonded, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( idfEPot%EPotIntra_Bond, this%EPotIntra_Bond, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( idfEPot%EPotIntra_Angle, this%EPotIntra_Angle, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( idfEPot%EPotIntra_Dihedral, this%EPotIntra_Dihedral, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+      call MPI_Reduce( idfEPot%EPotIntra_Nonbonded, this%EPotIntra_Nonbonded, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     endif
     call MPI_Reduce( VirialInter, this%VirialInter, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     call MPI_Reduce( VirialIntra, this%VirialIntra, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
@@ -6077,13 +6069,13 @@ loop5:    do nc = 1, this%NComponents
 #else
     this%EPot = EPot
     this%Virial = Virial
-    this%EPotInter = EPotInter
-    this%EPotIntra = EPotIntra
+    this%EPotInter = idfEPot%EPotInter
+    this%EPotIntra = idfEPot%EPotIntra
     if (printIDF) then
-      this%EPotIntra_Bond = EPotIntra_Bond
-      this%EPotIntra_Angle = EPotIntra_Angle
-      this%EPotIntra_Dihedral = EPotIntra_Dihedral
-      this%EPotIntra_Nonbonded = EPotIntra_Nonbonded
+      this%EPotIntra_Bond = idfEPot%EPotIntra_Bond
+      this%EPotIntra_Angle = idfEPot%EPotIntra_Angle
+      this%EPotIntra_Dihedral = idfEPot%EPotIntra_Dihedral
+      this%EPotIntra_Nonbonded = idfEPot%EPotIntra_Nonbonded
     endif
     this%VirialInter = VirialInter
     this%VirialIntra = VirialIntra
@@ -16357,9 +16349,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call RestartSave( this%SumConfEnthalpy )
     call RestartSave( this%SumVolume )
     call RestartSave( this%SumVirial )
-    call RestartSave( this%SumEPotInter )
-    call RestartSave( this%SumEPotIntra )
     if (printIDF) then
+      call RestartSave( this%SumEPotInter )
+      call RestartSave( this%SumEPotIntra )
       call RestartSave( this%SumEPotIntra_Bond )
       call RestartSave( this%SumEPotIntra_Angle )
       call RestartSave( this%SumEPotIntra_Dihedral )
@@ -16369,20 +16361,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     end if
     call RestartSave( this%SumdEpotdV )
     call RestartSave( this%Sumd2EpotdV2 )
-    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
-      call RestartSave( this%SumHmU )
-      call RestartSave( this%SumHmUm1)
-      call RestartSave( this%SumHmUm2 )
-      call RestartSave( this%SumHmUm3 )
-      call RestartSave( this%SumHmUm1dUdV )
-      call RestartSave( this%SumHmUm1dUdV2 )
-      call RestartSave( this%SumHmUm1d2UdV2 )
-      call RestartSave( this%SumHmUm2dUdV )
-      call RestartSave( this%SumHmUm2dUdV2 )
-      call RestartSave( this%SumHmUm2d2UdV2 )
-      call RestartSave( this%SumHmUm3dUdV )
-      call RestartSave( this%SumHmUm3dUdV2 )
-    end if
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
       call RestartSave( this%SumNPart )
@@ -16405,7 +16383,20 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call RestartSave( this%SumEPotSquareddEpotdV )
     call RestartSave( this%SumEPotdEpotdVSquared )
     call RestartSave( this%SumEPotd2EpotdV2 )
-
+    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+      call RestartSave( this%SumHmU )
+      call RestartSave( this%SumHmUm1)
+      call RestartSave( this%SumHmUm2 )
+      call RestartSave( this%SumHmUm3 )
+      call RestartSave( this%SumHmUm1dUdV )
+      call RestartSave( this%SumHmUm1dUdV2 )
+      call RestartSave( this%SumHmUm1d2UdV2 )
+      call RestartSave( this%SumHmUm2dUdV )
+      call RestartSave( this%SumHmUm2dUdV2 )
+      call RestartSave( this%SumHmUm2d2UdV2 )
+      call RestartSave( this%SumHmUm3dUdV )
+      call RestartSave( this%SumHmUm3dUdV2 )
+    end if
     ! 3.) Derived sums
     if( ConstantPressure ) then
       call RestartSave( this%SumBetaT )
@@ -16460,6 +16451,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call RestartSave( pc%SumHW_denom )
       case( ChemPotMethodThermoInt )
         call RestartSave( pc%SumChemPotV )
+        call RestartSave( pc%SumChemPotVV )
         call RestartSave( pc%SumChemPotThermoIntWidom )
         call RestartSave( pc%SumChemPotThermoIntWidomV )
         call RestartSave( pc%SumHW_counter )
@@ -16689,20 +16681,6 @@ endif
     end if
     call RestartRead( this%SumdEpotdV )
     call RestartRead( this%Sumd2EpotdV2 )
-    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
-      call RestartRead( this%SumHmU )
-      call RestartRead( this%SumHmUm1)
-      call RestartRead( this%SumHmUm2 )
-      call RestartRead( this%SumHmUm3 )
-      call RestartRead( this%SumHmUm1dUdV )
-      call RestartRead( this%SumHmUm1dUdV2 )
-      call RestartRead( this%SumHmUm1d2UdV2 )
-      call RestartRead( this%SumHmUm2dUdV )
-      call RestartRead( this%SumHmUm2dUdV2 )
-      call RestartRead( this%SumHmUm2d2UdV2 )
-      call RestartRead( this%SumHmUm3dUdV )
-      call RestartRead( this%SumHmUm3dUdV2 )
-    end if
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
       call RestartRead( this%SumNPart )
@@ -16725,6 +16703,20 @@ endif
     call RestartRead( this%SumEPotSquareddEpotdV )
     call RestartRead( this%SumEPotdEpotdVSquared )
     call RestartRead( this%SumEPotd2EpotdV2 )
+    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+      call RestartRead( this%SumHmU )
+      call RestartRead( this%SumHmUm1)
+      call RestartRead( this%SumHmUm2 )
+      call RestartRead( this%SumHmUm3 )
+      call RestartRead( this%SumHmUm1dUdV )
+      call RestartRead( this%SumHmUm1dUdV2 )
+      call RestartRead( this%SumHmUm1d2UdV2 )
+      call RestartRead( this%SumHmUm2dUdV )
+      call RestartRead( this%SumHmUm2dUdV2 )
+      call RestartRead( this%SumHmUm2d2UdV2 )
+      call RestartRead( this%SumHmUm3dUdV )
+      call RestartRead( this%SumHmUm3dUdV2 )
+    end if
 
     ! 3.) Derived sums
     if( ConstantPressure ) then
@@ -16790,6 +16782,7 @@ endif
 
       case( ChemPotMethodThermoInt )
         call RestartRead( pc%SumChemPotV )
+        call RestartRead( pc%SumChemPotVV )
         call RestartRead( pc%SumChemPotThermoIntWidom )
         call RestartRead( pc%SumChemPotThermoIntWidomV )
         call RestartRead( pc%SumHW_counter )

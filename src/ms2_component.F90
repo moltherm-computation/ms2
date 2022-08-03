@@ -69,9 +69,6 @@ module ms2_component
     real(RK), pointer, contiguous :: P4(:, :, :)
     real(RK), pointer, contiguous :: P5(:, :, :)
 
-    ! Quaternion parameters for molecules - only to calculate the initial orientation
-    real(RK), pointer :: Qm0(:, :)
-
     ! Quaternion parameters and their derivatives for Units
     real(RK), pointer, contiguous :: Q0(:, :, :)
     real(RK), pointer, contiguous :: Q0Save(:, :, :)
@@ -166,6 +163,10 @@ module ms2_component
 
     ! Total dipole moment of test particles for reaction field
     real(RK), pointer, contiguous :: MueXTest(:, :), MueYTest(:, :), MueZTest(:, :)
+
+    ! Gear corrector local arrays
+    real(RK), pointer, contiguous :: Corr0(:, :, :)
+    real(RK), pointer, contiguous :: Corr1(:, :, :)
 
     ! Length of simulation box
     real(RK), pointer :: BoxLength
@@ -369,10 +370,6 @@ module ms2_component
   
   interface RotateTest
     module procedure TComponent_RotateTest
-  end interface
-
-  interface Mol2Unit
-    module procedure TComponent_Mol2Unit
   end interface
 
   interface InitUnit
@@ -1295,7 +1292,6 @@ contains
     nullify( this%NAdd )
 #endif
     nullify( this%Q0 )
-    nullify( this%Qm0 )
     nullify( this%Q0Save )
     nullify( this%Q0tmp )
     nullify( this%Q1 )
@@ -1320,6 +1316,8 @@ contains
     nullify( this%MueXTest )
     nullify( this%MueYTest )
     nullify( this%MueZTest )
+    nullify( this%Corr0 )
+    nullify( this%Corr1 )
     nullify( this%NState )
     nullify( this%NStateWF )
 #if  TRANS == 1
@@ -1389,8 +1387,6 @@ contains
     allocate( this%FRC2( np, 3 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
     allocate( this%FRC3( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
-    allocate( this%Qm0( np, 4 ), STAT = stat )
     call AllocationError( stat, 'particles', np )
     allocate( this%Q0( np, 4, nu ), STAT = stat )
     call AllocationError( stat, 'units*particles', nup )
@@ -1499,9 +1495,6 @@ contains
 ! For the calculation of transport properties, the necessary quaternion matrix has
 ! already been allocated in this subroutine!
       ! Quaternion parameters
-      allocate( this%Qm0( np, 4 ), STAT = stat )
-      call AllocationError( stat, 'particles', np )
-      ! Quaternion parameters for Units
       allocate( this%Q0( np, 4, nu ), STAT = stat )
       call AllocationError( stat, 'units*particles', nup )
 #endif
@@ -1578,6 +1571,14 @@ contains
         end if
       end if
 
+    end if
+
+    ! Gear corrector local arrays
+    if( SimulationType .eq. MolecularDynamics .and. IntegratorType .eq. IntegratorTypeGear ) then
+      allocate( this%Corr0( np, merge( 4, 3, this%Molecule%isElongated ), nu),STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%Corr1( np, merge( 4, 3, this%Molecule%isElongated ), nu),STAT = stat )
+      call AllocationError( stat, 'particles', np )
     end if
 
     ! Site positions, orientations, forces and torques
@@ -2473,6 +2474,14 @@ contains
     end if
     if( associated( this%MueZTest ) ) then
       deallocate( this%MueZTest )
+    end if
+
+    ! Gear corrector local arrays
+    if( associated( this%Corr0 ) ) then
+      deallocate( this%Corr0 )
+    end if
+    if( associated( this%Corr1 ) ) then
+      deallocate( this%Corr1 )
     end if
 
 #if OSMOP > 0
@@ -4491,6 +4500,32 @@ loop1:do i = 1, this%NPart
       end do
     end do
 
+    do i = 1, np
+      r(:) = 0._RK
+      do j = 1, 3
+        do iUnit = 1, this%Molecule%NUnit
+          ! Check for conservation of particles in primary cell
+#if ARCH == 1
+          if( this%P0(i, j, iUnit) < -.5_RK ) then
+            this%P0(i, j, iUnit) = this%P0(i, j, iUnit) + 1._RK
+          elseif( this%P0(i, j, iUnit) > .5_RK ) then
+            this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - 1._RK
+          end if
+#else
+          this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - anint( this%P0(i, j, iUnit) )
+#endif
+          ! Calculate new positions of COM for molecules from new COM of units
+          r(j) = r(j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j, iUnit)-anint(this%P0(i,j, iUnit)-this%Pm0(i,j)))
+        end do
+      end do
+
+      this%Pm0(i,:) = r(:)/this%Molecule%Mass
+      ! Calculate displacement of molecules
+      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
+      this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
+      this%Pm0old(i,:) = this%Pm0(i, :)
+    end do
+
     do iUnit = 1, this%Molecule%NUnit
       if( this%Molecule%Unit(iUnit)%IsElongated ) then
 
@@ -4540,10 +4575,9 @@ loop1:do i = 1, this%NPart
     real(RK)          :: Moi23, Moi31, Moi12
     real(RK)          :: TMoi1, TMoi2, TMoi3
     real(RK), pointer, contiguous :: pF(:, :, :), pT(:, :, :)
-    integer           :: np, iUnit
+    integer           :: np, nra,iUnit
     integer           :: i, j
     real(RK)          :: r(3)
-    real(RK)          :: Corr0(4), Corr1
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
@@ -4557,28 +4591,24 @@ loop1:do i = 1, this%NPart
 #endif
 
     do i = 1, np
-      do iUnit= 1, this%Molecule%NUnit
-        MassInv = 1._RK / this%Molecule%Unit(iUnit)%Mass
-        do j = 1, 3
-          Corr0(j) = pF(i, j, iUnit) * TimeStepSquared2 * BoxLengthInv * MassInv
+      r(:) = 0._RK
+      do j = 1, 3
+        do iUnit= 1, this%Molecule%NUnit
+          MassInv = 1._RK / this%Molecule%Unit(iUnit)%Mass
+          this%Corr0(i, j, iUnit) = pF(i, j, iUnit) * TimeStepSquared2 * BoxLengthInv * MassInv
 
-          if( ConstantPressure .and. .not. NVTEquilibration ) Corr0(j) = Corr0(j) &
+          if( ConstantPressure .and. .not. NVTEquilibration ) this%Corr0(i, j, iUnit) = this%Corr0(i, j, iUnit) &
 &             - this%P1(i, j, iUnit) * dLogVolumeThird
 
-          Corr1 = Corr0(j) - this%P2(i, j, iUnit)
-          this%P0(i, j, iUnit) = this%P0(i, j, iUnit) + Corr1 * Gear20
-          this%P1(i, j, iUnit) = this%P1(i, j, iUnit) + Corr1 * Gear21
-          this%P2(i, j, iUnit) =                    Corr0(j)
-          this%P3(i, j, iUnit) = this%P3(i, j, iUnit) + Corr1 * Gear23
-          this%P4(i, j, iUnit) = this%P4(i, j, iUnit) + Corr1 * Gear24
-          this%P5(i, j, iUnit) = this%P5(i, j, iUnit) + Corr1 * Gear25
+          this%Corr1(i, j, iUnit) = this%Corr0(i, j, iUnit) - this%P2(i, j, iUnit)
+          this%P0(i, j, iUnit) = this%P0(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear20
+          this%P1(i, j, iUnit) = this%P1(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear21
+          this%P2(i, j, iUnit) =                    this%Corr0(i, j, iUnit)
+          this%P3(i, j, iUnit) = this%P3(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear23
+          this%P4(i, j, iUnit) = this%P4(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear24
+          this%P5(i, j, iUnit) = this%P5(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear25
 
-        end do
-      end do
 
-      r(:) = 0._RK
-      do iUnit= 1, this%Molecule%NUnit
-        do j = 1, 3
           ! Check for conservation of particles in primary cell
 #if ARCH == 1
           if( this%P0(i, j, iUnit) < -.5_RK ) then
@@ -4587,61 +4617,47 @@ loop1:do i = 1, this%NPart
             this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - 1._RK
           end if
 #else
-
+          this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - anint( this%P0(i, j, iUnit) )
 #endif
-
-          r(j) = r(j) + this%Molecule%Unit(iUnit)%Mass*this%P0(i,j,iUnit)
+          ! Calculate new positions of COM for molecules from new COM of units
+          r(j) = r(j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
         end do
+
+        this%Pm0(i, j) = r(j)/this%Molecule%Mass
+        ! Calculate displacement of molecules
+        this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+        this%Pm0(i, j) = this%Pm0(i, j) - anint(this%Pm0(i, j))
+        this%Pm0old(i, j) = this%Pm0(i, j)
       end do
-
-      do iUnit = 1, this%Molecule%NUnit
-        do j = 1, 3
-
-           this%Pm0(i,j) = r(j)/this%Molecule%Mass
-           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - anint( this%Pm0(i, j) )
-        end do
-      end do
-
-    ! Calculate new positions of COM for molecules from new COM of units
-
-      r(:) = 0._RK
-      do iUnit= 1, this%Molecule%NUnit
-         r(:) = r(:) + this%Molecule%Unit(iUnit)%Mass*this%P0(i,:,iUnit)
-      end do
-
-      ! Calculate displacement of molecules
-      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
-      this%Pm0(i,:) = r(:)/this%Molecule%Mass
-      this%Pm0old(i,:) = this%Pm0(i, :)
     end do
 
-    if( this%Molecule%isElongated ) then
-
-    end if
-
-    ! Correct quaternion parameters and their derivatives
     do iUnit = 1, this%Molecule%NUnit
       if( this%Molecule%Unit(iUnit)%isElongated ) then
+      nra = this%Molecule%Unit(iUnit)%NDFRot
+
+    ! Correct quaternion parameters and their derivatives
         do i = 1, np
-          Corr0(1) = TimeStep2 * ( - this%Q0(i, 2, iUnit) * this%W0(i, 1, iUnit) - this%Q0(i, 3, iUnit) * this%W0(i, 2, iUnit) &
-&                                  - this%Q0(i, 4, iUnit) * this%W0(i, 3, iUnit))
+          this%Corr0(i, 1, iUnit) = TimeStep2 * ( - this%Q0(i, 2, iUnit) * this%W0(i, 1, iUnit) - this%Q0(i, 3, iUnit) * this%W0(i, 2, iUnit) &
+&                                             - this%Q0(i, 4, iUnit) * this%W0(i, 3, iUnit))
 
-          Corr0(2) = TimeStep2 * ( + this%Q0(i, 1, iUnit) * this%W0(i, 1, iUnit) - this%Q0(i, 4, iUnit) * this%W0(i, 2, iUnit) &
-&                                  + this%Q0(i, 3, iUnit) * this%W0(i, 3, iUnit))
+          this%Corr0(i, 2, iUnit) = TimeStep2 * ( + this%Q0(i, 1, iUnit) * this%W0(i, 1, iUnit) - this%Q0(i, 4, iUnit) * this%W0(i, 2, iUnit) &
+&                                             + this%Q0(i, 3, iUnit) * this%W0(i, 3, iUnit))
 
-          Corr0(3) = TimeStep2 * ( + this%Q0(i, 4, iUnit) * this%W0(i, 1, iUnit) + this%Q0(i, 1, iUnit) * this%W0(i, 2, iUnit) &
-&                                  - this%Q0(i, 2, iUnit) * this%W0(i, 3, iUnit))
+          this%Corr0(i, 3, iUnit) = TimeStep2 * ( + this%Q0(i, 4, iUnit) * this%W0(i, 1, iUnit) + this%Q0(i, 1, iUnit) * this%W0(i, 2, iUnit) &
+&                                             - this%Q0(i, 2, iUnit) * this%W0(i, 3, iUnit))
 
-          Corr0(4) = TimeStep2 * ( - this%Q0(i, 3, iUnit) * this%W0(i, 1, iUnit) + this%Q0(i, 2, iUnit) * this%W0(i, 2, iUnit) &
-&                                  + this%Q0(i, 1, iUnit) * this%W0(i, 3, iUnit))
+          this%Corr0(i, 4, iUnit) = TimeStep2 * ( - this%Q0(i, 3, iUnit) * this%W0(i, 1, iUnit) + this%Q0(i, 2, iUnit) * this%W0(i, 2, iUnit) &
+&                                             + this%Q0(i, 1, iUnit) * this%W0(i, 3, iUnit))
 
-          do j = 1, 4
-            Corr1 = Corr0(j) - this%Q1(i, j, iUnit)
-            this%Q0(i, j, iUnit) = this%Q0(i, j, iUnit) + Corr1 * Gear10
-            this%Q1(i, j, iUnit) =                    Corr0(j)
-            this%Q2(i, j, iUnit) = this%Q2(i, j, iUnit) + Corr1 * Gear12
-            this%Q3(i, j, iUnit) = this%Q3(i, j, iUnit) + Corr1 * Gear13
-            this%Q4(i, j, iUnit) = this%Q4(i, j, iUnit) + Corr1 * Gear14
+        end do
+        do j = 1, 4
+          do i = 1, np
+            this%Corr1(i, j, iUnit) = this%Corr0(i, j, iUnit) - this%Q1(i, j, iUnit)
+            this%Q0(i, j, iUnit) = this%Q0(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear10
+            this%Q1(i, j, iUnit) =                    this%Corr0(i, j, iUnit)
+            this%Q2(i, j, iUnit) = this%Q2(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear12
+            this%Q3(i, j, iUnit) = this%Q3(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear13
+            this%Q4(i, j, iUnit) = this%Q4(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear14
           end do
         end do
 
@@ -4659,24 +4675,26 @@ loop1:do i = 1, this%NPart
           Moi31 = this%Molecule%Unit(iUnit)%MOI(3) - this%Molecule%Unit(iUnit)%MOI(1)
           Moi12 = this%Molecule%Unit(iUnit)%MOI(1) - this%Molecule%Unit(iUnit)%MOI(2)
           TMoi3 = TimeStep / this%Molecule%Unit(iUnit)%MOI(3)
-        endif
-        do i = 1, np
-          if( this%Molecule%Unit(iUnit)%is3D ) then
-            Corr0(1) = (pT(i, 1, iUnit) + this%W0(i, 2, iUnit) * this%W0(i, 3, iUnit) * Moi23) * TMoi1
-            Corr0(2) = (pT(i, 2, iUnit) + this%W0(i, 3, iUnit) * this%W0(i, 1, iUnit) * Moi31) * TMoi2
-            Corr0(3) = (pT(i, 3, iUnit) + this%W0(i, 1, iUnit) * this%W0(i, 2, iUnit) * Moi12) * TMoi3
-          else
-            Corr0(1) = pT(i, 1, iUnit) * TMoi1
-            Corr0(2) = pT(i, 2, iUnit) * TMoi2
-          end if
+          do i = 1, np
+            this%Corr0(i, 1, iUnit) = (pT(i, 1, iUnit) + this%W0(i, 2, iUnit) * this%W0(i, 3, iUnit) * Moi23) * TMoi1
+            this%Corr0(i, 2, iUnit) = (pT(i, 2, iUnit) + this%W0(i, 3, iUnit) * this%W0(i, 1, iUnit) * Moi31) * TMoi2
+            this%Corr0(i, 3, iUnit) = (pT(i, 3, iUnit) + this%W0(i, 1, iUnit) * this%W0(i, 2, iUnit) * Moi12) * TMoi3
+          end do
+        else
+          do i = 1, np
+            this%Corr0(i, 1, iUnit) = pT(i, 1, iUnit) * TMoi1
+            this%Corr0(i, 2, iUnit) = pT(i, 2, iUnit) * TMoi2
+          end do
+        end if
 
-          do j = 1, this%Molecule%Unit(iUnit)%NDFRot
-            Corr1 = Corr0(j) - this%W1(i, j, iUnit)
-            this%W0(i, j, iUnit) = this%W0(i, j, iUnit) + Corr1 * Gear10
-            this%W1(i, j, iUnit) = Corr0(j)
-            this%W2(i, j, iUnit) = this%W2(i, j, iUnit) + Corr1 * Gear12
-            this%W3(i, j, iUnit) = this%W3(i, j, iUnit) + Corr1 * Gear13
-            this%W4(i, j, iUnit) = this%W4(i, j, iUnit) + Corr1 * Gear14
+        do j = 1, nra
+          do i = 1, np
+            this%Corr1(i, j, iUnit) = this%Corr0(i, j, iUnit) - this%W1(i, j, iUnit)
+            this%W0(i, j, iUnit) = this%W0(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear10
+            this%W1(i, j, iUnit) = this%Corr0(i, j, iUnit)
+            this%W2(i, j, iUnit) = this%W2(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear12
+            this%W3(i, j, iUnit) = this%W3(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear13
+            this%W4(i, j, iUnit) = this%W4(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear14
           end do
         end do
 
@@ -4710,19 +4728,17 @@ loop1:do i = 1, this%NPart
     Korr = 2._RK - 1._RK / scale
     np = this%NPart
 
-    do iUnit = 1, this%Molecule%NUnit
+    do i = 1, np
       do j = 1, 3
-        do i = 1, np
+        do iUnit = 1, this%Molecule%NUnit
           this%P1(i, j, iUnit) = Korr * this%P1(i, j, iUnit) + this%P2(i, j, iUnit)
           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) + this%P1(i, j, iUnit)
         end do
       end do
-    end do
 
-    do i = 1, np
       r(:) = 0._RK
-      do iUnit= 1, this%Molecule%NUnit
-        do j = 1, 3
+      do j = 1, 3
+        do iUnit= 1, this%Molecule%NUnit
           ! Check for conservation of particles in primary cell
 #if ARCH == 1
           if( this%P0(i, j, iUnit) < -.5_RK ) then
@@ -4735,14 +4751,14 @@ loop1:do i = 1, this%NPart
 #endif
           ! Calculate new positions of COM for molecules from new COM of units
           r(j) = r(j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
+
+          this%Pm0(i, j) = r(j)/this%Molecule%Mass
+          ! Calculate displacement of molecules
+          this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+          this%Pm0(i, j) = this%Pm0(i,j) - anint(this%Pm0(i,j))
+          this%Pm0old(i,j ) = this%Pm0(i, j)
         end do
       end do
-
-      this%Pm0(i,:) = r(:)/this%Molecule%Mass
-      ! Calculate displacement of molecules
-      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
-      this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
-      this%Pm0old(i,:) = this%Pm0(i, :)
     end do
 
     do iUnit = 1, this%Molecule%NUnit
@@ -4752,6 +4768,7 @@ loop1:do i = 1, this%NPart
           do j = 1, 4
             this%Q0tmp(i, j, iUnit) = this%Q0(i, j, iUnit) + .5_RK * this%Q1(i, j, iUnit)
           end do
+
           do j = 1, nra
             this%W0(i, j, iUnit) = Korr * this%W0(i, j, iUnit) + .5_RK * this%W1(i, j, iUnit)
           end do
@@ -6541,129 +6558,6 @@ contains
     end do
 
   end subroutine TComponent_Unit2AtomShake
-
-
-!==============================================================!
-!  Subroutine TComponent_Mol2Unit                              !
-!==============================================================!
-
-  subroutine TComponent_Mol2Unit( this, np, nu )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)    :: this
-    integer, intent(in) :: np
-    integer, intent(in) :: nu
-
-    ! Declare local variables
-    real(RK)                       :: BoxLengthInv
-    real(RK)                       :: PmX(np), PmY(np), PmZ(np)
-    real(RK)                       :: q1, q2, q3, q4, qinv
-    real(RK)                       :: A11(np), A12(np), A13(np)
-    real(RK)                       :: A21(np), A22(np), A23(np)
-    real(RK)                       :: A31(np), A32(np), A33(np)
-    integer                        :: nup
-    type(TUnit), pointer           :: pUnit
-    integer                        :: i, j
-
-    ! Broadcast positions and orientations to all processes
-#if MPI_VER > 0
-    ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), MPI_RK, NRootProc, Communicator, ierror )
-      if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Qm0(:, :), size( this%Qm0 ), MPI_RK, NRootProc, Communicator, ierror )
-      end if
-    end if
-#endif
-
-    ! Assign local variables
-    BoxLengthInv = 1._RK / this%BoxLength
-    nup = nu*np
-
-    ! Check number of rotation axes
-    if( this%Molecule%isElongated ) then
-      ! Loop over molecules
-      do i = 1, np
-        ! Positions and quaternions of particle i
-        PmX(i) = this%Pm0(i, 1)
-        PmY(i) = this%Pm0(i, 2)
-        PmZ(i) = this%Pm0(i, 3)
-        q1 = this%Qm0(i, 1)
-        q2 = this%Qm0(i, 2)
-        q3 = this%Qm0(i, 3)
-        q4 = this%Qm0(i, 4)
-
-        ! Normalise quaternions
-#if ARCH == 3
-        qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#else
-        qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#endif
-        q1 = q1 * qinv
-        q2 = q2 * qinv
-        q3 = q3 * qinv
-        q4 = q4 * qinv
-        this%Qm0(i, 1) = q1
-        this%Qm0(i, 2) = q2
-        this%Qm0(i, 3) = q3
-        this%Qm0(i, 4) = q4
-
-        ! Calculate rotation matrix elements
-        A11(i) = q1**2 + q2**2 - q3**2 - q4**2
-        A12(i) = 2._RK * (q2 * q3 + q1 * q4)
-        A13(i) = 2._RK * (q2 * q4 - q1 * q3)
-        A21(i) = 2._RK * (q2 * q3 - q1 * q4)
-        A22(i) = q1**2 - q2**2 + q3**2 - q4**2
-        A23(i) = 2._RK * (q3 * q4 + q1 * q2)
-        A31(i) = 2._RK * (q2 * q4 + q1 * q3)
-        A32(i) = 2._RK * (q3 * q4 - q1 * q2)
-        A33(i) = q1**2 - q2**2 - q3**2 + q4**2
-
-      end do
-
-      ! Calculate initial COM position and quartenions for Units
-      ! Loop over Units in molecule
-      do j = 1, nu
-         pUnit => this%Molecule%Unit(j)
-         do i = 1, np
-           this%P0(i, 1, j) = PmX(i) + (pUnit%P0(1)*A11(i)+pUnit%P0(2)*A21(i)+pUnit%P0(3)*A31(i)) * BoxLengthInv
-           this%P0(i, 2, j) = PmY(i) + (pUnit%P0(1)*A12(i)+pUnit%P0(2)*A22(i)+pUnit%P0(3)*A32(i)) * BoxLengthInv
-           this%P0(i, 3, j) = PmZ(i) + (pUnit%P0(1)*A13(i)+pUnit%P0(2)*A23(i)+pUnit%P0(3)*A33(i)) * BoxLengthInv
-
-           this%Q0(i,1,j) = this%Qm0(i,1)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(2) - &
-&                            this%Qm0(i,3)*pUnit%Q0(3) - this%Qm0(i,4)*pUnit%Q0(4)
-           this%Q0(i,2,j) = this%Qm0(i,1)*pUnit%Q0(2) + this%Qm0(i,2)*pUnit%Q0(1) + &
-&                            this%Qm0(i,3)*pUnit%Q0(4) - this%Qm0(i,4)*pUnit%Q0(3)
-           this%Q0(i,3,j) = this%Qm0(i,1)*pUnit%Q0(3) + this%Qm0(i,3)*pUnit%Q0(1) - &
-&                            this%Qm0(i,2)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(2)
-           this%Q0(i,4,j) = this%Qm0(i,1)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(1) - &
-&                            this%Qm0(i,2)*pUnit%Q0(3) - this%Qm0(i,3)*pUnit%Q0(2)
-         end do
-       end do
-
-    else    ! if Molecule is not Elongated
-      do i = 1, np
-        ! Positions and quaternions of particle i
-        PmX(i) = this%Pm0(i, 1)
-        PmY(i) = this%Pm0(i, 2)
-        PmZ(i) = this%Pm0(i, 3)
-        do j = 1, nu
-          this%P0(i, 1, j) = PmX(i)
-          this%P0(i, 2, j) = PmY(i)
-          this%P0(i, 3, j) = PmZ(i)
-        end do
-      end do
-    end if
-
-  end subroutine TComponent_Mol2Unit
-
 
 
 !==============================================================!
