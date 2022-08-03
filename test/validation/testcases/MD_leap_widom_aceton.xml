@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MD_leap_widom_aceton.par</parFile>
+	<name>MD_leap_widom_aceton</name>
+	<np>40</np>
+	<walltime>02:30:00</walltime>
+	<reference>
+		<file>MD_leap_widom_aceton_1.res</file>
+	</reference>
+</testcase>

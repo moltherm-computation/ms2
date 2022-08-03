@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MD_NVT_gear_hydrazineH2O_T391-x025.par</parFile>
+	<name>MD_NVT_gear_hydrazineH2O_T391-x025_osmop1</name>
+	<np>1</np>
+	<compilerOption>OSMOP</compilerOption>
+	<reference>
+		<file>MD_NVT_gear_hydrazineH2O_T391-x025_1.dcp</file>
+	</reference>
+	<reference>
+		<file>MD_NVT_gear_hydrazineH2O_T391-x025_1.res</file>
+	</reference>
+	<reference>
+		<file>MD_NVT_gear_hydrazineH2O_T391-x025_1.rav</file>
+	</reference>
+	<reference>
+		<file>MD_NVT_gear_hydrazineH2O_T391-x025.rst</file>
+	</reference>
+</testcase>

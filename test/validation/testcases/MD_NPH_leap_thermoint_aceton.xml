@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MD_NPH_leap_thermoint_aceton.par</parFile>
+	<name>MD_NPH_leap_thermoint_aceton</name>
+	<np>40</np>
+	<walltime>08:15:43</walltime>
+	<reference>
+		<file>MD_NPH_leap_thermoint_aceton_1.res</file>
+		<relativeTolerance>
+			<pressure>2e-3</pressure>
+			<temperature>8e-4</temperature>
+			<concentration>7e-4</concentration>
+			<potentialEnergy>4e-4</potentialEnergy>
+			<enthalpy>4e-4</enthalpy>
+		</relativeTolerance>
+	</reference>
+</testcase>

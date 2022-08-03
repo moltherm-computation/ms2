@@ -1891,11 +1891,33 @@ contains
       end do
     end if
 
-    ! Save total mass of the molecule
+    ! Save number of rotation axes
     call FileWriteBlank( iounit_normal )
+    write( IOBuffer, '(I2)' ) this%Unit(1)%NDFRot
+    call FileWriteParameter( iounit_normal, IdSite_NDFRot )
+
+    ! Save total mass of the molecule
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &          this%Mass * UnitMass * 1000._RK * NAvogadro, this%Mass
     call FileWriteParameter( iounit_normal, IdSite_Mass )
+
+    ! Save moments of inertia
+    if( this%Unit(1)%NDFRot > 0 ) then
+      write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
+&            this%Unit(1)%MOI(1) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
+&            this%Unit(1)%MOI(1)
+
+      call FileWriteParameter( iounit_normal, IdSite_MOI1 )
+      write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
+&            this%Unit(1)%MOI(2) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
+&            this%Unit(1)%MOI(2)
+
+      call FileWriteParameter( iounit_normal, IdSite_MOI2 )
+      write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
+&            this%Unit(1)%MOI(3) * UnitInertia * 1000._RK * NAvogadro / Angstroem**2, &
+&            this%Unit(1)%MOI(3)
+      call FileWriteParameter( iounit_normal, IdSite_MOI3 )
+    end if
 
     if (UseIntDegFreed) then
       ! Save used potential model with IDF
@@ -1992,6 +2014,10 @@ contains
     integer  :: i, iUnit
     real(RK) :: moi(3, 3), rotation(3, 3), Rot2(3, 3)
     real(RK) :: qu1,qu2,qu3,qu4,quinv, T,S,SInv
+    type(TSiteCharge), pointer     :: chargeSite
+    type(TSiteDipole), pointer     :: dipolSite
+    type(TSiteLJ126), pointer      :: lj126Site
+    type(TSiteQuadrupole), pointer :: quadrupoleSite
 
     do iUnit = 1, this%NUnit
 
@@ -2002,39 +2028,59 @@ contains
         ! Calculate moment-of-inertia tensor
         moi(:, :) = 0._RK
         do i = 1, unit%NLJ126
-          moi(1, 1) = moi(1, 1) + unit%SiteLJ126(i)%mass * ( unit%SiteLJ126(i)%r(2)**2 + unit%SiteLJ126(i)%r(3)**2 )
-          moi(1, 2) = moi(1, 2) - unit%SiteLJ126(i)%mass * unit%SiteLJ126(i)%r(1) * unit%SiteLJ126(i)%r(2)
-          moi(1, 3) = moi(1, 3) - unit%SiteLJ126(i)%mass * unit%SiteLJ126(i)%r(1) * unit%SiteLJ126(i)%r(3)
-          moi(2, 2) = moi(2, 2) + unit%SiteLJ126(i)%mass * ( unit%SiteLJ126(i)%r(1)**2 + unit%SiteLJ126(i)%r(3)**2 )
-          moi(2, 3) = moi(2, 3) - unit%SiteLJ126(i)%mass * unit%SiteLJ126(i)%r(2) * unit%SiteLJ126(i)%r(3)
-          moi(3, 3) = moi(3, 3) + unit%SiteLJ126(i)%mass * ( unit%SiteLJ126(i)%r(1)**2 + unit%SiteLJ126(i)%r(2)**2 )
+          if (.not. UseIntDegFreed) then
+              lj126Site => this%SiteLJ126(i)
+          else
+              lj126Site => unit%SiteLJ126(i)
+          end if
+          moi(1, 1) = moi(1, 1) + lj126Site%mass * ( lj126Site%r(2)**2 + lj126Site%r(3)**2 )
+          moi(1, 2) = moi(1, 2) - lj126Site%mass * lj126Site%r(1) * lj126Site%r(2)
+          moi(1, 3) = moi(1, 3) - lj126Site%mass * lj126Site%r(1) * lj126Site%r(3)
+          moi(2, 2) = moi(2, 2) + lj126Site%mass * ( lj126Site%r(1)**2 + lj126Site%r(3)**2 )
+          moi(2, 3) = moi(2, 3) - lj126Site%mass * lj126Site%r(2) * lj126Site%r(3)
+          moi(3, 3) = moi(3, 3) + lj126Site%mass * ( lj126Site%r(1)**2 + lj126Site%r(2)**2 )
         end do
 
         do i = 1, unit%NCharge
-          moi(1, 1) = moi(1, 1) + unit%SiteCharge(i)%mass * ( unit%SiteCharge(i)%r(2)**2 + unit%SiteCharge(i)%r(3)**2 )
-          moi(1, 2) = moi(1, 2) - unit%SiteCharge(i)%mass * unit%SiteCharge(i)%r(1) * unit%SiteCharge(i)%r(2)
-          moi(1, 3) = moi(1, 3) - unit%SiteCharge(i)%mass * unit%SiteCharge(i)%r(1) * unit%SiteCharge(i)%r(3)
-          moi(2, 2) = moi(2, 2) + unit%SiteCharge(i)%mass * ( unit%SiteCharge(i)%r(1)**2 + unit%SiteCharge(i)%r(3)**2 )
-          moi(2, 3) = moi(2, 3) - unit%SiteCharge(i)%mass * unit%SiteCharge(i)%r(2) * unit%SiteCharge(i)%r(3)
-          moi(3, 3) = moi(3, 3) + unit%SiteCharge(i)%mass * ( unit%SiteCharge(i)%r(1)**2 + unit%SiteCharge(i)%r(2)**2 )
+          if (.not. UseIntDegFreed) then
+              chargeSite => this%SiteCharge(i)
+          else
+              chargeSite => unit%SiteCharge(i)
+          end if
+          moi(1, 1) = moi(1, 1) + chargeSite%mass * ( chargeSite%r(2)**2 + chargeSite%r(3)**2 )
+          moi(1, 2) = moi(1, 2) - chargeSite%mass * chargeSite%r(1) * chargeSite%r(2)
+          moi(1, 3) = moi(1, 3) - chargeSite%mass * chargeSite%r(1) * chargeSite%r(3)
+          moi(2, 2) = moi(2, 2) + chargeSite%mass * ( chargeSite%r(1)**2 + chargeSite%r(3)**2 )
+          moi(2, 3) = moi(2, 3) - chargeSite%mass * chargeSite%r(2) * chargeSite%r(3)
+          moi(3, 3) = moi(3, 3) + chargeSite%mass * ( chargeSite%r(1)**2 + chargeSite%r(2)**2 )
         end do
 
         do i = 1, unit%NDipole
-          moi(1, 1) = moi(1, 1) + unit%SiteDipole(i)%mass * ( unit%SiteDipole(i)%r(2)**2 + unit%SiteDipole(i)%r(3)**2 )
-          moi(1, 2) = moi(1, 2) - unit%SiteDipole(i)%mass * unit%SiteDipole(i)%r(1) * unit%SiteDipole(i)%r(2)
-          moi(1, 3) = moi(1, 3) - unit%SiteDipole(i)%mass * unit%SiteDipole(i)%r(1) * unit%SiteDipole(i)%r(3)
-          moi(2, 2) = moi(2, 2) + unit%SiteDipole(i)%mass * ( unit%SiteDipole(i)%r(1)**2 + unit%SiteDipole(i)%r(3)**2 )
-          moi(2, 3) = moi(2, 3) - unit%SiteDipole(i)%mass * unit%SiteDipole(i)%r(2) * unit%SiteDipole(i)%r(3)
-          moi(3, 3) = moi(3, 3) + unit%SiteDipole(i)%mass * ( unit%SiteDipole(i)%r(1)**2 + unit%SiteDipole(i)%r(2)**2 )
+          if (.not. UseIntDegFreed) then
+              dipolSite => this%SiteDipole(i)
+          else
+              dipolSite => unit%SiteDipole(i)
+          end if
+          moi(1, 1) = moi(1, 1) + dipolSite%mass * ( dipolSite%r(2)**2 + dipolSite%r(3)**2 )
+          moi(1, 2) = moi(1, 2) - dipolSite%mass * dipolSite%r(1) * dipolSite%r(2)
+          moi(1, 3) = moi(1, 3) - dipolSite%mass * dipolSite%r(1) * dipolSite%r(3)
+          moi(2, 2) = moi(2, 2) + dipolSite%mass * ( dipolSite%r(1)**2 + dipolSite%r(3)**2 )
+          moi(2, 3) = moi(2, 3) - dipolSite%mass * dipolSite%r(2) * dipolSite%r(3)
+          moi(3, 3) = moi(3, 3) + dipolSite%mass * ( dipolSite%r(1)**2 + dipolSite%r(2)**2 )
         end do
 
         do i = 1, unit%NQuadrupole
-          moi(1, 1) = moi(1, 1) + unit%SiteQuadrupole(i)%mass * ( unit%SiteQuadrupole(i)%r(2)**2 + unit%SiteQuadrupole(i)%r(3)**2 )
-          moi(1, 2) = moi(1, 2) - unit%SiteQuadrupole(i)%mass * unit%SiteQuadrupole(i)%r(1) * unit%SiteQuadrupole(i)%r(2)
-          moi(1, 3) = moi(1, 3) - unit%SiteQuadrupole(i)%mass * unit%SiteQuadrupole(i)%r(1) * unit%SiteQuadrupole(i)%r(3)
-          moi(2, 2) = moi(2, 2) + unit%SiteQuadrupole(i)%mass * ( unit%SiteQuadrupole(i)%r(1)**2 + unit%SiteQuadrupole(i)%r(3)**2 )
-          moi(2, 3) = moi(2, 3) - unit%SiteQuadrupole(i)%mass * unit%SiteQuadrupole(i)%r(2) * unit%SiteQuadrupole(i)%r(3)
-          moi(3, 3) = moi(3, 3) + unit%SiteQuadrupole(i)%mass * ( unit%SiteQuadrupole(i)%r(1)**2 + unit%SiteQuadrupole(i)%r(2)**2 )
+          if (.not. UseIntDegFreed) then
+              quadrupoleSite => this%SiteQuadrupole(i)
+          else
+              quadrupoleSite => unit%SiteQuadrupole(i)
+          end if
+          moi(1, 1) = moi(1, 1) + quadrupoleSite%mass * ( quadrupoleSite%r(2)**2 + quadrupoleSite%r(3)**2 )
+          moi(1, 2) = moi(1, 2) - quadrupoleSite%mass * quadrupoleSite%r(1) * quadrupoleSite%r(2)
+          moi(1, 3) = moi(1, 3) - quadrupoleSite%mass * quadrupoleSite%r(1) * quadrupoleSite%r(3)
+          moi(2, 2) = moi(2, 2) + quadrupoleSite%mass * ( quadrupoleSite%r(1)**2 + quadrupoleSite%r(3)**2 )
+          moi(2, 3) = moi(2, 3) - quadrupoleSite%mass * quadrupoleSite%r(2) * quadrupoleSite%r(3)
+          moi(3, 3) = moi(3, 3) + quadrupoleSite%mass * ( quadrupoleSite%r(1)**2 + quadrupoleSite%r(2)**2 )
         end do
 
         ! Transform to principal axes
@@ -2042,20 +2088,26 @@ contains
         call eigen_sort( unit%MOI(:), rotation(:,:) )
         do i = 1, unit%NLJ126
           unit%SiteLJ126(i)%r(:) = matmul( unit%SiteLJ126(i)%r(:), rotation(:, :) )
+          if (.not. UseIntDegFreed) this%SiteLJ126(i)%r(:) = matmul( this%SiteLJ126(i)%r(:), rotation(:, :) )
         end do
 
         do i = 1, unit%NCharge
           unit%SiteCharge(i)%r(:) = matmul( unit%SiteCharge(i)%r(:), rotation(:, :) )
+          if (.not. UseIntDegFreed) this%SiteCharge(i)%r(:) = matmul( this%SiteCharge(i)%r(:), rotation(:, :) )
         end do
 
         do i = 1, unit%NDipole
           unit%SiteDipole(i)%r(:) = matmul( unit%SiteDipole(i)%r(:), rotation(:, :) )
           unit%SiteDipole(i)%or(:) = matmul( unit%SiteDipole(i)%or(:), rotation(:, :) )
+          if (.not. UseIntDegFreed) this%SiteDipole(i)%r(:) = matmul( this%SiteDipole(i)%r(:), rotation(:, :) )
+          if (.not. UseIntDegFreed) this%SiteDipole(i)%or(:) = matmul( this%SiteDipole(i)%or(:), rotation(:, :) )
         end do
 
         do i = 1, unit%NQuadrupole
           unit%SiteQuadrupole(i)%r(:) = matmul( unit%SiteQuadrupole(i)%r(:), rotation(:, :) )
           unit%SiteQuadrupole(i)%or(:) = matmul( unit%SiteQuadrupole(i)%or(:), rotation(:, :) )
+          if (.not. UseIntDegFreed) this%SiteQuadrupole(i)%r(:) = matmul( this%SiteQuadrupole(i)%r(:), rotation(:, :) )
+          if (.not. UseIntDegFreed) this%SiteQuadrupole(i)%or(:) = matmul( this%SiteQuadrupole(i)%or(:), rotation(:, :) )
         end do
 
         if( (unit%NCharge > 0).or.(unit%NDipole > 0) ) unit%Mue(:) = matmul( unit%Mue(:), rotation(:, :) )

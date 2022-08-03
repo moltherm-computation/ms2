@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_NPH_widom_CO2.par</parFile>
+	<name>MC_NPH_widom_CO2</name>
+	<np>40</np>
+	<walltime>7:30:00</walltime>
+	<reference>
+		<file>MC_NPH_widom_CO2_1.res</file>
+		<relativeTolerance>
+			<temperature>4e-5</temperature>
+			<concentration>2e-5</concentration>
+			<potentialEnergy>3e-5</potentialEnergy>
+			<enthalpy>3e-5</enthalpy>
+		</relativeTolerance>
+	</reference>
+</testcase>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MD_NPH_gear_hydrazineH2O_T391-x025.par</parFile>
+	<name>MD_NPH_gear_hydrazineH2O_T391-x025</name>
+	<np>40</np>
+	<walltime>16:00:00</walltime>
+	<reference>
+		<file>MD_NPH_gear_hydrazineH2O_T391-x025_1.res</file>
+	</reference>
+</testcase>

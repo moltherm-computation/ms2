@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_widom_hydrazineH2O_T391-x025.par</parFile>
+	<name>MC_widom_hydrazineH2O_T391-x025_restart</name>
+	<restart>yes</restart>
+	<np>4</np>
+	<reference>
+		<file>MC_widom_hydrazineH2O_T391-x025.rst</file>
+	</reference>
+	<reference>
+		<file>MC_widom_hydrazineH2O_T391-x025_1.res</file>
+	</reference>
+</testcase>

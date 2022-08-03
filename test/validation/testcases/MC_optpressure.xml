@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_optpressure.par</parFile>
+	<name>MC_optpressure</name>
+	<np>40</np>
+	<walltime>04:00:00</walltime>
+	<reference>
+		<file>MC_optpressure_1.res</file>
+	</reference>
+</testcase>

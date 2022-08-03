@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC.par</parFile>
+	<name>MC</name>
+	<np>40</np>
+	<walltime>19:37:32</walltime>
+	<reference>
+		<file>MC_1.res</file>
+	</reference>
+</testcase>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_xA040_NPH.par</parFile>
+	<name>MC_xA040_NPH</name>
+	<reference>
+		<file>MC_xA040_NPH.rst</file>
+		<relativeTolerance>1e-6</relativeTolerance>
+	</reference>
+	<reference>
+		<file>MC_xA040_NPH_1.res</file>
+	</reference>
+	<reference>
+		<file>MC_xA040_NPH_1.run</file>
+	</reference>
+</testcase>

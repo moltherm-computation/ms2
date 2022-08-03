@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_NPH_widom_meoh.par</parFile>
+	<name>MC_NPH_widom_meoh</name>
+	<np>40</np>
+	<walltime>20:30:00</walltime>
+	<reference>
+		<file>MC_NPH_widom_meoh_1.res</file>
+		<relativeTolerance>
+			<temperature>8e-5</temperature>
+			<concentration>9e-5</concentration>
+			<potentialEnergy>4e-5</potentialEnergy>
+			<enthalpy>4e-5</enthalpy>
+		</relativeTolerance>
+	</reference>
+</testcase>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MD_leap_widom_ace_meth_T298_x05.par</parFile>
+	<name>MD_leap_widom_ace_meth_T298_x05</name>
+	<np>40</np>
+	<walltime>03:30:00</walltime>
+	<reference>
+		<file>MD_leap_widom_ace_meth_T298_x05_1.res</file>
+	</reference>
+</testcase>
