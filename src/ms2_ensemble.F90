@@ -4503,12 +4503,20 @@ xloop:do i = 1, NCells1dim(1)
       this%EKin = this%EKinTran + this%EKinRot
 
       ! Calculate temperature
-      this%Temperature = 2._RK * this%EKin / (this%NDF-this%constrNDF) ! constrNDF due to Shake
+      if (.not. UseIntDegFreed .and. .not. EMinimizationIDF) then
+          this%Temperature = 2._RK * this%EKin / this%NDF
+      else
+          this%Temperature = 2._RK * this%EKin / (this%NDF-this%constrNDF) ! constrNDF due to Shake
+      end if
 
       if(ConstantTemperature .or. NVTEquilibration) then
         Reference=this%RefTemperature
       else if (EnsembleType .eq. EnsembleTypeNVE ) then
-        Reference= 2._RK * (this%RefHamiltonian*this%NPart - this%Epot) / real (this%NDF-this%constrNDF, RK)
+        if (.not. UseIntDegFreed .and. .not. EMinimizationIDF) then
+            Reference= 2._RK * (this%RefHamiltonian*this%NPart - this%Epot) / real (this%NDF, RK)
+        else
+            Reference= 2._RK * (this%RefHamiltonian*this%NPart - this%Epot) / real (this%NDF-this%constrNDF, RK)
+        end if
       else if (EnsembleType .eq. EnsembleTypeNPH .and. .not. NVTEquilibration ) then
         Reference= 2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK) 
       end if
@@ -4639,7 +4647,7 @@ xloop:do i = 1, NCells1dim(1)
     call Predict( this )
     call Unit2Atom( this )
 
-    if( EnsembleType .eq. EnsembleTypeGE .and. (.not. NVTEquilibration) ) then
+    if( UseIntDegFreed .and. EnsembleType .eq. EnsembleTypeGE .and. (.not. NVTEquilibration) ) then
 
       if( Step == 1 ) call ZeroNAttempts( this )
 
@@ -4676,7 +4684,7 @@ loop5:  do nc = 1, this%NComponents
 
     end if
 
-    call Force( this )
+    if (UseIntDegFreed) call Force( this )
     call Atom2Unit( this )
     call Correct( this )
 
@@ -4732,15 +4740,18 @@ loop5:  do nc = 1, this%NComponents
     ! Declare local variables
     integer  :: r, s
     integer  :: nc, np, ndf
-    integer  :: i, NPart2, t, nu
+    integer  :: i, NPart2, t, nu, denominator
     real(RK) :: rx, sx
     real(RK) :: diffpressure
 
     ! Zero number of MC attempts and successes
     if( Step == 1 ) call ZeroNAttempts( this )
 
+    denominator = 3
+    if (UseIntDegFreed) denominator = 15 ! Michael Sch.: decreased by 5 to sample smaller molecules better
+
     ! Outer loop
-    do i = 1, this%NDF / 15 !3 ! Michael Sch.: decreased by 5 to sample smaller molecules better
+    do i = 1, this%NDF / denominator
 
       ! Choose particle randomly
       s = 0
@@ -5404,7 +5415,7 @@ loop5:    do nc = 1, this%NComponents
 
     ! Predict volume of simulation box
     if( ConstantPressure ) then
-      if ( RootProc ) then
+      if( RootProc ) then
         this%Volume0 = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
 
         this%Volume1 = this%Volume1 + 2._RK * this%Volume2 + 3._RK * this%Volume3 &
@@ -5422,11 +5433,12 @@ loop5:    do nc = 1, this%NComponents
       ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
       call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
 #endif
-      BoxLengthOld = this%BoxLength
+      if (UseIntDegFreed) BoxLengthOld = this%BoxLength
       call UpdateBoxLength( this )
 
-      DelBoxL = this%BoxLength / BoxLengthOld
-
+      if (UseIntDegFreed) then
+         DelBoxL = this%BoxLength / BoxLengthOld
+      end if
     end if
 
   end subroutine TEnsemble_PredictGear
@@ -5503,10 +5515,12 @@ loop5:    do nc = 1, this%NComponents
       ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
       call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
 #endif
-      BoxLengthOld = this%BoxLength
+      if (UseIntDegFreed) BoxLengthOld = this%BoxLength
       call UpdateBoxLength( this )
 
-      DelBoxL = this%BoxLength / BoxLengthOld
+      if (UseIntDegFreed) then
+          DelBoxL = this%BoxLength / BoxLengthOld
+      end if
     end if
 
   end subroutine TEnsemble_CorrectGear
@@ -5550,11 +5564,13 @@ loop5:    do nc = 1, this%NComponents
       ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
       call MPI_Bcast( this%Volume0, 1, MPI_RK, NRootProc, Communicator, ierror )
 #endif
-      BoxLengthOld = this%BoxLength
+      if (UseIntDegFreed) BoxLengthOld = this%BoxLength
       call UpdateBoxLength( this )
 
-      DelBoxL = this%BoxLength / BoxLengthOld
-      call ResizeMol(this, DelBoxL)
+      if (UseIntDegFreed) then
+          DelBoxL = this%BoxLength / BoxLengthOld
+          call ResizeMol(this, DelBoxL)
+      end if
     end if
 
   end subroutine TEnsemble_PredictLeapFrog
@@ -6089,8 +6105,11 @@ loop5:    do nc = 1, this%NComponents
       end if
     end if
 
-
-    this%Pressure = (this%NUnitTotal * this%Temperature + this%Virial) / this%Volume0
+    if (.not. UseIntDegFreed) then
+        this%Pressure = this%Density * this%Temperature + this%Virial / this%Volume0
+    else
+        this%Pressure = (this%NUnitTotal * this%Temperature + this%Virial) / this%Volume0
+    end if
 
   end subroutine TEnsemble_Force
 
@@ -6511,12 +6530,12 @@ loop2:        do nc = 1, this%NComponents
         ChemPot = sum( exp( -( this%EPotTest(:) ) / this%Temperature ) ) / pc%NTest
 
 
-! #if MPI_VER > 0
-!         if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) ) then
-!           call MPI_Bcast( this%Density, 1, MPI_RK, NRootProc, Communicator, ierror )
-!           call MPI_Bcast( this%EPot, 1, MPI_RK,  NRootProc, Communicator, ierror )
-!         endif
-! #endif
+#if MPI_VER > 0
+        if ( (SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui)) .and. (.not. UseIntDegFreed) ) then
+          call MPI_Bcast( this%Density, 1, MPI_RK, NRootProc, Communicator, ierror )
+          call MPI_Bcast( this%EPot, 1, MPI_RK,  NRootProc, Communicator, ierror )
+        endif
+#endif
 
         ! partial molar enthalpy
        HW_H_local = this%EPot + ( this%RefPressure / this%Density ) * real( this%NPart, RK )
@@ -7433,11 +7452,17 @@ loop2:        do nc = 1, this%NComponents
     do i = 1, 3
       dq(i) = rnd( -pc%DispRot, pc%DispRot )
     end do
-    ! rotate unit 
     pc%Q0(np, 1, nu) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
-    pc%Q0(np, 2, nu) = q(2) + dq(1) * q(1) - dq(3) * q(3) + dq(2) * q(4)
-    pc%Q0(np, 3, nu) = q(3) + dq(2) * q(1) + dq(3) * q(2) - dq(1) * q(4)
-    pc%Q0(np, 4, nu) = q(4) + dq(3) * q(1) - dq(2) * q(2) + dq(1) * q(3)
+    pc%Q0(np, 2, nu) = q(2) + dq(1) * q(1) - dq(2) * q(4) + dq(3) * q(3)
+    pc%Q0(np, 3, nu) = q(3) + dq(1) * q(4) + dq(2) * q(1) - dq(3) * q(2)
+    pc%Q0(np, 4, nu) = q(4) - dq(1) * q(3) + dq(2) * q(2) + dq(3) * q(1)
+
+    if (UseIntDegFreed) then ! error in idf branch with influence on results - replace values
+        pc%Q0(np, 1, nu) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
+        pc%Q0(np, 2, nu) = q(2) + dq(1) * q(1) - dq(3) * q(3) + dq(2) * q(4)
+        pc%Q0(np, 3, nu) = q(3) + dq(2) * q(1) + dq(3) * q(2) - dq(1) * q(4)
+        pc%Q0(np, 4, nu) = q(4) + dq(3) * q(1) - dq(2) * q(2) + dq(1) * q(3)
+    end if
 
     ! Convert unit coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
@@ -8270,11 +8295,17 @@ loop2:        do nc = 1, this%NComponents
     do i = 1, 3
       dq(i) = rnd( -pc%DispRot, pc%DispRot )
     end do
-    ! rotate unit 
-    pc%Q0(np, 1,nu) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
-    pc%Q0(np, 2,nu) = q(2) + dq(1) * q(1) - dq(3) * q(3) + dq(2) * q(4)
-    pc%Q0(np, 3,nu) = q(3) + dq(1) * q(2) + dq(2) * q(3) - dq(1) * q(4)
-    pc%Q0(np, 4,nu) = q(4) + dq(1) * q(3) - dq(2) * q(2) + dq(3) * q(1)
+    pc%Q0(np, 1, nu) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
+    pc%Q0(np, 2, nu) = q(2) + dq(1) * q(1) - dq(2) * q(4) + dq(3) * q(3)
+    pc%Q0(np, 3, nu) = q(3) + dq(1) * q(4) + dq(2) * q(1) - dq(3) * q(2)
+    pc%Q0(np, 4, nu) = q(4) - dq(1) * q(3) + dq(2) * q(2) + dq(3) * q(1)
+
+    if (UseIntDegFreed) then ! error in idf branch with influence on results - replace values
+        pc%Q0(np, 1,nu) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
+        pc%Q0(np, 2,nu) = q(2) + dq(1) * q(1) - dq(3) * q(3) + dq(2) * q(4)
+        pc%Q0(np, 3,nu) = q(3) + dq(1) * q(2) + dq(2) * q(3) - dq(1) * q(4)
+        pc%Q0(np, 4,nu) = q(4) + dq(1) * q(3) - dq(2) * q(2) + dq(3) * q(1)
+    end if
 
     ! Convert unit coordinates to atom positions
     call Unit2Atom1( pc, np, nu )
@@ -11093,12 +11124,14 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
            call FileWriteNoAdvance_parallel( this%iounit_runave )
 
            ! Potential energy
-           write( IOBuffer, '("         EPOT")' )
+           if (UseIntDegFreed) write( IOBuffer, '("         EPOT")' )
+           if (.not. UseIntDegFreed) write( IOBuffer, '("       EPOT")' )
            call FileWriteNoAdvance_parallel( this%iounit_result )
            call FileWriteNoAdvance_parallel( this%iounit_runave )
 
            ! Enthalpy
-           write( IOBuffer, '("        ENTLP")' )
+           if (UseIntDegFreed) write( IOBuffer, '("        ENTLP")' )
+           if (.not. UseIntDegFreed) write( IOBuffer, '("      ENTLP")' )
            call FileWriteNoAdvance_parallel( this%iounit_result )
            call FileWriteNoAdvance_parallel( this%iounit_runave )
 
@@ -11378,7 +11411,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWriteBlank( this%iounit_result )
         call FileWriteBlank( this%iounit_runave )
         ! Number of steps
-        write( IOBuffer, '("     NR")' )
+        if (.not. UseIntDegFreed .and. .not. EMinimizationIDF) then
+            write( IOBuffer, '("       NR")' )
+        else
+            write( IOBuffer, '("     NR")' )
+        end if
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
@@ -11409,12 +11446,14 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
 
         ! Potential energy
-        write( IOBuffer, '("         EPOT")' )
+        if (UseIntDegFreed .or. EMinimizationIDF) write( IOBuffer, '("         EPOT")' ) ! if NStepsrigEmin > 0, UseIntDegFreed is set to false in ms2_simulation
+        if (.not. UseIntDegFreed .and. (.not. EMinimizationIDF)) write( IOBuffer, '("       EPOT")' )
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
         ! Enthalpy
-        write( IOBuffer, '("        ENTLP")' )
+        if (UseIntDegFreed .or. EMinimizationIDF) write( IOBuffer, '("        ENTLP")' )
+        if (.not. UseIntDegFreed .and. (.not. EMinimizationIDF)) write( IOBuffer, '("      ENTLP")' )
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
@@ -11464,9 +11503,17 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         do i = 1, this%NRealComponents
           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
             if( i < 10 ) then
-              write( IOBuffer, '("       MUE_", I1)' ) i
+                if (.not. UseIntDegFreed) then
+                    write( IOBuffer, '("      MUE_", I1)' ) i
+                else
+                    write( IOBuffer, '("       MUE_", I1)' ) i
+                end if
             else
-              write( IOBuffer, '("      MUE_", I2)' ) i
+                if (.not. UseIntDegFreed) then
+                    write( IOBuffer, '("     MUE_", I2)' ) i
+                else
+                    write( IOBuffer, '("      MUE_", I2)' ) i
+                end if
             end if
             call FileWriteNoAdvance( this%iounit_result )
             call FileWriteNoAdvance( this%iounit_runave )
@@ -11477,9 +11524,17 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         do i = 1, this%NRealComponents
           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
             if( i < 10 ) then
-              write( IOBuffer, '("        VW_", I1)' ) i
+                if (.not. UseIntDegFreed) then
+                    write( IOBuffer, '("       VW_", I1)' ) i
+                else
+                    write( IOBuffer, '("        VW_", I1)' ) i
+                end if
             else
-              write( IOBuffer, '("       VW_", I2)' ) i
+                if (.not. UseIntDegFreed) then
+                    write( IOBuffer, '("      VW_", I2)' ) i
+                else
+                    write( IOBuffer, '("       VW_", I2)' ) i
+                end if
             end if
             call FileWriteNoAdvance( this%iounit_result )
             call FileWriteNoAdvance( this%iounit_runave )
@@ -11490,9 +11545,17 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         do i = 1, this%NRealComponents
           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
             if( i < 10 ) then
-              write( IOBuffer, '("        HM_", I1)' ) i
+                if (.not. UseIntDegFreed) then
+                    write( IOBuffer, '("       HM_", I1)' ) i
+                else
+                    write( IOBuffer, '("        HM_", I1)' ) i
+                end if
             else
-              write( IOBuffer, '("       HM_", I2)' ) i
+                if (.not. UseIntDegFreed) then
+                    write( IOBuffer, '("      HM_", I2)' ) i
+                else
+                    write( IOBuffer, '("       HM_", I2)' ) i
+                end if
             end if
             call FileWriteNoAdvance( this%iounit_result )
             call FileWriteNoAdvance( this%iounit_runave )
@@ -11635,6 +11698,14 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call Update( this%SumDensity, this%Density )
     call Update( this%SumTemperature, this%Temperature )
     call Update( this%SumEPot, this%EPot / real( this%NPart, RK ) )
+    if( ConstantPressure .and. (.not. UseIntDegFreed)) then
+      call Update( this%SumEnthalpy, this%EPot / real( this%NPart, RK ) + this%RefPressure / this%Density - this%RefTemperature )
+      call Update( this%SumConfEnthalpy, this%EPot / real( this%NPart, RK ) + this%RefPressure / this%Density )
+    else if (.not. UseIntDegFreed) then
+      call Update( this%SumEnthalpy, this%EPot / real( this%NPart, RK ) + this%Pressure / this%Density - this%RefTemperature )
+      call Update( this%SumConfEnthalpy, this%EPot / real( this%NPart, RK ) + this%Pressure / this%Density )
+    end if
+
     call Update( this%SumVolume, 1._RK / this%Density )
     call Update( this%SumVirial, -3._RK * this%Virial )
     call Update( this%SumEPotInter, this%EPotInter / real( this%NPart, RK ) )
@@ -11783,10 +11854,17 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 &                - this%SumEnthalpy%Average * this%SumVolume%Average ) )
 
     else
+      if (.not. UseIntDegFreed) then
 
-      call Update( this%SumdUdV, (this%NPart / this%RefTemperature &
-&                * ( this%SumVirial%Average * this%SumEPot%Average - this%SumEPotVirial%Average )&
-&                + this%SumVirial%Average ) / 3._RK / this%Volume0 )
+          call Update( this%SumdUdV, this%Density / ( 3. * real( this%NPart, RK )) * (this%NPart / this%RefTemperature &
+&                    * ( this%SumVirial%Average * this%SumEPot%Average - this%SumEPotVirial%Average )&
+&                    + this%SumVirial%Average ) )
+
+      else
+          call Update( this%SumdUdV, (this%NPart / this%RefTemperature &
+&                    * ( this%SumVirial%Average * this%SumEPot%Average - this%SumEPotVirial%Average )&
+&                    + this%SumVirial%Average ) / 3._RK / this%Volume0 )
+      end if
 
       call Update( this%SumCV, real( this%NPart, RK ) / this%RefTemperature**2 &
 &                * ( this%SumEPotSquared%Average - this%SumEPot%Average**2 ) )
@@ -11796,9 +11874,17 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       Beta    = 1._RK/this%RefTemperature
       Beta2   = Beta*Beta
       Beta3   = Beta*Beta2
-      specv   = this%Volume0/this%NUnitTotal
+      if (.not. UseIntDegFreed) then
+          specv   = 1._RK/this%Density
+      else
+          specv   = this%Volume0/this%NUnitTotal
+      end if
       specv2  = specv*specv
-      Numb    = real( this%NUnitTotal, RK )
+      if (.not. UseIntDegFreed) then
+          Numb    = real( this%NPart, RK )
+      else
+          Numb    = real( this%NUnitTotal, RK )
+      end if
       U       = this%SumEpot%Average*real( this%NPart, RK )
       U2      = this%SumEpotSquared%Average*real( this%NPart, RK )**2
       U3      = this%SumEpotCubic%Average
@@ -11811,10 +11897,18 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       Ud2UdV2 = this%SumEPotd2EpotdV2%Average
 
       A10res =  Beta*U/Numb
-      A01res =  (Numb-this%constrNDF/3._RK)/Numb - Beta*specv*dUdV
+      if (.not. UseIntDegFreed) then
+          A01res = -Beta*specv*dUdV
+      else
+          A01res =  (Numb-this%constrNDF/3._RK)/Numb - Beta*specv*dUdV
+      end if
       A20res =  Beta2*(U*U-U2)/Numb
       A11res =  specv*(-Beta*dUdV + Beta2*UdUdV - Beta2*U*dUdV)
-      A02res =  Numb*specv2*(Beta*d2UdV2 - Beta2*dUdV2 + Beta2*dUdV**2) + 2._RK*specv*Beta*dUdV - (Numb-this%constrNDF/3._RK)/Numb
+      if (.not. UseIntDegFreed) then
+          A02res =  Numb*specv2*(Beta*d2UdV2 - Beta2*dUdV2 + Beta2*dUdV**2) + 2._RK*specv*Beta*dUdV
+      else
+          A02res =  Numb*specv2*(Beta*d2UdV2 - Beta2*dUdV2 + Beta2*dUdV**2) + 2._RK*specv*Beta*dUdV - (Numb-this%constrNDF/3._RK)/Numb
+      end if
       A30res =  Beta3*(U3 -3._RK*U*U2 + 2._RK*U**3)/Numb
       A21res =  specv*( Beta2*( 2._RK*UdUdV - 2._RK*U*dUdV) + Beta3*(U2*dUdV - U2dUdV + 2._RK*U*UdUdV - 2._RK*U**2*dUdV) )
       A12res =  Numb*specv2*Beta3*( UdUdV2 + 2._RK*U*dUdV**2 - U*dUdV2 - 2._RK*UdUdV*dUdV)+&
@@ -12528,10 +12622,18 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                   select case( pc%ChemPotMethod )
   
                   case( ChemPotMethodGradIns )
+                    if ((.not. UseIntDegFreed) .and. (mod(NProc,this%NGradInsComp)/=pc%NGradThis)) then
+                      write( IOBuffer, '(" ",A10)' ) '----------'
+                      call FileWriteNoAdvance_parallel( this%iounit_result )
+                      write( IOBuffer, '(" ",A10)' ) '----------'
+                      call FileWriteNoAdvance_parallel( this%iounit_runave )
+                    else      
                       write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
                       call FileWriteNoAdvance_parallel( this%iounit_result )
                       write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
                       call FileWriteNoAdvance_parallel( this%iounit_runave )
+                    endif
+  
                   case( ChemPotMethodWidom )
                     write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
                     call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -12549,10 +12651,17 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                   select case( pc%ChemPotMethod )
   
                   case( ChemPotMethodGradIns )
-                    write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
-                    call FileWriteNoAdvance_parallel( this%iounit_result )
-                    write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
-                    call FileWriteNoAdvance_parallel( this%iounit_runave )
+                    if ((.not. UseIntDegFreed) .and. (mod(NProc,this%NGradInsComp)/=pc%NGradThis)) then
+                      write( IOBuffer, '(" ",A10)' ) '----------'
+                      call FileWriteNoAdvance_parallel( this%iounit_result )
+                      write( IOBuffer, '(" ",A10)' ) '----------'
+                      call FileWriteNoAdvance_parallel( this%iounit_runave )
+                    else      
+                      write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
+                      call FileWriteNoAdvance_parallel( this%iounit_result )
+                      write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
+                      call FileWriteNoAdvance_parallel( this%iounit_runave )
+                    endif
   
                   case( ChemPotMethodWidom )
                     write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%BlockAverage )
@@ -12653,15 +12762,31 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWriteNoAdvance( this%iounit_runave )
 
         ! Potential energy
-        write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
+        if (.not. UseIntDegFreed) then
+            write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
+        else
+            write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
+        end if
         call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
+        if (.not. UseIntDegFreed) then
+            write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
+        else
+            write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
+        end if
         call FileWriteNoAdvance( this%iounit_runave )
 
         ! Enthalpy
-        write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
+        if (.not. UseIntDegFreed) then
+            write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
+        else
+            write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
+        end if
         call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
+        if (.not. UseIntDegFreed) then
+            write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
+        else
+            write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
+        end if
         call FileWriteNoAdvance( this%iounit_runave )
 
       if (printIDF) then
@@ -12718,7 +12843,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         do i = 1, this%NRealComponents
           pc => this%Component(i)
           if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
-            if( Equilibration ) then
+            if( Equilibration .and. UseIntDegFreed) then
               write( IOBuffer, '(" ",F10.5)' ) 0._RK
               call FileWriteNoAdvance( this%iounit_result )
               call FileWriteNoAdvance( this%iounit_runave )
@@ -12777,7 +12902,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         do i = 1, this%NRealComponents
           pc => this%Component(i)
           if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
-            if( Equilibration ) then
+            if( Equilibration .and. UseIntDegFreed) then
               write( IOBuffer, '(" ",F10.4)' ) 0._RK
               call FileWriteNoAdvance( this%iounit_result )
               call FileWriteNoAdvance( this%iounit_runave )
@@ -12794,7 +12919,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         do i = 1, this%NRealComponents
           pc => this%Component(i)
           if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
-            if( Equilibration ) then
+            if( Equilibration .and. UseIntDegFreed) then
               write( IOBuffer, '(" ",F10.4)' ) 0._RK
               call FileWriteNoAdvance( this%iounit_result )
               call FileWriteNoAdvance( this%iounit_runave )
@@ -12877,15 +13002,31 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
 
         ! Potential energy
-        write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
+        if (.not. UseIntDegFreed) then
+            write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%BlockAverage
+        else
+            write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%BlockAverage
+        end if
         call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
+        if (.not. UseIntDegFreed) then
+            write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
+        else
+            write( IOBuffer, '(" ",F12.5)' ) this%SumEPot%Average
+        end if
         call FileWriteNoAdvance( this%iounit_runave )
 
         ! Enthalpy
-        write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
+        if (.not. UseIntDegFreed) then
+            write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
+        else
+            write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%BlockAverage
+        end if
         call FileWriteNoAdvance( this%iounit_result )
-        write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
+        if (.not. UseIntDegFreed) then
+            write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
+        else
+            write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
+        end if
         call FileWriteNoAdvance( this%iounit_runave )
 
       if (printIDF) then
@@ -13163,7 +13304,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
       if(this%Ncomponents>1)then
         do i=1,this%NComponents*this%NComponents
-          if( i < 10 ) then
+          if (.not. UseIntDegFreed) then
+              write( IOBuffer, '(T10, "L_ij", I1)') i
+          else if( i < 10 ) then
             write( IOBuffer, '(T9, " L_ij_", I1)') i
           else
             write( IOBuffer, '(T9, "L_ij_", I2)') i
@@ -13173,7 +13316,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       end if
       
       do i = 1, this%NComponents
-        if( i < 10 ) then
+        if (.not. UseIntDegFreed) then
+          write( IOBuffer, '(T10,"D_i",I2)' ) i
+        else if( i < 10 ) then
           write( IOBuffer, '(T10," D_i_",I1)' ) i
         else
           write( IOBuffer, '(T10,"D_i_",I2)' ) i
@@ -13205,7 +13350,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
       if( this%Ncomponents > 1 ) then
         do i=1,this%NComponents*this%NComponents
-           if( i < 10 ) then
+           if (.not. UseIntDegFreed) then
+             write( IOBuffer, '(T7,"Int_Lij",I1)')i
+           else if( i < 10 ) then
              write( IOBuffer, '(T7," Int_Lij_",I1)')i
            else
              write( IOBuffer, '(T7,"Int_Lij_",I1)')i
@@ -13215,7 +13362,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       end if
 
       do i = 1, this%NComponents
-         if( i < 10 ) then
+         if (.not. UseIntDegFreed) then
+           write( IOBuffer, '(T7,"IntD_i",I2)' ) i
+         else if( i < 10 ) then
            write( IOBuffer, '(T7," IntD_i_",I1)' ) i
          else
            write( IOBuffer, '(T7,"IntD_i_",I2)' ) i
@@ -13250,7 +13399,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       ! integration time
       do i  = 1, this%NCorr
         value = this%TimeStepCorr*UnitTime/1E-12_RK
-        write( IOBuffer, '(" ",F10.5)' ) (i-1)*value
+        if (.not. UseIntDegFreed) then
+            write( IOBuffer, '(F10.5)' ) (i-1)*value
+        else
+            write( IOBuffer, '(" ",F10.5)' ) (i-1)*value
+        end if
         call FileWriteNoAdvance( this%iounit_rescf )
 
 !         ! Onsager Diffusion coefficients
@@ -13318,8 +13471,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWriteNoAdvance( this%iounit_rescf )
 
        ! bulk
-        write( IOBuffer, '(T5, F10.5)' ) this%average_sinte_vb(i)*value !this%sinte_vb(i) / this%sinte_vb(this%NCorr) * this%visco_b * value
-        call FileWriteNoAdvance( this%iounit_rescf )
+        if (this%Bulkviscosity .or. UseIntDegFreed) then
+          write( IOBuffer, '(T5, F10.5)' ) this%average_sinte_vb(i)*value !this%sinte_vb(i) / this%sinte_vb(this%NCorr) * this%visco_b * value
+          call FileWriteNoAdvance( this%iounit_rescf )
+        end if 
 
        ! thermal conductivity
         if (this%Conductivity) then
@@ -13682,7 +13837,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("* ---------------------------------------------------------------------------- *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. Koster, G. Guevara-Carrion *")')
+    if (.not. UseIntDegFreed) then
+        write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. K�ster, G. Guevara-Carrion *")')
+    else
+        write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. Koster, G. Guevara-Carrion *")')
+    end if
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("* A. Wafai, M. Horsch, M. Bernreuther, T. Windmann, H. Hasse, J. Vrabec        *")')
     call FileWrite( this%iounit_errors )
@@ -13746,16 +13905,24 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     ! Acceptance rate
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs)  ) then
-      write( IOBuffer, '("Acceptance rate", T36, ":", F20.9)' ) Acceptance
+      if (UseIntDegFreed) then
+          write( IOBuffer, '("Acceptance rate", T36, ":", F20.9)' ) Acceptance
+      else
+          write( IOBuffer, '("Acceptance rate", T34, ":", F20.9)' ) Acceptance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
     end if
 
     ! Mass of piston
     if( SimulationType .eq. MolecularDynamics .and. ConstantPressure ) then
-      write( IOBuffer, '("Mass of piston", T29, "reduced:", F20.9)' ) this%PistonMass
-      call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T28, "in kg/m⁴:", F20.9)' ) this%PistonMass * 0.001_RK * UnitMass / UnitLength**4
+      if (UseIntDegFreed) then
+        write( IOBuffer, '("Mass of piston", T29, "reduced:", F20.9)' ) this%PistonMass
+        call FileWrite( this%iounit_errors )
+        write( IOBuffer, '(T28, "in kg/m⁴:", F20.9)' ) this%PistonMass * 0.001_RK * UnitMass / UnitLength**4
+      else
+        write( IOBuffer, '("Mass of piston", T36, ":", F20.9)' ) this%PistonMass
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
     end if
@@ -13768,10 +13935,15 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     ! Potential models
     if( EnsembleType .ne. EnsembleTypeGE .or. EnsembleType .ne. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       do i = 1, this%NRealComponents
-        write( IOBuffer, '("Mole fraction of ", A, T36, " :", F20.9)' )&
+        if (UseIntDegFreed) then
+            write( IOBuffer, '("Mole fraction of ", A, T36, " :", F20.9)' )&
 &              trim( this%Component(i)%Molecule%PotModFileName ), &
 &              this%Component(i)%Fraction
-
+        else
+            write( IOBuffer, '("Mole fraction of ", A, T36, ":", F20.9)' )&
+&              trim( this%Component(i)%Molecule%PotModFileName ), &
+&              this%Component(i)%Fraction
+        end if
         call FileWrite( this%iounit_errors )
         select case( this%Component(i)%ChemPotMethod )
         case( ChemPotMethodGradIns )
@@ -13863,18 +14035,30 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call FileWriteBlank( this%iounit_errors )
 
     ! Pressure
-    if ( this%OptPressure ) then
-      Average = this%SumPressure%Average
-      Variance = this%SumPressure%Variance
+    if( (SimulationType .eq. MolecularDynamics) .and. (.not. UseIntDegFreed)) then
+       Average = this%SumPressure%Average
+       Variance = this%SumPressure%Variance
+       write( IOBuffer, '("Pressure", T29, "reduced:", 2F20.9)' ) Average, Variance
+       call FileWrite( this%iounit_errors )
+       write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
+       call FileWrite( this%iounit_errors )
+       call FileWriteBlank( this%iounit_errors )
+
     else
-      Average = this%RefPressure
-      Variance = 0._RK
+       if ( this%OptPressure ) then
+         Average = this%SumPressure%Average
+         Variance = this%SumPressure%Variance
+       else
+         Average = this%RefPressure
+         Variance = 0._RK
+       end if
+
+       write( IOBuffer, '("Pressure", T29, "reduced:", 2F20.9)' ) Average, Variance
+       call FileWrite( this%iounit_errors )
+       write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
+       call FileWrite( this%iounit_errors )
+       call FileWriteBlank( this%iounit_errors )
     end if
-    write( IOBuffer, '("Pressure", T29, "reduced:", 2F20.9)' ) Average, Variance
-    call FileWrite( this%iounit_errors )
-    write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
-    call FileWrite( this%iounit_errors )
-    call FileWriteBlank( this%iounit_errors )
 
     ! Density
     Average = this%SumDensity%Average
@@ -14076,8 +14260,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           if( pc%NPart > 1 ) then
             Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
             Average = log( pc%Fraction * pc%SumInvChemPotRho%Average )
-            write( IOBuffer, '("Chem. pot. of ", A, T33, "r`d:", 2F20.9)' ) &
-&                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+            if (UseIntDegFreed) then
+                write( IOBuffer, '("Chem. pot. of ", A, T33, "r`d:", 2F20.9)' ) &
+&                      trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+            else
+                write( IOBuffer, '("Chemical potential of ", A, T33, "r`d:", 2F20.9)' ) &
+&                      trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+            end if
 !MERKER
           else
             Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
@@ -14086,7 +14275,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 &                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
             call FileWrite( this%iounit_errors )
             Average = this%Temperature*pc%SumInvChemPotRho%Average
-            Variance = this%Temperature * pc%SumInvChemPotRho%Average * pc%SumInvChemPotRho%Average / pc%SumInvChemPotRho%Variance
+            if (UseIntDegFreed) then
+                Variance = this%Temperature * pc%SumInvChemPotRho%Average * pc%SumInvChemPotRho%Average / pc%SumInvChemPotRho%Variance
+            else
+                Variance = this%Temperature*pc%SumInvChemPotRho%Variance
+            end if
             write( IOBuffer, '("Henrys law constant of ", A, T33, "r`d:", 2F20.9)' ) &
 &                  trim( pc%Molecule%PotModFileName ), Average, Variance
             call FileWrite( this%iounit_errors )
@@ -14101,8 +14294,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
           if( pc%Fraction > 0.0_RK ) then
             Average = log( pc%Fraction / pc%SumChemPotV%Average )
-            write( IOBuffer, '("Chem. pot. of ", A, T33, "r`d:", 2F20.9)' ) &
-&                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+            if (UseIntDegFreed) then
+                write( IOBuffer, '("Chem. pot. of ", A, T33, "r`d:", 2F20.9)' ) &
+&                      trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+            else
+                write( IOBuffer, '("Chemical potential of ", A, T33, "r`d:", 2F20.9)' ) &
+&                      trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+            end if
 
           else
             Average = this%Temperature / pc%SumChemPotV%Average
@@ -14118,13 +14316,23 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         case( ChemPotMethodThermoInt )
           Average  = log( (pc%Fraction+1._RK/real( this%NPart, RK )) / pc%SumChemPotThermoIntWidom%Average )
           Variance =  pc%SumChemPotThermoIntWidom%Variance / pc%SumChemPotThermoIntWidom%Average
-          write( IOBuffer, '("Chem. pot. at LambdaMin ", A, T33, "r`d:", 2F20.9)' ) &
+          if (UseIntDegFreed) then
+              write( IOBuffer, '("Chem. pot. at LambdaMin ", A, T33, "r`d:", 2F20.9)' ) &
 &                trim( this%Component(i)%Molecule%PotModFileName ), Average , Variance
+          else
+              write( IOBuffer, '("Chem. pot. at LambdaMin", A, T33, "r`d:", 2F20.9)' ) &
+&                trim( this%Component(i)%Molecule%PotModFileName ), Average , Variance
+          end if
           call FileWrite( this%iounit_errors )
           Average  = pc%SumChemPotV%Average
           Variance = pc%SumChemPotV%Variance
-          write( IOBuffer, '("Chem. pot. of ", A, T33, "r`d:", 2F20.9)' ) &
+          if (UseIntDegFreed) then
+              write( IOBuffer, '("Chem. pot. of ", A, T33, "r`d:", 2F20.9)' ) &
 &                trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+          else
+              write( IOBuffer, '("Chemical potential of ", A, T33, "r`d:", 2F20.9)' ) &
+&                trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
+          end if 
           call FileWrite( this%iounit_errors )
 
           if( pc%Npart .eq. 0 ) then
@@ -14263,64 +14471,104 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       ! A10
       Average = this%SumA10resI%Average
       Variance = this%SumA10resI%Variance
-      write( IOBuffer, '("A10 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A10", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A10 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A01
       Average = this%SumA01resI%Average
       Variance = this%SumA01resI%Variance
-      write( IOBuffer, '("A01 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A01", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A01 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A20
       Average = this%SumA20resI%Average
       Variance = this%SumA20resI%Variance
-      write( IOBuffer, '("A20 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A20", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A20 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A11
       Average = this%SumA11resI%Average
       Variance = this%SumA11resI%Variance
-      write( IOBuffer, '("A11 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A11", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A11 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A02
       Average = this%SumA02resI%Average
       Variance = this%SumA02resI%Variance
-      write( IOBuffer, '("A02 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A02", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A02 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A30
       Average = this%SumA30resI%Average
       Variance = this%SumA30resI%Variance
-      write( IOBuffer, '("A30 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A30", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A30 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A21
       Average = this%SumA21resI%Average
       Variance = this%SumA21resI%Variance
-      write( IOBuffer, '("A21 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A21", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A21 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A12
       Average = this%SumA12resI%Average
       Variance = this%SumA12resI%Variance
-      write( IOBuffer, '("A12 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A12", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A12 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
     end if
@@ -14329,128 +14577,208 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       ! A10I
       Average = this%SumA10resI%Average
       Variance = this%SumA10resI%Variance
-      write( IOBuffer, '("A10 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A10", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A10 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A01I
       Average = this%SumA01resI%Average
       Variance = this%SumA01resI%Variance
-      write( IOBuffer, '("A01 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A01", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A01 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A20I
       Average = this%SumA20resI%Average
       Variance = this%SumA20resI%Variance
-      write( IOBuffer, '("A20 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A20", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A20 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A11I
       Average = this%SumA11resI%Average
       Variance = this%SumA11resI%Variance
-      write( IOBuffer, '("A11 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A11", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A11 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A02I
       Average = this%SumA02resI%Average
       Variance = this%SumA02resI%Variance
-      write( IOBuffer, '("A02 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A02", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A02 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A30I
       Average = this%SumA30resI%Average
       Variance = this%SumA30resI%Variance
-      write( IOBuffer, '("A30 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A30", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A30 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A21I
       Average = this%SumA21resI%Average
       Variance = this%SumA21resI%Variance
-      write( IOBuffer, '("A21 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A21", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A21 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A12I
       Average = this%SumA12resI%Average
       Variance = this%SumA12resI%Variance
-      write( IOBuffer, '("A12 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A12", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A12 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A10II
       Average = this%SumA10resII%Average
       Variance = this%SumA10resII%Variance
-      write( IOBuffer, '("A10 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A10", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A10 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A01II
       Average = this%SumA01resII%Average
       Variance = this%SumA01resII%Variance
-      write( IOBuffer, '("A01 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A01", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A01 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A20II
       Average = this%SumA20resII%Average
       Variance = this%SumA20resII%Variance
-      write( IOBuffer, '("A20 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A20", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A20 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A11II
       Average = this%SumA11resII%Average
       Variance = this%SumA11resII%Variance
-      write( IOBuffer, '("A11 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A11", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A11 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A02II
       Average = this%SumA02resII%Average
       Variance = this%SumA02resII%Variance
-      write( IOBuffer, '("A02 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A02", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A02 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A30II
       Average = this%SumA30resII%Average
       Variance = this%SumA30resII%Variance
-      write( IOBuffer, '("A30 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A30", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A30 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A21II
       Average = this%SumA21resII%Average
       Variance = this%SumA21resII%Variance
-      write( IOBuffer, '("A21 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A21", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A21 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
       ! A12II
       Average = this%SumA12resII%Average
       Variance = this%SumA12resII%Variance
-      write( IOBuffer, '("A12 - Dimensionless, residual", T36,":", 2F20.9)' ) &
-&       Average, Variance
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("A12", T29, "Dimensionless, residual:", 2F20.9)' ) &
+&           Average, Variance
+      else
+          write( IOBuffer, '("A12 - Dimensionless, residual", T36,":", 2F20.9)' ) &
+&           Average, Variance
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
     end if
@@ -15059,10 +15387,18 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call FileWriteBlank( this%iounit_errors )
 
       ! Simulation temperature
-      Average = this%SumTemperature%Average
-      write( IOBuffer, '("Simulation temperature", T29, "reduced:", F20.9)' ) Average
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '("Simulation temperature", T29, "reduced:", F20.9)' ) this%RefTemperature
+      else
+          Average = this%SumTemperature%Average
+          write( IOBuffer, '("Simulation temperature", T29, "reduced:", F20.9)' ) Average
+      end if
       call FileWrite( this%iounit_errors )
-      write( IOBuffer, '(T32, "in K:", F20.9)' ) Average * UnitTemperature
+      if (.not. UseIntDegFreed) then
+          write( IOBuffer, '(T32, "in K:", F20.9)' ) this%Temperature * UnitTemperature
+      else
+          write( IOBuffer, '(T32, "in K:", F20.9)' ) Average * UnitTemperature
+      end if
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
@@ -15300,7 +15636,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
         call FileWrite( this%iounit_errors )
 
-        if( this%NDFRot > 0 ) then
+        if((.not. UseIntDegFreed .and. pc%Molecule%IsElongated) .or. (UseIntDegFreed .and. this%NDFRot > 0)) then
 #if MPI_VER > 0
           call MPI_Reduce( pc%NRotateSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, &
 &              NRootProc, Communicator, ierror )
@@ -15338,7 +15674,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
 
           call FileWrite( this%iounit_errors )
-          if( this%NDFRot > 0 ) then
+          if(((.not. UseIntDegFreed .and. pc%Molecule%IsElongated) .or. (UseIntDegFreed .and. this%NDFRot > 0))) then
 #if MPI_VER > 0
             call MPI_Reduce( pc%NRotateBiasedSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, &
 &                NRootProc, Communicator, ierror )
@@ -15372,7 +15708,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif  
 
         call FileWrite( this%iounit_errors )
-        if( this%NDFRot > 0 ) then
+        if(((.not. UseIntDegFreed .and. pc%Molecule%IsElongated) .or. (UseIntDegFreed .and. this%NDFRot > 0))) then
 #if MPI_VER > 0
         call MPI_Reduce( pc%DispRot,tempReal, 1, MPI_RK, MPI_MAX, &
 &            NRootProc, Communicator, ierror )

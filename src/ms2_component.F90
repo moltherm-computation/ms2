@@ -3095,14 +3095,16 @@ contains
         end do
 
         ! Loop over charge sites in molecule
-        do i = 1, this%Molecule%Unit(iUnit)%NCharge
-          pCharge => this%Molecule%Unit(iUnit)%SiteCharge(i)
-          do j = 1, l
-            pCharge%RX(j) = this%P0(j, 1, iUnit)
-            pCharge%RY(j) = this%P0(j, 2, iUnit)
-            pCharge%RZ(j) = this%P0(j, 3, iUnit)
-          end do
-        end do
+        if ((LongRange .ne. RField) .or. UseIntDegFreed) then
+            do i = 1, this%Molecule%Unit(iUnit)%NCharge
+              pCharge => this%Molecule%Unit(iUnit)%SiteCharge(i)
+              do j = 1, l
+                pCharge%RX(j) = this%P0(j, 1, iUnit)
+                pCharge%RY(j) = this%P0(j, 2, iUnit)
+                pCharge%RZ(j) = this%P0(j, 3, iUnit)
+              end do
+            end do
+        end if
       end if
     end do
 
@@ -3269,12 +3271,14 @@ contains
       end do
 
       ! Loop over charge sites in molecule
-      do i = 1, this%Molecule%Unit(nu)%NCharge
-        pCharge => this%Molecule%Unit(nu)%SiteCharge(i)
-        pCharge%RX(np) = PXi
-        pCharge%RY(np) = PYi
-        pCharge%RZ(np) = PZi
-      end do
+      if ((LongRange .ne. RField) .or. UseIntDegFreed) then
+        do i = 1, this%Molecule%Unit(nu)%NCharge
+          pCharge => this%Molecule%Unit(nu)%SiteCharge(i)
+          pCharge%RX(np) = PXi
+          pCharge%RY(np) = PYi
+          pCharge%RZ(np) = PZi
+        end do
+      end if
 
     end if
 
@@ -3315,8 +3319,13 @@ contains
     integer                        :: i, i0, i1, j, k
 
 #if MPI_VER > 0
-    i0 = this%NTest0
-    i1 = this%NTest2
+    if (UseIntDegFreed) then
+      i0 = this%NTest0
+      i1 = this%NTest2
+    else
+      i0 = 1
+      i1 = this%NTest
+    end if
 #else
     i0 = 1
     i1 = this%NTest
@@ -3457,14 +3466,16 @@ contains
         end do
 
         ! Loop over charge sites in molecule
-        do i = 1, this%Molecule%Unit(k)%NCharge
-          pCharge => this%Molecule%Unit(k)%SiteCharge(i)
-          do j = i0, i1
-            pCharge%RXTest(j) = this%P0Test(j, 1, k)
-            pCharge%RYTest(j) = this%P0Test(j, 2, k)
-            pCharge%RZTest(j) = this%P0Test(j, 3, k)
+        if ((LongRange .ne. RField) .or. UseIntDegFreed) then
+          do i = 1, this%Molecule%Unit(k)%NCharge
+            pCharge => this%Molecule%Unit(k)%SiteCharge(i)
+            do j = i0, i1
+              pCharge%RXTest(j) = this%P0Test(j, 1, k)
+              pCharge%RYTest(j) = this%P0Test(j, 2, k)
+              pCharge%RZTest(j) = this%P0Test(j, 3, k)
+            end do
           end do
-        end do
+        end if
 
       end if
     end do
@@ -3675,14 +3686,16 @@ contains
         end do
 
         ! Loop over charge sites in molecule
-        do j = 1, this%Molecule%Unit(iUnit)%NCharge
-          pCharge => this%Molecule%Unit(iUnit)%SiteCharge(j)
-          do i = 1, l
-            this%F(i-1+i0, 1, iUnit) = this%F(i-1+i0, 1, iUnit) + pCharge%FX(i)
-            this%F(i-1+i0, 2, iUnit) = this%F(i-1+i0, 2, iUnit) + pCharge%FY(i)
-            this%F(i-1+i0, 3, iUnit) = this%F(i-1+i0, 3, iUnit) + pCharge%FZ(i)
+        if ((LongRange .ne. RField) .or. UseIntDegFreed) then
+          do j = 1, this%Molecule%Unit(iUnit)%NCharge
+            pCharge => this%Molecule%Unit(iUnit)%SiteCharge(j)
+            do i = 1, l
+              this%F(i-1+i0, 1, iUnit) = this%F(i-1+i0, 1, iUnit) + pCharge%FX(i)
+              this%F(i-1+i0, 2, iUnit) = this%F(i-1+i0, 2, iUnit) + pCharge%FY(i)
+              this%F(i-1+i0, 3, iUnit) = this%F(i-1+i0, 3, iUnit) + pCharge%FZ(i)
+            end do
           end do
-        end do
+        end if
 
       end if
 
@@ -4489,8 +4502,8 @@ loop1:do i = 1, this%NPart
     np = this%NPart
 
     ! Predict COM positions and their derivatives
-    do i = 1, np
-      do j = 1, 3
+    do j = 1, 3
+      do i = 1, np
         do iUnit = 1, this%Molecule%NUnit
           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) + this%P1(i, j, iUnit) + this%P2(i, j, iUnit) + this%P3(i, j, iUnit) + this%P4(i, j, iUnit) + this%P5(i, j, iUnit)
           this%P1(i, j, iUnit) = this%P1(i, j, iUnit) + 2._RK * this%P2(i, j, iUnit) + 3._RK * this%P3(i, j, iUnit) + 4._RK * this%P4(i, j, iUnit) + 5._RK * this%P5(i, j, iUnit)
@@ -4498,6 +4511,12 @@ loop1:do i = 1, this%NPart
           this%P3(i, j, iUnit) = this%P3(i, j, iUnit) + 4._RK * this%P4(i, j, iUnit) +10._RK * this%P5(i, j, iUnit)
           this%P4(i, j, iUnit) = this%P4(i, j, iUnit) + 5._RK * this%P5(i, j, iUnit)
         end do
+
+        ! Calculate displacement
+        if (.not. UseIntDegFreed) then ! there should exist only one unit
+            this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j, 1) - this%Pm0old(i, j)
+        end if
+
       end do
     end do
 
@@ -4583,6 +4602,9 @@ loop1:do i = 1, this%NPart
           this%P4(i, j, iUnit) = this%P4(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear24
           this%P5(i, j, iUnit) = this%P5(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear25
 
+          if (.not. UseIntDegFreed) then ! there should exist only one unit
+              this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j, 1) - this%Pm0old(i, j)
+          end if
 
           ! Check for conservation of particles in primary cell
 #if ARCH == 1
