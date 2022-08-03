@@ -2122,10 +2122,6 @@ loop1:do k = 1, this%NInCutoff(unit)
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
-    if (.not. UseIntDegFreed) then
-        i0 = 1
-        i1 = this%Site1%NTest
-    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -2562,7 +2558,7 @@ loop2:  do j = 1, N2
 #if MPI_VER > 0
 !$OMP FIRSTPRIVATE (i0) &
 #endif
-!$OMP FIRSTPRIVATE(i1) &
+!$OMP PRIVATE(i1) &
 !$OMP PRIVATE (Plen2,sitecorr) &
 !$OMP PRIVATE (RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE (RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
@@ -3919,10 +3915,6 @@ loop2:  do m=1,NBinsDen
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
-    if (.not. UseIntDegFreed) then
-        i0 = 1
-        i1 = this%Site1%NTest
-    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -5237,10 +5229,6 @@ loop2:  do m=1,NBinsDen
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
-    if (.not. UseIntDegFreed) then
-        i0 = 1
-        i1 = this%Site1%NTest
-    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -6410,10 +6398,6 @@ loop2:  do m=1,NBinsDen
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
-    if (.not. UseIntDegFreed) then
-        i0 = 1
-        i1 = this%Site1%NTest
-    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -7551,10 +7535,6 @@ loop2:  do m=1,NBinsDen
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
-    if (.not. UseIntDegFreed) then
-        i0 = 1
-        i1 = this%Site1%NTest
-    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -9097,10 +9077,6 @@ loop3:  do j = j0, j1
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
-    if (.not. UseIntDegFreed) then
-        i0 = 1
-        i1 = this%Site1%NTest
-    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -9240,7 +9216,6 @@ loop2:  do j = 1, j1
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle loop2
 #if ARCH == 3
           if( RijSquared <= RShieldSquared ) hit = .true.
 #else
@@ -10759,10 +10734,6 @@ loop3:  do j = j0, j1
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
-    if (.not. UseIntDegFreed) then
-        i0 = 1
-        i1 = this%Site1%NTest
-    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -10901,7 +10872,7 @@ loop2:  do j = 1, j1
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle loop2
+
 #if ARCH == 3
           if( RijSquared <= RShieldSquared ) hit = .true.
 #else
@@ -12032,10 +12003,6 @@ loop2:  do m=1,NBinsDen
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
-    if (.not. UseIntDegFreed) then
-        i0 = 1
-        i1 = this%Site1%NTest
-    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -13608,10 +13575,6 @@ loop3:  do j = j0, j1
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
-    if (.not. UseIntDegFreed) then
-        i0 = 1
-        i1 = this%Site1%NTest
-    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -13752,7 +13715,7 @@ loop2:  do j = 1, j1
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle loop2
+
 #if ARCH == 3
           if( RijSquared <= RShieldSquared ) hit = .true.
 #else
@@ -14163,7 +14126,7 @@ loop2:  do j = 1, j1
 #endif
 
 !$OMP PARALLEL &
-!$OMP FIRSTPRIVATE (i, j, k, i1, j0, j1) &
+!$OMP PRIVATE (i, j, k, i1, j0, j1) &
 #if MPI_VER > 0
 !$OMP FIRSTPRIVATE ( N1, N2, i0, ji, EvenN) &
 #endif
@@ -15387,10 +15350,6 @@ loop3:  do j = j0, j1
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
     i1 = this%Site1%NTest2
-    if (.not. UseIntDegFreed) then
-        i0 = 1
-        i1 = this%Site1%NTest
-    end if
 #else
     i0 = 1
     i1 = this%Site1%NTest
@@ -15542,7 +15501,7 @@ loop2:  do j = 1, j1
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij**2 + RYij**2 + RZij**2
-          if( RijSquared >= RCutoffSquared ) cycle loop2
+
 #if ARCH == 3
           if( RijSquared <= RShieldSquared ) hit = .true.
 #else
@@ -15794,12 +15753,7 @@ loop2:  do j = 1, j1
   C5 =  1.061405429
   P  =  0.3275911
 
-  if (.not. UseIntDegFreed) then
-      argu = real(1._RK / (1._RK + P*in))
-  else
-      argu = 1._RK / (1._RK + P*in)
-  end if
-
+  argu = 1._RK / (1._RK + P*in)
   approx_out = argu*(C1+argu*(C2+argu*(C3+argu*(C4+argu*C5))))*exp(-in**2)
 
   end subroutine TPoterfc_approx

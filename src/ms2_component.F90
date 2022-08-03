@@ -195,7 +195,6 @@ module ms2_component
 
     ! Number of test particles
     integer, pointer :: NTest
-    integer          :: NTestAll
     integer, pointer :: NTest0, NTest1, NTest2
 
     ! Number of degrees of freedom
@@ -662,12 +661,6 @@ contains
         call FileReadParameter( this%NTest, iounit_params, IdNTest, .false. )
         if( this%NTest <= 0 ) call Error( 'Number of test particles need to be > 0' )
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
-
-#if MPI_VER > 0
-        if (SimulationType .eq. MolecularDynamics .and. .not. UseIntDegFreed) then
-           this%NTest = ((this%NTest -1)/NProcs +1)
-        endif
-#endif
       end if
 
       ! Read weighting factors method
@@ -691,11 +684,7 @@ contains
         call LogWrite
       end if
       if (this%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
-        if (UseIntDegFreed) then
-            call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.1_RK )
-        else
-            call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.2_RK )
-        end if
+        call FileReadParameter( this%LaMin, iounit_params , IdLambdaMin, .false., 0.1_RK )
         write( IOBuffer, '("Thermo. Int. LambdaMin: ", T40, F8.5)' ) this%LaMin
         call LogWrite
         call FileReadParameter( this%LaMax, iounit_params , IdLambdaMax, .false., 1.0_RK )
@@ -705,14 +694,10 @@ contains
         write( IOBuffer, '("Thermo. Int. NBins: ", T40, I8)' ) this%NBins
         call LogWrite
         if (SimulationType .eq. MolecularDynamics) then
-            if (.not. UseIntDegFreed) then
-                call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.01_RK)
-            else
-                write( IOBuffer, '("In MD simulations LambdaStepMax is determined by NBins, LambdaMax and LambdaMin.")' )
-                call LogWrite
-                this%LaStepMax = -(this%LaMax-this%LaMin) / (this%NBins-1)
-                this%deltaLa = -this%LaStepMax
-            end if
+          write( IOBuffer, '("In MD simulations LambdaStepMax is determined by NBins, LambdaMax and LambdaMin.")' )
+          call LogWrite
+          this%LaStepMax = -(this%LaMax-this%LaMin) / (this%NBins-1)
+          this%deltaLa = -this%LaStepMax
         else
           call FileReadParameter( this%LaStepMax, iounit_params , IdLambdaStepMax, .false., 0.1_RK)
           this%deltaLa = (this%LaMax-this%LaMin) / this%NBins
@@ -722,37 +707,31 @@ contains
         call FileReadParameter( this%LambdaExponent, iounit_params , IdLambdaExponent, .false., 4.0_RK)
         write( IOBuffer, '("Thermo. Int. LambdaExponent: ", T40, F8.5)' ) this%LambdaExponent
         call LogWrite
-        if (UseIntDegFreed) then
-            call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 25 ) ! Michael Sch.: changed from 250
-        else
-            call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 100 )
-        end if
+        call FileReadParameter( this%NTest, iounit_params, IdNTest, .false., 25 ) ! Michael Sch.: changed from 250
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
         call LogWrite
 
-        if (UseIntDegFreed) then
-            ! Michael Sch.: new for enhanced possibilites for E(la) sampling
-            if (SimulationType .eq. MolecularDynamics) then
-              call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 5000)
-            else
-              call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 100)
-            end if
-            write( IOBuffer, '("Frequency for lambda changes:", I11 )' ) this%changeLaFreq
-            call LogWrite
-            this%changeLaPart = 1.8*this%changeLaFreq*(this%LaMax-this%LaMin)/this%LaStepMax
-            if (SimulationType .eq. MonteCarlo) this%changeLaPart=10*this%changeLaPart
-            ! read parameter in case the user wants no or more different particles to be sampled...not advised too much^^
-            call FileReadParameter( this%changeLaPart, iounit_params , IdchangeLaPart, .false., this%changeLaPart)
-            write( IOBuffer, '("Frequency for changing the fluctuating particle:", I11 )' ) this%changeLaPart
-            call LogWrite
-            if (SimulationType .eq. MolecularDynamics) then
-              call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 2000)
-            else
-              call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 40)
-            end if
-            write( IOBuffer, '("Forfeit steps of each lambda value regarding the energy sampling:", I11 )' ) this%forfeitLaSampl
-            call LogWrite
+        ! Michael Sch.: new for enhanced possibilites for E(la) sampling
+        if (SimulationType .eq. MolecularDynamics) then
+          call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 5000)
+        else
+          call FileReadParameter( this%changeLaFreq, iounit_params , IdchangeLaFreq, .false., 100)
         end if
+        write( IOBuffer, '("Frequency for lambda changes:", I11 )' ) this%changeLaFreq
+        call LogWrite
+        this%changeLaPart = 1.8*this%changeLaFreq*(this%LaMax-this%LaMin)/this%LaStepMax
+        if (SimulationType .eq. MonteCarlo) this%changeLaPart=10*this%changeLaPart
+        ! read parameter in case the user wants no or more different particles to be sampled...not advised too much^^
+        call FileReadParameter( this%changeLaPart, iounit_params , IdchangeLaPart, .false., this%changeLaPart)
+        write( IOBuffer, '("Frequency for changing the fluctuating particle:", I11 )' ) this%changeLaPart
+        call LogWrite
+        if (SimulationType .eq. MolecularDynamics) then
+          call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 2000)
+        else
+          call FileReadParameter( this%forfeitLaSampl, iounit_params , IdforfeitLaSampl, .false., 40)
+        end if
+        write( IOBuffer, '("Forfeit steps of each lambda value regarding the energy sampling:", I11 )' ) this%forfeitLaSampl
+        call LogWrite
 
 #if MPI_VER>0
         if (SimulationType .eq. MolecularDynamics) then
@@ -761,14 +740,9 @@ contains
 #endif
         if (this%LaMin**this%LambdaExponent .lt. 1E-30_RK) then 
           this%LaMin = 1E-30_RK**(1._RK/this%LambdaExponent)
-          if (.not. UseIntDegFreed) then
-              write( IOBuffer, '("LambdaMin too low for simulation and was changed!")')
-          else
-              write( IOBuffer, '("LambdaMin too low for simulation! Value was changed to: ", F8.5)' ) this%LaMin
-          end if
+          write( IOBuffer, '("LambdaMin too low for simulation! Value was changed to: ", F8.5)' ) this%LaMin
           call LogWrite
         endif
-        if (.not. UseIntDegFreed) this%deltaLa=(this%LaMax-this%LaMin)/this%NBins
       end if
 
     end if
@@ -943,11 +917,7 @@ contains
     this%Fraction = 0._RK
     this%NBins = 0
 
-    if (UseIntDegFreed) then
-        this%Lambda = 1.0_RK !- Zero ! test Minh
-    else
-        this%Lambda = 1.0_RK - Zero ! test Minh
-    end if
+    this%Lambda = 1.0_RK !- Zero ! test Minh
 
     ! Set fluctuating state (for GradIns)
     this%FluctState = 0
@@ -1200,7 +1170,6 @@ contains
       call Construct( this%SumHM, .true. )
     case( ChemPotMethodThermoInt )
       call Construct( this%SumChemPotV, .true. )
-      call Construct( this%SumChemPotVV, .false. )
       call Construct( this%SumChemPotThermoIntWidom, .false. )
       call Construct( this%SumChemPotThermoIntWidomV, .false. )
       call Construct( this%SumHW_counter, .false. )
@@ -3103,15 +3072,9 @@ contains
 
       ! Rotate total dipole moment
         if( CutoffMode .eq. CenterofMass ) then
-          if (.not. UseIntDegFreed .and. ( SimulationType .ne. MonteCarlo )) then
-              mue1 = this%Molecule%Mue(1)
-              mue2 = this%Molecule%Mue(2)
-              mue3 = this%Molecule%Mue(3)
-          else
-              mue1 = this%Molecule%Unit(iUnit)%Mue(1)
-              mue2 = this%Molecule%Unit(iUnit)%Mue(2)
-              mue3 = this%Molecule%Unit(iUnit)%Mue(3)
-          end if
+          mue1 = this%Molecule%Unit(iUnit)%Mue(1)
+          mue2 = this%Molecule%Unit(iUnit)%Mue(2)
+          mue3 = this%Molecule%Unit(iUnit)%Mue(3)
           do i = 1, l
             this%MueX(i, iUnit) = mue1 * A11(i) + mue2 * A21(i) + mue3 * A31(i)
             this%MueY(i, iUnit) = mue1 * A12(i) + mue2 * A22(i) + mue3 * A32(i)
@@ -3389,18 +3352,18 @@ contains
 
           ! Normalise quaternions
 #if ARCH == 3
-!          qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+          qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
 #else
-!          qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+          qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
 #endif
-!          q1 = q1 * qinv
-!          q2 = q2 * qinv
-!          q3 = q3 * qinv
-!          q4 = q4 * qinv
-!          this%Q0Test(i, 1, k) = q1
-!          this%Q0Test(i, 2, k) = q2
-!          this%Q0Test(i, 3, k) = q3
-!          this%Q0Test(i, 4, k) = q4
+          q1 = q1 * qinv
+          q2 = q2 * qinv
+          q3 = q3 * qinv
+          q4 = q4 * qinv
+          this%Q0Test(i, 1, k) = q1
+          this%Q0Test(i, 2, k) = q2
+          this%Q0Test(i, 3, k) = q3
+          this%Q0Test(i, 4, k) = q4
 
           ! Calculate rotation matrix elements
           A11(i) = q1**2 + q2**2 - q3**2 - q4**2
@@ -4771,25 +4734,21 @@ loop1:do i = 1, this%NPart
     real(RK) :: Korr
     integer  :: np, nra, iUnit
     integer  :: i, j
-    real(RK) :: r(this%NPart, 3)
+    real(RK) :: r(3)
 
     Korr = 2._RK - 1._RK / scale
     np = this%NPart
 
-    do j = 1, 3
-      do i = 1, np
+    do i = 1, np
+      do j = 1, 3
         do iUnit = 1, this%Molecule%NUnit
           this%P1(i, j, iUnit) = Korr * this%P1(i, j, iUnit) + this%P2(i, j, iUnit)
           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) + this%P1(i, j, iUnit)
         end do
+      end do
 
-        if (.not. UseIntDegFreed) then
-            ! Calculate displacement
-            this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j, 1) - this%Pm0old(i, j)
-        end if
-
-        r(i, j) = 0._RK
-
+      r(:) = 0._RK
+      do j = 1, 3
         do iUnit= 1, this%Molecule%NUnit
           ! Check for conservation of particles in primary cell
 #if ARCH == 1
@@ -4802,16 +4761,12 @@ loop1:do i = 1, this%NPart
           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - anint( this%P0(i, j, iUnit) )
 #endif
           ! Calculate new positions of COM for molecules from new COM of units
-          r(i, j) = r(i, j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
+          r(j) = r(j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
 
-          if (UseIntDegFreed) then
-              this%Pm0(i, j) = r(i, j)/this%Molecule%Mass
-              ! Calculate displacement of molecules
-              this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
-              this%Pm0(i, j) = this%Pm0(i,j) - anint(this%Pm0(i,j))
-          else
-              this%Pm0(i, j) = this%P0(i,j,1)
-          end if
+          this%Pm0(i, j) = r(j)/this%Molecule%Mass
+          ! Calculate displacement of molecules
+          this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+          this%Pm0(i, j) = this%Pm0(i,j) - anint(this%Pm0(i,j))
           this%Pm0old(i,j ) = this%Pm0(i, j)
         end do
       end do
@@ -5101,7 +5056,7 @@ loop1:do i = 1, this%NPart
     ! Declare arguments
     type(TComponent)               :: this
     real(RK), intent(in)           :: r(3)
-    real(RK), intent(in), optional :: q(4)
+    real(RK), intent(in), optional :: q(3)
 
     ! Declare local variables
     integer            :: selected, i
@@ -5116,7 +5071,7 @@ loop1:do i = 1, this%NPart
     end if
 
     ! Increase NPart
-    if (UseIntDegFreed) selected = rnd( this%NPart )
+    selected = rnd( this%NPart )
     !IOBuffer = '' ! Michael DEBUG
     !write( IOBuffer, '("Duplicating particle number " I4," for insertion at end. ")' ) selected
     this%NPart = this%NPart + 1
@@ -5126,13 +5081,8 @@ loop1:do i = 1, this%NPart
 
     ! Set coordinates and orientation of new particle by an representative of the configuration
     do i = 1, this%Molecule%NUnit
-        if (.not. UseIntDegFreed) then
-            this%P0(this%NPart,1:3,i) = r(1:3)
-            this%Pm0(this%NPart,1:3) = this%P0(this%NPart,1:3,i)
-        else
-            this%P0(this%NPart,1:3,i) = this%P0(selected,1:3,i) + r(1:3)
-            this%P0(this%NPart,1:3,i) = this%P0(this%NPart,1:3,i) - anint(this%P0(this%NPart,1:3,i))
-        end if
+      this%P0(this%NPart,1:3,i) = this%P0(selected,1:3,i) + r(1:3)
+      this%P0(this%NPart,1:3,i) = this%P0(this%NPart,1:3,i) - anint(this%P0(this%NPart,1:3,i))
     end do
 
     if (SimulationType .eq. MolecularDynamics ) then
@@ -5158,20 +5108,14 @@ loop1:do i = 1, this%NPart
       end if
     end if
 
-    if (UseIntDegFreed) then
-        this%Pm0(this%NPart,:) = 0._RK
-        call Unit2Mol(this, this%NPart) 
-    end if
+    this%Pm0(this%NPart,:) = 0._RK
+    call Unit2Mol(this, this%NPart) 
 
     if (this%Molecule%isElongated) then
-        if (.not. UseIntDegFreed) then
-            this%Q0(this%NPart,:,1) = q(:)
-        else
-            this%Q0(this%NPart,:,:) = this%Q0(selected,:,:)
-            call RotateMol( this, this%NPart, q)
-        end if
+      this%Q0(this%NPart,:,:) = this%Q0(selected,:,:)
+      call RotateMol( this, this%NPart, q)
     end if
-    if (UseIntDegFreed) call Unit2Atom1( this, this%NPart, RootProc )
+    call Unit2Atom1( this, this%NPart, RootProc )
 
   end subroutine TComponent_AddParticle
 
