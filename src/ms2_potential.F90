@@ -627,16 +627,7 @@ module ms2_potential
     module procedure TPotDihedral_Energy
   end interface
 
-  type idfPotentialEnergies
 
-      real(RK) :: EPotIntra
-      real(RK) :: EPotIntra_Bond
-      real(RK) :: EPotIntra_Angle
-      real(RK) :: EPotIntra_Dihedral
-      real(RK) :: EPotIntra_Nonbonded
-      real(RK) :: EPotInter
-
-  end type idfPotentialEnergies
 
 contains
 
