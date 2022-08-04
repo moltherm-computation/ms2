@@ -39,14 +39,13 @@ module ms2_potential
   use ms2_site
 
 
-
 !==============================================================!
-!  Type TPotLJ126LJ126                                         !
+!  Type TPotMIEnmMIEnm                                         !
 !==============================================================!
 
-  type TPotLJ126LJ126
+  type TPotMIEnmMIEnm
 
-    type(TSiteLJ126), pointer :: Site1, Site2
+    type(TSiteMIEnm), pointer :: Site1, Site2
     integer, pointer          :: NUnit1, NUnit2
     real(RK)                  :: Sigma, Epsilon
     real(RK)                  :: RCutoffSquared, RCutoffSquaredScaled
@@ -54,7 +53,7 @@ module ms2_potential
     logical                   :: SameComponent
     logical                   :: potintra15, potintra14
     real(RK)                  :: SigmaSquared
-    real(RK)                  :: Epsilon4, Epsilon48
+    real(RK)                  :: EpsilonMie_a, EpsilonMie_aF
     real(RK)                  :: BoxlengthInv, BoxLengthThird
     real(RK)                  :: ScaleLJ14
     integer, pointer, contiguous          :: NInCutoff(:), CutoffPartner(:, :)
@@ -67,38 +66,39 @@ module ms2_potential
     real(RK),pointer, contiguous          :: AblSigCorr(:,:)
 #endif
 
-  end type TPotLJ126LJ126
+
+  end type TPotMIEnmMIEnm
 
   interface Construct
-    module procedure TPotLJLJ_Construct
+    module procedure TPotMIEMIE_Construct
   end interface
 
   interface Destruct
-    module procedure TPotLJLJ_Destruct
+    module procedure TPotMIEMIE_Destruct
   end interface
 
   interface Force
-    module procedure TPotLJLJ_Force
+    module procedure TPotMIEMIE_Force
   end interface
 
   interface Get_RDF
-    module procedure TPotLJLJ_RDF
+    module procedure TPotMIEMIE_RDF
   end interface
 
   interface Force_Trans
-    module procedure TPotLJLJ_Force_Trans
+    module procedure TPotMIEMIE_Force_Trans
   end interface
 
   interface ChemicalPotential
-    module procedure TPotLJLJ_ChemicalPotential
+    module procedure TPotMIEMIE_ChemicalPotential
   end interface
 
   interface Energy
-    module procedure TPotLJLJ_Energy
+    module procedure TPotMIEMIE_Energy
   end interface
 
   interface UpdateBoxLength
-    module procedure TPotLJLJ_UpdateBoxLength
+    module procedure TPotMIEMIE_UpdateBoxLength
   end interface
 
 
@@ -645,15 +645,15 @@ contains
 
 
 !==============================================================!
-!  Subroutine TPotLJLJ_Construct                               !
+!  Subroutine TPotMIEMIE_Construct                               !
 !==============================================================!
 
-  subroutine TPotLJLJ_Construct( this, i1, i2, j1, j2, Molecule1, Molecule2, RCutoff, ScaleSigma, ScaleEpsilon )
+  subroutine TPotMIEMIE_Construct( this, i1, i2, j1, j2, Molecule1, Molecule2, RCutoff, ScaleSigma, ScaleEpsilon )
 
     implicit none
 
     ! Declare arguments
-    type(TPotLJ126LJ126)        :: this
+    type(TPotMIEnmMIEnm)        :: this
     integer, intent(in)         :: i1, i2, j1, j2
     type(TMolecule), intent(in) :: Molecule1, Molecule2
     real(RK), intent(in)        :: RCutoff
@@ -666,9 +666,9 @@ contains
 
 
     ! Construct potential
-    this%Site1 => Molecule1%SiteLJ126(j1)
+    this%Site1 => Molecule1%SiteMIEnm(j1)
     this%NUnit1 => Molecule1%NUnit
-    this%Site2 => Molecule2%SiteLJ126(j2)
+    this%Site2 => Molecule2%SiteMIEnm(j2)
     this%NUnit2 => Molecule2%NUnit
     this%SameComponent = i1 == i2
     this%Sigma = .5_RK * (this%Site1%sig + this%Site2%sig)
@@ -678,7 +678,7 @@ contains
       this%Sigma = this%Sigma * ScaleSigma
       this%Epsilon = this%Epsilon * ScaleEpsilon
     end if
-    this%Epsilon4 = 4._RK * this%Epsilon
+    this%EpsilonMie_a = 4._RK * this%Epsilon
 
     ! if this potential is intra
     if (this%SameComponent .and. Molecule1%hasIntraLJEl ) then
@@ -1036,43 +1036,43 @@ contains
     end function TISSpAbl
 
 
-  end subroutine TPotLJLJ_Construct
+  end subroutine TPotMIEMIE_Construct
 
 
 
 !==============================================================!
-!  Subroutine TPotLJLJ_Destruct                                !
+!  Subroutine TPotMIEMIE_Destruct                                !
 !==============================================================!
 
-  subroutine TPotLJLJ_Destruct( this )
+  subroutine TPotMIEMIE_Destruct( this )
 
     implicit none
 
     ! Declare arguments
-    type(TPotLJ126LJ126) :: this
+    type(TPotMIEnmMIEnm) :: this
 
     ! Destroy potential
     continue
 
-  end subroutine TPotLJLJ_Destruct
+  end subroutine TPotMIEMIE_Destruct
 
 !==============================================================!
-!  Subroutine TPotLJLJ_Force                                   !
+!  Subroutine TPotMIEMIE_Force                                   !
 !==============================================================!
 
 #ifdef ABL
-  subroutine TPotLJLJ_Force( this, EPot, Virial, EPotInter, &
+  subroutine TPotMIEMIE_Force( this, EPot, Virial, EPotInter, &
 &            VirialInter, EPotIntra_Nonbonded, VirialIntra, d2EpotdV2, BoxLength, &
 &            VirAblSig, VirAblEps, eps1,eps2)
 #else
-  subroutine TPotLJLJ_Force( this, EPot, Virial, EPotInter, &
+  subroutine TPotMIEMIE_Force( this, EPot, Virial, EPotInter, &
 &            VirialInter, EPotIntra_Nonbonded, VirialIntra, d2EpotdV2, BoxLength )
 #endif
 
     implicit none
 
     ! Declare arguments
-    type(TPotLJ126LJ126)     :: this
+    type(TPotMIEnmMIEnm)     :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: EPotInter
@@ -1092,7 +1092,7 @@ contains
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
     real(RK)          :: SigmaSquared
-    real(RK)          :: Epsilon4, Epsilon48
+    real(RK)          :: EpsilonMie_a, EpsilonMie_aF
     real(RK)          :: RCutoffSquared
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
@@ -1168,8 +1168,8 @@ contains
     VirialLocalInter = 0._RK
     d2EpotdV2Local= 0._RK
     SigmaSquared = this%SigmaSquared
-    Epsilon4 = this%Epsilon4
-    Epsilon48 = this%Epsilon48
+    EpsilonMie_a = this%EpsilonMie_a
+    EpsilonMie_aF = this%EpsilonMie_aF
     RCutoffSquared = this%RCutoffSquaredScaled
 #if MPI_VER > 0
     N1 = this%Site2%NPart
@@ -1259,7 +1259,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
             EPotLocal1 = Rij6Inv * (Rij6Inv - 1._RK)
             EPotLocal = EPotLocal + EPotLocal1
             EPotLocalInter = EPotLocalInter + EPotLocal1
-            Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+            Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
             FXij = Fij * RXij
             FYij = Fij * RYij
             FZij = Fij * RZij
@@ -1293,8 +1293,8 @@ loop2:    do m=1,NBinsDen
 #endif
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ
-          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -1331,7 +1331,7 @@ loop2:    do m=1,NBinsDen
           EPotLocal1 = Rij6Inv * (Rij6Inv - 1._RK) * coeff
           EPotLocal = EPotLocal + EPotLocal1
           EPotLocalIntra = EPotLocalIntra + EPotLocal1
-          Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv*coeff
+          Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv*coeff
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
@@ -1339,8 +1339,8 @@ loop2:    do m=1,NBinsDen
           VirialLocalIntra = VirialLocalIntra + (PXij * FXij + PYij * FYij + PZij * FZij)
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ
-          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -1405,7 +1405,7 @@ loop3:  do j = j0, j1
           Rij6Inv = RijSquaredInv**3
           EPotLocal = EPotLocal + (Rij6Inv * (Rij6Inv - 1._RK))
           EPotLocalInter = EPotLocalInter + (Rij6Inv * (Rij6Inv - 1._RK))
-          Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+          Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
@@ -1413,8 +1413,8 @@ loop3:  do j = j0, j1
           VirialLocalInter = VirialLocalInter + (PXij * FXij + PYij * FYij + PZij * FZij)
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ SS
-          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ SS
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -1435,43 +1435,43 @@ loop3:  do j = j0, j1
    FX2 = FX2 + forceTempX
    FY2 = FY2 + forceTempY
    FZ2 = FZ2 + forceTempZ
-   EPot = EPot + this%Epsilon4 * EPotLocal
+   EPot = EPot + this%EpsilonMie_a * EPotLocal
    Virial = Virial + Third * VirialLocal * BoxLength
 #if OSMOP == 2
     this%VirialProfile(:) = Third * this%VirialProfile(:) * BoxLength
 #endif
-   EPotInter = EPotInter + Epsilon4 * EPotLocalInter
+   EPotInter = EPotInter + EpsilonMie_a * EPotLocalInter
    VirialInter = VirialInter + Third * VirialLocalInter * BoxLength
    if (IntraLJEl) then
-     EPotIntra_Nonbonded = EPotIntra_Nonbonded + Epsilon4 * EPotLocalIntra
+     EPotIntra_Nonbonded = EPotIntra_Nonbonded + EpsilonMie_a * EPotLocalIntra
      VirialIntra = VirialIntra + Third * VirialLocalIntra * BoxLength
    end if
    d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
 #ifdef ABL
-    VirAblSig = VirAblSig * Third * BoxLength * 18._RK * Epsilon4 / this%Sigma
+    VirAblSig = VirAblSig * Third * BoxLength * 18._RK * EpsilonMie_a / this%Sigma
     VirAblEps = VirAblEps * Third * BoxLength * 24._RK
 #endif
-  end subroutine TPotLJLJ_Force
+  end subroutine TPotMIEMIE_Force
 
 
 !==============================================================!
-!  Subroutine TPotLJLJ_Force_Trans                             !
+!  Subroutine TPotMIEMIE_Force_Trans                             !
 !==============================================================!
 
 #ifdef ABL
-  subroutine TPotLJLJ_Force_Trans( this, EPot, Virial, EPotInter, &
+  subroutine TPotMIEMIE_Force_Trans( this, EPot, Virial, EPotInter, &
 &            VirialInter, EPotIntra_Nonbonded, VirialIntra, d2EpotdV2, BoxLength, &
 &            VirAblSig, VirAblEps, eps1,eps2)
 #else
-  subroutine TPotLJLJ_Force_Trans( this, EPot, Virial, EPotInter, &
+  subroutine TPotMIEMIE_Force_Trans( this, EPot, Virial, EPotInter, &
 &            VirialInter, EPotIntra_Nonbonded, VirialIntra, d2EpotdV2, BoxLength )
 #endif
 
     implicit none
 
     ! Declare arguments
-    type(TPotLJ126LJ126)     :: this
+    type(TPotMIEnmMIEnm)     :: this
     real(RK), intent(in out) :: EPot
     real(RK), intent(in out) :: Virial
     real(RK), intent(in out) :: EPotInter
@@ -1492,7 +1492,7 @@ loop3:  do j = j0, j1
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
     real(RK)          :: SigmaSquared
-    real(RK)          :: Epsilon4, Epsilon48
+    real(RK)          :: EpsilonMie_a, EpsilonMie_aF
     real(RK)          :: RCutoffSquared
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
@@ -1534,7 +1534,7 @@ loop3:  do j = j0, j1
     real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
     real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
-    real(RK)          :: SigmaInvEps4
+    real(RK)          :: SigmaInvEpsMie_a
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -1551,9 +1551,6 @@ loop3:  do j = j0, j1
    !TRANSPORT_END
 #endif
 
-#ifdef ABL
-    real(RK)          :: dr2Abl
-#endif
 
     FX2 => this%Site2%FX
     FY2 => this%Site2%FY
@@ -1568,7 +1565,7 @@ loop3:  do j = j0, j1
 !$OMP PARALLEL PRIVATE(i, j, k, i1, j0, j1) &
 !$OMP PRIVATE( RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE( Plen2,PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1 ) &
-!$OMP PRIVATE(SigmaSquared, Epsilon4, Epsilon48, RCutoffSquared,EPotLocal1) &
+!$OMP PRIVATE(SigmaSquared, EpsilonMie_a, EpsilonMie_aF, RCutoffSquared,EPotLocal1) &
 !$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi,  RXij, RYij, RZij, PXij, PYij, PZij) &
 !$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv ) &
 #if MPI_VER > 0
@@ -1604,8 +1601,8 @@ loop3:  do j = j0, j1
     eps2      = this%Site2%eps
 #endif
     SigmaSquared = this%SigmaSquared
-    Epsilon4 = this%Epsilon4
-    Epsilon48 = this%Epsilon48
+    EpsilonMie_a = this%EpsilonMie_a
+    EpsilonMie_aF = this%EpsilonMie_aF
     RCutoffSquared = this%RCutoffSquaredScaled
     EPotLocalIntra   = 0._RK
     VirialLocalIntra = 0._RK
@@ -1638,29 +1635,29 @@ loop3:  do j = j0, j1
 #if  TRANS == 1
     !TRANSPORT_start
 
-    SigmaInvEps4 = Epsilon4/Sqrt(this%SigmaSquared)
+    SigmaInvEpsMie_a = EpsilonMie_a/Sqrt(this%SigmaSquared)
     BoxLength2   = BoxLength**2
-    VSx => this%Site1%vsLJx
-    VSy => this%Site1%vsLJy
-    VSz => this%Site1%vsLJz
-    VBx => this%Site1%vbLJx
-    VBy => this%Site1%vbLJy
-    VBz => this%Site1%vbLJz
-    VSux=> this%Site1%vsuLJx
-    VSuy=> this%Site1%vsuLJy
-    VSuz=> this%Site1%vsuLJz
-    Cx  => this%Site1%cLJx
-    Cy  => this%Site1%cLJy
-    Cz  => this%Site1%cLJz
-    tux => this%Site1%tuLJx
-    tuy => this%Site1%tuLJy
-    tuz => this%Site1%tuLJz
-    tlx => this%Site1%tlLJx
-    tly => this%Site1%tlLJy
-    tlz => this%Site1%tlLJz
-    tdx => this%Site1%tdLJx
-    tdy => this%Site1%tdLJy
-    tdz => this%Site1%tdLJz
+    VSx => this%Site1%vsMIEx
+    VSy => this%Site1%vsMIEy
+    VSz => this%Site1%vsMIEz
+    VBx => this%Site1%vbMIEx
+    VBy => this%Site1%vbMIEy
+    VBz => this%Site1%vbMIEz
+    VSux=> this%Site1%vsuMIEx
+    VSuy=> this%Site1%vsuMIEy
+    VSuz=> this%Site1%vsuMIEz
+    Cx  => this%Site1%cMIEx
+    Cy  => this%Site1%cMIEy
+    Cz  => this%Site1%cMIEz
+    tux => this%Site1%tuMIEx
+    tuy => this%Site1%tuMIEy
+    tuz => this%Site1%tuMIEz
+    tlx => this%Site1%tlMIEx
+    tly => this%Site1%tlMIEy
+    tlz => this%Site1%tlMIEz
+    tdx => this%Site1%tdMIEx
+    tdy => this%Site1%tdMIEy
+    tdz => this%Site1%tdMIEz
     q1  => this%Site1%Qm0r(:, 1, 1)
     q2  => this%Site1%Qm0r(:, 2, 1)
     q3  => this%Site1%Qm0r(:, 3, 1)
@@ -1766,7 +1763,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
             EPotLocal1 = Rij6Inv * (Rij6Inv - 1._RK)
             EPotLocal = EPotLocal + EPotLocal1
             EPotLocalInter = EPotLocalInter + EPotLocal1
-            Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+            Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
             FXij = Fij * RXij
             FYij = Fij * RYij
             FZij = Fij * RZij
@@ -1800,8 +1797,8 @@ loop2:      do m=1,NBinsDen
             VirialLocalInter = VirialLocalInter + (PXij * FXij + PYij * FYij + PZij * FZij)
             Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-            d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third  !xxxx LJ T
-            d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
+            d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third  !xxxx LJ T
+            d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
             FXi = FXi + FXij
             FYi = FYi + FYij
             FZi = FZi + FZij
@@ -1870,7 +1867,7 @@ loop2:      do m=1,NBinsDen
           EPotLocal1 = Rij6Inv * (Rij6Inv - 1._RK) * coeff
           EPotLocal = EPotLocal + EPotLocal1
           EPotLocalIntra = EPotLocalIntra + EPotLocal1
-          Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv*coeff
+          Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv*coeff
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
@@ -1967,7 +1964,7 @@ loop3:  do j = j0, j1
           Rij6Inv = RijSquaredInv**3
           EPotLocal = EPotLocal + (Rij6Inv * (Rij6Inv - 1._RK))
           EPotLocalInter = EPotLocalInter + (Rij6Inv * (Rij6Inv - 1._RK))
-          Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+          Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
@@ -1975,8 +1972,8 @@ loop3:  do j = j0, j1
           VirialLocalInter = VirialLocalInter + (PXij * FXij + PYij * FYij + PZij * FZij)
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third  !xxxx LJ SS T
-          d2EpotdV2Local = d2EpotdV2Local + Epsilon4 * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third  !xxxx LJ SS T
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -1998,36 +1995,36 @@ loop3:  do j = j0, j1
    FX2 = FX2 + forceTempX
    FY2 = FY2 + forceTempY
    FZ2 = FZ2 + forceTempZ
-   EPot = EPot + this%Epsilon4 * EPotLocal
+   EPot = EPot + this%EpsilonMie_a * EPotLocal
    Virial = Virial + Third * VirialLocal * BoxLength
 #if OSMOP == 2
     this%VirialProfile(:) = Third * this%VirialProfile(:) * BoxLength
 #endif
-   EPotInter = EPotInter + this%Epsilon4 * EPotLocalInter
+   EPotInter = EPotInter + this%EpsilonMie_a * EPotLocalInter
    VirialInter = VirialInter + Third * VirialLocalInter * BoxLength
    if (IntraLJEl) then
-     EPotIntra_Nonbonded = EPotIntra_Nonbonded + this%Epsilon4 * EPotLocalIntra
+     EPotIntra_Nonbonded = EPotIntra_Nonbonded + this%EpsilonMie_a * EPotLocalIntra
      VirialIntra = VirialIntra + Third * VirialLocalIntra * BoxLength
    end if
     d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
 
 #ifdef ABL
-    VirAblSig = VirAblSig * Third * BoxLength * 18._RK * Epsilon4 / this%Sigma
+    VirAblSig = VirAblSig * Third * BoxLength * 18._RK * EpsilonMie_a / this%Sigma
     VirAblEps = VirAblEps * Third * BoxLength * 24._RK
 #endif
-  end subroutine TPotLJLJ_Force_Trans
+  end subroutine TPotMIEMIE_Force_Trans
 
 
 !==============================================================!
-!  Subroutine TPotLJLJ_RDF                                     !
+!  Subroutine TPotMIEMIE_RDF                                     !
 !==============================================================!
 
-  subroutine TPotLJLJ_RDF( this, RDFdr )
+  subroutine TPotMIEMIE_RDF( this, RDFdr )
 
     implicit none
 
     ! Declare arguments
-    type(TPotLJ126LJ126)     :: this
+    type(TPotMIEnmMIEnm)     :: this
     real(RK), intent(in)     :: RDFdr
 
     !RDF RDFdr und RDFSchalenIndex
@@ -2083,24 +2080,24 @@ loop1:do k = 1, this%NInCutoff(unit)
       end do loop1
     end do
 
-  end subroutine TPotLJLJ_RDF
+  end subroutine TPotMIEMIE_RDF
 
 
 !==============================================================!
-!  Subroutine TPotLJLJ_ChemicalPotential                       !
+!  Subroutine TPotMIEMIE_ChemicalPotential                       !
 !==============================================================!
 
-  subroutine TPotLJLJ_ChemicalPotential( this, EPotTest )
+  subroutine TPotMIEMIE_ChemicalPotential( this, EPotTest )
 
     implicit none
 
     ! Declare arguments
-    type(TPotLJ126LJ126) :: this
+    type(TPotMIEnmMIEnm) :: this
     real(RK), pointer, contiguous    :: EPotTest(:)
 
     ! Declare local variables
     real(RK)          :: SigmaSquared
-    real(RK)          :: Epsilon4
+    real(RK)          :: EpsilonMie_a
     real(RK)          :: RCutoffSquared
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer:: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
@@ -2117,7 +2114,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     ! Assign local variables
     N2 = this%Site2%NPart
     SigmaSquared = this%SigmaSquared
-    Epsilon4 = this%Epsilon4
+    EpsilonMie_a = this%EpsilonMie_a
     RCutoffSquared = this%RCutoffSquaredScaled
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
@@ -2190,7 +2187,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
             EPotLocal = EPotLocal + Rij6Inv * (Rij6Inv - 1._RK)
           end if
         end do loop1
-        EPotTest(i) = EPotTest(i) + Epsilon4 * EPotLocal
+        EPotTest(i) = EPotTest(i) + EpsilonMie_a * EPotLocal
       end do
 !$OMP END DO
     else
@@ -2217,25 +2214,25 @@ loop2:  do j = 1, N2
           Rij6Inv = RijSquaredInv**3
           EPotLocal = EPotLocal + Rij6Inv * (Rij6Inv - 1._RK)
         end do loop2
-        EPotTest(i) = EPotTest(i) + Epsilon4 * EPotLocal
+        EPotTest(i) = EPotTest(i) + EpsilonMie_a * EPotLocal
       end do
 !$OMP END DO
     end if
 !$OMP END PARALLEL
-  end subroutine TPotLJLJ_ChemicalPotential
+  end subroutine TPotMIEMIE_ChemicalPotential
 
 
 
 !==============================================================!
-!  Subroutine TPotLJLJ_Energy                                  !
+!  Subroutine TPotMIEMIE_Energy                                  !
 !==============================================================!
 
-  subroutine TPotLJLJ_Energy( this, np, nu, F, E, EIntra, BoxLength, CompIdent )
+  subroutine TPotMIEMIE_Energy( this, np, nu, F, E, EIntra, BoxLength, CompIdent )
 
     implicit none
 
     ! Declare arguments
-    type(TPotLJ126LJ126) :: this
+    type(TPotMIEnmMIEnm) :: this
     integer, intent(in)  :: np
     integer, intent(in)      :: nu
     real(RK), intent(in out) :: F(3,nu)
@@ -2246,7 +2243,7 @@ loop2:  do j = 1, N2
 
     ! Declare local variables
     real(RK)          :: SigmaSquared
-    real(RK)          :: Epsilon48
+    real(RK)          :: EpsilonMie_aF
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
@@ -2263,7 +2260,7 @@ loop2:  do j = 1, N2
 
     ! Assign local variables
     SigmaSquared = this%SigmaSquared
-    Epsilon48 = this%Epsilon48
+    EpsilonMie_aF = this%EpsilonMie_aF
     nu2 = this%NUnit2
     coeff = 1._RK
     if (this%potintra14) coeff = this%ScaleLJ14
@@ -2316,7 +2313,7 @@ loop2:  do j = 1, N2
         RijSquaredInv = SigmaSquared / RijSquared
         Rij6Inv = RijSquaredInv**3
         EPot = EPot + Rij6Inv * (Rij6Inv - 1._RK)
-        Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+        Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
         FXij = Fij * RXij
         FYij = Fij * RYij
         FZij = Fij * RZij
@@ -2346,7 +2343,7 @@ loop2:  do j = 1, N2
       RijSquaredInv = SigmaSquared / RijSquared
       Rij6Inv = RijSquaredInv**3
       EIntra1 = EIntra1 + (Rij6Inv * (Rij6Inv - 1._RK) * coeff)
-      Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+      Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
       tempF(1,this%Site1%UnitNumber) = tempF(1,this%Site1%UnitNumber) + Fij * RXij
       tempF(2,this%Site1%UnitNumber) = tempF(2,this%Site1%UnitNumber) + Fij * RYij
       tempF(3,this%Site1%UnitNumber) = tempF(3,this%Site1%UnitNumber) + Fij * RZij
@@ -2356,23 +2353,23 @@ loop2:  do j = 1, N2
     end if
 
     F(:,:) = F(:,:) + tempF(:,:)
-    E = E + this%Epsilon4 * (EPot + EIntra1)
-    EIntra = EIntra + this%Epsilon4 * EIntra1
+    E = E + this%EpsilonMie_a * (EPot + EIntra1)
+    EIntra = EIntra + this%EpsilonMie_a * EIntra1
 
-  end subroutine TPotLJLJ_Energy
+  end subroutine TPotMIEMIE_Energy
 
 
 
 !==============================================================!
-!  Subroutine TPotLJLJ_UpdateBoxLength                         !
+!  Subroutine TPotMIEMIE_UpdateBoxLength                         !
 !==============================================================!
 
-  subroutine TPotLJLJ_UpdateBoxLength( this, BoxLength )
+  subroutine TPotMIEMIE_UpdateBoxLength( this, BoxLength )
 
     implicit none
 
     ! Declare arguments
-    type(TPotLJ126LJ126) :: this
+    type(TPotMIEnmMIEnm) :: this
     real(RK), intent(in) :: BoxLength
 
     ! Declare local variables
@@ -2383,10 +2380,10 @@ loop2:  do j = 1, N2
     this%BoxLengthInv = BoxLengthInv
     this%BoxLengthThird = Third * BoxLength
     this%SigmaSquared = (this%Sigma * BoxLengthInv)**2
-    this%Epsilon48 = 12._RK * this%Epsilon4 * BoxLengthInv / this%SigmaSquared
+    this%EpsilonMie_aF = 12._RK * this%EpsilonMie_a * BoxLengthInv / this%SigmaSquared
     this%RCutoffSquaredScaled = this%RCutoffSquared * BoxLengthInv**2
 
-  end subroutine TPotLJLJ_UpdateBoxLength
+  end subroutine TPotMIEMIE_UpdateBoxLength
 
 
 

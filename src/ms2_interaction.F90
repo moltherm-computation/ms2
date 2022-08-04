@@ -42,7 +42,7 @@ module ms2_interaction
   type TInteraction
 
     ! Site-site potentials
-    type(TPotLJ126LJ126), pointer, contiguous           :: PotLJ126LJ126(:, :)
+    type(TPotMIEnmMIEnm), pointer, contiguous           :: PotMIEnmMIEnm(:, :)
     type(TPotChargeCharge), pointer, contiguous         :: PotChargeCharge(:, :)
     type(TPotChargeDipole), pointer, contiguous         :: PotChargeDipole(:, :)
     type(TPotChargeQuadrupole), pointer, contiguous     :: PotChargeQuadrupole(:, :)
@@ -118,7 +118,7 @@ module ms2_interaction
     integer, pointer :: NUnit1, NUnit2
 
     ! Numbers of sites
-    integer :: N1LJ126, N2LJ126
+    integer :: N1MIEnm, N2MIEnm
     integer :: N1Charge, N2Charge
     integer :: N1Dipole, N2Dipole
     integer :: N1Quadrupole, N2Quadrupole
@@ -131,8 +131,8 @@ module ms2_interaction
     ! Squared cutoff radius
     real(RK) :: RCutoffSquared, RCutoffSquaredScaled
 
-    ! Cutoff correction to LJ-interaction
-    real(RK) :: EPotCorrLJ
+    ! Cutoff correction to MIE-interaction
+    real(RK) :: EPotCorrMIE
 
     ! Flag for reaction field
     logical :: ReactionField
@@ -157,7 +157,7 @@ module ms2_interaction
     real(RK) :: lad1,lad2
     
     ! IDF
-    integer,pointer, contiguous :: UnitLJ1(:),UnitC1(:),UnitDP1(:),UnitQP1(:)
+    integer,pointer, contiguous :: UnitMIE1(:),UnitC1(:),UnitDP1(:),UnitQP1(:)
     integer,pointer, contiguous :: UnitLJ2(:),UnitC2(:),UnitDP2(:),UnitQP2(:)
     integer  :: NLJ126_U1, NLJ126_U2
     integer  :: NCharge_U1, NCharge_U2
@@ -249,7 +249,7 @@ contains
 
   subroutine TInteraction_Construct( this, i1, i2, &
 &                                    Component1, Component2, &
-&                                    RCutoffLJ126LJ126, &
+&                                    RCutoffMIEnmMIEnm, &
 &                                    RCutoffDipoleDipole, &
 &                                    RCutoffDipoleQuadrupole, &
 &                                    RCutoffQuadrupoleQuadrupole, &
@@ -262,7 +262,7 @@ contains
     type(TInteraction)           :: this
     integer, intent(in)          :: i1, i2
     type(TComponent), intent(in) :: Component1, Component2
-    real(RK), intent(in)         :: RCutoffLJ126LJ126
+    real(RK), intent(in)         :: RCutoffMIEnmMIEnm
     real(RK), intent(in)         :: RCutoffDipoleDipole
     real(RK), intent(in)         :: RCutoffDipoleQuadrupole
     real(RK), intent(in)         :: RCutoffQuadrupoleQuadrupole
@@ -311,8 +311,8 @@ contains
 #endif
 
     ! Set number of sites
-    this%N1LJ126 = Component1%Molecule%NLJ126
-    this%N2LJ126 = Component2%Molecule%NLJ126
+    this%N1MIEnm = Component1%Molecule%NMIEnm
+    this%N2MIEnm = Component2%Molecule%NMIEnm
     this%N1Charge = Component1%Molecule%NCharge
     this%N2Charge = Component2%Molecule%NCharge
     this%N1Dipole = Component1%Molecule%NDipole
@@ -339,7 +339,7 @@ contains
 
 
     ! Set Number of interaction sites per Unit
-    this%UnitLJ1 => Component1%UnitLJ
+    this%UnitMIE1 => Component1%UnitLJ
     this%UnitLJ2 => Component2%UnitLJ
     this%UnitC1  => Component1%UnitC
     this%UnitC2  => Component2%UnitC
@@ -409,7 +409,7 @@ contains
     end if
 
     ! Set squared cutoff radius
-    this%RCutoffSquared = RCutoffLJ126LJ126**2
+    this%RCutoffSquared = RCutoffMIEnmMIEnm**2
 
     ! Create arrays
     call Allocate( this )
@@ -423,7 +423,7 @@ contains
     end if
 
     ! Nullify pointers
-    nullify( this%PotLJ126LJ126 )
+    nullify( this%PotMIEnmMIEnm )
     nullify( this%PotChargeCharge )
     nullify( this%PotChargeDipole )
     nullify( this%PotChargeQuadrupole )
@@ -438,20 +438,20 @@ contains
     nullify( this%PotDihedral )
 
     ! Construct Lennard-Jones potentials
-    if( this%N1LJ126 > 0 .and. this%N2LJ126 > 0 ) then
-      allocate( this%PotLJ126LJ126(this%N1LJ126, this%N2LJ126), STAT = stat )
-      call AllocationError( stat, 'sites', this%N1LJ126 + this%N2LJ126 )
-      do j1 = 1, this%N1LJ126
-        do j2 = 1, this%N2LJ126
-          call Construct( this%PotLJ126LJ126(j1, j2), &
+    if( this%N1MIEnm > 0 .and. this%N2MIEnm > 0 ) then
+      allocate( this%PotMIEnmMIEnm(this%N1MIEnm, this%N2MIEnm), STAT = stat )
+      call AllocationError( stat, 'sites', this%N1MIEnm + this%N2MIEnm )
+      do j1 = 1, this%N1MIEnm
+        do j2 = 1, this%N2MIEnm
+          call Construct( this%PotMIEnmMIEnm(j1, j2), &
 &              i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
-&              RCutoffLJ126LJ126, ScaleSigma, ScaleEpsilon )
+&              RCutoffMIEnmMIEnm, ScaleSigma, ScaleEpsilon )
         
-          this%PotLJ126LJ126(j1, j2)%NInCutoff => this%NInCutoff
-          this%PotLJ126LJ126(j1, j2)%CutoffPartner => this%CutoffPartner
+          this%PotMIEnmMIEnm(j1, j2)%NInCutoff => this%NInCutoff
+          this%PotMIEnmMIEnm(j1, j2)%CutoffPartner => this%CutoffPartner
 
           if( RDFUpdateFrequency > 0 ) then
-            allocate( this%PotLJ126LJ126(j1, j2)%RDFSum(RDFNumberShells), STAT = stat )
+            allocate( this%PotMIEnmMIEnm(j1, j2)%RDFSum(RDFNumberShells), STAT = stat )
             call AllocationError( stat, 'RDFSum', RDFNumberShells)
           end if
         end do
@@ -660,13 +660,13 @@ contains
     integer :: i, j
 
     ! Destroy Lennard-Jones potentials
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
-        call Destruct( this%PotLJ126LJ126(i, j) )
+    do i = 1, this%N1MIEnm
+      do j = 1, this%N2MIEnm
+        call Destruct( this%PotMIEnmMIEnm(i, j) )
       end do
     end do
-    if( associated( this%PotLJ126LJ126 ) ) then
-      deallocate( this%PotLJ126LJ126 )
+    if( associated( this%PotMIEnmMIEnm ) ) then
+      deallocate( this%PotMIEnmMIEnm )
     end if
 
     ! Destroy charge-charge potentials
@@ -1067,9 +1067,9 @@ contains
       call CalcCutoffPartnersRDF( this )
 
     ! Calculate Lennard-Jones forces
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
-        call Get_RDF( this%PotLJ126LJ126( i, j ), RDFdr )
+    do i = 1, this%N1MIEnm
+      do j = 1, this%N2MIEnm
+        call Get_RDF( this%PotMIEnmMIEnm( i, j ), RDFdr )
       end do
     end do
 
@@ -1127,14 +1127,14 @@ contains
     end if
 
     ! Calculate Lennard-Jones forces
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
+    do i = 1, this%N1MIEnm
+      do j = 1, this%N2MIEnm
 #ifndef ABL
-       call Force( this%PotLJ126LJ126( i, j ), EPot, Virial, &
+       call Force( this%PotMIEnmMIEnm( i, j ), EPot, Virial, &
 &              idfEPot%EPotInter, VirialInter,idfEPot%EPotIntra_Nonbonded, VirialIntra, &
 &              d2EpotdV2, BoxLength )
 #else
-       call Force( this%PotLJ126LJ126( i, j ), EPot, Virial, &
+       call Force( this%PotMIEnmMIEnm( i, j ), EPot, Virial, &
 &              EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, &
 &              d2EpotdV2, BoxLength,  AblSig, AblEps,eps1,eps2)
         this%AblPS(C1,i)    = this%AblPS(C1,i) + AblSig
@@ -1376,15 +1376,15 @@ contains
     end if
 
     ! Calculate Lennard-Jones forces
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
+    do i = 1, this%N1MIEnm
+      do j = 1, this%N2MIEnm
 #ifndef ABL
-        call Force_Trans( this%PotLJ126LJ126( i, j ), EPot, Virial, &
+        call Force_Trans( this%PotMIEnmMIEnm( i, j ), EPot, Virial, &
 &              EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
 &              d2EpotdV2, BoxLength )
 
 #else
-        call Force_Trans( this%PotLJ126LJ126( i, j ), EPot, Virial, &
+        call Force_Trans( this%PotMIEnmMIEnm( i, j ), EPot, Virial, &
 &              EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, &
 &              d2EpotdV2, BoxLength, AblSig, AblEps,eps1,eps2)
 
@@ -1605,9 +1605,9 @@ contains
     end if
 
     ! Calculate Lennard-Jones chemical potential
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
-        call ChemicalPotential( this%PotLJ126LJ126( i, j ), EPotTest )
+    do i = 1, this%N1MIEnm
+      do j = 1, this%N2MIEnm
+        call ChemicalPotential( this%PotMIEnmMIEnm( i, j ), EPotTest )
       end do
     end do
 
@@ -1707,7 +1707,7 @@ contains
     real(RK), intent(in) :: BoxLength
 
     ! Declare local variables
-    type(TPotLJ126LJ126), pointer           :: plj
+    type(TPotMIEnmMIEnm), pointer           :: pmie
     type(TPotChargeCharge), pointer         :: pcc
     type(TPotChargeDipole), pointer         :: pcd
     type(TPotChargeQuadrupole), pointer     :: pcq
@@ -1725,7 +1725,7 @@ contains
     real(RK)          :: d2EpotdV2Local
 
     real(RK)          :: SigmaSquared
-    real(RK)          :: Epsilon, Epsilon2, Epsilon4, Epsilon48
+    real(RK)          :: Epsilon, Epsilon2, EpsilonMie_a, EpsilonMie_aF
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
@@ -1811,25 +1811,25 @@ contains
 
 
       ! Calculate Lennard-Jones energy
-      do s1 = this%UnitLJ1(nu), this%UnitLJ1(nu+1) - 1
-        do s2 = 1, this%N2LJ126
+      do s1 = this%UnitMIE1(nu), this%UnitMIE1(nu+1) - 1
+        do s2 = 1, this%N2MIEnm
 
           ! Set site specific variables
-          plj => this%PotLJ126LJ126(s1, s2)
-          SigmaSquared = plj%SigmaSquared
-          Epsilon4 = plj%Epsilon4
+          pmie => this%PotMIEnmMIEnm(s1, s2)
+          SigmaSquared = pmie%SigmaSquared
+          EpsilonMie_a = pmie%EpsilonMie_a
 
           if ( OptPressure ) then
-            Epsilon48 = plj%Epsilon48
+            EpsilonMie_aF = pmie%EpsilonMie_aF
           end if
 
           ! Assign pointers to site positions
-          RX1 => plj%Site1%RX
-          RY1 => plj%Site1%RY
-          RZ1 => plj%Site1%RZ
-          RX2 => plj%Site2%RX
-          RY2 => plj%Site2%RY
-          RZ2 => plj%Site2%RZ
+          RX1 => pmie%Site1%RX
+          RY1 => pmie%Site1%RY
+          RZ1 => pmie%Site1%RZ
+          RX2 => pmie%Site2%RX
+          RY2 => pmie%Site2%RY
+          RZ2 => pmie%Site2%RZ
 
           RXi = RX1(np)
           RYi = RY1(np)
@@ -1839,7 +1839,7 @@ contains
 !CDIR NODEP
           do k = 1, this%NInCutoff(unit1)
             j = this%CutoffPartner(k, unit1) ! j - global number of unit
-            nu2 = plj%Site2%UnitNumber !!!!Michael Sch.: UnitNumber of potential wrong!(only when using constrainted units?)!! and UnitLJ1() wrong
+            nu2 = pmie%Site2%UnitNumber !!!!Michael Sch.: UnitNumber of potential wrong!(only when using constrainted units?)!! and UnitMIE1() wrong
             if ( mod(j-nu2, this%NUnit2)==0) then ! choose only units, to which our Site2 correspond
               jk  = CEILING(real(j)/this%NUnit2)
               RXij = RXi - RX2(jk)
@@ -1857,9 +1857,9 @@ contains
               RijSquared = RXij**2 + RYij**2 + RZij**2
               RijSquaredInv = SigmaSquared / RijSquared
               Rij6Inv = RijSquaredInv**3
-              EPot(j) = EPot(j) + Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK)
+              EPot(j) = EPot(j) + EpsilonMie_a * Rij6Inv * (Rij6Inv - 1._RK)
               if ( OptPressure ) then
-                Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+                Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
                 FXij = Fij * RXij
                 FYij = Fij * RYij
                 FZij = Fij * RZij
@@ -1867,8 +1867,8 @@ contains
               end if
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-              d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx2 LJ
-              d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
+              d2EpotdV2(j) = d2EpotdV2(j) + EpsilonMie_a * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx2 LJ
+              d2EpotdV2(j) = d2EpotdV2(j) + EpsilonMie_a * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
             end if
           end do
         end do
@@ -2912,24 +2912,24 @@ contains
     else ! Site-site cutoff
 
       ! Calculate Lennard-Jones energy
-      do s1 = this%UnitLJ1(nu), this%UnitLJ1(nu+1) - 1
-        do s2 = 1, this%N2LJ126
+      do s1 = this%UnitMIE1(nu), this%UnitMIE1(nu+1) - 1
+        do s2 = 1, this%N2MIEnm
 
           ! Set site specific variables
-          plj => this%PotLJ126LJ126(s1, s2)
-          SigmaSquared = plj%SigmaSquared
-          Epsilon4 = plj%Epsilon4
+          pmie => this%PotMIEnmMIEnm(s1, s2)
+          SigmaSquared = pmie%SigmaSquared
+          EpsilonMie_a = pmie%EpsilonMie_a
           if ( OptPressure ) then
-            Epsilon48 = plj%Epsilon48
+            EpsilonMie_aF = pmie%EpsilonMie_aF
           end if
 
           ! Assign pointers to site positions
-          RX1 => plj%Site1%RX
-          RY1 => plj%Site1%RY
-          RZ1 => plj%Site1%RZ
-          RX2 => plj%Site2%RX
-          RY2 => plj%Site2%RY
-          RZ2 => plj%Site2%RZ
+          RX1 => pmie%Site1%RX
+          RY1 => pmie%Site1%RY
+          RZ1 => pmie%Site1%RZ
+          RX2 => pmie%Site2%RX
+          RY2 => pmie%Site2%RY
+          RZ2 => pmie%Site2%RZ
 
           RXi = RX1(np)
           RYi = RY1(np)
@@ -2947,9 +2947,9 @@ contains
             RXij = RXi - RX2(j)
             RYij = RYi - RY2(j)
             RZij = RZi - RZ2(j)
-            PXij = PXi - PX2(j,plj%Site2%UnitNumber)
-            PYij = PYi - PY2(j,plj%Site2%UnitNumber)
-            PZij = PZi - PZ2(j,plj%Site2%UnitNumber)
+            PXij = PXi - PX2(j,pmie%Site2%UnitNumber)
+            PYij = PYi - PY2(j,pmie%Site2%UnitNumber)
+            PZij = PZi - PZ2(j,pmie%Site2%UnitNumber)
             PXij = PXij - anint( RXij )
             PYij = PYij - anint( RYij )
             PZij = PZij - anint( RZij )
@@ -2960,11 +2960,11 @@ contains
             if( RijSquared >= RCutoffSquaredScaled ) cycle
             RijSquaredInv = SigmaSquared / RijSquared
             Rij6Inv = RijSquaredInv**3
-            jk = (j-1)*this%NUnit2 + plj%Site2%UnitNumber
-            EPot(jk) = EPot(jk) + Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK) !Michael Sch.: changed from j to jk, for E,Vir and d's
+            jk = (j-1)*this%NUnit2 + pmie%Site2%UnitNumber
+            EPot(jk) = EPot(jk) + EpsilonMie_a * Rij6Inv * (Rij6Inv - 1._RK) !Michael Sch.: changed from j to jk, for E,Vir and d's
                                                                          ! changed for all site-site calculations
             if ( OptPressure ) then
-              Fij = Epsilon48 * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+              Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
               FXij = Fij * RXij
               FYij = Fij * RYij
               FZij = Fij * RZij
@@ -2972,8 +2972,8 @@ contains
             end if
             Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-            d2EpotdV2(jk) = d2EpotdV2(jk) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxxss2 LJ
-            d2EpotdV2(jk) = d2EpotdV2(jk) + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
+            d2EpotdV2(jk) = d2EpotdV2(jk) + EpsilonMie_a * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxxss2 LJ
+            d2EpotdV2(jk) = d2EpotdV2(jk) + EpsilonMie_a * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
           end do
         end do
       end do
@@ -3419,9 +3419,9 @@ end subroutine TInteraction_Energy
     this%RCutoffSquaredScaled = this%RCutoffSquared / BoxLength**2
 
     ! Update BoxLength in Potentials
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
-        call UpdateBoxLength( this%PotLJ126LJ126( i, j ), BoxLength )
+    do i = 1, this%N1MIEnm
+      do j = 1, this%N2MIEnm
+        call UpdateBoxLength( this%PotMIEnmMIEnm( i, j ), BoxLength )
       end do
     end do
 
@@ -4015,9 +4015,9 @@ end subroutine TInteraction_Energy
 
     ! use MC Energy-Routine instad? possible?
     ! Calculate Lennard-Jones forces
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
-        call Energy( this%PotLJ126LJ126( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+    do i = 1, this%N1MIEnm
+      do j = 1, this%N2MIEnm
+        call Energy( this%PotMIEnmMIEnm( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
       end do
     end do
     ! Calculate point charge forces
@@ -4159,7 +4159,7 @@ end subroutine TInteraction_Energy
     real(RK), intent(in) :: BoxLength
 
     ! Declare local variables
-    type(TPotLJ126LJ126), pointer           :: plj
+    type(TPotMIEnmMIEnm), pointer           :: pmie
     type(TPotChargeCharge), pointer         :: pcc
     type(TPotChargeDipole), pointer         :: pcd
     type(TPotChargeQuadrupole), pointer     :: pcq
@@ -4263,36 +4263,36 @@ end subroutine TInteraction_Energy
 !       call CalcCutoffPartnersIntra( this,  np, nu)
 
       ! Calculate Lennard-Jones energy
-      do s1 = this%UnitLJ1(nu), this%UnitLJ1(nu+1) - 1
+      do s1 = this%UnitMIE1(nu), this%UnitMIE1(nu+1) - 1
         do j=1, this%NUnit2 ! Michael Sch.: changed
 !         do k=1, this%NInCutoff(nu)
 !           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitLJ2(j), this%UnitLJ2(j+1) - 1
 
             ! Set site specific variables
-            plj => this%PotLJ126LJ126(s1, s2)
+            pmie => this%PotMIEnmMIEnm(s1, s2)
 
             ! Abort
-            if (plj%potintra14) then
-              coeff = plj%ScaleLJ14  !Scale 1,4 LJ interaction
-            else if (plj%potintra15) then
+            if (pmie%potintra14) then
+              coeff = pmie%ScaleLJ14  !Scale 1,4 LJ interaction
+            else if (pmie%potintra15) then
               coeff = 1._RK
             else
               cycle
             end if
 
-            SigmaSquared = plj%SigmaSquared
-            Epsilon4 = plj%Epsilon4
+            SigmaSquared = pmie%SigmaSquared
+            Epsilon4 = pmie%EpsilonMie_a
             if ( OptPressure ) &
-&              Epsilon48 = plj%Epsilon48
+&              Epsilon48 = pmie%EpsilonMie_aF
 
             ! Assign pointers to site positions
-            RX1 => plj%Site1%RX
-            RY1 => plj%Site1%RY
-            RZ1 => plj%Site1%RZ
-            RX2 => plj%Site2%RX
-            RY2 => plj%Site2%RY
-            RZ2 => plj%Site2%RZ
+            RX1 => pmie%Site1%RX
+            RY1 => pmie%Site1%RY
+            RZ1 => pmie%Site1%RZ
+            RX2 => pmie%Site2%RX
+            RY2 => pmie%Site2%RY
+            RZ2 => pmie%Site2%RZ
 
             RXi = RX1(np)
             RYi = RY1(np)
@@ -4304,9 +4304,9 @@ end subroutine TInteraction_Energy
             RXij = RXi - RX2(np)
             RYij = RYi - RY2(np)
             RZij = RZi - RZ2(np)
-            PXij = PXi - PX2(np,plj%Site2%UnitNumber)
-            PYij = PYi - PY2(np,plj%Site2%UnitNumber)
-            PZij = PZi - PZ2(np,plj%Site2%UnitNumber)
+            PXij = PXi - PX2(np,pmie%Site2%UnitNumber)
+            PYij = PYi - PY2(np,pmie%Site2%UnitNumber)
+            PZij = PZi - PZ2(np,pmie%Site2%UnitNumber)
             RXij = RXij - anint( PXij )
             RYij = RYij - anint( PYij )
             RZij = RZij - anint( PZij )
@@ -4316,7 +4316,7 @@ end subroutine TInteraction_Energy
 
             EPotLocal = 2._RK*Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK) * coeff
 
-            unit2=(np-1)*this%NUnit1+plj%Site2%UnitNumber ! global number of unit
+            unit2=(np-1)*this%NUnit1+pmie%Site2%UnitNumber ! global number of unit
             EPot(unit2) = EPot(unit2) + EPotLocal
             if ( OptPressure ) then
               PXij = PXij - anint( PXij )
@@ -5253,30 +5253,30 @@ end subroutine TInteraction_Energy
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     else ! Site-site cutoff
 
-      do s1 = this%UnitLJ1(nu), this%UnitLJ1(nu+1) - 1
-        do s2 = 1, this%N2LJ126
+      do s1 = this%UnitMIE1(nu), this%UnitMIE1(nu+1) - 1
+        do s2 = 1, this%N2MIEnm
           ! Set site specific variables
-          plj => this%PotLJ126LJ126(s1, s2)
-          SigmaSquared = plj%SigmaSquared
-          Epsilon4 = plj%Epsilon4
+          pmie => this%PotMIEnmMIEnm(s1, s2)
+          SigmaSquared = pmie%SigmaSquared
+          Epsilon4 = pmie%EpsilonMie_a
           if ( OptPressure ) &
-&            Epsilon48 = plj%Epsilon48
+&            Epsilon48 = pmie%EpsilonMie_aF
 
-          if (plj%potintra14) then
-            coeff = plj%ScaleLJ14  !Scale 1,4 LJ interaction
-          else if (plj%potintra15) then
+          if (pmie%potintra14) then
+            coeff = pmie%ScaleLJ14  !Scale 1,4 LJ interaction
+          else if (pmie%potintra15) then
             coeff = 1._RK
           else
             cycle
           end if
 
           ! Assign pointers to site positions
-          RX1 => plj%Site1%RX
-          RY1 => plj%Site1%RY
-          RZ1 => plj%Site1%RZ
-          RX2 => plj%Site2%RX
-          RY2 => plj%Site2%RY
-          RZ2 => plj%Site2%RZ
+          RX1 => pmie%Site1%RX
+          RY1 => pmie%Site1%RY
+          RZ1 => pmie%Site1%RZ
+          RX2 => pmie%Site2%RX
+          RY2 => pmie%Site2%RY
+          RZ2 => pmie%Site2%RZ
 
           RXi = RX1(np)
           RYi = RY1(np)
@@ -5288,9 +5288,9 @@ end subroutine TInteraction_Energy
           RXij = RXi - RX2(np)
           RYij = RYi - RY2(np)
           RZij = RZi - RZ2(np)
-          PXij = PXi - PX2(np,plj%Site2%UnitNumber)
-          PYij = PYi - PY2(np,plj%Site2%UnitNumber)
-          PZij = PZi - PZ2(np,plj%Site2%UnitNumber)
+          PXij = PXi - PX2(np,pmie%Site2%UnitNumber)
+          PYij = PYi - PY2(np,pmie%Site2%UnitNumber)
+          PZij = PZi - PZ2(np,pmie%Site2%UnitNumber)
           RXij = RXij - anint( RXij )
           RYij = RYij - anint( RYij )
           RZij = RZij - anint( RZij )
@@ -5301,7 +5301,7 @@ end subroutine TInteraction_Energy
 
           EPotLocal = 2._RK*Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK) * coeff
 
-          unit2=(np-1)*this%NUnit2+plj%Site2%UnitNumber ! global number of unit
+          unit2=(np-1)*this%NUnit2+pmie%Site2%UnitNumber ! global number of unit
           EPot(unit2) = EPot(unit2) +  EPotLocal
           if ( OptPressure ) then
             PXij = PXij - anint( RXij )
