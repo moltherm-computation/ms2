@@ -164,12 +164,6 @@ module ms2_interaction
     integer  :: NDipole_U1, NDipole_U2
     integer  :: NQuadrupole_U1, NQuadrupole_U2
 
-#ifdef ABL
-    real(RK),pointer, contiguous :: AblS(:)
-    real(RK),pointer, contiguous :: AblE(:)
-    real(RK),pointer, contiguous :: AblPS(:,:)
-    real(RK),pointer, contiguous :: AblPE(:,:)
-#endif
 
   end type TInteraction
 
@@ -273,6 +267,7 @@ contains
     integer :: j1, j2
     integer :: stat
     real    :: fac
+
 
     ! RFConst2
     if (LongRange .eq. ExtRField) then
@@ -437,7 +432,7 @@ contains
     nullify( this%PotAngle )
     nullify( this%PotDihedral )
 
-    ! Construct Lennard-Jones potentials
+    ! Construct MIE potentials
     if( this%N1MIEnm > 0 .and. this%N2MIEnm > 0 ) then
       allocate( this%PotMIEnmMIEnm(this%N1MIEnm, this%N2MIEnm), STAT = stat )
       call AllocationError( stat, 'sites', this%N1MIEnm + this%N2MIEnm )
@@ -659,7 +654,7 @@ contains
     ! Declare local variables
     integer :: i, j
 
-    ! Destroy Lennard-Jones potentials
+    ! Destroy MIE potentials
     do i = 1, this%N1MIEnm
       do j = 1, this%N2MIEnm
         call Destruct( this%PotMIEnmMIEnm(i, j) )
@@ -1066,7 +1061,7 @@ contains
     ! Calculate interactions partners within cutoff sphere
       call CalcCutoffPartnersRDF( this )
 
-    ! Calculate Lennard-Jones forces
+    ! Calculate MIE forces
     do i = 1, this%N1MIEnm
       do j = 1, this%N2MIEnm
         call Get_RDF( this%PotMIEnmMIEnm( i, j ), RDFdr )
@@ -1079,14 +1074,9 @@ contains
 !==============================================================!
 !  Subroutine TInteraction_Force                               !
 !==============================================================!
-#ifndef ABL
+
   subroutine TInteraction_Force( this, EPot, Virial, idfEPot, &
 &            VirialIntra, VirialInter, d2EpotdV2, BoxLength )
-#else
-  subroutine TInteraction_Force( this, EPot, Virial, EPotIntra, EPotIntra_Bond, &
-&            EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
-&            VirialIntra, VirialInter, d2EpotdV2, BoxLength,C1,C2)
-#endif
 
     implicit none
 
@@ -1099,9 +1089,7 @@ contains
     real(RK), intent(in out) :: VirialInter
     real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
-#ifdef ABL
-    integer, intent(in)      :: C1,C2
-#endif
+
 
     ! Declare local variables
     real(RK), pointer, contiguous :: MueX1(:, :), MueY1(:, :), MueZ1(:, :)
@@ -1116,37 +1104,19 @@ contains
 #if MPI_VER > 0
     integer           :: i0
 #endif
-#ifdef ABL
-    real(RK)          :: AblSig, AblEps
-    real(RK)          :: eps1,eps2,fac
-#endif
+
 
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
       call CalcCutoffPartners( this )
     end if
 
-    ! Calculate Lennard-Jones forces
+    ! Calculate MIE forces
     do i = 1, this%N1MIEnm
       do j = 1, this%N2MIEnm
-#ifndef ABL
        call Force( this%PotMIEnmMIEnm( i, j ), EPot, Virial, &
 &              idfEPot%EPotInter, VirialInter,idfEPot%EPotIntra_Nonbonded, VirialIntra, &
 &              d2EpotdV2, BoxLength )
-#else
-       call Force( this%PotMIEnmMIEnm( i, j ), EPot, Virial, &
-&              EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, &
-&              d2EpotdV2, BoxLength,  AblSig, AblEps,eps1,eps2)
-        this%AblPS(C1,i)    = this%AblPS(C1,i) + AblSig
-        this%AblPS(C2,j)    = this%AblPS(C2,j) + AblSig
-        if ( (C1.eq. C2) .AND. (i.eq.j) ) then 
-          this%AblPE(C1,i)    = this%AblPE(C1,i) + AblEps
-        else
-          fac = 2._RK*sqrt(eps1*eps2)
-          this%AblPE(C1,i)    = this%AblPE(C1,i) + AblEps*eps2 / fac
-          this%AblPE(C2,j)    = this%AblPE(C2,j) + AblEps*eps1 / fac
-        end if
-#endif
       end do
     end do
 
@@ -1322,15 +1292,11 @@ contains
 !==============================================================!
 !  Subroutine TInteraction_Force_Trans                         !
 !==============================================================!
-#ifndef ABL
+
   subroutine TInteraction_Force_Trans( this, EPot, Virial, EPotIntra, EPotIntra_Bond, &
 &            EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
 &            VirialIntra, VirialInter, d2EpotdV2, BoxLength )
-#else
-  subroutine TInteraction_Force_Trans( this, EPot, Virial, EPotIntra, EPotIntra_Bond, &
-&            EPotIntra_Angle, EPotIntra_Dihedral, EPotIntra_Nonbonded, EPotInter, &
-&            VirialIntra, VirialInter, d2EpotdV2, BoxLength,C1,C2)
-#endif
+
 
     implicit none
 
@@ -1348,9 +1314,7 @@ contains
     real(RK), intent(in out) :: VirialInter
     real(RK), intent(in out) :: d2EpotdV2
     real(RK), intent(in)     :: BoxLength
-#ifdef ABL
-    integer, intent(in)      :: C1,C2
-#endif
+
 
     ! Declare local variables
     real(RK), pointer, contiguous :: MueX1(:, :), MueY1(:, :), MueZ1(:, :)
@@ -1365,39 +1329,21 @@ contains
 #if MPI_VER > 0
     integer           :: i0
 #endif
-#ifdef ABL
-    real(RK)          :: AblSig, AblEps
-    real(RK)          :: eps1,eps2,fac
-#endif
+
 
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
       call CalcCutoffPartners( this )
     end if
 
-    ! Calculate Lennard-Jones forces
+    ! Calculate MIE forces
     do i = 1, this%N1MIEnm
       do j = 1, this%N2MIEnm
-#ifndef ABL
+
         call Force_Trans( this%PotMIEnmMIEnm( i, j ), EPot, Virial, &
 &              EPotInter, VirialInter,EPotIntra_Nonbonded, VirialIntra, &
 &              d2EpotdV2, BoxLength )
 
-#else
-        call Force_Trans( this%PotMIEnmMIEnm( i, j ), EPot, Virial, &
-&              EPotInter, VirialInter, EPotIntra_Nonbonded, VirialIntra, &
-&              d2EpotdV2, BoxLength, AblSig, AblEps,eps1,eps2)
-
-        this%AblPS(C1,i)    = this%AblPS(C1,i) + AblSig
-        this%AblPS(C2,j)    = this%AblPS(C2,j) + AblSig
-        if ( (C1.eq. C2) .AND. (i.eq.j) ) then 
-          this%AblPE(C1,i)    = this%AblPE(C1,i) + AblEps
-        else
-          fac = 2._RK*sqrt(eps1*eps2)
-          this%AblPE(C1,i)    = this%AblPE(C1,i) + AblEps*eps2 / fac
-          this%AblPE(C2,j)    = this%AblPE(C2,j) + AblEps*eps1 / fac
-        end if
-#endif
       end do
     end do
 
@@ -1604,10 +1550,11 @@ contains
       call CalcCutoffPartnersTest( this )
     end if
 
-    ! Calculate Lennard-Jones chemical potential
+    ! Calculate MIE chemical potential
     do i = 1, this%N1MIEnm
       do j = 1, this%N2MIEnm
         call ChemicalPotential( this%PotMIEnmMIEnm( i, j ), EPotTest )
+
       end do
     end do
 
@@ -1723,7 +1670,6 @@ contains
     real(RK)          :: EPotLocal
     real(RK)          :: VirialLocal
     real(RK)          :: d2EpotdV2Local
-
     real(RK)          :: SigmaSquared
     real(RK)          :: Epsilon, Epsilon2, EpsilonMie_a, EpsilonMie_aF
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
@@ -1810,7 +1756,7 @@ contains
     if( CutoffMode .eq. CenterofMass ) then
 
 
-      ! Calculate Lennard-Jones energy
+      ! Calculate MIE energy
       do s1 = this%UnitMIE1(nu), this%UnitMIE1(nu+1) - 1
         do s2 = 1, this%N2MIEnm
 
@@ -2306,11 +2252,9 @@ contains
                 OXj = OX2(jk)
                 OYj = OY2(jk)
                 OZj = OZ2(jk)
-#if ARCH == 3
-                RijInv = rsqrt( RijSquared )
-#else
+
                 RijInv = 1._RK / sqrt( RijSquared )
-#endif
+
                 eX = RXij * RijInv
                 eY = RYij * RijInv
                 eZ = RZij * RijInv
@@ -2399,11 +2343,9 @@ contains
                 OXj = OX2(jk)
                 OYj = OY2(jk)
                 OZj = OZ2(jk)
-#if ARCH == 3
-                RijInv = rsqrt( RijSquared )
-#else
+
                 RijInv = 1._RK / sqrt( RijSquared )
-#endif
+
                 eX = RXij * RijInv
                 eY = RYij * RijInv
                 eZ = RZij * RijInv
@@ -2581,11 +2523,9 @@ contains
                 OXj = OX2(jk)
                 OYj = OY2(jk)
                 OZj = OZ2(jk)
-#if ARCH == 3
-                RijInv = rsqrt( RijSquared )
-#else
+
                 RijInv = 1._RK / sqrt( RijSquared )
-#endif
+
                 eX = RXij * RijInv
                 eY = RYij * RijInv
                 eZ = RZij * RijInv
@@ -2679,11 +2619,9 @@ contains
                 OXj = OX2(jk)
                 OYj = OY2(jk)
                 OZj = OZ2(jk)
-#if ARCH == 3
-                RijInv = rsqrt( RijSquared )
-#else
+
                 RijInv = 1._RK / sqrt( RijSquared )
-#endif
+
                 eX = RXij * RijInv
                 eY = RYij * RijInv
                 eZ = RZij * RijInv
@@ -2911,7 +2849,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     else ! Site-site cutoff
 
-      ! Calculate Lennard-Jones energy
+      ! Calculate MIE energy
       do s1 = this%UnitMIE1(nu), this%UnitMIE1(nu+1) - 1
         do s2 = 1, this%N2MIEnm
 
@@ -3042,11 +2980,9 @@ contains
               OXj = OX2(j)
               OYj = OY2(j)
               OZj = OZ2(j)
-#if ARCH == 3
-              RijInv = rsqrt( RijSquared )
-#else
+
               RijInv = 1._RK / sqrt( RijSquared )
-#endif
+
               eX = RXij * RijInv
               eY = RYij * RijInv
               eZ = RZij * RijInv

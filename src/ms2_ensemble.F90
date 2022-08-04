@@ -9055,11 +9055,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       s = sum( q**2 )
       if( s <= 1._RK ) exit
     end do
-#if ARCH == 3
-    q = q * rsqrt( s )
-#else
     q = q / sqrt( s )
-#endif
 
       call AddParticle( pc, r, q )
       if ( tooManyParticles ) return
@@ -11172,7 +11168,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
              fields = fields + 1
              if( EnsembleType .eq. EnsembleTypeNPT) then 
                fields = fields + 1
-               if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodWidom ) fields = fields + 1
+               if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) fields = fields + 1
              end if
            end if
          enddo
@@ -16659,39 +16655,43 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     end do
 
     ! Open RDF file
-    write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
-    write(IOBuffer, '(T5," r [A]")')
-    call FileWriteNoAdvance( this%iounit_rdf )
-    do i= 1, this%NComponents
-      do j= i, this%NComponents
-        do s=1, this%Component(i)%molecule%NMIEnm
-          do t=1, this%Component(j)%molecule%NMIEnm
-            write(IOBuffer, '(I5,I5)') i, j
-            call FileWriteNoAdvance( this%iounit_rdf )
-          end do
-        end do            
+    if ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == NSteps ) then
+      write( IOBuffer, '(I16)' ) this%EnsembleNumber
+      call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+      write(IOBuffer, '(T5," r [A]")')
+      call FileWriteNoAdvance( this%iounit_rdf )
+      do i= 1, this%NComponents
+        do j= i, this%NComponents
+          do s=1, this%Component(i)%molecule%NMIEnm
+            do t=1, this%Component(j)%molecule%NMIEnm
+              write(IOBuffer, '(I5,I5)') i, j
+              call FileWriteNoAdvance( this%iounit_rdf )
+            end do
+          end do            
+        end do
       end do
-    end do
-    call FileWriteBlank( this%iounit_rdf )
-    write(IOBuffer, '(T5,"______")')
-    call FileWriteNoAdvance( this%iounit_rdf )
- 
-    do i= 1, this%NComponents
-      do j= i, this%NComponents
-        do s=1, this%Component(i)%molecule%NMIEnm
-          do t=1, this%Component(j)%molecule%NMIEnm 
-            write(IOBuffer, '(I5,I5)') s, t
-            call FileWriteNoAdvance( this%iounit_rdf )
+      call FileWriteBlank( this%iounit_rdf )
+      write(IOBuffer, '(T5,"______")')
+      call FileWriteNoAdvance( this%iounit_rdf )
+
+      do i= 1, this%NComponents
+        do j= i, this%NComponents
+          do s=1, this%Component(i)%molecule%NMIEnm
+            do t=1, this%Component(j)%molecule%NMIEnm 
+              write(IOBuffer, '(I5,I5)') s, t
+              call FileWriteNoAdvance( this%iounit_rdf )
+            end do
           end do
         end do
       end do
-    end do
-    call FileWriteBlank( this%iounit_rdf )
+      call FileWriteBlank( this%iounit_rdf )
+    end if
 
     do o = 1, RDFNumberShells
-      write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
-      call FileWriteNoAdvance( this%iounit_rdf )
+      if ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == NSteps ) then
+        write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
+        call FileWriteNoAdvance( this%iounit_rdf )
+      end if
       do i= 1, this%NComponents
         do j= i, this%NComponents
           do s=1, this%Component(i)%molecule%NMIEnm
@@ -16705,17 +16705,19 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 &                                 / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
               end if
               this%RDFValue(o) = RDFRhoLocal / RDFRho  
-              write(IOBuffer, '(F10.4)') this%RDFValue(o)
-              call FileWriteNoAdvance( this%iounit_rdf )
+              if ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == NSteps) then
+                write(IOBuffer, '(F10.4)') this%RDFValue(o)
+                call FileWriteNoAdvance( this%iounit_rdf )
+              end if
             end do
           end do
         end do
       end do
-      call FileWriteBlank( this%iounit_rdf )
+     if ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == NSteps ) call FileWriteBlank( this%iounit_rdf )
     enddo
 
     ! Close RDF file
-    call FileClose( this%iounit_rdf )
+    if ( mod( Step, ErrorsUpdateFrequency ) == 0 .or. Step == NSteps ) call FileClose( this%iounit_rdf )
 
   end subroutine TEnsemble_RDFUpdate
 
