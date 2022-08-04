@@ -335,7 +335,7 @@ module ms2_global
   character(*), parameter :: IdScaleSigma                  = 'eta'
   character(*), parameter :: IdScaleEpsilon                = 'xi'
   character(*), parameter :: IdRCutoffCOM                  = 'Cutoff'
-  character(*), parameter :: IdRCutoffLJ126LJ126           = 'CutoffLJ'
+  character(*), parameter :: IdRCutoffMIEnmMIEnm           = 'CutoffMIE'
   character(*), parameter :: IdRCutoffDipoleDipole         = 'CutoffDD'
   character(*), parameter :: IdRCutoffDipoleQuadrupole     = 'CutoffDQ'
   character(*), parameter :: IdRCutoffQuadrupoleQuadrupole = 'CutoffQQ'

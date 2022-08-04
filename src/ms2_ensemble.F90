@@ -1530,7 +1530,7 @@ contains
     else
 
       if( this%NMIEnmMax > 0 ) then
-        call FileReadParameter( this%RCutoffMIEnmMIEnm, iounit_params , IdRCutoffLJ126LJ126, .false. )
+        call FileReadParameter( this%RCutoffMIEnmMIEnm, iounit_params , IdRCutoffMIEnmMIEnm, .false. )
         write( IOBuffer, '("MIE cutoff radius: ",T45, F6.3, " sigma")' ) this%RCutoffMIEnmMIEnm
         call LogWrite
       end if
@@ -14110,7 +14110,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     ! Cutoff radii
     if( this%NMIEnmMax > 0 ) then
-      write( IOBuffer, '("Lennard-Jones cutoff radius", T36, ":", F20.9, " A")' ) &
+      write( IOBuffer, '("MIE cutoff radius", T36, ":", F20.9, " A")' ) &
 &            this%RCutoffMIEnmMIEnm * UnitLength / Angstroem
       call FileWrite( this%iounit_errors )
     end if
@@ -16340,10 +16340,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           do j = 1, this%Component(i)%Molecule%Unit(k)%NMIEnm
             psMIEnm => this%Component(i)%Molecule%Unit(k)%SiteMIEnm(j)
             if (.not. UseIntDegFreed) then
-                write( IOBuffer, '("~", I3, " LJ", 4F8.4, "  1")' ) (num+k), psMIEnm%r(:) * UnitLength / Angstroem, &
+                write( IOBuffer, '("~", I3, " MIE", 4F8.4, "  1")' ) (num+k), psMIEnm%r(:) * UnitLength / Angstroem, &
 &                      psMIEnm%sig  * UnitLength / Angstroem
             else
-                write( IOBuffer, '("~", I3, "     LJ", 4F8.4, "  1")' ) (num+k), psMIEnm%r(:) * UnitLength / Angstroem, &
+                write( IOBuffer, '("~", I3, "     MIE", 4F8.4, "  1")' ) (num+k), psMIEnm%r(:) * UnitLength / Angstroem, &
 &                      psMIEnm%sig  * UnitLength / Angstroem
             end if
             call FileWrite( this%iounit_visual )
