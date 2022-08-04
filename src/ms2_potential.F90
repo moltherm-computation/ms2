@@ -1434,6 +1434,7 @@ loop3:  do j = j0, j1
     real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
     real(RK)          :: SigmaSquared
     real(RK)          :: EpsilonMie_a, EpsilonMie_aF
+	real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
     real(RK)          :: RCutoffSquared
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
@@ -1441,11 +1442,11 @@ loop3:  do j = j0, j1
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: FXij, FYij, FZij, Fij
-    real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
+    real(RK)          :: RijSquared, RijSquaredInv, RijMie_nInv, RijMie_mInv
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: EPotLocalInter, VirialLocalInter
-    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
+    real(RK)          :: d2EpotdV2Local, sitecorr
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
     integer           :: jk, unit
@@ -1540,6 +1541,12 @@ loop3:  do j = j0, j1
     SigmaSquared = this%SigmaSquared
     EpsilonMie_a = this%EpsilonMie_a
     EpsilonMie_aF = this%EpsilonMie_aF
+	Mie_n = this%Mie_n
+	Mie_m = this%Mie_m
+	Mie_n1 = Mie_n+1._RK
+	Mie_m1 = Mie_m+1._RK
+	Mie_nHalf = this%Mie_nHalf
+	Mie_mHalf = this%Mie_mHalf
     RCutoffSquared = this%RCutoffSquaredScaled
     EPotLocalIntra   = 0._RK
     VirialLocalIntra = 0._RK
@@ -1696,11 +1703,14 @@ loop1:  do k = 1, this%NInCutoff(unit)
             PZij = PZij - anint( PZij )
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             RijSquaredInv = SigmaSquared / RijSquared
-            Rij6Inv = RijSquaredInv**3
-            EPotLocal1 = Rij6Inv * (Rij6Inv - 1._RK)
+		    RijMie_nInv = RijSquaredInv**Mie_nHalf
+		    RijMie_mInv = RijSquaredInv**Mie_mHalf
+            Mie_nRijMie_n = Mie_n * RijMie_nInv
+		    Mie_mRijMie_m = Mie_m * RijMie_mInv
+            EPotLocal1 = RijMie_nInv - RijMie_mInv
             EPotLocal = EPotLocal + EPotLocal1
             EPotLocalInter = EPotLocalInter + EPotLocal1
-            Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+            Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
             FXij = Fij * RXij
             FYij = Fij * RYij
             FZij = Fij * RZij
@@ -1732,10 +1742,9 @@ loop2:      do m=1,NBinsDen
             end if
 #endif
             VirialLocalInter = VirialLocalInter + (PXij * FXij + PYij * FYij + PZij * FZij)
-            Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-            d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third  !xxxx LJ T
-            d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
+		    d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
+		                     + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)!xxxx MIE T	  
             FXi = FXi + FXij
             FYi = FYi + FYij
             FZi = FZi + FZij
@@ -1754,7 +1763,7 @@ loop2:      do m=1,NBinsDen
             VSuyi  = VSuyi+ FZij * PXij
             VSuzi  = VSuzi+ FZij * PYij
             RijSInvNorm   = Sqrt(RijSquaredInv)
-            UU   = RijSInvNorm*EPotLocal1*SigmaInvEps4
+            UU   = RijSInvNorm*EPotLocal1*SigmaInvEpsMie_a
             Cxi    = Cxi  + UU*RXij
             Cyi    = Cyi  + UU*RYij
             Czi    = Czi  + UU*RZij
@@ -1891,19 +1900,21 @@ loop3:  do j = j0, j1
           RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           if( RijSquared >= RCutoffSquared ) cycle loop3
           RijSquaredInv = SigmaSquared / RijSquared
-          Rij6Inv = RijSquaredInv**3
-          EPotLocal = EPotLocal + (Rij6Inv * (Rij6Inv - 1._RK))
-          EPotLocalInter = EPotLocalInter + (Rij6Inv * (Rij6Inv - 1._RK))
-          Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+		  RijMie_nInv = RijSquaredInv**Mie_nHalf
+		  RijMie_mInv = RijSquaredInv**Mie_mHalf
+          Mie_nRijMie_n = Mie_n * RijMie_nInv
+		  Mie_mRijMie_m = Mie_m * RijMie_mInv
+          EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
+          EPotLocalInter = EPotLocalInter + ((RijSquaredInv**3) * ((RijSquaredInv**3) - 1._RK))
+          Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
           VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
           VirialLocalInter = VirialLocalInter + (PXij * FXij + PYij * FYij + PZij * FZij)
-          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third  !xxxx LJ SS T
-          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
+		  d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
+		                   + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)	  !xxxx MIE SS T
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -2024,6 +2035,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     ! Declare local variables
     real(RK)          :: SigmaSquared
     real(RK)          :: EpsilonMie_a
+	real(RK)          :: Mie_nHalf, Mie_mHalf
     real(RK)          :: RCutoffSquared
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer:: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
@@ -2031,7 +2043,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
+    real(RK)          :: RijSquared, RijSquaredInv, RijMie_nInv, RijMie_mInv
     real(RK)          :: EPotLocal
     integer           :: N2
     integer           :: i, j, k
@@ -2041,6 +2053,8 @@ loop1:do k = 1, this%NInCutoff(unit)
     N2 = this%Site2%NPart
     SigmaSquared = this%SigmaSquared
     EpsilonMie_a = this%EpsilonMie_a
+	Mie_nHalf = this%Mie_nHalf
+	Mie_mHalf = this%Mie_mHalf
     RCutoffSquared = this%RCutoffSquaredScaled
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
@@ -2109,8 +2123,9 @@ loop1:  do k = 1, this%NInCutoff(unit)
             RZij = RZij - anint( PZij )
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             RijSquaredInv = SigmaSquared / RijSquared
-            Rij6Inv = RijSquaredInv**3
-            EPotLocal = EPotLocal + Rij6Inv * (Rij6Inv - 1._RK)
+		    RijMie_nInv = RijSquaredInv**Mie_nHalf
+		    RijMie_mInv = RijSquaredInv**Mie_mHalf
+            EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
           end if
         end do loop1
         EPotTest(i) = EPotTest(i) + EpsilonMie_a * EPotLocal
@@ -2136,8 +2151,9 @@ loop2:  do j = 1, N2
           RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           if( RijSquared >= RCutoffSquared ) cycle loop2
           RijSquaredInv = SigmaSquared / RijSquared
-          Rij6Inv = RijSquaredInv**3
-          EPotLocal = EPotLocal + Rij6Inv * (Rij6Inv - 1._RK)
+          RijMie_nInv = RijSquaredInv**Mie_nHalf
+		  RijMie_mInv = RijSquaredInv**Mie_mHalf
+          EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
         end do loop2
         EPotTest(i) = EPotTest(i) + EpsilonMie_a * EPotLocal
       end do
@@ -2168,7 +2184,8 @@ loop2:  do j = 1, N2
 
     ! Declare local variables
     real(RK)          :: SigmaSquared
-    real(RK)          :: EpsilonMie_aF
+    real(RK)          :: EpsilonMie_a, EpsilonMie_aF
+	real(RK)          :: Mie_n, Mie_m, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
@@ -2176,7 +2193,7 @@ loop2:  do j = 1, N2
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: FXij, FYij, FZij, Fij
     real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
+    real(RK)          :: RijSquared, RijSquaredInv, RijMie_nInv, RijMie_mInv
     real(RK)          :: tempF(3,nu)
     real(RK)          :: EPot, EIntra1, ELocal
     integer           :: j, k
@@ -2185,7 +2202,12 @@ loop2:  do j = 1, N2
 
     ! Assign local variables
     SigmaSquared = this%SigmaSquared
+    EpsilonMie_a = this%EpsilonMie_a
     EpsilonMie_aF = this%EpsilonMie_aF
+    Mie_n = this%Mie_n
+	Mie_m = this%Mie_m
+	Mie_nHalf = this%Mie_nHalf
+	Mie_mHalf = this%Mie_mHalf
     nu2 = this%NUnit2
     coeff = 1._RK
     if (this%potintra14) coeff = this%ScaleLJ14
@@ -2236,9 +2258,12 @@ loop2:  do j = 1, N2
         RZij = RZij - anint( PZij )
         RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
         RijSquaredInv = SigmaSquared / RijSquared
-        Rij6Inv = RijSquaredInv**3
-        EPot = EPot + Rij6Inv * (Rij6Inv - 1._RK)
-        Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+		RijMie_nInv = RijSquaredInv**Mie_nHalf
+		RijMie_mInv = RijSquaredInv**Mie_mHalf
+        Mie_nRijMie_n = Mie_n * RijMie_nInv
+		Mie_mRijMie_m = Mie_m * RijMie_mInv
+        EPot = EPot + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
+        Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
         FXij = Fij * RXij
         FYij = Fij * RYij
         FZij = Fij * RZij
