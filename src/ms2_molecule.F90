@@ -1839,7 +1839,7 @@ contains
     write( IOBuffer, '(I2)' ) ntypes
     call FileWriteParameter( iounit_normal, IdSite_ntypes )
 
-    ! Save Lennard-Jones sites
+    ! Save MIE sites
     if( this%NMIEnm > 0 ) then
       call FileWriteBlank( iounit_normal )
       write( IOBuffer, '(1X, A)' ) 'LJ126'
@@ -1994,7 +1994,7 @@ contains
     real(RK) :: qu1,qu2,qu3,qu4,quinv, T,S,SInv
     type(TSiteCharge), pointer     :: chargeSite
     type(TSiteDipole), pointer     :: dipolSite
-    type(TSiteMIEnm), pointer      :: lj126Site
+    type(TSiteMIEnm), pointer      :: mieSite
     type(TSiteQuadrupole), pointer :: quadrupoleSite
 
     do iUnit = 1, this%NUnit
@@ -2007,16 +2007,16 @@ contains
         moi(:, :) = 0._RK
         do i = 1, unit%NMIEnm
           if (.not. UseIntDegFreed) then
-              lj126Site => this%SiteMIEnm(i)
+              mieSite => this%SiteMIEnm(i)
           else
-              lj126Site => unit%SiteMIEnm(i)
+              mieSite => unit%SiteMIEnm(i)
           end if
-          moi(1, 1) = moi(1, 1) + lj126Site%mass * ( lj126Site%r(2)**2 + lj126Site%r(3)**2 )
-          moi(1, 2) = moi(1, 2) - lj126Site%mass * lj126Site%r(1) * lj126Site%r(2)
-          moi(1, 3) = moi(1, 3) - lj126Site%mass * lj126Site%r(1) * lj126Site%r(3)
-          moi(2, 2) = moi(2, 2) + lj126Site%mass * ( lj126Site%r(1)**2 + lj126Site%r(3)**2 )
-          moi(2, 3) = moi(2, 3) - lj126Site%mass * lj126Site%r(2) * lj126Site%r(3)
-          moi(3, 3) = moi(3, 3) + lj126Site%mass * ( lj126Site%r(1)**2 + lj126Site%r(2)**2 )
+          moi(1, 1) = moi(1, 1) + mieSite%mass * ( mieSite%r(2)**2 + mieSite%r(3)**2 )
+          moi(1, 2) = moi(1, 2) - mieSite%mass * mieSite%r(1) * mieSite%r(2)
+          moi(1, 3) = moi(1, 3) - mieSite%mass * mieSite%r(1) * mieSite%r(3)
+          moi(2, 2) = moi(2, 2) + mieSite%mass * ( mieSite%r(1)**2 + mieSite%r(3)**2 )
+          moi(2, 3) = moi(2, 3) - mieSite%mass * mieSite%r(2) * mieSite%r(3)
+          moi(3, 3) = moi(3, 3) + mieSite%mass * ( mieSite%r(1)**2 + mieSite%r(2)**2 )
         end do
 
         do i = 1, unit%NCharge
