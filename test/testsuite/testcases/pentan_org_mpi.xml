@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>pentan_NPT.par</parFile>
+	<name>pentan_org_mpi</name>
+	<compilerOption>
+		<name>COMPILER</name>
+		<value>INTEL</value>
+	</compilerOption>
+	<np>2</np>
+	<reference>
+		<file>pentan_NPT_1.rav</file>
+	</reference>
+	<reference>
+		<file>pentan_NPT_1.res</file>
+	</reference>
+	<reference>
+		<file>pentan_NPT_1.run</file>
+	</reference>
+	<reference>
+		<file>pentan_NPT_1.vim</file>
+	</reference>
+	<reference>
+		<file>pentan_NPT.rst</file>
+	</reference>
+	<reference>
+		<file>pentan_NPT.pentan.nrm</file>
+	</reference>
+</testcase>
