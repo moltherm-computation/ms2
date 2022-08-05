@@ -4,6 +4,7 @@
 	<parFile>pentan_NPT_11.par</parFile>
 	<name>pentan_11</name>
 	<walltime>20:00:00</walltime>
+	<np>2</np>
 	<compilerOption>
 		<name>COMPILER</name>
 		<value>INTEL</value>
