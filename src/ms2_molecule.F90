@@ -297,6 +297,7 @@ contains
       select case( stype )
 
       case( 'LJ126', 'lj126', 'LJ', 'lj' )
+        LJorMIE = 'LJ'
         call FileReadParameter( this%NMIEnm, iounit_potmod, IdSite_NMIEnm, .false. )
         if( this%NMIEnm > 0 ) then
           allocate( this%SiteMIEnm(this%NMIEnm), STAT = stat )
