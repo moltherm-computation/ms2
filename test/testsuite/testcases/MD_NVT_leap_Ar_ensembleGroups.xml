@@ -5,9 +5,6 @@
 	<name>MD_NVT_leap_Ar_ensembleGroups</name>
 	<np>3</np>
 	<reference>
-		<file>MD_NVT_leap_Ar_ensembleGroups_0.rst</file>
-	</reference>
-	<reference>
 		<file>MD_NVT_leap_Ar_ensembleGroups_1.rav</file>
 	</reference>
 	<reference>
@@ -24,6 +21,9 @@
 	</reference>
 	<reference>
 		<file>MD_NVT_leap_Ar_ensembleGroups_2.res</file>
+	</reference>
+	<reference>
+		<file>MD_NVT_leap_Ar_ensembleGroups_2.rst</file>
 	</reference>
 	<reference>
 		<file>MD_NVT_leap_Ar_ensembleGroups_2.run</file>
