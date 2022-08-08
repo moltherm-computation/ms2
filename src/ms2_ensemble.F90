@@ -13928,21 +13928,19 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     write( IOBuffer, '(76("="))')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("*                           Publishing with ms2                                *")')
+    write( IOBuffer, '("*                         Publishing with ms2                              *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                          *")')
+    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                      *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* ---------------------------------------------------------------------------- *")')
+    write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
     call FileWrite( this%iounit_errors )
-    if (.not. UseIntDegFreed) then
-        write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. K�ster, G. Guevara-Carrion *")')
-    else
-        write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. Koster, G. Guevara-Carrion *")')
-    end if
+    write( IOBuffer, '("* G. Rutkai, A. Koester, G. Guevara-Carrion, T. Janzen, M. Schappal,       *")') 
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* A. Wafai, M. Horsch, M. Bernreuther, T. Windmann, H. Hasse, J. Vrabec        *")')
+    write( IOBuffer, '("* C.W. Glass, M. Bernreuther, A. Wafai, S. Stephan, M. Kohns, S. Reiser,   *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* Computer Physics Communications (2014)                                       *")')
+    write( IOBuffer, '("* S. Deublein, M. Horsch, H. Hasse, J. Vrabec                              *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* Computer Physics Communications (2017)                                   *")')
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '(76("="))')
     call FileWrite( this%iounit_errors )
@@ -14092,8 +14090,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     ! Cutoff radii
     if( this%NMIEnmMax > 0 ) then
-      write( IOBuffer, '("MIE cutoff radius", T36, ":", F20.9, " A")' ) &
-&            this%RCutoffMIEnmMIEnm * UnitLength / Angstroem
+      write( IOBuffer, '(A, " cutoff radius", T36, ":", F20.9, " A")' ) &
+&            trim(LJorMIE), this%RCutoffMIEnmMIEnm * UnitLength / Angstroem
       call FileWrite( this%iounit_errors )
     end if
 
@@ -16146,17 +16144,19 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     write( IOBuffer, '(76("="))')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("*                           Publishing with ms2                                *")')
+    write( IOBuffer, '("*                         Publishing with ms2                              *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                          *")')
+    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                      *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* ---------------------------------------------------------------------------- *")')
+    write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. Koster, G. Guevara-Carrion *")')
+    write( IOBuffer, '("* G. Rutkai, A. KÃ¶ster, G. Guevara-Carrion, T. Janzen, M. Schappals,       *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* A. Wafai, M. Horsch, M. Bernreuther, T. Windmann, H. Hasse, J. Vrabec        *")')
+    write( IOBuffer, '("* C.W. Glass, M. Bernreuther, A. Wafai, S. Stephan, M. Kohns, S. Reiser,   *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* Computer Physics Communications (2014)                                       *")')
+    write( IOBuffer, '("* S. Deublein, M. Horsch, H. Hasse, J. Vrabec                              *")')
+    call FileWrite( this%iounit_errors )
+    write( IOBuffer, '("* Computer Physics Communications (2017)                                   *")')
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '(76("="))')
     call FileWrite( this%iounit_errors )
@@ -16288,13 +16288,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         if (this%Component(i)%Molecule%Unit(k)%NMIEnm > 0) then
           do j = 1, this%Component(i)%Molecule%Unit(k)%NMIEnm
             psMIEnm => this%Component(i)%Molecule%Unit(k)%SiteMIEnm(j)
-            if (.not. UseIntDegFreed) then
-                write( IOBuffer, '("~", I3, " MIE", 4F8.4, "  1")' ) (num+k), psMIEnm%r(:) * UnitLength / Angstroem, &
-&                      psMIEnm%sig  * UnitLength / Angstroem
-            else
-                write( IOBuffer, '("~", I3, "     MIE", 4F8.4, "  1")' ) (num+k), psMIEnm%r(:) * UnitLength / Angstroem, &
-&                      psMIEnm%sig  * UnitLength / Angstroem
-            end if
+            write( IOBuffer, '("~", I3, " ", A, 4F8.4, "  1")' ) i, trim(LJorMIE), psMIEnm%r(:) * UnitLength / Angstroem, &
+&                  psMIEnm%sig  * UnitLength / Angstroem
             call FileWrite( this%iounit_visual )
           end do
         else  ! For visualisation of Units with no LJ sites

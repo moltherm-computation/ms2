@@ -1856,7 +1856,7 @@ contains
     ! Save MIE sites
     if( this%NMIEnm > 0 ) then
       call FileWriteBlank( iounit_normal )
-      write( IOBuffer, '(1X, A)' ) 'MIEnm'
+      write( IOBuffer, '(1X, A)' ) LJorMIE !'MIEnm'
       call FileWriteParameter( iounit_normal, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NMIEnm
       call FileWriteParameter( iounit_normal, IdSite_NMIEnm )
