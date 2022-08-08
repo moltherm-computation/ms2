@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 3.0                !
-!  (c) 2017 by TU Kaiserslautern / U Paderborn                 !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
+!  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -583,7 +583,7 @@ module ms2_global
   character(80)      :: LongRangeString
   integer, parameter :: Ewald         = 1
   integer, parameter :: RField        = 2
-  integer, parameter :: PME           = 3
+  integer, parameter :: SPME          = 3
   integer, parameter :: extRField     = 4
   integer, parameter :: Rodgers       = 5
   integer            :: LongRange
@@ -1110,8 +1110,6 @@ contains
     write( IOBuffer, '("closing (and reopening) logfile - opening ",I3," additional new logfile(s) ",A,"_*",A," ...")') &
 &          NCommunicators-1,trim(OutputNameTag), LogFileExtension
     call LogWrite
-    call LogWriteBlank
-
     write( IOBuffer, '(72("#"))')
     call LogWrite
     call LogWriteBlank
@@ -1354,50 +1352,50 @@ contains
 
     ! Open log file
     call LogWriteBlank
-    write( IOBuffer, '(74("*"))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
-    write( IOBuffer, '("*                         Molecular Simulation 2                         *")')
+    write( IOBuffer, '("*                        Molecular Simulation 2                        *")')
     call LogWrite
-    write( IOBuffer, '(74("*"))')
-    call LogWrite
-    call LogWriteBlank
-    write( IOBuffer, '(74("*"))')
-    call LogWrite
-    write( IOBuffer, '("*                         Publishing with ms2                            *")')
-    call LogWrite
-    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                    *")')
-    call LogWrite
-    write( IOBuffer, '("* ---------------------------------------------------------------------- *")')
-    call LogWrite
-    write( IOBuffer, '("* G. Rutkai, A. Koester, G. Guevara-Carrion, T. Janzen, M. Schappal,     *")')
-    call LogWrite
-    write( IOBuffer, '("* C.W. Glass, M. Bernreuther, A. Wafai, S. Stephan, M. Kohns, S. Reiser, *")')
-    call LogWrite
-    write( IOBuffer, '("* S. Deublein, M. Horsch, H. Hasse, J. Vrabec                            *")')
-    call LogWrite
-    write( IOBuffer, '("* Computer Physics Communications (2017)                                 *")')
-    call LogWrite
-    write( IOBuffer, '(74("*"))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
     call LogWriteBlank
-    write( IOBuffer, '(74("*"))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
-    write( IOBuffer, '("* (c) by TU Kaiserslautern / U Paderborn                                 *")')
+    write( IOBuffer, '("*                         Publishing with ms2                          *")')
     call LogWrite
-    write( IOBuffer, '("*     P.O. Box 67653                                                     *")')
+    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                  *")')
     call LogWrite
-    write( IOBuffer, '("*     67653 Kaiserslautern                                               *")')
+    write( IOBuffer, '("* -------------------------------------------------------------------- *")')
     call LogWrite
-    write( IOBuffer, '(74("*"))')
+    write( IOBuffer, '("* C.W. Glass, S. Reiser, G. Rutkai, S. Deublein, A. Köster,            *")')
+    call LogWrite
+    write( IOBuffer, '("* G. Guevara-Carrion, A. Wafai, M. Horsch, M. Bernreuther,             *")')
+    call LogWrite
+    write( IOBuffer, '("* T. Windmann, H. Hasse, J. Vrabec                                     *")')
+    call LogWrite
+    write( IOBuffer, '("* Computer Physics Communications (2014)                               *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
     call LogWrite
     call LogWriteBlank
-    write( IOBuffer, '(74("*"))')
+    write( IOBuffer, '(72("*"))')
     call LogWrite
-    write( IOBuffer, '("* Updates and auxiliary routines are available from                      *")')
+    write( IOBuffer, '("* (c) by TU Kaiserslautern                                             *")')
     call LogWrite
-    write( IOBuffer, '("* http://www.ms-2.de                                                     *")')
+    write( IOBuffer, '("*     P.O. Box 67653                                                   *")')
     call LogWrite
-    write( IOBuffer, '(74("*"))')
+    write( IOBuffer, '("*     67653 Kaiserslautern                                             *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    call LogWriteBlank
+    write( IOBuffer, '(72("*"))')
+    call LogWrite
+    write( IOBuffer, '("* Updates and auxiliary routines are available from                    *")')
+    call LogWrite
+    write( IOBuffer, '("* http://www.ms-2.de                                                   *")')
+    call LogWrite
+    write( IOBuffer, '(72("*"))')
     call LogWrite
     call LogWriteBlank
     write( IOBuffer, '("Program ", A, " version ", A)' ) trim( ProgramFileName ), trim( VersionString )
@@ -1781,7 +1779,7 @@ contains
     
     ! generate filename
     if ( NCommunicators .gt. 1 .and. NCommunicator .gt. 0 ) then
-      write( filename, '(A,"_",I0,A)' ) trim( OutputNameTag ),NCommunicator+1,LogFileExtension
+      write( filename, '(A,"_",I0,A)' ) trim( OutputNameTag ),NCommunicator,LogFileExtension
     else
       write( filename, '(A,A)' ) trim( OutputNameTag ),LogFileExtension
     endif

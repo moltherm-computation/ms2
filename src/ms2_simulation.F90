@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 3.0                !
-!  (c) 2017 by TU Kaiserslautern / U Paderborn                 !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
+!  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -657,7 +657,7 @@ contains
       ! Read frequency of updating result file
       call FileReadParameter( BlockSize, iounit_params , IdBlockSize, .true., NSteps )
       if( BlockSize > 0 ) then
-        write( IOBuffer, '("Result files will be updated each", T40, I7, " time steps")' ) BlockSize
+        write( IOBuffer, '("Result files will be updated each", I7, " time steps")' ) BlockSize
       else
         write( IOBuffer, '("All result files will not be created")' )
       end if
@@ -716,7 +716,7 @@ contains
         end if
 
         if( ErrorsUpdateFrequency < NSteps ) then
-          write( IOBuffer, '("Final result files will be updated each ", T40, I7, " time steps")' ) ErrorsUpdateFrequency
+          write( IOBuffer, '("Final result files will be updated each ", I8, " time steps")' ) ErrorsUpdateFrequency
         else
           ErrorsUpdateFrequency = NSteps
           write( IOBuffer, '("Final result files will be created at the end")' )
@@ -730,7 +730,7 @@ contains
       ! Read frequency of updating visualisation file
       call FileReadParameter( VisualUpdateFrequency, iounit_params , IdVisualUpdateFrequency, .true., 0 )
       if( VisualUpdateFrequency > 0 ) then
-        write( IOBuffer, '("Visualization files will be updated each", T40, I7, " time steps")' ) VisualUpdateFrequency
+        write( IOBuffer, '("Visualization files will be updated each", I7, " time steps")' ) VisualUpdateFrequency
       else
         write( IOBuffer, '("Visualization files will not be created")' )
       end if
@@ -740,18 +740,19 @@ contains
       ! Read frequency of updating visualisation file
       call FileReadParameter( RDFUpdateFrequency, iounit_params , IdRDFUpdateFrequency, .true., 0 )
       if( RDFUpdateFrequency > 0 ) then
-        write( IOBuffer, '("RDF files will be updated each", T40, I7, " time steps")' ) RDFUpdateFrequency
+        write( IOBuffer, '("RDF files will be updated each", I7, " time steps")' ) RDFUpdateFrequency
       else
         write( IOBuffer, '("RDF files will not be created")' )
       end if
       call LogWrite
+      call LogWriteBlank
       
       if( RDFUpdateFrequency > 0 ) then
       call FileReadParameter( RDFNumberShells, iounit_params , IdRDFNumberShells, .true., 200 )
         write( IOBuffer, '("RDF will operate with", I7, " shells")' ) RDFNumberShells
       call LogWrite
-      end if
       call LogWriteBlank
+      end if
 
 #if OSMOP > 0
       if ( SimulationType .eq. MonteCarlo ) then
@@ -817,8 +818,8 @@ contains
             write( IOBuffer, '("Ewald: NMax:",T20, I7)' ) nmax_h
             call LogWrite
 
-!         case( 'PME', 'pme', 'SPME', 'spme')
-            LongRange = PME
+        case( 'PME', 'pme', 'SPME', 'spme')
+            LongRange = SPME
             LongRangeString = 'Smooth Particle Mesh Ewald Summation'
             write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
             call LogWrite
@@ -982,7 +983,7 @@ contains
       this%firstEnsembleIdx=this%NEnsembles*NCommunicator/NCommunicators+1
       this%lastEnsembleIdx=this%NEnsembles*(NCommunicator+1)/NCommunicators
       write( IOBuffer, '("MPI communicator",I3," (out of",I3,") with ",I3," PEs computes ensemble",I3," -",I3)' ) &
-&            NCommunicator+1,NCommunicators,NProcs,this%firstEnsembleIdx,this%lastEnsembleIdx
+&            NCommunicator,NCommunicators,NProcs,this%firstEnsembleIdx,this%lastEnsembleIdx
       ! be aware that e.g. the random number generator calls might be different
       call LogWrite
       ! Reopen the ParameterFile (dirty hack) for each communicator
@@ -1041,8 +1042,8 @@ contains
             this%Ensemble(i)%nvecmax = nvecmax_h
             this%Ensemble(i)%nmax = nmax_h
 
-#if SPME > 0
-      else if (LongRange .eq. PME) then
+#ifdef SPME
+      else if (LongRange .eq. SPME) then
             this%Ensemble(i)%KappaL = KappaL_h
             this%Ensemble(i)%gridx  = grid_h
             this%Ensemble(i)%gridy  = grid_h
@@ -1154,7 +1155,7 @@ contains
     call LogWriteBlank
     call ResultClose( this )
     call VisualClose( this )
-    !call RDFClose( this ) ! file is closed after updating
+    call RDFClose( this )
 #if OSMOP > 0
     if ( SimulationType .ne. MonteCarlo ) call ProfileClose(this )
 #endif
@@ -1430,7 +1431,7 @@ contains
         call Unit2Atom( this%Ensemble(j) )
         ! Recalculate LongRange Correction
         call CalculateCorr( this%Ensemble(j) )
-        if ( (LongRange .eq. Ewald) .or. (LongRange .eq. PME) ) then
+        if ( (LongRange .eq. Ewald) .or. (LongRange .eq. SPME) ) then
           this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
         end if
 
@@ -1876,7 +1877,7 @@ eqloop: do
         
         ! Recalculate LongRange Correction
         call CalculateCorr( this%Ensemble(j) )
-        if ( (LongRange .eq. Ewald) .or. (LongRange .eq. PME) ) then
+        if ( (LongRange .eq. Ewald) .or. (LongRange .eq. SPME) ) then
           this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
         end if
         
@@ -2880,7 +2881,7 @@ eqloop: do
     write( RestartFileName, '(A,A)' ) trim(OutputNameTag),RestartFileExtension
 #if MPI_VER > 0
     if ( NCommunicators .gt. 1 ) then
-      write( RestartFileName, '(A,"_",I0,A)' ) trim(OutputNameTag),NCommunicator+1,RestartFileExtension
+      write( RestartFileName, '(A,"_",I0,A)' ) trim(OutputNameTag),NCommunicator,RestartFileExtension
     endif
 #endif
 
@@ -2949,7 +2950,7 @@ eqloop: do
       write( RestartFileName, '(A,A)' ) trim(OutputNameTag),RestartFileExtension
 #if MPI_VER > 0
       if ( NCommunicators .gt. 1 ) then
-        write( RestartFileName, '(A,"_",I0,A)' ) trim(OutputNameTag),NCommunicator+1,RestartFileExtension
+        write( RestartFileName, '(A,"_",I0,A)' ) trim(OutputNameTag),NCommunicator,RestartFileExtension
       endif
 #endif
       call FileReset( iounit_restart, trim(RestartFileName) )
