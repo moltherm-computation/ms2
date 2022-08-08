@@ -2880,7 +2880,7 @@ eqloop: do
     write( RestartFileName, '(A,A)' ) trim(OutputNameTag),RestartFileExtension
 #if MPI_VER > 0
     if ( NCommunicators .gt. 1 ) then
-      write( RestartFileName, '(A,"_",I0,A)' ) trim(OutputNameTag),NCommunicator,RestartFileExtension
+      write( RestartFileName, '(A,"_",I0,A)' ) trim(OutputNameTag),NCommunicator+1,RestartFileExtension
     endif
 #endif
 
@@ -2949,7 +2949,7 @@ eqloop: do
       write( RestartFileName, '(A,A)' ) trim(OutputNameTag),RestartFileExtension
 #if MPI_VER > 0
       if ( NCommunicators .gt. 1 ) then
-        write( RestartFileName, '(A,"_",I0,A)' ) trim(OutputNameTag),NCommunicator,RestartFileExtension
+        write( RestartFileName, '(A,"_",I0,A)' ) trim(OutputNameTag),NCommunicator+1,RestartFileExtension
       endif
 #endif
       call FileReset( iounit_restart, trim(RestartFileName) )

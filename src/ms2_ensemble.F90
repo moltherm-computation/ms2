@@ -1327,11 +1327,11 @@ contains
       if(mod(this%NSpanCF, this%NStepCorr) .eq. 0) then
         this%NSpanCF = this%NSpanCF/this%NStepCorr
         this%NCorr = this%NCorr/this%NStepCorr
-        write( IOBuffer, '("Correlation Function (CF) is calculated every",I4,"-th time step")') this%NStepCorr
+        write( IOBuffer, '("Correlation Functions (CF) are calculated every",I3,"-th time step")') this%NStepCorr
         call LogWrite
       else
         this%NStepCorr = 1
-        write( IOBuffer, '("Correlation Function (CF) is calculated every time step")')
+        write( IOBuffer, '("Correlation Functions (CF) are calculated every time step")')
         call LogWrite
         write( IOBuffer, '("StepsCorrfun is set to 1. SpanCorrfun is not divisible by StepsCorrfun")') 
         call LogWrite
@@ -1340,7 +1340,7 @@ contains
       this%TimeStepCorr = TimeStep * this%NStepCorr
 
       if(mod(this%NCorr, this%NSpanCF) .eq. 0) then
-        write( IOBuffer, '("Length of CF:",T26, I5)' ) this%NCorr*this%NStepCorr
+        write( IOBuffer, '("Length of CF:",T26, I7)' ) this%NCorr*this%NStepCorr
         call LogWrite
       else
         this%NCorr = (AINT(real( this%NCorr, RK )/real( this%NSpanCF, RK ))+1)*this%NSpanCF
@@ -1349,18 +1349,18 @@ contains
       endif
       
       ! Correlation length output
-      write( IOBuffer, '("Time Span between CF:",T26, I5)' ) this%NSpanCF*this%NStepCorr
+      write( IOBuffer, '("Time Span between CF:",T26, I7)' ) this%NSpanCF*this%NStepCorr
       call LogWrite
 
       call FileReadParameter( this%Nviewcf , iounit_params , IdNviewcf )
-      write( IOBuffer, '("Print CF each:",T26, I5)' ) this%Nviewcf
+      write( IOBuffer, '("Print CF each:",T26, I7)' ) this%Nviewcf
       call LogWrite
 
       if ( ((this%Nviewcf*this%NSpanCF*this%NStepCorr+this%NCorr*this%NStepCorr) > NSteps) .or. (this%Nviewcf .eq. 0) ) then
         write(IOBuffer, '("Warning: Updates of CF not sufficient - Output once at the end of simulation")')
         call LogWrite
         this%Nviewcf = int((NSteps-this%NCorr*this%NStepCorr)/(this%NSpanCF*this%NStepCorr))
-        write( IOBuffer, '("Print after", I6," CF")' ) this%Nviewcf
+        write( IOBuffer, '("Print after", I7," CF")' ) this%Nviewcf
         call LogWrite
       end if
 
@@ -1598,11 +1598,11 @@ contains
 
       
       if (LongRange .eq. Ewald) then
-	do i = 1, this%NComponents
-	  if ( abs(this%Component(i)%Molecule%Charge) .gt. 1e-7) then
+        do i = 1, this%NComponents
+          if ( abs(this%Component(i)%Molecule%Charge) .gt. 1e-7) then
              this%EConductivity = .true.
-	  end if
-	end do
+          end if
+        end do
       end if
 
 
@@ -8869,7 +8869,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     ! Declare local variables
     type(TComponent), pointer  :: pc, pt
     type(TInteraction), pointer:: pmie
-    integer                    :: i, j, k, l, currentbin
+    integer                    :: currentbin
     real(RK)                   :: Shield1, Shield2
     real(RK)                   :: LambdaNew, Factor, FactorOld, ChempotDelta
     real(RK)                   :: EPotOld, EPotNew
