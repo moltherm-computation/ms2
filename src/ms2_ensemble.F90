@@ -4130,7 +4130,7 @@ xloop:do i = 1, NCells1dim(1)
 #endif
 
     do i = 1, this%NComponents
-      this%Component(i)%P0 = this%Component(i)%P0 - 0.5_RK
+      this%Component(i)%Pm0 = this%Component(i)%Pm0 - 0.5_RK
     end do
 
     ! Save old positions

@@ -4526,7 +4526,7 @@ loop1:do i = 1, this%NPart
     ! Declare local variables
     integer :: np, nra, iUnit
     integer :: i, j
-    real(RK) :: r(3)
+    real(RK) :: r(this%NPart, 3)
 
     ! Assign local variables
     np = this%NPart
@@ -4547,6 +4547,32 @@ loop1:do i = 1, this%NPart
             this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j, 1) - this%Pm0old(i, j)
         end if
 
+        r(i, j) = 0._RK
+
+        do iUnit = 1, this%Molecule%NUnit
+          ! Check for conservation of particles in primary cell
+#if ARCH == 1
+          if( this%P0(i, j, iUnit) < -.5_RK ) then
+            this%P0(i, j, iUnit) = this%P0(i, j, iUnit) + 1._RK
+          elseif( this%P0(i, j, iUnit) > .5_RK ) then
+            this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - 1._RK
+          end if
+#else
+          this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - anint( this%P0(i, j, iUnit) )
+#endif
+          ! Calculate new positions of COM for molecules from new COM of units
+          r(i, j) = r(i, j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j, iUnit)-anint(this%P0(i,j, iUnit)-this%Pm0(i,j)))
+        end do
+
+        if (UseIntDegFreed) then
+          this%Pm0(i,j) = r(i, j)/this%Molecule%Mass ! (unit-)mass averaged coordinates
+          ! Calculate displacement of molecules
+          this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+          this%Pm0(i,j) = this%Pm0(i,j) - anint(this%Pm0(i,j))
+        else ! there should exist only one unit
+          this%Pm0(i,j) = this%P0(i, j, 1)
+        end if
+        this%Pm0old(i, j) = this%Pm0(i, j)
       end do
     end do
 
@@ -4601,7 +4627,7 @@ loop1:do i = 1, this%NPart
     real(RK), pointer, contiguous :: pF(:, :, :), pT(:, :, :)
     integer           :: np, nra,iUnit
     integer           :: i, j
-    real(RK)          :: r(3)
+    real(RK)          :: r(this%NPart, 3)
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
@@ -4614,11 +4640,11 @@ loop1:do i = 1, this%NPart
     pF => this%F(:, :, :)
 #endif
 
-    do i = 1, np
-      r(:) = 0._RK
-      do iUnit= 1, this%Molecule%NUnit
-        MassInv = 1._RK / this%Molecule%Unit(iUnit)%Mass
-        do j = 1, 3
+    do j = 1, 3
+      do i = 1, np
+        r(i, j) = 0._RK
+        do iUnit= 1, this%Molecule%NUnit
+          MassInv = 1._RK / this%Molecule%Unit(iUnit)%Mass
           this%Corr0(i, j, iUnit) = pF(i, j, iUnit) * TimeStepSquared2 * BoxLengthInv * MassInv
 
           if( ConstantPressure .and. .not. NVTEquilibration ) this%Corr0(i, j, iUnit) = this%Corr0(i, j, iUnit) &
@@ -4644,32 +4670,22 @@ loop1:do i = 1, this%NPart
             this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - 1._RK
           end if
 #else
-
+          this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - anint( this%P0(i, j, iUnit) )
 #endif
-
-          r(j) = r(j) + this%Molecule%Unit(iUnit)%Mass*this%P0(i,j,iUnit)
+          ! Calculate new positions of COM for molecules from new COM of units
+          r(i, j) = r(i, j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
         end do
+
+        if (UseIntDegFreed) then
+            this%Pm0(i, j) = r(i, j)/this%Molecule%Mass
+            ! Calculate displacement of molecules
+            this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+            this%Pm0(i, j) = this%Pm0(i, j) - anint(this%Pm0(i, j))
+        else ! there should exist only one unit
+            this%Pm0(i, j) = this%P0(i, j, 1)
+        end if
+        this%Pm0old(i, j) = this%Pm0(i, j)
       end do
-
-      do iUnit = 1, this%Molecule%NUnit
-        do j = 1, 3
-
-           this%Pm0(i,j) = r(j)/this%Molecule%Mass
-           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - anint( this%Pm0(i, j) )
-        end do
-      end do
-
-    ! Calculate new positions of COM for molecules from new COM of units
-
-      r(:) = 0._RK
-      do iUnit= 1, this%Molecule%NUnit
-         r(:) = r(:) + this%Molecule%Unit(iUnit)%Mass*this%P0(i,:,iUnit)
-      end do
-
-      ! Calculate displacement of molecules
-      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
-      this%Pm0(i,:) = r(:)/this%Molecule%Mass
-      this%Pm0old(i,:) = this%Pm0(i, :)
     end do
 
     do iUnit = 1, this%Molecule%NUnit
