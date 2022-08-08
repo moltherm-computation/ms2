@@ -54,7 +54,7 @@ module ms2_molecule
     ! Principal moments of inertia
     real(RK) :: MOI(3)
 
-    ! 12-6 Lennard-Jones sites
+    ! MIE sites
     integer :: NMIEnm
     type(TSiteMIEnm), pointer, contiguous :: SiteMIEnm(:)
 
@@ -291,17 +291,29 @@ contains
     ! Zero number of  constraint sites and not oriented unites
     ncs = 0
 
+
+
     ! Loop over potential types
     do i = 1, ntypes
       call FileReadParameter( stype, iounit_potmod, IdSite_stype, .false. )
       select case( stype )
-
-      case( 'LJ126', 'lj126', 'LJ', 'lj' )
-        LJorMIE = 'LJ'
+      case( 'MIEnm', 'mienm', 'MIE', 'mie', 'Mie' ) !Case: Mie-Potential
+	  LJorMIE = 'MIE'
         call FileReadParameter( this%NMIEnm, iounit_potmod, IdSite_NMIEnm, .false. )
         if( this%NMIEnm > 0 ) then
           allocate( this%SiteMIEnm(this%NMIEnm), STAT = stat )
-          call AllocationError( stat, 'Lennard-Jones sites', this%NMIEnm )
+          call AllocationError( stat, 'MIE sites', this%NMIEnm )
+          do j = 1, this%NMIEnm
+            call Construct( this%SiteMIEnm(j) )
+          end do
+        end if
+		
+	  case( 'LJ126', 'lj126', 'LJ', 'lj', 'Lj' ) !Case: LJ126-Potential
+	  LJorMIE = 'LJ'
+	    call FileReadParameter( this%NMIEnm, iounit_potmod, IdSite_NMIEnm, .false. )
+        if( this%NMIEnm > 0 ) then
+          allocate( this%SiteMIEnm(this%NMIEnm), STAT = stat )
+          call AllocationError( stat, 'LJ sites', this%NMIEnm )
           do j = 1, this%NMIEnm
             call Construct( this%SiteMIEnm(j) )
           end do
@@ -342,6 +354,7 @@ contains
         call Error( trim( stype )//' potential is not implemented' )
       end select
     end do
+
 
     ! Find center of mass position
     call FindCOM( this )
@@ -1892,8 +1905,10 @@ contains
       end do
     end if
 
-    ! Save total mass of the molecule
+    ! Save number of rotation axes
     call FileWriteBlank( iounit_normal )
+
+    ! Save total mass of the molecule
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &          this%Mass * UnitMass * 1000._RK * NAvogadro, this%Mass
     call FileWriteParameter( iounit_normal, IdSite_Mass )

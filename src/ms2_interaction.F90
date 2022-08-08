@@ -1809,18 +1809,21 @@ contains
               PZij = PZij - anint( PZij )
               RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
               RijSquaredInv = SigmaSquared / RijSquared
-              EPot(j) = EPot(j) + EpsilonMie_a * RijSquaredInv**3 * (RijSquaredInv**3 - 1._RK)
+			  RijMie_nInv = RijSquaredInv**Mie_nHalf
+		      RijMie_mInv = RijSquaredInv**Mie_mHalf
+              Mie_nRijMie_n = Mie_n * RijMie_nInv
+		      Mie_mRijMie_m = Mie_m * RijMie_mInv
+              EPot(j) = EPot(j) + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
               if ( OptPressure ) then
-                Fij = EpsilonMie_aF * RijSquaredInv**3 * (RijSquaredInv**3 - .5_RK) * RijSquaredInv
+                Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
                 FXij = Fij * RXij
                 FYij = Fij * RYij
                 FZij = Fij * RZij
                 Virial(j) = Virial(j) + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
               end if
-              Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-              d2EpotdV2(j) = d2EpotdV2(j) + EpsilonMie_a * RijSquaredInv**3 *(12._RK *RijSquaredInv**3 -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx2 LJ
-              d2EpotdV2(j) = d2EpotdV2(j) + EpsilonMie_a * RijSquaredInv**3 *(156._RK*RijSquaredInv**3 - 42._RK) *  sitecorr * sitecorr *Third*Third
+		      d2EpotdV2(j) = d2EpotdV2(j) + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
+			                + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)!xxxx2 MIE
             end if
           end do
         end do
