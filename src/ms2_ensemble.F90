@@ -1430,10 +1430,10 @@ contains
         call FileReadParameter( this%ScaleEpsilon(i, j), iounit_params , IdScaleEpsilon, .false. )
         if( i /= j ) this%ScaleEpsilon(j, i) = this%ScaleEpsilon(i, j)
         write( IOBuffer, &
-&         '(A, "-", A, " MIE interaction:  eta =", F6.3, ", xi =", F6.3)' ) &
+&         '(A, "-", A, " ", A, " interaction:  eta =", F6.3, ", xi =", F6.3)' ) &
 &         trim( this%Component(i)%PotModFileName ), &
 &         trim( this%Component(j)%PotModFileName ), &
-&         this%ScaleSigma(i, j), this%ScaleEpsilon(i, j)
+&         trim(LJorMIE), this%ScaleSigma(i, j), this%ScaleEpsilon(i, j)
         call LogWrite
       end do
     end do
@@ -1531,7 +1531,7 @@ contains
 
       if( this%NMIEnmMax > 0 ) then
         call FileReadParameter( this%RCutoffMIEnmMIEnm, iounit_params , IdRCutoffMIEnmMIEnm, .false. )
-        write( IOBuffer, '("MIE cutoff radius: ",T45, F6.3, " sigma")' ) this%RCutoffMIEnmMIEnm
+        write( IOBuffer, '(A, " cutoff radius: ",T45, F6.3, " sigma")' ) trim(LJorMIE), this%RCutoffMIEnmMIEnm
         call LogWrite
       end if
 
@@ -2029,9 +2029,9 @@ contains
         this%ScaleEpsilon(i:i+1, j:j+1) = scaleEpsilon
 
         if( i /= j ) this%ScaleEpsilon(j:j+1, i:i+1) = scaleEpsilon
-        write( IOBuffer, '(A, "-", A, " MIE interaction:  eta =", F6.3, ", xi =", F6.3)' ) &
+        write( IOBuffer, '(A, "-", A, " ", A, " interaction:  eta =", F6.3, ", xi =", F6.3)' ) &
 &         trim( this%Component(i)%PotModFileName ), trim( this%Component(j)%PotModFileName ), &
-&         this%ScaleSigma(i, j), this%ScaleEpsilon(i, j)
+&         trim(LJorMIE), this%ScaleSigma(i, j), this%ScaleEpsilon(i, j)
         call LogWrite
 
       end do
@@ -2051,9 +2051,9 @@ contains
       do j = i + 1, this%NComponents, 2
 
         this%Interaction(i, j)%EPotCorrMIE = sum( this%Interaction(i, j)%PotMIEnmMIEnm(:, :)%EPotCorr )
-        write( IOBuffer, '("Cutoff correction to SVC of ", A, "-", A, " from MIE:", F12.8)' ) &
+        write( IOBuffer, '("Cutoff correction to SVC of ", A, "-", A, " from ", A, ":", F12.8)' ) &
 &         trim( this%Component(i)%Molecule%PotModFileName ), trim( this%Component(j)%Molecule%PotModFileName ), &
-&         .5_RK * this%Interaction(i, j)%EPotCorrMIE / this%Temperature
+&         trim(LJorMIE), .5_RK * this%Interaction(i, j)%EPotCorrMIE / this%Temperature
         call LogWrite
 
       end do
@@ -15695,9 +15695,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif         
         call FileWrite( this%iounit_errors )
 #if MPI_VER > 0
-        call MPI_Reduce( this%DispVol,tempReal, 1, MPI_RK, MPI_MAX, &
-        &    NRootProc, Communicator, ierror )
-        if (Nproc == NRootProc) then
+        call MPI_Reduce( this%DispVol,tempReal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+        if ( Nproc == NRootProc) then
           write( IOBuffer, '("Maximum displacement volume", T33, "r`d:", F20.9)' ) tempReal
         endif
 #else
