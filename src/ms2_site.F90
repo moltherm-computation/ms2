@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
-!  (c) 2014 by TU Kaiserslautern                               !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 3.0                !
+!  (c) 2017 by TU Kaiserslautern / U Paderborn                 !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -617,7 +617,7 @@ contains
         write( IOBuffer, '(I3)' ) this%SiteId
         call FileWriteParameter( iounit_normal, IdMIE_SiteId )
     end if
-	write( IOBuffer, '(G20.10, T32, "# : ", G20.10)' ) this%mie_n 
+    write( IOBuffer, '(G20.10, T32, "# : ", G20.10)' ) this%mie_n 
     call FileWriteParameter( iounit_normal, IdMIE_n )
 	write( IOBuffer, '(G20.10, T32, "# : ", G20.10)' ) this%mie_n 
     call FileWriteParameter( iounit_normal, IdMIE_m )
