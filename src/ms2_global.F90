@@ -13,6 +13,8 @@
 !* http://www.ms-2.de                                           *   
 !****************************************************************
 
+!#define USE_PRINTPROCSTATUS
+
 #ifndef ARCH
 #define ARCH    0
 #define FORTRAN 90
@@ -180,6 +182,13 @@ module ms2_global
   ! Extension of RDF file 
   character(*), parameter :: RDFFileExtension = '.rdf'
   
+  ! Extension of KBI file (Kirkwood-Buff Integration)
+  character(*), parameter :: KBIrdfFileExtension = '.kbirdf'
+  character(*), parameter :: KBIrunFileExtension = '.kbirun'
+  
+  ! Extension of alpha2 file (displacement correlation function)
+  character(*), parameter :: ALPHA2ravFileExtension = '.a2rav'
+  
   ! Extension of ThermoInt filename
   character(*), parameter :: ThermoIntFileExtension = '.thi'
 
@@ -228,6 +237,10 @@ module ms2_global
   integer, parameter :: iounit_rescf     = iounit_start + 12
   integer, parameter :: iounit_visualHB  = iounit_start + 13
   integer, parameter :: iounit_dcp       = iounit_start + 14
+  integer, parameter :: iounit_kbirdf    = iounit_start + 15
+  integer, parameter :: iounit_kbirun    = iounit_start + 16
+  integer, parameter :: iounit_a2rav     = iounit_start + 17
+  integer, parameter :: iounit_proc      = iounit_start + 18
 
 #if MPI_VER > 0
   integer            :: iounit_result_parallel = iounit_start + 6
@@ -284,6 +297,12 @@ module ms2_global
   character(*), parameter :: IdVisualUpdateFrequency       = 'VisualFreq'
   character(*), parameter :: IdRDFUpdateFrequency          = 'RDFFreq'
   character(*), parameter :: IdRDFNumberShells             = 'NumShells'
+  character(*), parameter :: IdKBIUpdateFrequency          = 'KBIFreq' !Kirkwood-Buff Integration
+  character(*), parameter :: IdKBINumberShells             = 'KBINumShells'
+  character(*), parameter :: IdKBIResetFrequency           = 'KBIResetFreq' 
+  character(*), parameter :: IdALPHA2UpdateFrequency       = 'ALPHA2Freq' !Alpha2 correlation function
+  character(*), parameter :: IdALPHA2Length                = 'ALPHA2Length'
+  character(*), parameter :: IdALPHA2Shift                 = 'ALPHA2Shift' 
   character(*), parameter :: IdNBinsDen                    = 'NumDenBins'
   character(*), parameter :: IdWallForce                   = 'Wallforce'
   character(*), parameter :: IdCutoffMode                  = 'CutoffMode'
@@ -387,8 +406,8 @@ module ms2_global
   character(*), parameter :: IdSite_MOI2                   = 'InertMomY'
   character(*), parameter :: IdSite_MOI3                   = 'InertMomZ'
   character(*), parameter :: IdMIE_SiteId                  = 'SiteID'
-  character(*), parameter :: IdMIE_n					   = 'MIE_n'
-  character(*), parameter :: IdMIE_m					   = 'MIE_m' 
+  character(*), parameter :: IdMIE_n                       = 'MIE_n'
+  character(*), parameter :: IdMIE_m                       = 'MIE_m' 
   character(*), parameter :: IdMIEnm_r1                    = 'x'
   character(*), parameter :: IdMIEnm_r2                    = 'y'
   character(*), parameter :: IdMIEnm_r3                    = 'z'
@@ -715,6 +734,22 @@ module ms2_global
   ! Current number of blocks CF
   integer :: NBlocksCF
 #endif
+  
+  ! Kirkwood-Buff integration parameters
+  ! Maximum number of blocks KBI
+  integer :: NBlocksMaxKBI
+
+  ! Frequency of updating result file KBI
+  integer :: BlockSizeKBI
+
+  ! Maximum number of block sizes for error calculation KBI
+  integer :: NBlockSizesMaxKBI
+
+  ! Number of block sizes for error calculation KBI
+  integer :: NBlockSizesKBI
+
+  ! Current number of blocks KBI
+  integer :: NBlocksKBI
 
   ! Frequency of updating final result file
   integer :: ErrorsUpdateFrequency
@@ -727,6 +762,19 @@ module ms2_global
   
   ! Number of RDF shells
   integer :: RDFNumberShells
+  
+  ! Frequency of updating KBI file
+  integer :: KBIUpdateFrequency
+  
+  ! Frequency of updating Alpha2 displacement
+  integer :: ALPHA2UpdateFrequency
+  integer :: ALPHA2Length
+  integer :: ALPHA2Shift
+  
+  ! Number of KBI shells
+  integer :: KBINumberShells
+  integer :: KBINumberShellsMax
+  integer :: KBINShellsCubeEdge
 
   ! Number of density profile bins
   integer :: NBinsDen
@@ -749,23 +797,23 @@ module ms2_global
   ! MPI variables
 #if MPI_VER > 0
   integer :: ierror
-  integer :: Communicator	! actual MPI communicator
-  !integer :: Communicator_W	! =MPI_COMM_WORLD
-  integer :: Communicator_R	! MPI communicator containing all roots
-  integer :: NProcs	! number of PEs within actual MPI communicator
-  integer :: NProc	! MPI rank of actual MPI communicator
-  integer :: NRootProc	! MPI rank of root of actual MPI communicator
-  logical :: RootProc	! is PE root within actual MPI communicator
-  integer :: NProcs_W	! number of PEs within MPI_COMM_WORLD
-  integer :: NProc_W	! MPI rank within MPI_COMM_WORLD
-  integer :: NRootProc_W	! MPI rank of root PE within MPI_COMM_WORLD
-  logical :: RootProc_W 	! is PE root of MPI_COMM_WORLD?
-  integer :: NProcs_R	! number of PEs within actual Communicator_R
-  integer :: NProc_R	! MPI rank within actual Communicator_R
-  integer :: NRootProc_R	! MPI rank of root PE within actual Communicator_R
-  logical :: RootProc_R 	! is PE root of actual Communicator_R?
-  integer :: NCommunicators	! number of Communicators (useful after MPI_Comm_Split)
-  integer :: NCommunicator	! ID of the Communicator
+  integer :: Communicator   ! actual MPI communicator
+  !integer :: Communicator_W    ! =MPI_COMM_WORLD
+  integer :: Communicator_R ! MPI communicator containing all roots
+  integer :: NProcs ! number of PEs within actual MPI communicator
+  integer :: NProc  ! MPI rank of actual MPI communicator
+  integer :: NRootProc  ! MPI rank of root of actual MPI communicator
+  logical :: RootProc   ! is PE root within actual MPI communicator
+  integer :: NProcs_W   ! number of PEs within MPI_COMM_WORLD
+  integer :: NProc_W    ! MPI rank within MPI_COMM_WORLD
+  integer :: NRootProc_W    ! MPI rank of root PE within MPI_COMM_WORLD
+  logical :: RootProc_W     ! is PE root of MPI_COMM_WORLD?
+  integer :: NProcs_R   ! number of PEs within actual Communicator_R
+  integer :: NProc_R    ! MPI rank within actual Communicator_R
+  integer :: NRootProc_R    ! MPI rank of root PE within actual Communicator_R
+  logical :: RootProc_R     ! is PE root of actual Communicator_R?
+  integer :: NCommunicators ! number of Communicators (useful after MPI_Comm_Split)
+  integer :: NCommunicator  ! ID of the Communicator
   !
   !integer, parameter :: mpimsgtag_log    = 0
   integer, parameter :: mpimsgtag_simTerm = 1
@@ -787,7 +835,7 @@ module ms2_global
   logical :: TerminateProgram
 
 ! PGF compiler version < 6.0 seems to need this
-! #ifdef _PGF
+! #if defined _PGF || defined __PGI
 !   ! External funtion for signal handling
 !   external SetTerminateProgram
 ! #endif
@@ -796,7 +844,7 @@ module ms2_global
   logical, parameter :: TerminateProgram = .false.
 #endif
 
-  integer, parameter :: IdErrorCodeBase = b'1000000000000000'	!=32768
+  integer, parameter :: IdErrorCodeBase = b'1000000000000000'   !=32768
   ! e.g. 10000 would be better to read for pure addition, but
   ! bits might code error type, origin (module&function),...
 
@@ -969,6 +1017,11 @@ module ms2_global
     module procedure Global_GetProcRange
   end interface
 
+#ifdef USE_PRINTPROCSTATUS
+  interface printProcStatus
+    module procedure Global_printProcStatus
+  end interface
+#endif
 
 !==============================================================!
 !  External (intrinsic) procedures                             !
@@ -997,7 +1050,7 @@ module ms2_global
 #endif
   
   ! change current directory
-#if defined _PGF
+#if defined _PGF || defined __PGI
   integer, external :: chdir
 !#elif defined
   !external chdir
@@ -1008,7 +1061,7 @@ module ms2_global
 #endif
 
   ! User name from console
-#if ARCH == 1 || defined _PGF
+#if ARCH == 1 || defined _PGF || defined __PGI
   character(256), external :: getlog
 #elif ARCH == 2 || ARCH==3
   external getlog
@@ -1124,7 +1177,7 @@ contains
     call MPI_Comm_Split(oldCommunicator,NCommunicator,NProc,newCommunicator,ierror)
     ! MPI_Comm_Group + MPI_Group_Range_incl + MPI_Comm_Create might be more efficient
     ! (avoiding some internal communication within the MPI library)    
-    call SetCommunicator(newCommunicator)	!   RootProc is now true for the root of the new communicator(s)
+    call SetCommunicator(newCommunicator)   !   RootProc is now true for the root of the new communicator(s)
     ! (re)open log files
     call LogOpen
     
@@ -1247,8 +1300,8 @@ contains
       narg = iargc()
 #endif
       if( narg .lt. 1 ) then
-	call Global_printVersion()
-	call Global_printUsage()
+    call Global_printVersion()
+    call Global_printUsage()
         ! Abort program
 #if MPI_VER > 0
         call MPI_Abort( MPI_COMM_WORLD, 2, ierror )
@@ -1259,7 +1312,7 @@ contains
       do i = 1,narg
         argpos=i
         call getarg( argpos, buffer )
-      	!print *,"processing command line argument ",trim(buffer)
+        !print *,"processing command line argument ",trim(buffer)
         if (trim(buffer).eq."-V" .or. trim(buffer).eq."--version") then
           call Global_printVersion()
 #if MPI_VER > 0
@@ -1274,10 +1327,10 @@ contains
           stop
         else if (trim(buffer).eq."-r" .or. trim(buffer).eq."--restart") then
           Restart = .true.
-	else
-	!  print *,"WARNING: command line argument not known and disregarded: ",trim(buffer)
-	  exit
-      	end if
+    else
+    !  print *,"WARNING: command line argument not known and disregarded: ",trim(buffer)
+      exit
+        end if
       end do
       if (argpos>narg) then
 #if MPI_VER > 0
@@ -1296,7 +1349,7 @@ contains
       i = scan(buffer, FileSep, .true.)
       if( i>0 ) then
         ! path includes directory
-#if defined __INTEL_COMPILER || defined _PGF || defined __PATHSCALE__ 
+#if defined __INTEL_COMPILER || defined _PGF || defined __PGI || defined __PATHSCALE__ 
         stat = chdir( buffer(:max(i-1,1)) )
 #elif defined _CRAYFTN
         call PXFCHDIR( buffer(:max(i-1,1)), 0, stat)
@@ -1320,7 +1373,7 @@ contains
         if( buffer( dot:len( buffer ) ) .eq. ParameterFileExtension ) then
 !           buffer = buffer( 1:dot - 1 )
           ParameterFileName =  trim( buffer )    ! possible truncation
-	!else
+    !else
         !  ParameterFileName =  trim(buffer)//ParameterFileExtension
         end if
         !RestartFileName=trim(buffer(1:dot-1))//RestartFileExtension
@@ -1414,7 +1467,7 @@ contains
     write( IOBuffer, '("Compiler version     : GNU gfortran", I6)' ) __GNUC_VERSION__
 #elif defined __INTEL_COMPILER
     write( IOBuffer, '("Compiler version     : INTEL ", I4, ", build ", I8)' ) __INTEL_COMPILER, __INTEL_COMPILER_BUILD_DATE
-#elif defined __PGI
+#elif defined __PGI || defined _PGF
     write( IOBuffer, '("Compiler version     : PGI pgf")' )
 #elif defined __SUNPRO_F95
     write( IOBuffer, '("Compiler version     : SUN studio sunf95 ", A)' ) MACRODEF_TO_STRING(__SUNPRO_F95)
@@ -1463,7 +1516,7 @@ contains
 #if ARCH == 1  || defined _CRAYFTN
     call getenv( 'HOSTNAME', hostname )
 #elif ARCH == 2 || ARCH == 3
-#if defined _PGF || defined __GNUC__ || defined __PATHSCALE__ || defined __SUNPRO_F90 || ARCH == 3
+#if defined _PGF || defined __PGI || defined __GNUC__ || defined __PATHSCALE__ || defined __SUNPRO_F90 || ARCH == 3
     i = hostnm( hostname )
 #else
     i = hostnam( hostname )
@@ -1472,7 +1525,7 @@ contains
 #endif
 #ifdef _CRAYFTN
    username = 'Getlog is not supported'
-#elif ARCH == 1 || defined _PGF
+#elif ARCH == 1 || defined _PGF || defined __PGI
     username = getlog()
 #elif ARCH == 2 || ARCH == 3
     call getlog( username )
@@ -1556,18 +1609,18 @@ contains
 #if ARCH == 1 || ARCH == 2
 #ifdef _CRAYFTN
 #elif defined  __GNUC__
-    call signal( 1, IgnoreSignal )	! Ignore SIGHUP
-    call signal( 2, SetTerminateProgram )	! Catch SIGINT
-    call signal( 3, SetTerminateProgram )	! Catch SIGQUIT
-    call signal( 15, SetTerminateProgram )	! Catch SIGTERM
+    call signal( 1, IgnoreSignal )  ! Ignore SIGHUP
+    call signal( 2, SetTerminateProgram )   ! Catch SIGINT
+    call signal( 3, SetTerminateProgram )   ! Catch SIGQUIT
+    call signal( 15, SetTerminateProgram )  ! Catch SIGTERM
 #else
-    i = signal( 1, SetTerminateProgram, 1 )	! Ignore SIGHUP (HangUP)
-    i = signal( 2, SetTerminateProgram, -1 )	! Catch SIGINT (INTerrupt)
-    i = signal( 3, SetTerminateProgram, -1 )	! Catch SIGQUIT (QUIT)
-    i = signal( 15, SetTerminateProgram, -1 )	! Catch SIGTERM (TERMinate)
+    i = signal( 1, SetTerminateProgram, 1 ) ! Ignore SIGHUP (HangUP)
+    i = signal( 2, SetTerminateProgram, -1 )    ! Catch SIGINT (INTerrupt)
+    i = signal( 3, SetTerminateProgram, -1 )    ! Catch SIGQUIT (QUIT)
+    i = signal( 15, SetTerminateProgram, -1 )   ! Catch SIGTERM (TERMinate)
 #endif
 #elif ARCH == 3
-    i = signal( 15, SetTerminateProgram )	! Catch SIGTERM
+    i = signal( 15, SetTerminateProgram )   ! Catch SIGTERM
 #endif
     write( IOBuffer, '(72("-"))')
     call LogWrite
@@ -1596,6 +1649,10 @@ contains
     BuckinghamsInSI = sqrt( 1E69_RK / (4._RK * Pi * VacuumPermittivity) )
 #endif
 
+#ifdef USE_PRINTPROCSTATUS
+    call printProcStatus("end of InitializeProgram")
+#endif
+
   end subroutine Global_InitializeProgram
 
 
@@ -1611,6 +1668,10 @@ contains
     ! Include MPI header
 #if MPI_VER > 0
     include 'mpif.h'
+#endif
+
+#ifdef USE_PRINTPROCSTATUS
+    call printProcStatus("beginning of FinalizeProgram")
 #endif
 
     call LogWriteBlank
@@ -1709,8 +1770,8 @@ contains
 #endif
     !    GlobalErrorCode is not a constant and therefore not accepted by older Fortran versions :-( ...
     stop IdErrorCodeBase
-    !error stop IdErrorCodeBase	! this is an error, so error stop might be favorable
-    !stop 4	! very old Fortran versions only support char (0-255)
+    !error stop IdErrorCodeBase ! this is an error, so error stop might be favorable
+    !stop 4 ! very old Fortran versions only support char (0-255)
     ! should check for Fortran2008+ solution...
 
   end subroutine Global_Error
@@ -2973,16 +3034,18 @@ contains
 !  Subroutine Write Restart File when more writing time needed !
 !==============================================================!
 
-#if MPI_VER > 0
-  subroutine time_left(time_limit)
+subroutine time_left(time_limit)
 
     implicit none
 
+    ! could also use (an extended version of) TStopwatch
+    
+#if MPI_VER > 0
     ! Include MPI header
     include 'mpif.h'
+#endif
 
     real(RK) :: time_remaining
-    real(RK) :: cputime,max_cpu_time
     integer  :: time_limit
     
 !     integer  :: ierror
@@ -2993,23 +3056,40 @@ contains
     character*10 string_max_time
 #endif
 
-#ifdef SMUC
-    real(RK) :: time_elapsed
+    real(RK) :: time_elapsed    ! [sec]
     real(RK), save :: first_time
     logical, save :: FirstCAll =.TRUE.
-#endif
+    !integer :: time
+    integer(4) :: sysclkcount, sysclkcountrate, sysclkcountmax
 
-#ifdef SMUC 
     if (FirstCAll)then
+#if MPI_VER > 0
        first_time = MPI_WTIME()
+!#elif defined ENABLE_OMP ! comment put by simon -> otherwise omp error
+!       first_time = omp_get_wtime()   !-"-
+#else
+       !first_time = real(time())
+       !!first_time = rtc()
+       ! call system_clock(count_rate=sysclkcountrate,count_max=sysclkcountmax)
+       ! call system_clock(sysclkcount)
+       call system_clock(sysclkcount, sysclkcountrate, sysclkcountmax)
+       first_time = real(real(sysclkcount)/sysclkcountrate)
+#endif       
        FirstCall = .FALSE.
     end if
+#if MPI_VER > 0
     time_elapsed = MPI_WTIME() - first_time
+!#elif defined ENABLE_OMP   ! comment put by simon -> otherwise omp error
+!      first_time = omp_get_wtime() - first_time        ! -"-
+#else
+    !time_elapsed = real(time()) - first_time
+    call system_clock(sysclkcount, sysclkcountrate, sysclkcountmax)
+    time_elapsed = real(sysclkcount)/sysclkcountrate - first_time
+#endif       
 
-#else 
 ! Get CPU time consumed by each task and compute the maximum value
-    call cpu_time(cputime)
-#endif
+!    call cpu_time(cputime)
+! CPU time (!= elapsed wallclock time) does not make much sense here! There are also problems with multithreaded programs and "wrap around".
 
 #ifdef KARLS
 ! getenv delivers the value of the environment variable JMS_t
@@ -3025,16 +3105,11 @@ contains
     read(string_max_time,*) max_time
 #endif
 
-! Compute the remaining CPU time
-
-#ifdef SMUC
+! Compute the remaining walltime
     time_remaining = max_time - real(time_elapsed)/60.
-#else
-    time_remaining = max_time - real(cputime)/60.
-#endif
 
     if (time_remaining .le. time_limit) then
-       write( IOBuffer, '("Simulation Abort due to Time Constraints on simulation cluster")' )
+       write( IOBuffer, '("Simulation Abort due to Time Constraints on simulation cluster (time remaining=",G8.1,"<",G8.1," min)")' ) time_remaining, real(time_elapsed)/60.
        call LogWrite
        call LogWriteBlank
 
@@ -3043,9 +3118,108 @@ contains
 #else
          call SetTerminateProgram
 #endif
+    !else
+    !   write( IOBuffer, '("time remaining [min]: ",I5)' ) time_remaining
+    !   call LogWrite
     end if
 
   end subroutine time_left
+
+
+#ifdef USE_PRINTPROCSTATUS
+!==============================================================!
+!  Subroutine Global_printprocStatus
+!==============================================================!
+
+subroutine Global_printprocStatus(tag_string)
+      
+      implicit none
+      
+#if MPI_VER > 0
+      ! Include MPI header
+      include 'mpif.h'
+#endif
+      
+      ! Declare arguments
+      character(*), intent(in), optional :: tag_string
+      
+      ! Declare local variables
+      character(*), parameter   :: procfilename = '/proc/self/status'
+      character(IOBufferLength) :: buffer,token,valbuffer
+      integer                   :: stat, linenr, seppos, i, val, nvalread
+      integer, parameter        :: numvalues = 3
+      character(*),parameter,dimension(numvalues) :: tokens = (/ &
+&                                                       "VmPeak" &
+&                                                      ,"VmSize" &
+&                                                      ,"VmRSS " &
+&                                                             /)
+      integer(8) values(numvalues)
+#if MPI_VER > 0
+      integer(8) values_minmaxsum(numvalues,3)
+#endif
+      
+      open(unit=iounit_proc, file=procfilename, action='read', iostat=stat)
+      !if ( stat /= 0 ) return  ! dangerous for MPI version if not all ranks do exit...
+      
+      !linenr = 0
+      nvalread = 0
+      values=0
+      
+      do ! endless loop
+        read(iounit_proc, '(A)', iostat=stat) buffer
+        if (stat /= 0) exit  ! exit if nothing to read (EOF)
+        !linenr = linenr + 1
+        seppos=scan(buffer,': ')
+        token=trim(adjustl(buffer(1:seppos-1)))
+        valbuffer=trim(adjustl(buffer(seppos+1:)))
+        do i=1,numvalues
+          if ( trim(token) .eq. trim(tokens(i)) ) then
+            read(valbuffer,*,iostat=stat)  values(i)
+            !if (stat /= 0) continue
+            nvalread = nvalread + 1
+            if (index(valbuffer,'kB',.true.).gt.0) then
+              values(i)=values(i)*1024
+            end if
+            if (nvalread .ge. numvalues) exit  ! exit if all data already read
+          end if
+        end do
+      end do
+      
+      close(iounit_proc)
+      
+      call LogWriteBlank
+      if( present( tag_string ) ) then
+        write( IOBuffer, '("( ",A," ",A)' ) trim(procfilename), trim(tag_string)
+      else
+        write( IOBuffer, '( "(",A)' ) trim(procfilename)
+      end if
+      call LogWriteTime
+#if MPI_VER > 0
+      values_minmaxsum(:,1)=-values
+      values_minmaxsum(:,2)=values
+      values_minmaxsum(:,3)=values
+      if ( RootProc_W ) then
+        call MPI_Reduce( MPI_IN_PLACE, values_minmaxsum, numvalues*2, MPI_INTEGER8, MPI_MAX, NRootProc_W, MPI_COMM_WORLD, ierror )
+      else
+        call MPI_Reduce( values_minmaxsum, values_minmaxsum, numvalues*2, MPI_INTEGER8, MPI_MAX, NRootProc_W, MPI_COMM_WORLD, ierror )
+      end if
+      call MPI_Reduce( values, values_minmaxsum(:,3), numvalues, MPI_INTEGER8, MPI_SUM, NRootProc_W, MPI_COMM_WORLD, ierror )
+      values_minmaxsum(:,1)=-values_minmaxsum(:,1)
+      do i=1,numvalues
+        write( IOBuffer, '(" ",A,"(min max sum):",3I20)' ) trim(tokens(i)),values_minmaxsum(i,:)
+        call LogWrite
+      end do
+#else
+      do i=1,numvalues
+        write( IOBuffer, '(" ",A,":",I16)' ) trim(tokens(i)),values(i)
+        call LogWrite
+      end do
+#endif
+      write( IOBuffer, '(") ",A)' ) trim(procfilename)
+      call LogWriteTime
+      call LogWriteBlank
+
+  end subroutine Global_printprocStatus
 #endif
 
 
@@ -3079,5 +3253,4 @@ contains
 
 
 end module ms2_global
-
 

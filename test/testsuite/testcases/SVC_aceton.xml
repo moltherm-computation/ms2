@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<name>SVC_aceton</name>
+	<parFile>SVC_aceton.par</parFile>
+	<np>1</np>
+	<reference>
+		<file>SVC_aceton_1.res</file>
+	</reference>
+	<reference>
+		<file>SVC_aceton_1.run</file>
+	</reference>
+</testcase>
