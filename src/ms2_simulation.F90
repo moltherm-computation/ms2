@@ -179,22 +179,6 @@ end type TSimulation
   interface RDFClose
     module procedure TSimulation_RDFClose
   end interface
-  
-  interface KBIOpen
-    module procedure TSimulation_KBIOpen
-  end interface
-
-  interface KBIUpdate
-    module procedure TSimulation_KBIUpdate
-  end interface
-
-  interface KBIClose
-    module procedure TSimulation_KBIClose
-  end interface
-  
-  interface ALPHA2Update
-    module procedure TSimulation_ALPHA2Update
-  end interface
 
   interface RestartSave
     module procedure TSimulation_RestartSave
@@ -325,7 +309,7 @@ contains
     end if
     write( IOBuffer, '("Name tag for output ",A,": ",T44, A)' ) trim( str ), trim( OutputNameTag )
     call LogWrite
-    call LogWriteBlank
+	call LogWriteBlank
 
     call FileReadParameter( max_time , iounit_params , IdWallTime , .true., 20160  )
     write( IOBuffer, '("Specified walltime: ",T23, I5, " m")' ) max_time
@@ -443,9 +427,6 @@ contains
       ErrorsUpdateFrequency = NSteps
       VisualUpdateFrequency = 0
       RDFUpdateFrequency = 0
-      KBIUpdateFrequency = 0
-      BlockSizeKBI = 0
-      ALPHA2UpdateFrequency = 0
       ! Set cutoff mode
       CutoffMode = CenterofMass
 
@@ -640,8 +621,8 @@ contains
           call FileReadParameter( NStepsP, iounit_params , IdNStepsMueP, .true., 0 )
           write( IOBuffer, '("Number of HA equilibration steps: ",T40, I7)' ) NStepsP
           call LogWrite
-          
-        else if( EnsembleType .eq. EnsembleTypeNPH ) then
+		  
+		else if( EnsembleType .eq. EnsembleTypeNPH ) then
           call FileReadParameter( NStepsH, iounit_params , IdNStepsH, .true., 0 )
           write( IOBuffer, '("Number of NPH equilibration steps: ",T40, I7)' ) NStepsH
           call LogWrite
@@ -771,63 +752,7 @@ contains
       call LogWrite
       end if
       call LogWriteBlank
-      
-      ! Read frequency of updating KBI file
-      call FileReadParameter( KBIUpdateFrequency, iounit_params , IdKBIUpdateFrequency, .true., 0 )
-      if( KBIUpdateFrequency > 0 ) then
-        if( .not. EnsembleType .eq. EnsembleTypeNVT) then 
-            call Error( trim( str )//' -> Kirkwood-Buff integration is in the NVT ensemble only defined' )
-        else
-            if (SimulationType .eq. MolecularDynamics ) KBIUpdateFrequency=1 !with MD and KBI -> KBISum is calculated while traversing the interaction matrix with RunMDStep            
-            write( IOBuffer, '("RDF for KBI will be updated each", T40, I7, " time steps")' ) KBIUpdateFrequency
-        end if
-      else
-        write( IOBuffer, '("KBI files will not be created")' )
-      end if
-      call LogWrite
-      
-      if( KBIUpdateFrequency > 0 ) then
-        call FileReadParameter( BlockSizeKBI, iounit_params , IdKBIResetFrequency, .true., 10000 )
-        !rounding up if KBIResetFreq is not a multiple of KBIUpdateFreq
-        BlockSizeKBI = KBIUpdateFrequency*ceiling(real(BlockSizeKBI,RK)/real(KBIUpdateFrequency,RK))
-        write( IOBuffer, '("RDF for KBI will be reset each", T40, I7, " time steps")' ) BlockSizeKBI
-        call LogWrite
-        call FileReadParameter( KBINumberShells, iounit_params , IdKBINumberShells, .true., 200 )
-        write( IOBuffer, '("RDF for KBI will operate with", I7, " shells")' ) KBINumberShells
-        call LogWrite
-        KBINumberShellsMax=ceiling(sqrt(3*real(KBINumberShells,RK)**2))
-        KBINShellsCubeEdge=floor(sqrt(2*real(KBINumberShells,RK)**2))
-#if MPI_VER > 0     
-        if (SimulationType .eq. MonteCarlo) then 
-            BlockSizeKBI=int(BlockSizeKBI/NProcs) !KBIBlockSize per process
-            !rounding up if KBIResetFreq is not a multiple of KBIUpdateFreq
-            BlockSizeKBI=KBIUpdateFrequency*int(BlockSizeKBI/KBIUpdateFrequency)
-        end if
-#endif
-        ! Calculate number of blocks and block sizes for KBI
-        NBlocksMaxKBI = ceiling(max( NStepsV, NStepsE, NStepsP, NStepsH, NSteps ) / real(BlockSizeKBI))
-        NBlockSizesMaxKBI = int( sqrt( real( NSteps / BlockSizeKBI, RK ) ) )
-      end if
-      call LogWriteBlank
-      
-      ! Read frequency of updating Alpha2 correlation function
-      call FileReadParameter( ALPHA2UpdateFrequency, iounit_params, IdALPHA2UpdateFrequency, .true., 0 )
-      if ( ALPHA2UpdateFrequency > 0 ) then
-        if ( SimulationType .eq. MolecularDynamics ) then 
-            call FileReadParameter( ALPHA2Length, iounit_params, IdALPHA2Length, .true., 10000 )
-            call FileReadParameter( ALPHA2Shift,  iounit_params, IdALPHA2Shift,  .true., 1000  )
-            write( IOBuffer, '("Alpha2 will be updated each", T40, I7, " time steps")' ) ALPHA2UpdateFrequency
-            call LogWrite
-            write( IOBuffer, '("Alpha2 correlation length: ", T40, I7, " time steps")' ) ALPHA2Length
-            call LogWrite
-            write( IOBuffer, '("Alpha2 correlation shift each", T40, I7, " time steps")' ) ALPHA2Shift
-            call LogWrite           
-        else
-            call Error( trim( str )//' -> Alpha2 correlation function is defined for MD only' )
-        end if      
-      end if
-      call LogWriteBlank
-      
+
 #if OSMOP > 0
       if ( SimulationType .eq. MonteCarlo ) then
         write( IOBuffer, '("Osmotic Pressure calculation with in Monte-Carlo not possible. Continuing without")' )
@@ -1052,7 +977,7 @@ contains
       call FileClose( iounit_params )
       call MPI_Bcast( ParameterFileName, FileNameLength, MPI_CHARACTER, NRootProc, Communicator, ierror )
       ! create subcommunicators to process subranges of the ensembles ++++++++++++++++++++++++++++++
-      call SplitCommunicator(this%mpiEnsembleGroups)    ! setting NCommunicator, NCommunicators and Communicator etc
+      call SplitCommunicator(this%mpiEnsembleGroups)	! setting NCommunicator, NCommunicators and Communicator etc
       ! 1-index based
       this%firstEnsembleIdx=this%NEnsembles*NCommunicator/NCommunicators+1
       this%lastEnsembleIdx=this%NEnsembles*(NCommunicator+1)/NCommunicators
@@ -1203,13 +1128,8 @@ contains
     call ResultOpen( this )
     call VisualOpen( this )
     call RDFOpen( this )
-    call KBIOpen( this )
 #if OSMOP > 0
     if ( SimulationType .ne. MonteCarlo ) call ProfileOpen(this )
-#endif
-
-#ifdef USE_PRINTPROCSTATUS
-    call printProcStatus("end of Construct")
 #endif
 
   end subroutine TSimulation_Construct
@@ -1230,15 +1150,10 @@ contains
     ! Declare local variables
     integer :: i
 
-#ifdef USE_PRINTPROCSTATUS
-    call printProcStatus("beginning of Destruct")
-#endif
-
     ! Close result and visualisation files
     call LogWriteBlank
     call ResultClose( this )
     call VisualClose( this )
-    call KBIClose( this )
     !call RDFClose( this ) ! file is closed after updating
 #if OSMOP > 0
     if ( SimulationType .ne. MonteCarlo ) call ProfileClose(this )
@@ -1340,10 +1255,6 @@ contains
     logical :: multNodes
     logical :: AnyNPartOk = .false.
 #endif 
-
-#ifdef USE_PRINTPROCSTATUS
-    call printProcStatus("beginning of Run")
-#endif
 
     tooManyParticles = .false.
     call Construct(RunTimer,"TSimulation_Run",CStopwatch_doMPIStartBarrier)
@@ -2064,7 +1975,6 @@ eqloop: do
     if( Step > StepEnd ) then
       Step = StepEnd
       if( BlockSize > 0 ) NBlocks = 1 + (Step - 1) / BlockSize
-      if( BlockSizeKBI > 0 ) NBlocksKBI = 1 + (Step - 1) / BlockSizeKBI
     end if
     call RestartSave( this )
 
@@ -2159,19 +2069,11 @@ eqloop: do
         end if
 #endif
       end if
-      
-      ! Set current block number KBI
-      if( BlockSizeKBI > 0 ) then
-        NBlocksKBI = 1 + (Step - 1) / BlockSizeKBI
-        NBlockSizesKBI = int( sqrt( real( Step / BlockSizeKBI, RK ) ) )
-      end if
-      
 
       ! Run simulation step
       select case( SimulationType )
       case( MolecularDynamics )
         call RunMDStep( this )
-        call ALPHA2Update( this )
       case( MonteCarlo )
         call RunMCStep( this )
       case( SecondVirialCoeff )
@@ -2184,7 +2086,6 @@ eqloop: do
       call ResultUpdate( this )
       call VisualUpdate( this )
       call RDFUpdate ( this )
-      call KBIUpdate ( this )
 
       ! Update log and result files
       if( mod( Step, LogUpdateFrequency ) == 0 .or. Step == StepEnd ) call LogWriteStep
@@ -2209,7 +2110,6 @@ eqloop: do
           call MPI_Reduce( MPI_IN_PLACE, TerminateStatus, 1, MPI_INTEGER, MPI_BOR, NRootProc, Communicator, ierror )
           if ( .not. doneMsgTerm ) then
             if ( RootProc_W ) then
-              !    MPI_Iprobe &MPI_Recv afterwards (instead of MPI_Irecv before) should also work
               call MPI_Test(mpireqmsgTerm, doneMsgTerm, mpistatus, ierror)
               if ( doneMsgTerm ) then
                 write( IOBuffer, '("received message with termination status (",B0,") within step ",I0,"/",I0)' ) &
@@ -2298,13 +2198,12 @@ eqloop: do
             if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.
           end do
         else ! .not.RootProc_R
-          !if ( .not. doneMsgTerm .and. NProc_R.eq.1 ) then ! only works if NRootProc_R.ne.1 (NRootProc_R==0)
-          if ( .not. doneMsgTerm .and. NProc_R.eq.mod(NRootProc_R+1,NProcs_R) ) then    ! should work for NProcs_R.gt.1
+          !if ( .not. doneMsgTerm .and. NProc_R.eq.1 ) then	! only works if NRootProc_R.ne.1 (NRootProc_R==0)
+          if ( .not. doneMsgTerm .and. NProc_R.eq.mod(NRootProc_R+1,NProcs_R) ) then	! should work for NProcs_R.gt.1
             ! at least one terminate message should be sent to serve the RootProc_R irecv - e.g. NProc==1
               write( IOBuffer, '("sending message with termination status (",B0,") from PE",I0," after step ",I0,"/",I0)' ) &
 &                    NProc_W, TerminateStatus, Step, StepTotal
               call LogWriteTime
-              !    MPI_Bsend should also work and doesn't require the MPI_Wait
               call MPI_ISend(TerminateStatus, 1, MPI_INTEGER, NRootProc_R, mpimsgtag_simTerm, Communicator_R, mpireqmsgTerm, ierror)
               doneMsgTerm=.true.
               numMsgTerm_send = numMsgTerm_send + 1
@@ -2881,6 +2780,9 @@ eqloop: do
     ! Declare local variables
     integer :: i
 
+    ! Check for root process
+    if( .not. RootProc ) return
+
     ! Return if no output
     if( RDFUpdateFrequency < 1 ) return
 
@@ -2904,6 +2806,9 @@ eqloop: do
 
     ! Declare local variables
     integer :: i
+
+    ! Check for root process
+    if( .not. RootProc ) return
 
     ! Return if no output
     if( RDFUpdateFrequency < 1 ) return
@@ -2935,6 +2840,9 @@ eqloop: do
     ! Declare local variables
     integer :: i
 
+    ! Check for root process
+    if( .not. RootProc ) return
+
     ! Return if no output
     if( RDFUpdateFrequency < 1 ) return
 
@@ -2945,112 +2853,6 @@ eqloop: do
   end subroutine TSimulation_RDFClose
 
 
-!==============================================================!
-!  Subroutine TSimulation_KBIOpen                              !
-!==============================================================!
-
-  subroutine TSimulation_KBIOpen( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TSimulation) :: this
-
-    ! Declare local variables
-    integer :: i
-
-    ! Return if no output
-    if( KBIUpdateFrequency < 1 ) return
-
-    ! Open ensemble visualisation files
-    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-      call KBIOpen( this%Ensemble(i) )
-    end do
-
-  end subroutine TSimulation_KBIOpen
-
-!==============================================================!
-!  Subroutine TSimulation_KBIUpdate                            !
-!==============================================================!
-
-  subroutine TSimulation_KBIUpdate( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TSimulation) :: this
-
-    ! Declare local variables
-    integer :: i
-
-    ! Return if no output
-    if( KBIUpdateFrequency < 1 ) return
-
-    ! Return if equilibration
-    if( Equilibration ) return
-
-    ! Update ensemble visualisation files
-    if( mod( Step - 1, KBIUpdateFrequency ) == 0 ) then
-      do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-        call KBIUpdate( this%Ensemble(i) )
-      end do
-    end if
-
-  end subroutine TSimulation_KBIUpdate
-
-
-!==============================================================!
-!  Subroutine TSimulation_KBIClose                             !
-!==============================================================!
-
-  subroutine TSimulation_KBIClose( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TSimulation) :: this
-
-    ! Declare local variables
-    integer :: i
-
-    ! Return if no output
-    if( KBIUpdateFrequency < 1 ) return
-
-    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-      call KBIClose( this%Ensemble(i) )
-    end do
-
-  end subroutine TSimulation_KBIClose
-  
-!==============================================================!
-!  Subroutine TSimulation_ALPHA2Update                         !
-!==============================================================!
-
-  subroutine TSimulation_ALPHA2Update( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TSimulation) :: this
-
-    ! Declare local variables
-    integer :: i
-
-    ! Return if no output
-    if( ALPHA2UpdateFrequency < 1 ) return
-
-    ! Return if equilibration
-    if( Equilibration ) return
-
-    ! Update ensemble visualisation files
-    if( mod( Step - 1, ALPHA2UpdateFrequency ) == 0 ) then
-      do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-        call ALPHA2Update( this%Ensemble(i) )
-      end do
-    end if
-
-  end subroutine TSimulation_ALPHA2Update
-  
 !==============================================================!
 !  Subroutine TSimulation_RestartSave                          !
 !==============================================================!
@@ -3071,42 +2873,38 @@ eqloop: do
     integer :: i,j
 
     ! Check for root process
-    if( RootProc ) then
+    if( .not. RootProc ) return
 
-        if( SimulationType .eq. SecondVirialCoeff ) return
+    if( SimulationType .eq. SecondVirialCoeff ) return
 
-        write( RestartFileName, '(A,A)' ) trim(OutputNameTag),RestartFileExtension
+    write( RestartFileName, '(A,A)' ) trim(OutputNameTag),RestartFileExtension
 #if MPI_VER > 0
-        if ( NCommunicators .gt. 1 ) then
-          write( RestartFileName, '(A,"_",I0,A)' ) trim(OutputNameTag),NCommunicator+1,RestartFileExtension
-        endif
+    if ( NCommunicators .gt. 1 ) then
+      write( RestartFileName, '(A,"_",I0,A)' ) trim(OutputNameTag),NCommunicator+1,RestartFileExtension
+    endif
 #endif
 
-        write( IOBuffer, '("Saving restart file ", A)' ) trim( RestartFileName )
-        call LogWriteTime
+    write( IOBuffer, '("Saving restart file ", A)' ) trim( RestartFileName )
+    call LogWriteTime
 
-        ! Open restart file for writing
-        call FileRewrite( iounit_restart, trim(RestartFileName) )
+    ! Open restart file for writing
+    call FileRewrite( iounit_restart, trim(RestartFileName) )
 
-        ! Save contents to restart file
-        write( iounit_restart, '(A)' ) trim( ParameterFileName )
-        write( iounit_restart, '(2I10)' ) Step, StepTotal
-        write( IOBuffer, '("saving restart data at step",I10," (of",I10,")")' ) Step, StepTotal
-        call LogWrite
-        write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
+    ! Save contents to restart file
+    write( iounit_restart, '(A)' ) trim( ParameterFileName )
+    write( iounit_restart, '(2I10)' ) Step, StepTotal
+    write( IOBuffer, '("saving restart data at step",I10," (of",I10,")")' ) Step, StepTotal
+    call LogWrite
+    write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
 
-    end if
-    
     ! Save ensembles
     do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-        if( RootProc ) then
-            write( IOBuffer, '("writing ensemble",I7)' ) i
-            call LogWriteTime
-            write( iounit_restart, '(A,":",I0)' ) RstEnsembleMarker,i
-        end if
-        ! saving ensemble data
-        call RestartSave( this%Ensemble(i) )
-    end do  
+      write( IOBuffer, '("writing ensemble",I7)' ) i
+      call LogWriteTime
+      write( iounit_restart, '(A,":",I0)' ) RstEnsembleMarker,i
+      ! saving ensemble data
+      call RestartSave( this%Ensemble(i) )
+    end do
     
     ! Close restart file
     call FileClose( iounit_restart )
@@ -3184,12 +2982,6 @@ eqloop: do
       NBlocks = 1 + (Step - 1) / BlockSize
       NBlockSizes = int( sqrt( real( Step / BlockSize, RK ) ) )
     end if
-    
-    ! Set current block number KBI
-    if( BlockSizeKBI > 0 ) then
-      NBlocksKBI = 1 + (Step - 1) / BlockSizeKBI
-      NBlockSizesKBI = int( sqrt( real( Step / BlockSizeKBI, RK ) ) )
-    end if
 
       ! Read ensembles
       do i = this%firstEnsembleIdx, this%lastEnsembleIdx
@@ -3204,7 +2996,7 @@ eqloop: do
           end if
           write( IOBuffer, '("reading ensemble",I6," (marker ",A,")")' ) i, trim(ensemblemarker)
           call LogWriteTime
-        end if
+	end if
         ! reading ensemble data
         call RestartRead( this%Ensemble(i) )
       end do

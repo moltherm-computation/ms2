@@ -48,7 +48,7 @@ module ms2_potential
     type(TSiteMIEnm), pointer :: Site1, Site2
     integer, pointer          :: NUnit1, NUnit2
     real(RK)                  :: Sigma, Epsilon
-    real(RK)                  :: Mie_n, Mie_m, Mie_a, Mie_nHalf, Mie_mHalf
+	real(RK)                  :: Mie_n, Mie_m, Mie_a, Mie_nHalf, Mie_mHalf
     real(RK)                  :: RCutoffSquared, RCutoffSquaredScaled
     real(RK)                  :: EPotCorr, VirialCorr, d2EpotdV2Corr,EPotTestCorr
     logical                   :: SameComponent
@@ -81,7 +81,7 @@ module ms2_potential
   interface Get_RDF
     module procedure TPotMIEMIE_RDF
   end interface
-  
+
   interface Force_Trans
     module procedure TPotMIEMIE_Force_Trans
   end interface
@@ -660,9 +660,9 @@ contains
     real(RK) :: RCutoff3Inv, RCutoff9Inv
     real(RK) :: tau, tau1, tau2
     integer :: k, ende
-    real(RK) :: Pi2mie_a, Piminus23mie_a, Pi29mie_a
+	real(RK) :: Pi2mie_a, Piminus23mie_a, Pi29mie_a
 
-        
+		
     ! Construct potential
     this%Site1 => Molecule1%SiteMIEnm(j1)
     this%NUnit1 => Molecule1%NUnit
@@ -671,30 +671,30 @@ contains
     this%SameComponent = i1 == i2
     this%Sigma = .5_RK * (this%Site1%sig + this%Site2%sig)
     this%Epsilon = sqrt(this%Site1%eps * this%Site2%eps)
-    
-    
-    ! Calculate parameter for MIE-Potential -> R. Fingerhut -> Note: define mix rule for n and m
-    !this%Mie_n = .5_RK * (this%Site1%mie_n + this%Site2%mie_n) !Später so einführen und Anpassungsparameter wie für sig und eps bei Mischung
-    !this%Mie_m = .5_RK * (this%Site1%mie_m + this%Site2%mie_m)
-    this%Mie_n = 3._RK+((this%Site1%mie_n-3)*(this%Site2%mie_n-3))**.5_RK !Von Erich-> Imperial College
-    this%Mie_m = 3._RK+((this%Site1%mie_m-3)*(this%Site2%mie_m-3))**.5_RK
-    
-    ! prefactor in the mie-function: Mie_a=f(n,m)
-    this%Mie_a = 1._RK / (this%Mie_n-this%Mie_m) * (this%Mie_n**this%Mie_n/(this%Mie_m**this%Mie_m))**(1._RK/(this%Mie_n-this%Mie_m))
-    
-    this%Mie_nHalf = .5_RK * this%Mie_n
-    this%Mie_mHalf = .5_RK * this%Mie_m
-    
-    Pi2mie_a = Pi * 2._RK * this%Mie_a
-    Piminus23mie_a = Pi * this%Mie_a * (-2._RK)/3._RK
-    Pi29mie_a = Pi * this%Mie_a * (2._RK/9._RK)
-    
+	
+	
+	! Calculate parameter for MIE-Potential -> R. Fingerhut -> Note: define mix rule for n and m
+	!this%Mie_n = .5_RK * (this%Site1%mie_n + this%Site2%mie_n) !Später so einführen und Anpassungsparameter wie für sig und eps bei Mischung
+	!this%Mie_m = .5_RK * (this%Site1%mie_m + this%Site2%mie_m)
+	this%Mie_n = 3._RK+((this%Site1%mie_n-3)*(this%Site2%mie_n-3))**.5_RK !Von Erich-> Imperial College
+	this%Mie_m = 3._RK+((this%Site1%mie_m-3)*(this%Site2%mie_m-3))**.5_RK
+	
+	! prefactor in the mie-function: Mie_a=f(n,m)
+	this%Mie_a = 1._RK / (this%Mie_n-this%Mie_m) * (this%Mie_n**this%Mie_n/(this%Mie_m**this%Mie_m))**(1._RK/(this%Mie_n-this%Mie_m))
+	
+	this%Mie_nHalf = .5_RK * this%Mie_n
+	this%Mie_mHalf = .5_RK * this%Mie_m
+	
+	Pi2mie_a = Pi * 2._RK * this%Mie_a
+	Piminus23mie_a = Pi * this%Mie_a * (-2._RK)/3._RK
+	Pi29mie_a = Pi * this%Mie_a * (2._RK/9._RK)
+	
 
     if( .not. this%SameComponent ) then
       this%Sigma = this%Sigma * ScaleSigma
       this%Epsilon = this%Epsilon * ScaleEpsilon
     end if
-    this%EpsilonMie_a = this%Mie_a * this%Epsilon
+    this%EpsilonMie_a = 4._RK * this%Epsilon
 
     ! if this potential is intra
     if (this%SameComponent .and. Molecule1%hasIntraLJEl ) then
@@ -754,11 +754,13 @@ contains
 
       endif
     else ! Site-site cutoff or both sites in center of mass
-     this%EPotCorr = Pi2mie_a * this%Epsilon * ( TICCu(-this%Mie_nHalf, RCutoff, this%Sigma**2._RK) - TICCu(-this%Mie_mHalf, RCutoff, this%Sigma**2._RK) )
+      RCutoff3Inv = (this%Sigma / RCutoff)**3
+      RCutoff9Inv = RCutoff3Inv**3
+      this%EPotCorr = Pi89 * this%Epsilon * (RCutoff9Inv - 3._RK * RCutoff3Inv)
 
-     this%VirialCorr = Piminus23mie_a * this%Epsilon * ( TICCp(-this%Mie_nHalf, RCutoff, this%Sigma**2._RK) - TICCp(-this%Mie_mHalf, RCutoff, this%Sigma**2._RK) )
+      this%VirialCorr = Pi329 * this%Epsilon * (RCutoff9Inv - 1.5_RK * RCutoff3Inv)
 
-     this%d2EpotdV2Corr = Pi29mie_a * this%Epsilon *  ( TICCd2EpotdV2(-this%Mie_nHalf, RCutoff, this%Sigma**2._RK) - TICCd2EpotdV2(-this%Mie_mHalf, RCutoff, this%Sigma**2._RK) )
+      this%d2EpotdV2Corr = Pi89 * this%Epsilon *  ( TICCd2EpotdV2(-this%Mie_nHalf, RCutoff, this%Sigma**2) - TICCd2EpotdV2(-this%Mie_mHalf, RCutoff, this%Sigma**2) )
 
     end if
     this%EPotTestCorr = 2._RK * this%EPotCorr
@@ -1061,7 +1063,7 @@ contains
     real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
     real(RK)          :: SigmaSquared
     real(RK)          :: EpsilonMie_a, EpsilonMie_aF
-    real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
+	real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
     real(RK)          :: RCutoffSquared
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
@@ -1128,16 +1130,16 @@ contains
     VirialLocalInter = 0._RK
     d2EpotdV2Local= 0._RK
     SigmaSquared = this%SigmaSquared
-    EpsilonMie_a = this%EpsilonMie_a
+	EpsilonMie_a = this%EpsilonMie_a
     EpsilonMie_aF = this%EpsilonMie_aF
-    Mie_n = this%Mie_n
-    Mie_m = this%Mie_m
-    Mie_n1 = Mie_n+1._RK
-    Mie_m1 = Mie_m+1._RK
-    Mie_nHalf = this%Mie_nHalf
-    Mie_mHalf = this%Mie_mHalf
+	Mie_n = this%Mie_n
+	Mie_m = this%Mie_m
+	Mie_n1 = Mie_n+1._RK
+	Mie_m1 = Mie_m+1._RK
+	Mie_nHalf = this%Mie_nHalf
+	Mie_mHalf = this%Mie_mHalf
     RCutoffSquared = this%RCutoffSquaredScaled
-    
+	
 #if MPI_VER > 0
     N1 = this%Site2%NPart
     N2 = N1 / 2
@@ -1163,10 +1165,10 @@ contains
 #endif
 !$OMP FIRSTPRIVATE(i1, j1) &
 !$OMP PRIVATE( i, j, k, j0) &
-!$OMP PRIVATE(sitecorr, EPotLocal1) &
+!$OMP PRIVATE(Plen2, sitecorr, EPotLocal1) &
 !$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi) &
 !$OMP PRIVATE(RXij, RYij, RZij, PXij, PYij, PZij) &
-!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, RijMie_nInv, RijMie_mInv ) 
+!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv ) 
 
     if( CutoffMode .eq. CenterofMass ) then
 
@@ -1223,13 +1225,13 @@ loop1:  do k = 1, this%NInCutoff(unit)
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             RijSquaredInv = SigmaSquared / RijSquared
             RijMie_nInv = RijSquaredInv**Mie_nHalf
-            RijMie_mInv = RijSquaredInv**Mie_mHalf
+		    RijMie_mInv = RijSquaredInv**Mie_mHalf
             Mie_nRijMie_n = Mie_n * RijMie_nInv
-            Mie_mRijMie_m = Mie_m * RijMie_mInv
+		    Mie_mRijMie_m = Mie_m * RijMie_mInv
             EPotLocal1 = RijMie_nInv - RijMie_mInv
             EPotLocal = EPotLocal + EPotLocal1
             EPotLocalInter = EPotLocalInter + EPotLocal1
-            Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
+            Fij = EpsilonMie_aF * RijSquaredInv**3 * (RijSquaredInv**3 - .5_RK) * RijSquaredInv
             FXij = Fij * RXij
             FYij = Fij * RYij
             FZij = Fij * RZij
@@ -1262,8 +1264,8 @@ loop2:    do m=1,NBinsDen
           end if
 #endif
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
-                           + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)     
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * RijSquaredInv**3 * (12._RK*RijSquaredInv**3  -  6._RK) * (sitecorr * sitecorr - (PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared)*Third*Third !xxxx LJ
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * RijSquaredInv**3 * (156._RK*RijSquaredInv**3 - 42._RK) *  sitecorr * sitecorr*Third*Third
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -1363,9 +1365,9 @@ loop3:  do j = j0, j1
           if( RijSquared >= RCutoffSquared ) cycle loop3
           RijSquaredInv = SigmaSquared / RijSquared
           RijMie_nInv = RijSquaredInv**Mie_nHalf
-          RijMie_mInv = RijSquaredInv**Mie_mHalf
+		  RijMie_mInv = RijSquaredInv**Mie_mHalf
           Mie_nRijMie_n = Mie_n * RijMie_nInv
-          Mie_mRijMie_m = Mie_m * RijMie_mInv
+		  Mie_mRijMie_m = Mie_m * RijMie_mInv
           EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
           EPotLocalInter = EPotLocalInter + ((RijSquaredInv**3) * ((RijSquaredInv**3) - 1._RK))
           Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
@@ -1375,8 +1377,8 @@ loop3:  do j = j0, j1
           VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
           VirialLocalInter = VirialLocalInter + (PXij * FXij + PYij * FYij + PZij * FZij)
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
-                           + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)     
+		  d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
+		                   + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)	  
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -1441,7 +1443,7 @@ loop3:  do j = j0, j1
     real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
     real(RK)          :: SigmaSquared
     real(RK)          :: EpsilonMie_a, EpsilonMie_aF
-    real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
+	real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
     real(RK)          :: RCutoffSquared
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
@@ -1473,70 +1475,31 @@ loop3:  do j = j0, j1
     real(RK)          :: forceTempY(1:this%Site2%NPart)
     real(RK)          :: forceTempZ(1:this%Site2%NPart)
 
-#if TRANS == 1
-    real(RK), pointer, contiguous :: VSx1(:), VSy1(:), VSz1(:)
-    real(RK), pointer, contiguous :: VSx2(:), VSy2(:), VSz2(:) 
-    real(RK), pointer, contiguous :: VSux1(:),VSuy1(:),VSuz1(:)
-    real(RK), pointer, contiguous :: VSux2(:),VSuy2(:),VSuz2(:)
-    real(RK), pointer, contiguous :: VBx1(:), VBy1(:), VBz1(:)
-    real(RK), pointer, contiguous :: VBx2(:), VBy2(:), VBz2(:)
-    real(RK), pointer, contiguous :: Cx1(:) , Cy1(:) , Cz1(:)
-    real(RK), pointer, contiguous :: Cx2(:) , Cy2(:) , Cz2(:)
-    real(RK), pointer, contiguous :: tux1(:) , tuy1(:) , tuz1(:)
-    real(RK), pointer, contiguous :: tux2(:) , tuy2(:) , tuz2(:)
-    real(RK), pointer, contiguous :: tlx1(:) , tly1(:) , tlz1(:)
-    real(RK), pointer, contiguous :: tlx2(:) , tly2(:) , tlz2(:)
-    real(RK), pointer, contiguous :: tdx1(:) , tdy1(:) , tdz1(:)
-    real(RK), pointer, contiguous :: tdx2(:) , tdy2(:) , tdz2(:)
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:) 
+    real(RK), pointer, contiguous :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
-    real(RK)          :: VSTempX(1:this%Site2%NPart), VSTempY(1:this%Site2%NPart), VSTempZ(1:this%Site2%NPart)
-    real(RK)          :: VSuTempX(1:this%Site2%NPart), VSuTempY(1:this%Site2%NPart), VSuTempZ(1:this%Site2%NPart)
-    real(RK)          :: VBTempX(1:this%Site2%NPart), VBTempY(1:this%Site2%NPart), VBTempZ(1:this%Site2%NPart)
-    real(RK)          :: CTempX(1:this%Site2%NPart), CTempY(1:this%Site2%NPart), CTempZ(1:this%Site2%NPart)
-    real(RK)          :: tuTempX(1:this%Site2%NPart), tuTempY(1:this%Site2%NPart), tuTempZ(1:this%Site2%NPart)
-    real(RK)          :: tlTempX(1:this%Site2%NPart), tlTempY(1:this%Site2%NPart), tlTempZ(1:this%Site2%NPart)
-    real(RK)          :: tdTempX(1:this%Site2%NPart), tdTempY(1:this%Site2%NPart), tdTempZ(1:this%Site2%NPart)
     real(RK)          :: SigmaInvEpsMie_a
     real(RK)          :: VSxi, VSyi, VSzi
-    real(RK)          :: VSxij, VSyij, VSzij
     real(RK)          :: VSuxi,VSuyi,VSuzi
-    real(RK)          :: VSuxij,VSuyij,VSuzij
     real(RK)          :: VBxi, VByi, VBzi
-    real(RK)          :: VBxij, VByij, VBzij
     real(RK)          :: Cxi,  Cyi,  Czi
     real(RK)          :: tuxi,  tuyi,  tuzi
-    real(RK)          :: tuxij,  tuyij,  tuzij
     real(RK)          :: tlxi,  tlyi,  tlzi
-    real(RK)          :: tlxij,  tlyij,  tlzij
     real(RK)          :: tdxi,  tdyi,  tdzi
-    real(RK)          :: tdxij,  tdyij,  tdzij
     real(RK)          :: txii,  tyii , tzii
     real(RK)          :: txi ,  tyi  , tzi
-    real(RK)          :: UU, BoxLength2
+    real(RK)          :: UU ,  Uxi,  Uyi, Uzi, RijSInvNorm
+    real(RK)          :: BoxLength2
     real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-
-    VSTempX(:)  = 0._RK
-    VSTempY(:)  = 0._RK
-    VSTempZ(:)  = 0._RK
-    VSuTempX(:) = 0._RK
-    VSuTempY(:) = 0._RK
-    VSuTempZ(:) = 0._RK
-    VBTempX(:)  = 0._RK
-    VBTempY(:)  = 0._RK
-    VBTempZ(:)  = 0._RK
-    CTempX(:)   = 0._RK
-    CTempY(:)   = 0._RK
-    CTempZ(:)   = 0._RK
-    tuTempX(:)  = 0._RK
-    tuTempY(:)  = 0._RK
-    tuTempz(:)  = 0._RK
-    tlTempX(:)  = 0._RK
-    tlTempY(:)  = 0._RK
-    tlTempz(:)  = 0._RK
-    tdTempX(:)  = 0._RK
-    tdTempY(:)  = 0._RK
-    tdTempz(:)  = 0._RK
+   !TRANSPORT_END
 #endif
 
 
@@ -1551,23 +1514,22 @@ loop3:  do j = j0, j1
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-
 !$OMP PARALLEL PRIVATE(i, j, k, i1, j0, j1) &
 !$OMP PRIVATE( RX1, RY1, RZ1, RX2, RY2, RZ2) &
-!$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1 ) &
-!$OMP PRIVATE(SigmaSquared, EpsilonMie_a, EpsilonMie_aF, RCutoffSquared,EPotLocal1) &
+!$OMP PRIVATE( Plen2,PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1 ) &
+!$OMP PRIVATE(SigmaSquared, Epsilon4, EpsilonMie_aF, RCutoffSquared,EPotLocal1) &
 !$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi,  RXij, RYij, RZij, PXij, PYij, PZij) &
-!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, RijMie_nInv, RijMie_mInv ) &
+!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijSquaredInv, Rij6Inv ) &
 #if MPI_VER > 0
 !$OMP PRIVATE(i0, N1, N2, ji, EvenN) &
 #endif
 #if  TRANS == 1
-!$OMP PRIVATE(VSx1, VSy1, VSz1, VSux1,VSuy1,VSuz1, VBx1, VBy1, VBz1, Cx1, Cy1, Cz1) &
-!$OMP PRIVATE( tux1 , tuy1 , tuz1, tlx1 , tly1 , tlz1, tdx1 , tdy1, tdz1) &
-!$OMP PRIVATE( q1, q2, q3, q4, SigmaInvEpsMie_a, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE( q1, q2, q3, q4, SigmaInvEps4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
-!$OMP PRIVATE(  UU , BoxLength2, r1x, r1y, r1z) &
+!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, RijSInvNorm, BoxLength2, r1x, r1y, r1z) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 !$OMP PRIVATE( SameComponent )
@@ -1588,12 +1550,12 @@ loop3:  do j = j0, j1
     SigmaSquared = this%SigmaSquared
     EpsilonMie_a = this%EpsilonMie_a
     EpsilonMie_aF = this%EpsilonMie_aF
-    Mie_n = this%Mie_n
-    Mie_m = this%Mie_m
-    Mie_n1 = Mie_n+1._RK
-    Mie_m1 = Mie_m+1._RK
-    Mie_nHalf = this%Mie_nHalf
-    Mie_mHalf = this%Mie_mHalf
+	Mie_n = this%Mie_n
+	Mie_m = this%Mie_m
+	Mie_n1 = Mie_n+1._RK
+	Mie_m1 = Mie_m+1._RK
+	Mie_nHalf = this%Mie_nHalf
+	Mie_mHalf = this%Mie_mHalf
     RCutoffSquared = this%RCutoffSquaredScaled
     EPotLocalIntra   = 0._RK
     VirialLocalIntra = 0._RK
@@ -1623,56 +1585,37 @@ loop3:  do j = j0, j1
        coeff = 1._RK
     end if
 
-#if TRANS == 1
+#if  TRANS == 1
+    !TRANSPORT_start
+
     SigmaInvEpsMie_a = EpsilonMie_a/Sqrt(this%SigmaSquared)
     BoxLength2   = BoxLength**2
-    VSx1 => this%Site1%vsMIEx
-    VSy1 => this%Site1%vsMIEy
-    VSz1 => this%Site1%vsMIEz
-    VSx2 => this%Site2%vsMIEx
-    VSy2 => this%Site2%vsMIEy
-    VSz2 => this%Site2%vsMIEz
-    VBx1 => this%Site1%vbMIEx
-    VBy1 => this%Site1%vbMIEy
-    VBz1 => this%Site1%vbMIEz
-    VBx2 => this%Site2%vbMIEx
-    VBy2 => this%Site2%vbMIEy
-    VBz2 => this%Site2%vbMIEz
-    VSux1=> this%Site1%vsuMIEx
-    VSuy1=> this%Site1%vsuMIEy
-    VSuz1=> this%Site1%vsuMIEz
-    VSux2=> this%Site2%vsuMIEx
-    VSuy2=> this%Site2%vsuMIEy
-    VSuz2=> this%Site2%vsuMIEz
-    Cx1  => this%Site1%cMIEx
-    Cy1  => this%Site1%cMIEy
-    Cz1  => this%Site1%cMIEz
-    Cx2  => this%Site2%cMIEx
-    Cy2  => this%Site2%cMIEy
-    Cz2  => this%Site2%cMIEz
-    tux1 => this%Site1%tuMIEx
-    tuy1 => this%Site1%tuMIEy
-    tuz1 => this%Site1%tuMIEz
-    tux2 => this%Site2%tuMIEx
-    tuy2 => this%Site2%tuMIEy
-    tuz2 => this%Site2%tuMIEz
-    tlx1 => this%Site1%tlMIEx
-    tly1 => this%Site1%tlMIEy
-    tlz1 => this%Site1%tlMIEz
-    tlx2 => this%Site2%tlMIEx
-    tly2 => this%Site2%tlMIEy
-    tlz2 => this%Site2%tlMIEz
-    tdx1 => this%Site1%tdMIEx
-    tdy1 => this%Site1%tdMIEy
-    tdz1 => this%Site1%tdMIEz
-    tdx2 => this%Site2%tdMIEx
-    tdy2 => this%Site2%tdMIEy
-    tdz2 => this%Site2%tdMIEz
+    VSx => this%Site1%vsMIEx
+    VSy => this%Site1%vsMIEy
+    VSz => this%Site1%vsMIEz
+    VBx => this%Site1%vbMIEx
+    VBy => this%Site1%vbMIEy
+    VBz => this%Site1%vbMIEz
+    VSux=> this%Site1%vsuMIEx
+    VSuy=> this%Site1%vsuMIEy
+    VSuz=> this%Site1%vsuMIEz
+    Cx  => this%Site1%cMIEx
+    Cy  => this%Site1%cMIEy
+    Cz  => this%Site1%cMIEz
+    tux => this%Site1%tuMIEx
+    tuy => this%Site1%tuMIEy
+    tuz => this%Site1%tuMIEz
+    tlx => this%Site1%tlMIEx
+    tly => this%Site1%tlMIEy
+    tlz => this%Site1%tlMIEz
+    tdx => this%Site1%tdMIEx
+    tdy => this%Site1%tdMIEy
+    tdz => this%Site1%tdMIEz
     q1  => this%Site1%Qm0r(:, 1, 1)
     q2  => this%Site1%Qm0r(:, 2, 1)
     q3  => this%Site1%Qm0r(:, 3, 1)
     q4  => this%Site1%Qm0r(:, 4, 1)
-
+!TRANSPORT_END
 #endif
 
 
@@ -1696,27 +1639,27 @@ loop3:  do j = j0, j1
         PZi = PZ1(i) 
 #if  TRANS == 1
         !TRANSPORT_start
-        VSxi = 0._RK
-        VSyi = 0._RK
-        VSzi = 0._RK
-        VBxi = 0._RK
-        VByi = 0._RK
-        VBzi = 0._RK
+        VSxi= 0._RK
+        VSyi= 0._RK
+        VSzi= 0._RK
+        VBxi= 0._RK
+        VByi= 0._RK
+        VBzi= 0._RK
         VSuxi= 0._RK
         VSuyi= 0._RK
         VSuzi= 0._RK
-        Cxi  = Cx1(i)
-        Cyi  = Cy1(i)
-        Czi  = Cz1(i)
-        tuxi = tux1(i)
-        tuyi = tuy1(i)
-        tuzi = tuz1(i)
-        tlxi = tlx1(i)
-        tlyi = tly1(i)
-        tlzi = tlz1(i)
-        tdxi = tdx1(i)
-        tdyi = tdy1(i)
-        tdzi = tdz1(i)
+        Cxi = Cx(i)
+        Cyi = Cy(i)
+        Czi = Cz(i)
+        tuxi = tux(i)
+        tuyi = tuy(i)
+        tuzi = tuz(i)
+        tlxi = tlx(i)
+        tlyi = tly(i)
+        tlzi = tlz(i)
+        tdxi = tdx(i)
+        tdyi = tdy(i)
+        tdzi = tdz(i)
         r1x  = ( RXi-PXi ) * BoxLength2
         r1y  = ( RYi-PYi ) * BoxLength2
         r1z  = ( RZi-PZi ) * BoxLength2
@@ -1730,6 +1673,7 @@ loop3:  do j = j0, j1
         A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
         A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
         A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+        !TRANSPORT_END
 #endif
 
 !CDIR NODEP
@@ -1768,10 +1712,10 @@ loop1:  do k = 1, this%NInCutoff(unit)
             PZij = PZij - anint( PZij )
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             RijSquaredInv = SigmaSquared / RijSquared
-            RijMie_nInv = RijSquaredInv**Mie_nHalf
-            RijMie_mInv = RijSquaredInv**Mie_mHalf
+		    RijMie_nInv = RijSquaredInv**Mie_nHalf
+		    RijMie_mInv = RijSquaredInv**Mie_mHalf
             Mie_nRijMie_n = Mie_n * RijMie_nInv
-            Mie_mRijMie_m = Mie_m * RijMie_mInv
+		    Mie_mRijMie_m = Mie_m * RijMie_mInv
             EPotLocal1 = RijMie_nInv - RijMie_mInv
             EPotLocal = EPotLocal + EPotLocal1
             EPotLocalInter = EPotLocalInter + EPotLocal1
@@ -1808,87 +1752,46 @@ loop2:      do m=1,NBinsDen
 #endif
             VirialLocalInter = VirialLocalInter + (PXij * FXij + PYij * FYij + PZij * FZij)
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-            d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
-                             + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)!xxxx MIE T      
+		    d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
+		                     + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)!xxxx MIE T	  
             FXi = FXi + FXij
             FYi = FYi + FYij
             FZi = FZi + FZij
             forceTempX(jk) = forceTempX(jk) - FXij
             forceTempY(jk) = forceTempY(jk) - FYij
             forceTempZ(jk) = forceTempZ(jk) - FZij
-
 #if  TRANS == 1
-          !TRANSPORT_start
-          VSxij   = 0.5 * FXij * PYij
-          VSyij   = 0.5 * FXij * PZij
-          VSzij   = 0.5 * FYij * PZij
-          VBxij   = 0.5 * FXij * PXij
-          VByij   = 0.5 * FYij * PYij
-          VBzij   = 0.5 * FZij * PZij
-          VSuxij  = 0.5 * FYij * PXij
-          VSuyij  = 0.5 * FZij * PXij
-          VSuzij  = 0.5 * FZij * PYij
-
-          VSxi   = VSxi + VSxij
-          VSyi   = VSyi + VSyij
-          VSzi   = VSzi + VSzij
-          VBxi   = VBxi + VBxij
-          VByi   = VByi + VByij
-          VBzi   = VBzi + VBzij
-          VSuxi  = VSuxi+ VSuxij
-          VSuyi  = VSuyi+ VSuyij
-          VSuzi  = VSuzi+ VSuzij
-          VSTempX(j) = VSTempX(j) + VSxij
-          VSTempY(j) = VSTempY(j) + VSyij
-          VSTempZ(j) = VSTempZ(j) + VSzij
-          VBTempX(j) = VBTempX(j) + VBxij
-          VBTempY(j) = VBTempY(j) + VByij
-          VBTempZ(j) = VBTempZ(j) + VBzij
-          VSuTempX(j)= VSuTempX(j)+ VSuxij
-          VSuTempY(j)= VSuTempY(j)+ VSuyij
-          VSuTempZ(j)= VSuTempZ(j)+ VSuzij
-
-          UU     = 0.5 * EPotLocal1*this%EpsilonMie_a
-          Cxi    = Cxi  + UU
-          Cyi    = Cyi  + UU
-          Czi    = Czi  + UU
-          CTempX(j) = CTempX(j) + UU
-          CTempY(j) = CTempY(j) + UU
-          CTempZ(j) = CTempZ(j) + UU
-          txii   = r1y * FZij - r1z * FYij
-          tyii   = r1z * FXij - r1x * FZij
-          tzii   = r1x * FYij - r1y * FXij
-          txi    = A11 * txii + A12 * tyii + A13 * tzii
-          tyi    = A21 * txii + A22 * tyii + A23 * tzii
-          tzi    = A31 * txii + A32 * tyii + A33 * tzii
-          tuxij  = 0.5 * PXij * tyi
-          tuyij  = 0.5 * PXij * tzi
-          tuzij  = 0.5 * PYij * tzi
-          tlxij  = 0.5 * PYij * txi
-          tlyij  = 0.5 * PZij * txi
-          tlzij  = 0.5 * PZij * tyi
-          tdxij  = 0.5 * PXij * txi
-          tdyij  = 0.5 * PYij * tyi
-          tdzij  = 0.5 * PZij * tzi
-
-          tuxi   = tuxi + tuxij
-          tuyi   = tuyi + tuyij
-          tuzi   = tuzi + tuzij
-          tlxi   = tlxi + tlxij
-          tlyi   = tlyi + tlyij
-          tlzi   = tlzi + tlzij
-          tdxi   = tdxi + tdxij
-          tdyi   = tdyi + tdyij
-          tdzi   = tdzi + tdzij
-          tuTempX(j)= tuTempX(j) + tuxij
-          tuTempY(j)= tuTempY(j) + tuyij
-          tuTempZ(j)= tuTempZ(j) + tuzij
-          tlTempX(j)= tlTempX(j) + tlxij
-          tlTempY(j)= tlTempY(j) + tlyij
-          tlTempZ(j)= tlTempZ(j) + tlzij
-          tdTempX(j)= tdTempX(j) + tdxij
-          tdTempY(j)= tdTempY(j) + tdyij
-          tdTempZ(j)= tdTempZ(j) + tdzij
+            !TRANSPORT_start
+            VSxi   = VSxi + FXij * PYij
+            VSyi   = VSyi + FXij * PZij
+            VSzi   = VSzi + FYij * PZij
+            VBxi   = VBxi + FXij * PXij
+            VByi   = VByi + FYij * PYij
+            VBzi   = VBzi + FZij * PZij
+            VSuxi  = VSuxi+ FYij * PXij
+            VSuyi  = VSuyi+ FZij * PXij
+            VSuzi  = VSuzi+ FZij * PYij
+            RijSInvNorm   = Sqrt(RijSquaredInv)
+            UU   = RijSInvNorm*EPotLocal1*SigmaInvEpsMie_a
+            Cxi    = Cxi  + UU*RXij
+            Cyi    = Cyi  + UU*RYij
+            Czi    = Czi  + UU*RZij
+            txii   = r1y * FZij - r1z * FYij
+            tyii   = r1z * FXij - r1x * FZij
+            tzii   = r1x * FYij - r1y * FXij
+            txi    = A11 * txii + A12 * tyii + A13 * tzii
+            tyi    = A21 * txii + A22 * tyii + A23 * tzii
+            tzi    = A31 * txii + A32 * tyii + A33 * tzii
+            tuxi   = tuxi + PXij*tyi
+            tuyi   = tuyi + PXij*tzi
+            tuzi   = tuzi + PYij*tzi
+            tlxi   = tlxi + PYij*txi
+            tlyi   = tlyi + PZij*txi
+            tlzi   = tlzi + PZij*tyi
+            tdxi   = tdxi + PXij*txi
+            tdyi   = tdyi + PYij*tyi
+            tdzi   = tdzi + PZij*tzi
+            !TRANSPORT_END
 #endif
 
 
@@ -1928,32 +1831,32 @@ loop2:      do m=1,NBinsDen
         FX1(i) = FXi
         FY1(i) = FYi
         FZ1(i) = FZi
-#if TRANS == 1
+#if  TRANS == 1
         !TRANSPORT_start
-        VSx1(i) = VSx1(i) + VSxi * BoxLength
-        VSy1(i) = VSy1(i) + VSyi * BoxLength
-        VSz1(i) = VSz1(i) + VSzi * BoxLength
-        VBx1(i) = VBx1(i) + VBxi * BoxLength
-        VBy1(i) = VBy1(i) + VByi * BoxLength
-        VBz1(i) = VBz1(i) + VBzi * BoxLength
-        VSux1(i)= VSux1(i)+ VSuxi* BoxLength
-        VSuy1(i)= VSuy1(i)+ VSuyi* BoxLength
-        VSuz1(i)= VSuz1(i)+ VSuzi* BoxLength
-        Cx1(i)  = Cxi
-        Cy1(i)  = Cyi
-        Cz1(i)  = Czi
-        tux1(i) = tuxi
-        tuy1(i) = tuyi
-        tuz1(i) = tuzi
-        tlx1(i) = tlxi
-        tly1(i) = tlyi
-        tlz1(i) = tlzi
-        tdx1(i) = tdxi
-        tdy1(i) = tdyi
-        tdz1(i) = tdzi
+        VSx(i) = VSx(i) + VSxi *BoxLength
+        VSy(i) = VSy(i) + VSyi *BoxLength
+        VSz(i) = VSz(i) + VSzi *BoxLength
+        VBx(i) = VBx(i) + VBxi*BoxLength
+        VBy(i) = VBy(i) + VByi*BoxLength
+        VBz(i) = VBz(i) + VBzi*BoxLength
+        VSux(i)= VSux(i)+ VSuxi*BoxLength
+        VSuy(i)= VSuy(i)+ VSuyi*BoxLength
+        VSuz(i)= VSuz(i)+ VSuzi*BoxLength
+        Cx(i)  = Cxi
+        Cy(i)  = Cyi
+        Cz(i)  = Czi
+        ! Multiplication with Boxlength for the following terms already done in rx1, ...
+        tux(i) = tuxi
+        tuy(i) = tuyi
+        tuz(i) = tuzi
+        tlx(i) = tlxi
+        tly(i) = tlyi
+        tlz(i) = tlzi
+        tdx(i) = tdxi
+        tdy(i) = tdyi
+        tdz(i) = tdzi
         !TRANSPORT_END
 #endif
-
       end do
 !$OMP END DO
     else ! Site-site cutoff
@@ -2006,10 +1909,10 @@ loop3:  do j = j0, j1
           RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           if( RijSquared >= RCutoffSquared ) cycle loop3
           RijSquaredInv = SigmaSquared / RijSquared
-          RijMie_nInv = RijSquaredInv**Mie_nHalf
-          RijMie_mInv = RijSquaredInv**Mie_mHalf
+		  RijMie_nInv = RijSquaredInv**Mie_nHalf
+		  RijMie_mInv = RijSquaredInv**Mie_mHalf
           Mie_nRijMie_n = Mie_n * RijMie_nInv
-          Mie_mRijMie_m = Mie_m * RijMie_mInv
+		  Mie_mRijMie_m = Mie_m * RijMie_mInv
           EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
           EPotLocalInter = EPotLocalInter + ((RijSquaredInv**3) * ((RijSquaredInv**3) - 1._RK))
           Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
@@ -2019,8 +1922,8 @@ loop3:  do j = j0, j1
           VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
           VirialLocalInter = VirialLocalInter + (PXij * FXij + PYij * FYij + PZij * FZij)
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
-                           + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)     !xxxx MIE SS T
+		  d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
+		                   + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)	  !xxxx MIE SS T
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -2042,40 +1945,8 @@ loop3:  do j = j0, j1
    FX2 = FX2 + forceTempX
    FY2 = FY2 + forceTempY
    FZ2 = FZ2 + forceTempZ
-
-#if  TRANS == 1
-   VSx2 = VSx2 + VSTempX*BoxLength
-   VSy2 = VSy2 + VSTempY*BoxLength
-   VSz2 = VSz2 + VSTempZ*BoxLength
-
-   VSux2 = VSux2 + VSuTempX*BoxLength
-   VSuy2 = VSuy2 + VSuTempY*BoxLength
-   VSuz2 = VSuz2 + VSuTempZ*BoxLength
-
-   VBx2 = VBx2 + VBTempX*BoxLength
-   VBy2 = VBy2 + VBTempY*BoxLength
-   VBz2 = VBz2 + VBTempZ*BoxLength
-
-   Cx2 = Cx2 + CTempX
-   Cy2 = Cy2 + CTempY
-   Cz2 = Cz2 + CTempZ
-
-   tux2 = tux2 + tuTempX
-   tuy2 = tuy2 + tuTempY
-   tuz2 = tuz2 + tuTempZ
-
-   tdx2 = tdx2 + tdTempX
-   tdy2 = tdy2 + tdTempY
-   tdz2 = tdz2 + tdTempZ
-
-   tlx2 = tlx2 + tlTempX
-   tly2 = tly2 + tlTempY
-   tlz2 = tlz2 + tlTempZ
-#endif
-
    EPot = EPot + this%EpsilonMie_a * EPotLocal
    Virial = Virial + Third * VirialLocal * BoxLength
-
 #if OSMOP == 2
     this%VirialProfile(:) = Third * this%VirialProfile(:) * BoxLength
 #endif
@@ -2091,7 +1962,7 @@ loop3:  do j = j0, j1
 
 
 !==============================================================!
-!  Subroutine TPotMIEMIE_RDF                                   !
+!  Subroutine TPotMIEMIE_RDF                                     !
 !==============================================================!
 
   subroutine TPotMIEMIE_RDF( this, RDFdr )
@@ -2156,10 +2027,10 @@ loop1:do k = 1, this%NInCutoff(unit)
     end do
 
   end subroutine TPotMIEMIE_RDF
-  
+
 
 !==============================================================!
-!  Subroutine TPotMIEMIE_ChemicalPotential                     !
+!  Subroutine TPotMIEMIE_ChemicalPotential                       !
 !==============================================================!
 
   subroutine TPotMIEMIE_ChemicalPotential( this, EPotTest )
@@ -2173,7 +2044,7 @@ loop1:do k = 1, this%NInCutoff(unit)
     ! Declare local variables
     real(RK)          :: SigmaSquared
     real(RK)          :: EpsilonMie_a
-    real(RK)          :: Mie_nHalf, Mie_mHalf
+	real(RK)          :: Mie_nHalf, Mie_mHalf
     real(RK)          :: RCutoffSquared
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer:: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
@@ -2191,8 +2062,8 @@ loop1:do k = 1, this%NInCutoff(unit)
     N2 = this%Site2%NPart
     SigmaSquared = this%SigmaSquared
     EpsilonMie_a = this%EpsilonMie_a
-    Mie_nHalf = this%Mie_nHalf
-    Mie_mHalf = this%Mie_mHalf
+	Mie_nHalf = this%Mie_nHalf
+	Mie_mHalf = this%Mie_mHalf
     RCutoffSquared = this%RCutoffSquaredScaled
 #if MPI_VER > 0
     i0 = this%Site1%NTest0
@@ -2223,7 +2094,7 @@ loop1:do k = 1, this%NInCutoff(unit)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE (RXi,RYi,RZi,PXi,PYi,PZi) &
 !$OMP PRIVATE (RXij,RYij,RZij,PXij,PYij,PZij) &
-!$OMP PRIVATE (RijSquared,RijSquaredInv,RijMie_nInv, RijMie_mInv) &
+!$OMP PRIVATE (RijSquared,RijSquaredInv,Rij6Inv) &
 !$OMP PRIVATE (EpotLocal,i,i0,i1,j,k) 
 
     if( CutoffMode .eq. CenterofMass ) then
@@ -2261,8 +2132,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
             RZij = RZij - anint( PZij )
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             RijSquaredInv = SigmaSquared / RijSquared
-            RijMie_nInv = RijSquaredInv**Mie_nHalf
-            RijMie_mInv = RijSquaredInv**Mie_mHalf
+		    RijMie_nInv = RijSquaredInv**Mie_nHalf
+		    RijMie_mInv = RijSquaredInv**Mie_mHalf
             EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
           end if
         end do loop1
@@ -2290,7 +2161,7 @@ loop2:  do j = 1, N2
           if( RijSquared >= RCutoffSquared ) cycle loop2
           RijSquaredInv = SigmaSquared / RijSquared
           RijMie_nInv = RijSquaredInv**Mie_nHalf
-          RijMie_mInv = RijSquaredInv**Mie_mHalf
+		  RijMie_mInv = RijSquaredInv**Mie_mHalf
           EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
         end do loop2
         EPotTest(i) = EPotTest(i) + EpsilonMie_a * EPotLocal
@@ -2323,7 +2194,7 @@ loop2:  do j = 1, N2
     ! Declare local variables
     real(RK)          :: SigmaSquared
     real(RK)          :: EpsilonMie_a, EpsilonMie_aF
-    real(RK)          :: Mie_n, Mie_m, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
+	real(RK)          :: Mie_n, Mie_m, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
@@ -2341,11 +2212,11 @@ loop2:  do j = 1, N2
     ! Assign local variables
     SigmaSquared = this%SigmaSquared
     EpsilonMie_a = this%EpsilonMie_a
-    EpsilonMie_aF = this%EpsilonMie_aF
+	EpsilonMie_aF = this%EpsilonMie_aF
     Mie_n = this%Mie_n
-    Mie_m = this%Mie_m
-    Mie_nHalf = this%Mie_nHalf
-    Mie_mHalf = this%Mie_mHalf
+	Mie_m = this%Mie_m
+	Mie_nHalf = this%Mie_nHalf
+	Mie_mHalf = this%Mie_mHalf
     nu2 = this%NUnit2
     coeff = 1._RK
     if (this%potintra14) coeff = this%ScaleLJ14
@@ -2396,10 +2267,10 @@ loop2:  do j = 1, N2
         RZij = RZij - anint( PZij )
         RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
         RijSquaredInv = SigmaSquared / RijSquared
-        RijMie_nInv = RijSquaredInv**Mie_nHalf
-        RijMie_mInv = RijSquaredInv**Mie_mHalf
+		RijMie_nInv = RijSquaredInv**Mie_nHalf
+		RijMie_mInv = RijSquaredInv**Mie_mHalf
         Mie_nRijMie_n = Mie_n * RijMie_nInv
-        Mie_mRijMie_m = Mie_m * RijMie_mInv
+		Mie_mRijMie_m = Mie_m * RijMie_mInv
         EPot = EPot + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
         Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
         FXij = Fij * RXij
@@ -2467,7 +2338,7 @@ loop2:  do j = 1, N2
     this%BoxLengthInv = BoxLengthInv
     this%BoxLengthThird = Third * BoxLength
     this%SigmaSquared = (this%Sigma * BoxLengthInv)**2
-    this%EpsilonMie_aF = this%EpsilonMie_a * BoxLengthInv / this%SigmaSquared
+    this%EpsilonMie_aF = 12._RK * this%EpsilonMie_a * BoxLengthInv / this%SigmaSquared
     this%RCutoffSquaredScaled = this%RCutoffSquared * BoxLengthInv**2
 
   end subroutine TPotMIEMIE_UpdateBoxLength
@@ -3188,68 +3059,26 @@ loop2:  do m=1,NBinsDen
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer, contiguous :: VSx1(:), VSy1(:), VSz1(:)
-    real(RK), pointer, contiguous :: VSx2(:), VSy2(:), VSz2(:)
-    real(RK), pointer, contiguous :: VSux1(:), VSuy1(:), VSuz1(:)
-    real(RK), pointer, contiguous :: VSux2(:), VSuy2(:), VSuz2(:)
-    real(RK), pointer, contiguous :: VBx1(:), VBy1(:), VBz1(:)
-    real(RK), pointer, contiguous :: VBx2(:), VBy2(:), VBz2(:)
-    real(RK), pointer, contiguous :: Cx1(:) , Cy1(:) , Cz1(:)
-    real(RK), pointer, contiguous :: Cx2(:) , Cy2(:) , Cz2(:)
-    real(RK), pointer, contiguous :: tux1(:) , tuy1(:) , tuz1(:)
-    real(RK), pointer, contiguous :: tux2(:) , tuy2(:) , tuz2(:)
-    real(RK), pointer, contiguous :: tlx1(:) , tly1(:) , tlz1(:)
-    real(RK), pointer, contiguous :: tlx2(:) , tly2(:) , tlz2(:)
-    real(RK), pointer, contiguous :: tdx1(:) , tdy1(:) , tdz1(:)
-    real(RK), pointer, contiguous :: tdx2(:) , tdy2(:) , tdz2(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:), VSuy(:), VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
-    real(RK)          :: VSTempX(1:this%Site2%NPart), VSTempY(1:this%Site2%NPart), VSTempZ(1:this%Site2%NPart)
-    real(RK)          :: VSuTempX(1:this%Site2%NPart), VSuTempY(1:this%Site2%NPart), VSuTempZ(1:this%Site2%NPart)
-    real(RK)          :: VBTempX(1:this%Site2%NPart), VBTempY(1:this%Site2%NPart), VBTempZ(1:this%Site2%NPart)
-    real(RK)          :: CTempX(1:this%Site2%NPart), CTempY(1:this%Site2%NPart), CTempZ(1:this%Site2%NPart)
-    real(RK)          :: tuTempX(1:this%Site2%NPart), tuTempY(1:this%Site2%NPart), tuTempZ(1:this%Site2%NPart)
-    real(RK)          :: tlTempX(1:this%Site2%NPart), tlTempY(1:this%Site2%NPart), tlTempZ(1:this%Site2%NPart)
-    real(RK)          :: tdTempX(1:this%Site2%NPart), tdTempY(1:this%Site2%NPart), tdTempZ(1:this%Site2%NPart)
     real(RK)          :: VSxi, VSyi, VSzi
-    real(RK)          :: VSxij, VSyij, VSzij
     real(RK)          :: VSuxi,VSuyi,VSuzi
-    real(RK)          :: VSuxij,VSuyij,VSuzij
     real(RK)          :: VBxi, VByi, VBzi
-    real(RK)          :: VBxij, VByij, VBzij
     real(RK)          :: Cxi,  Cyi,  Czi
     real(RK)          :: tuxi,  tuyi,  tuzi
-    real(RK)          :: tuxij,  tuyij,  tuzij
     real(RK)          :: tlxi,  tlyi,  tlzi
-    real(RK)          :: tlxij,  tlyij,  tlzij
     real(RK)          :: tdxi,  tdyi,  tdzi
-    real(RK)          :: tdxij,  tdyij,  tdzij
     real(RK)          :: txii,  tyii , tzii
     real(RK)          :: txi ,  tyi  , tzi
-    real(RK)          :: r1x, r1y, r1z, UU
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
+    real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-
-    VSTempX(:) = 0._RK
-    VSTempY(:) = 0._RK
-    VSTempZ(:) = 0._RK
-    VSuTempX(:)= 0._RK
-    VSuTempY(:)= 0._RK
-    VSuTempZ(:)= 0._RK
-    VBTempX(:) = 0._RK
-    VBTempY(:) = 0._RK
-    VBTempZ(:) = 0._RK
-    CTempX(:)  = 0._RK
-    CTempY(:)  = 0._RK
-    CTempZ(:)  = 0._RK
-    tuTempX(:) = 0._RK
-    tuTempY(:) = 0._RK
-    tuTempz(:) = 0._RK
-    tlTempX(:) = 0._RK
-    tlTempY(:) = 0._RK
-    tlTempz(:) = 0._RK
-    tdTempX(:) = 0._RK
-    tdTempY(:) = 0._RK
-    tdTempz(:) = 0._RK
-
     !TRANSPORT_END
 #endif
 
@@ -3324,48 +3153,27 @@ loop2:  do m=1,NBinsDen
 
 #if  TRANS == 1
     !TRANSPORT_start
-    VSx1 => this%Site1%vsCx
-    VSy1 => this%Site1%vsCy
-    VSz1 => this%Site1%vsCz
-    VSx2 => this%Site2%vsCx
-    VSy2 => this%Site2%vsCy
-    VSz2 => this%Site2%vsCz
-    VBx1 => this%Site1%vbCx
-    VBy1 => this%Site1%vbCy
-    VBz1 => this%Site1%vbCz
-    VBx2 => this%Site2%vbCx
-    VBy2 => this%Site2%vbCy
-    VBz2 => this%Site2%vbCz
-    VSux1=> this%Site1%vsuCx
-    VSuy1=> this%Site1%vsuCy
-    VSuz1=> this%Site1%vsuCz
-    VSux2=> this%Site2%vsuCx
-    VSuy2=> this%Site2%vsuCy
-    VSuz2=> this%Site2%vsuCz
-    Cx1  => this%Site1%cCx
-    Cy1  => this%Site1%cCy
-    Cz1  => this%Site1%cCz
-    Cx2  => this%Site2%cCx
-    Cy2  => this%Site2%cCy
-    Cz2  => this%Site2%cCz
-    tux1 => this%Site1%tuCx
-    tuy1 => this%Site1%tuCy
-    tuz1 => this%Site1%tuCz
-    tux2 => this%Site2%tuCx
-    tuy2 => this%Site2%tuCy
-    tuz2 => this%Site2%tuCz
-    tlx1 => this%Site1%tlCx
-    tly1 => this%Site1%tlCy
-    tlz1 => this%Site1%tlCz
-    tlx2 => this%Site2%tlCx
-    tly2 => this%Site2%tlCy
-    tlz2 => this%Site2%tlCz
-    tdx1 => this%Site1%tdCx
-    tdy1 => this%Site1%tdCy
-    tdz1 => this%Site1%tdCz
-    tdx2 => this%Site1%tdCx
-    tdy2 => this%Site1%tdCy
-    tdz2 => this%Site1%tdCz
+    VSx => this%Site1%vsCx
+    VSy => this%Site1%vsCy
+    VSz => this%Site1%vsCz
+    VBx => this%Site1%vbCx
+    VBy => this%Site1%vbCy
+    VBz => this%Site1%vbCz
+    VSux=> this%Site1%vsuCx
+    VSuy=> this%Site1%vsuCy
+    VSuz=> this%Site1%vsuCz
+    Cx  => this%Site1%cCx
+    Cy  => this%Site1%cCy
+    Cz  => this%Site1%cCz
+    tux => this%Site1%tuCx
+    tuy => this%Site1%tuCy
+    tuz => this%Site1%tuCz
+    tlx => this%Site1%tlCx
+    tly => this%Site1%tlCy
+    tlz => this%Site1%tlCz
+    tdx => this%Site1%tdCx
+    tdy => this%Site1%tdCy
+    tdz => this%Site1%tdCz
     q1  => this%Site1%Qm0r(:, 1, 1)
     q2  => this%Site1%Qm0r(:, 2, 1)
     q3  => this%Site1%Qm0r(:, 3, 1)
@@ -3391,39 +3199,39 @@ loop2:  do m=1,NBinsDen
       PZi = PZ1(i)
 #if  TRANS == 1
       !TRANSPORT_start
-      VSxi = VSx1(i)
-      VSyi = VSy1(i)
-      VSzi = VSz1(i)
-      VBxi = VBx1(i)
-      VByi = VBy1(i)
-      VBzi = VBz1(i)
-      VSuxi= VSux1(i)
-      VSuyi= VSuy1(i)
-      VSuzi= VSuz1(i)
-      Cxi  = Cx1(i)
-      Cyi  = Cy1(i)
-      Czi  = Cz1(i)
-      tuxi = tux1(i)
-      tuyi = tuy1(i)
-      tuzi = tuz1(i)
-      tlxi = tlx1(i)
-      tlyi = tly1(i)
-      tlzi = tlz1(i)
-      tdxi = tdx1(i)
-      tdyi = tdy1(i)
-      tdzi = tdz1(i)
+      VSxi= VSx(i)
+      VSyi= VSy(i)
+      VSzi= VSz(i)
+      VBxi= VBx(i)
+      VByi= VBy(i)
+      VBzi= VBz(i)
+      VSuxi= VSux(i)
+      VSuyi= VSuy(i)
+      VSuzi= VSuz(i)
+      Cxi = Cx(i)
+      Cyi = Cy(i)
+      Czi = Cz(i)
+      tuxi = tux(i)
+      tuyi = tuy(i)
+      tuzi = tuz(i)
+      tlxi = tlx(i)
+      tlyi = tly(i)
+      tlzi = tlz(i)
+      tdxi = tdx(i)
+      tdyi = tdy(i)
+      tdzi = tdz(i)
       r1x  = ( RXi-PXi ) * BoxLength
       r1y  = ( RYi-PYi ) * BoxLength
       r1z  = ( RZi-PZi ) * BoxLength
-      A11  = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
-      A12  = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
-      A13  = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
-      A21  = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
-      A22  = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
-      A23  = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
-      A31  = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
-      A32  = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
-      A33  = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+      A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
+      A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
+      A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
+      A21 = 2._RK * (q2(i) * q3(i) - q1(i) * q4(i))
+      A22 = q1(i)**2 - q2(i)**2 + q3(i)**2 - q4(i)**2
+      A23 = 2._RK * (q3(i) * q4(i) + q1(i) * q2(i))
+      A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
+      A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
+      A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
       !TRANSPORT_END
 #endif
 
@@ -3513,79 +3321,35 @@ loop2:  do m=1,NBinsDen
         forceTempZ(jk) = forceTempZ(jk) - FZij
 
 #if TRANS==1
-        !TRANSPORT_start
-
-        VSxij   = 0.5 * FXij * PYij
-        VSyij   = 0.5 * FXij * PZij
-        VSzij   = 0.5 * FYij * PZij
-        VBxij   = 0.5 * FXij * PXij
-        VByij   = 0.5 * FYij * PYij
-        VBzij   = 0.5 * FZij * PZij
-        VSuxij  = 0.5 * FYij * PXij
-        VSuyij  = 0.5 * FZij * PXij
-        VSuzij  = 0.5 * FZij * PYij
-
-        VSxi   = VSxi + VSxij
-        VSyi   = VSyi + VSyij
-        VSzi   = VSzi + VSzij
-        VBxi   = VBxi + VBxij
-        VByi   = VByi + VByij
-        VBzi   = VBzi + VBzij
-        VSuxi  = VSuxi+ VSuxij
-        VSuyi  = VSuyi+ VSuyij
-        VSuzi  = VSuzi+ VSuzij        
-
-        VSTempX(j) = VSTempX(j) + VSxij
-        VSTempY(j) = VSTempY(j) + VSyij
-        VSTempZ(j) = VSTempZ(j) + VSzij
-        VBTempX(j) = VBTempX(j) + VBxij
-        VBTempY(j) = VBTempY(j) + VByij
-        VBTempZ(j) = VBTempZ(j) + VBzij
-        VSuTempX(j)= VSuTempX(j)+ VSuxij
-        VSuTempY(j)= VSuTempY(j)+ VSuyij
-        VSuTempZ(j)= VSuTempZ(j)+ VSuzij
-      
-        UU     = 0.5 * EpotLocal1
-        Cxi    = Cxi  + UU 
-        Cyi    = Cyi  + UU
-        Czi    = Czi  + UU
-        CTempX(j) = CTempX(j) + UU
-        CTempY(j) = CTempY(j) + UU
-        CTempZ(j) = CTempZ(j) + UU
-
+        !TRANSPORT_start vielleicht
+        VSxi   = VSxi + FXij * PYij
+        VSyi   = VSyi + FXij * PZij
+        VSzi   = VSzi + FYij * PZij
+        VBxi   = VBxi + FXij * PXij
+        VByi   = VByi + FYij * PYij
+        VBzi   = VBzi + FZij * PZij
+        VSuxi  = VSuxi+ FYij * PXij
+        VSuyi  = VSuyi+ FZij * PXij
+        VSuzi  = VSuzi+ FZij * PYij
+        UU        = EpotLocal1 + this%RFConstant * Rij2
+        Cxi    = Cxi  + UU * eX
+        Cyi    = Cyi  + UU * eY
+        Czi    = Czi  + UU * eZ
         txii   = r1y * FZij - r1z * FYij
         tyii   = r1z * FXij - r1x * FZij
         tzii   = r1x * FYij - r1y * FXij
         txi    = A11 * txii + A12 * tyii + A13 * tzii
         tyi    = A21 * txii + A22 * tyii + A23 * tzii
         tzi    = A31 * txii + A32 * tyii + A33 * tzii
-        tuxij   = 0.5 * PXij* tyi
-        tuyij   = 0.5 * PXij* tzi
-        tuzij   = 0.5 * PYij* tzi
-        tlxij   = 0.5 * PYij* txi
-        tlyij   = 0.5 * PZij* txi
-        tlzij   = 0.5 * PZij* tyi
-        tdxij   = 0.5 * PXij* txi
-        tdyij   = 0.5 * PYij* tyi
-        tdzij   = 0.5 * PZij* tzi
-        tuxi   = tuxi + tuxij
-        tuyi   = tuyi + tuyij
-        tuzi   = tuzi + tuzij
-        tlxi   = tlxi + tlxij
-        tlyi   = tlyi + tlyij
-        tlzi   = tlzi + tlzij
-        tdxi   = tdxi + tdxij
-        tdyi   = tdyi + tdyij
-        tdzi   = tdzi + tdzij
-        tuTempX(j)= tuTempX(j) + tuxij
-        tuTempY(j)= tuTempY(j) + tuyij
-        tuTempZ(j)= tuTempZ(j) + tuzij
-        tlTempX(j)= tlTempX(j) + tlxij
-        tlTempY(j)= tlTempY(j) + tlyij
-        tlTempZ(j)= tlTempZ(j) + tlzij
-        tdTempX(j)= tdTempX(j) + tdxij
-        tdTempY(j)= tdTempY(j) + tdyij
-        tdTempZ(j)= tdTempZ(j) + tdzij
+        tuxi   = tuxi + PXij*tyi
+        tuyi   = tuyi + PXij*tzi
+        tuzi   = tuzi + PYij*tzi
+        tlxi   = tlxi + PYij*txi
+        tlyi   = tlyi + PZij*txi
+        tlzi   = tlzi + PZij*tyi
+        tdxi   = tdxi + PXij*txi
+        tdyi   = tdyi + PYij*tyi
+        tdzi   = tdzi + PZij*tzi
 #endif
 
         end if
@@ -3638,27 +3402,27 @@ loop2:  do m=1,NBinsDen
       FZ1(i) = FZi
 #if  TRANS == 1
       !TRANSPORT_start
-      VSx1(i) = VSxi
-      VSy1(i) = VSyi
-      VSz1(i) = VSzi
-      VBx1(i) = VBxi
-      VBy1(i) = VByi
-      VBz1(i) = VBzi
-      VSux1(i)= VSuxi
-      VSuy1(i)= VSuyi
-      VSuz1(i)= VSuzi
-      Cx1(i)  = Cxi
-      Cy1(i)  = Cyi
-      Cz1(i)  = Czi
-      tux1(i) = tuxi
-      tuy1(i) = tuyi
-      tuz1(i) = tuzi
-      tlx1(i) = tlxi
-      tly1(i) = tlyi
-      tlz1(i) = tlzi
-      tdx1(i) = tdxi
-      tdy1(i) = tdyi
-      tdz1(i) = tdzi
+      VSx(i) = VSxi
+      VSy(i) = VSyi
+      VSz(i) = VSzi
+      VBx(i) = VBxi
+      VBy(i) = VByi
+      VBz(i) = VBzi
+      VSux(i)= VSuxi
+      VSuy(i)= VSuyi
+      VSuz(i)= VSuzi
+      Cx(i)  = Cxi
+      Cy(i)  = Cyi
+      Cz(i)  = Czi
+      tux(i) = tuxi
+      tuy(i) = tuyi
+      tuz(i) = tuzi
+      tlx(i) = tlxi
+      tly(i) = tlyi
+      tlz(i) = tlzi
+      tdx(i) = tdxi
+      tdy(i) = tdyi
+      tdz(i) = tdzi
       !TRANSPORT_END
 
 #endif
@@ -3670,36 +3434,6 @@ loop2:  do m=1,NBinsDen
     FY2 = FY2 + forceTempY
     FZ2 = FZ2 + forceTempZ
 
-#if  TRANS == 1
-   VSx2 = VSx2 + VSTempX
-   VSy2 = VSy2 + VSTempY
-   VSz2 = VSz2 + VSTempZ
-
-   VSux2 = VSux2 + VSuTempX
-   VSuy2 = VSuy2 + VSuTempY
-   VSuz2 = VSuz2 + VSuTempZ
-
-   VBx2 = VBx2 + VBTempX
-   VBy2 = VBy2 + VBTempY
-   VBz2 = VBz2 + VBTempZ
-
-   Cx2 = Cx2 + CTempX
-   Cy2 = Cy2 + CTempY
-   Cz2 = Cz2 + CTempZ
-
-   tux2 = tux2 + tuTempX
-   tuy2 = tuy2 + tuTempY
-   tuz2 = tuz2 + tuTempZ
-
-   tdx2 = tdx2 + tdTempX
-   tdy2 = tdy2 + tdTempY
-   tdz2 = tdz2 + tdTempZ
-
-   tlx2 = tlx2 + tlTempX
-   tly2 = tly2 + tlTempY
-   tlz2 = tlz2 + tlTempZ
-
-#endif
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
@@ -3779,22 +3513,20 @@ loop2:  do m=1,NBinsDen
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer, contiguous :: VSx1(:), VSy1(:), VSz1(:)
-    real(RK), pointer, contiguous :: VSx2(:), VSy2(:), VSz2(:)
-    real(RK), pointer, contiguous :: VBx1(:), VBy1(:), VBz1(:)
-    real(RK), pointer, contiguous :: VBx2(:), VBy2(:), VBz2(:)
-    real(RK)          :: VSTempX(1:this%Site2%NPart), VSTempY(1:this%Site2%NPart), VSTempZ(1:this%Site2%NPart)
-    real(RK)          :: VBTempX(1:this%Site2%NPart), VBTempY(1:this%Site2%NPart), VBTempZ(1:this%Site2%NPart)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:), VSuy(:), VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
+
     real(RK)          :: VSxi, VSyi, VSzi
+    real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
 
-
-    VSTempX(:)=0._RK
-    VSTempY(:)=0._RK
-    VSTempZ(:)=0._RK
-    VBTempX(:)=0._RK
-    VBTempY(:)=0._RK
-    VBTempZ(:)=0._RK
+    real(RK)          :: r1x, r1y, r1z
+    real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
 
     !TRANSPORT_END
 #endif
@@ -3816,9 +3548,11 @@ loop2:  do m=1,NBinsDen
 !$OMP PRIVATE(   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx1, VSy1, VSz1 ,VBx1, VBy1, VBz1) &
-!$OMP PRIVATE( VSxi, VSyi, VSzi) &
-!$OMP PRIVATE( VBxi, VByi, VBzi) &
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE( VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
+!$OMP PRIVATE( VBxi, VByi, VBzi,  r1x, r1y, r1z) &
+!$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
 !$OMP PRIVATE ( i0) &
@@ -3870,18 +3604,12 @@ loop2:  do m=1,NBinsDen
 #if  TRANS == 1
     !TRANSPORT_start
 
-    VSx1 => this%Site1%vsCx
-    VSy1 => this%Site1%vsCy
-    VSz1 => this%Site1%vsCz
-    VSx2 => this%Site2%vsCx
-    VSy2 => this%Site2%vsCy
-    VSz2 => this%Site2%vsCz
-    VBx1 => this%Site1%vbCx
-    VBy1 => this%Site1%vbCy
-    VBz1 => this%Site1%vbCz
-    VBx2 => this%Site2%vbCx
-    VBy2 => this%Site2%vbCy
-    VBz2 => this%Site2%vbCz
+    VSx => this%Site1%vsCx
+    VSy => this%Site1%vsCy
+    VSz => this%Site1%vsCz
+    VBx => this%Site1%vbCx
+    VBy => this%Site1%vbCy
+    VBz => this%Site1%vbCz
 
 !TRANSPORT_END
 #endif
@@ -3904,13 +3632,13 @@ loop2:  do m=1,NBinsDen
       PZi = PZ1(i)
 #if  TRANS == 1
       !TRANSPORT_start
-      VSxi= VSx1(i)
-      VSyi= VSy1(i)
-      VSzi= VSz1(i)
-      VBxi= VBx1(i)
-      VByi= VBy1(i)
-      VBzi= VBz1(i)
-      !TRANSPORT_END
+      VSxi= VSx(i)
+      VSyi= VSy(i)
+      VSzi= VSz(i)
+      VBxi= VBx(i)
+      VByi= VBy(i)
+      VBzi= VBz(i)
+!       !TRANSPORT_END
 #endif
 
 !CDIR NODEP
@@ -4003,20 +3731,14 @@ loop2:  do m=1,NBinsDen
 
 #if TRANS==1
         !TRANSPORT_start vielleicht
-        VSxi   = VSxi + 0.5 * FXij * PYij
-        VSyi   = VSyi + 0.5 * FXij * PZij
-        VSzi   = VSzi + 0.5 * FYij * PZij
-        VBxi   = VBxi + 0.5 * FXij * PXij
-        VByi   = VByi + 0.5 * FYij * PYij
-        VBzi   = VBzi + 0.5 * FZij * PZij
-        VSTempX(j) = VSTempX(j) + 0.5 * FXij * PYij
-        VSTempY(j) = VSTempY(j) + 0.5 * FXij * PZij
-        VSTempZ(j) = VSTempZ(j) + 0.5 * FYij * PZij
-        VBTempX(j) = VBTempX(j) + 0.5 * FXij * PXij
-        VBTempY(j) = VBTempY(j) + 0.5 * FYij * PYij
-        VBTempZ(j) = VBTempZ(j) + 0.5 * FZij * PZij
-#endif
+        VSxi   = VSxi + FXij * PYij
+        VSyi   = VSyi + FXij * PZij
+        VSzi   = VSzi + FYij * PZij
+        VBxi   = VBxi + FXij * PXij
+        VByi   = VByi + FYij * PYij
+        VBzi   = VBzi + FZij * PZij
 
+#endif
         end if
       end do loop1
       ! Include intramolecular interaction if need
@@ -4071,14 +3793,15 @@ loop2:  do m=1,NBinsDen
       FZ1(i) = FZi
 #if  TRANS == 1
       !TRANSPORT_start
-      VSx1(i) = VSxi
-      VSy1(i) = VSyi
-      VSz1(i) = VSzi
-      VBx1(i) = VBxi
-      VBy1(i) = VByi
-      VBz1(i) = VBzi
-#endif
+      VSx(i) = VSxi
+      VSy(i) = VSyi
+      VSz(i) = VSzi
+      VBx(i) = VBxi
+      VBy(i) = VByi
+      VBz(i) = VBzi
 
+      !TRANSPORT_END
+#endif
     end do
 !$OMP END DO
 !$OMP END PARALLEL
@@ -4086,16 +3809,6 @@ loop2:  do m=1,NBinsDen
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
     FZ2 = FZ2 + forceTempZ
-
-#if  TRANS == 1
-    VSx2 = VSx2 + VSTempX*BoxLength
-    VSy2 = VSy2 + VSTempY*BoxLength
-    VSz2 = VSz2 + VSTempZ*BoxLength
-    VBx2 = VBx2 + VBTempX*BoxLength
-    VBy2 = VBy2 + VBTempY*BoxLength
-    VBz2 = VBz2 + VBTempZ*BoxLength
-#endif
-
 
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
@@ -4969,28 +4682,14 @@ loop2:  do m=1,NBinsDen
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer, contiguous :: VSx1(:), VSy1(:), VSz1(:)
-    real(RK), pointer, contiguous :: VSx2(:), VSy2(:), VSz2(:)
-    real(RK), pointer, contiguous :: VSux1(:), VSuy1(:), VSuz1(:)
-    real(RK), pointer, contiguous :: VSux2(:), VSuy2(:), VSuz2(:)
-    real(RK), pointer, contiguous :: VBx1(:), VBy1(:), VBz1(:)
-    real(RK), pointer, contiguous :: VBx2(:), VBy2(:), VBz2(:)
-    real(RK), pointer, contiguous :: Cx1(:) , Cy1(:) , Cz1(:)
-    real(RK), pointer, contiguous :: Cx2(:) , Cy2(:) , Cz2(:)
-    real(RK), pointer, contiguous :: tux1(:) , tuy1(:) , tuz1(:)
-    real(RK), pointer, contiguous :: tux2(:) , tuy2(:) , tuz2(:)
-    real(RK), pointer, contiguous :: tlx1(:) , tly1(:) , tlz1(:)
-    real(RK), pointer, contiguous :: tlx2(:) , tly2(:) , tlz2(:)
-    real(RK), pointer, contiguous :: tdx1(:) , tdy1(:) , tdz1(:)
-    real(RK), pointer, contiguous :: tdx2(:) , tdy2(:) , tdz2(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:), VSuy(:), VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
-    real(RK)          :: VSTempX(1:this%Site2%NPart), VSTempY(1:this%Site2%NPart), VSTempZ(1:this%Site2%NPart)
-    real(RK)          :: VSuTempX(1:this%Site2%NPart), VSuTempY(1:this%Site2%NPart), VSuTempZ(1:this%Site2%NPart)
-    real(RK)          :: VBTempX(1:this%Site2%NPart), VBTempY(1:this%Site2%NPart), VBTempZ(1:this%Site2%NPart)
-    real(RK)          :: CTempX(1:this%Site2%NPart), CTempY(1:this%Site2%NPart), CTempZ(1:this%Site2%NPart)
-    real(RK)          :: tuTempX(1:this%Site2%NPart), tuTempY(1:this%Site2%NPart), tuTempZ(1:this%Site2%NPart)
-    real(RK)          :: tlTempX(1:this%Site2%NPart), tlTempY(1:this%Site2%NPart), tlTempZ(1:this%Site2%NPart)
-    real(RK)          :: tdTempX(1:this%Site2%NPart), tdTempY(1:this%Site2%NPart), tdTempZ(1:this%Site2%NPart)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -5000,7 +4699,7 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: tdxi,  tdyi,  tdzi
     real(RK)          :: txii,  tyii , tzii
     real(RK)          :: txi ,  tyi  , tzi
-    real(RK)          :: UU
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
     real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     !TRANSPORT_END
@@ -5028,34 +4727,9 @@ loop2:  do m=1,NBinsDen
     momTempX(:)=0._RK
     momTempY(:)=0._RK
     momTempZ(:)=0._RK    
-    EPotLocal =0._RK
+    EPotLocal=0._RK
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
-
-#if  TRANS == 1
-    VSTempX(:) = 0._RK
-    VSTempY(:) = 0._RK
-    VSTempZ(:) = 0._RK
-    VSuTempX(:)= 0._RK
-    VSuTempY(:)= 0._RK
-    VSuTempZ(:)= 0._RK
-    VBTempX(:) = 0._RK
-    VBTempY(:) = 0._RK
-    VBTempZ(:) = 0._RK
-    CTempX(:)  = 0._RK
-    CTempY(:)  = 0._RK
-    CTempZ(:)  = 0._RK
-    tuTempX(:) = 0._RK
-    tuTempY(:) = 0._RK
-    tuTempz(:) = 0._RK
-    tlTempX(:) = 0._RK
-    tlTempY(:) = 0._RK
-    tlTempz(:) = 0._RK
-    tdTempX(:) = 0._RK
-    tdTempY(:) = 0._RK
-    tdTempz(:) = 0._RK
-#endif
-
 
 !$OMP PARALLEL &
 !$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
@@ -5065,14 +4739,12 @@ loop2:  do m=1,NBinsDen
 !$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
 !$OMP PRIVATE ( OXj, OYj, OZj, eX, eY, eZ, RijSquaredInv, RijInv) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx1, VSy1, VSz1,VSux1,VSuy1,VSuz1, VBx1, VBy1, VBz1, Cx1, Cy1, Cz1) &
-!$OMP PRIVATE(VSx2, VSy2, VSz2,VSux2,VSuy2,VSuz2, VBx2, VBy2, VBz2, Cx2, Cy2, Cz2) &
-!$OMP PRIVATE( tux1, tuy1, tuz1, tlx1, tly1, tlz1, tdx1, tdy1, tdz1) &
-!$OMP PRIVATE( tux2, tuy2, tuz2, tlx2, tly2, tlz2, tdx2, tdy2, tdz2) &
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
 !$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
-!$OMP PRIVATE(  UU , r1x, r1y, r1z) &
+!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 
@@ -5120,48 +4792,27 @@ loop2:  do m=1,NBinsDen
     OZ2 => this%Site2%OZ
 #if  TRANS == 1
     !TRANSPORT_start
-    VSx1 => this%Site1%vsCx
-    VSy1 => this%Site1%vsCy
-    VSz1 => this%Site1%vsCz
-    VSx2 => this%Site2%vsDx
-    VSy2 => this%Site2%vsDy
-    VSz2 => this%Site2%vsDz
-    VBx1 => this%Site1%vbCx
-    VBy1 => this%Site1%vbCy
-    VBz1 => this%Site1%vbCz
-    VBx2 => this%Site2%vbDx
-    VBy2 => this%Site2%vbDy
-    VBz2 => this%Site2%vbdz
-    VSux1=> this%Site1%vsuCx
-    VSuy1=> this%Site1%vsuCy
-    VSuz1=> this%Site1%vsuCz
-    VSux2=> this%Site2%vsuDx
-    VSuy2=> this%Site2%vsuDy
-    VSuz2=> this%Site2%vsuDz
-    Cx1  => this%Site1%cCx
-    Cy1  => this%Site1%cCy
-    Cz1  => this%Site1%cCz
-    Cx2  => this%Site2%cDx
-    Cy2  => this%Site2%cDy
-    Cz2  => this%Site2%cDz
-    tux1 => this%Site1%tuCx
-    tuy1 => this%Site1%tuCy
-    tuz1 => this%Site1%tuCz
-    tux2 => this%Site2%tuDx
-    tuy2 => this%Site2%tuDy
-    tuz2 => this%Site2%tuDz
-    tlx1 => this%Site1%tlCx
-    tly1 => this%Site1%tlCy
-    tlz1 => this%Site1%tlCz
-    tlx2 => this%Site2%tlDx
-    tly2 => this%Site2%tlDy
-    tlz2 => this%Site2%tlDz
-    tdx1 => this%Site1%tdCx
-    tdy1 => this%Site1%tdCy
-    tdz1 => this%Site1%tdCz
-    tdx2 => this%Site2%tdDx
-    tdy2 => this%Site2%tdDy
-    tdz2 => this%Site2%tdDz
+    VSx => this%Site1%vsCx
+    VSy => this%Site1%vsCy
+    VSz => this%Site1%vsCz
+    VBx => this%Site1%vbCx
+    VBy => this%Site1%vbCy
+    VBz => this%Site1%vbCz
+    VSux=> this%Site1%vsuCx
+    VSuy=> this%Site1%vsuCy
+    VSuz=> this%Site1%vsuCz
+    Cx  => this%Site1%cCx
+    Cy  => this%Site1%cCy
+    Cz  => this%Site1%cCz
+    tux => this%Site1%tuCx
+    tuy => this%Site1%tuCy
+    tuz => this%Site1%tuCz
+    tlx => this%Site1%tlCx
+    tly => this%Site1%tlCy
+    tlz => this%Site1%tlCz
+    tdx => this%Site1%tdCx
+    tdy => this%Site1%tdCy
+    tdz => this%Site1%tdCz
     q1  => this%Site1%Qm0r(:, 1, 1)
     q2  => this%Site1%Qm0r(:, 2, 1)
     q3  => this%Site1%Qm0r(:, 3, 1)
@@ -5195,27 +4846,27 @@ loop2:  do m=1,NBinsDen
 
 #if  TRANS == 1
       !TRANSPORT_start
-      VSxi = VSx1(i)
-      VSyi = VSy1(i)
-      VSzi = VSz1(i)
-      VBxi = VBx1(i)
-      VByi = VBy1(i)
-      VBzi = VBz1(i)
-      VSuxi= VSux1(i)
-      VSuyi= VSuy1(i)
-      VSuzi= VSuz1(i)
-      Cxi  = Cx1(i)
-      Cyi  = Cy1(i)
-      Czi  = Cz1(i)
-      tuxi = tux1(i)
-      tuyi = tuy1(i)
-      tuzi = tuz1(i)
-      tlxi = tlx1(i)
-      tlyi = tly1(i)
-      tlzi = tlz1(i)
-      tdxi = tdx1(i)
-      tdyi = tdy1(i)
-      tdzi = tdz1(i)
+      VSxi= VSx(i)
+      VSyi= VSy(i)
+      VSzi= VSz(i)
+      VBxi= VBx(i)
+      VByi= VBy(i)
+      VBzi= VBz(i)
+      VSuxi= VSux(i)
+      VSuyi= VSuy(i)
+      VSuzi= VSuz(i)
+      Cxi = Cx(i)
+      Cyi = Cy(i)
+      Czi = Cz(i)
+      tuxi = tux(i)
+      tuyi = tuy(i)
+      tuzi = tuz(i)
+      tlxi = tlx(i)
+      tlyi = tly(i)
+      tlzi = tlz(i)
+      tdxi = tdx(i)
+      tdyi = tdy(i)
+      tdzi = tdz(i)
       r1x  = ( RXi-PXi ) * BoxLength
       r1y  = ( RYi-PYi ) * BoxLength
       r1z  = ( RZi-PZi ) * BoxLength
@@ -5325,58 +4976,38 @@ loop2:  do m=1,NBinsDen
         momTempZ(jk) = momTempZ(jk) - Epsilon1 * eZ   
 
 #if TRANS==1
-        !TRANSPORT_start 
-        VSxi   = VSxi + 0.5 * FXij * PYij
-        VSyi   = VSyi + 0.5 * FXij * PZij
-        VSzi   = VSzi + 0.5 * FYij * PZij
-        VBxi   = VBxi + 0.5 * FXij * PXij
-        VByi   = VByi + 0.5 * FYij * PYij
-        VBzi   = VBzi + 0.5 * FZij * PZij
-        VSuxi  = VSuxi+ 0.5 * FYij * PXij
-        VSuyi  = VSuyi+ 0.5 * FZij * PXij
-        VSuzi  = VSuzi+ 0.5 * FZij * PYij
-        VSTempX(j) = VSTempX(j) + 0.5*FXij * PYij
-        VSTempY(j) = VSTempY(j) + 0.5*FXij * PZij
-        VSTempZ(j) = VSTempZ(j) + 0.5*FYij * PZij
-        VBTempX(j) = VBTempX(j) + 0.5*FXij * PXij
-        VBTempY(j) = VBTempY(j) + 0.5*FYij * PYij
-        VBTempZ(j) = VBTempZ(j) + 0.5*FZij * PZij
-        VSuTempX(j)= VSuTempX(j)+ 0.5*FYij * PXij
-        VSuTempY(j)= VSuTempY(j)+ 0.5*FZij * PXij
-        VSuTempZ(j)= VSuTempZ(j)+ 0.5*FZij * PYij
-       
-        UU    =  0.5 * EpotLocal1        
-        Cxi    = Cxi  + UU
-        Cyi    = Cyi  + UU
-        Czi    = Czi  + UU
-        CTempX(j) = CTempX(j) + UU
-        CTempY(j) = CTempY(j) + UU
-        CTempZ(j) = CTempZ(j) + UU
-
+        !TRANSPORT_start vielleicht
+        VSxi   = VSxi + FXij * PYij
+        VSyi   = VSyi + FXij * PZij
+        VSzi   = VSzi + FYij * PZij
+        VBxi   = VBxi + FXij * PXij
+        VByi   = VByi + FYij * PYij
+        VBzi   = VBzi + FZij * PZij
+        VSuxi  = VSuxi+ FYij * PXij
+        VSuyi  = VSuyi+ FZij * PXij
+        VSuzi  = VSuzi+ FZij * PYij
+        UU    =  EpotLocal1        !EpotLocal1 not defined
+        Uxi   =  UU * eX
+        Uyi   =  UU * eY
+        Uzi   =  UU * eZ
+        Cxi    = Cxi  + Uxi !Why was this term left out?
+        Cyi    = Cyi  + Uyi !Why was this term left out?
+        Czi    = Czi  + Uzi !Why was this term left out?
         txii   = r1y * FZij - r1z * FYij
         tyii   = r1z * FXij - r1x * FZij
         tzii   = r1x * FYij - r1y * FXij
         txi    = A11 * txii + A12 * tyii + A13 * tzii
         tyi    = A21 * txii + A22 * tyii + A23 * tzii
         tzi    = A31 * txii + A32 * tyii + A33 * tzii
-        tuxi   = tuxi + 0.5 * PXij* tyi
-        tuyi   = tuyi + 0.5 * PXij* tzi
-        tuzi   = tuzi + 0.5 * PYij* tzi
-        tlxi   = tlxi + 0.5 * PYij* txi
-        tlyi   = tlyi + 0.5 * PZij* txi
-        tlzi   = tlzi + 0.5 * PZij* tyi
-        tdxi   = tdxi + 0.5 * PXij* txi
-        tdyi   = tdyi + 0.5 * PYij* tyi
-        tdzi   = tdzi + 0.5 * PZij* tzi
-        tuTempX(j)= tuTempX(j) + 0.5*PXij*tyi
-        tuTempY(j)= tuTempY(j) + 0.5*PXij*tzi
-        tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzi
-        tlTempX(j)= tlTempX(j) + 0.5*PYij*txi
-        tlTempY(j)= tlTempY(j) + 0.5*PZij*txi
-        tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyi
-        tdTempX(j)= tdTempX(j) + 0.5*PXij*txi
-        tdTempY(j)= tdTempY(j) + 0.5*PYij*tyi
-        tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzi  
+        tuxi   = tuxi + PXij*tyi
+        tuyi   = tuyi + PXij*tzi
+        tuzi   = tuzi + PYij*tzi
+        tlxi   = tlxi + PYij*txi
+        tlyi   = tlyi + PZij*txi
+        tlzi   = tlzi + PZij*tyi
+        tdxi   = tdxi + PXij*txi
+        tdyi   = tdyi + PYij*tyi
+        tdzi   = tdzi + PZij*tzi
 #endif
         end if
       end do loop1
@@ -5433,31 +5064,31 @@ loop2:  do m=1,NBinsDen
       FY1(i) = FYi
       FZ1(i) = FZi
 
-#if TRANS == 1
+#if  TRANS == 1
       !TRANSPORT_start
-      VSx1(i) = VSxi
-      VSy1(i) = VSyi
-      VSz1(i) = VSzi
-      VBx1(i) = VBxi
-      VBy1(i) = VByi
-      VBz1(i) = VBzi
-      VSux1(i)= VSuxi
-      VSuy1(i)= VSuyi
-      VSuz1(i)= VSuzi
-      Cx1(i)  = Cxi
-      Cy1(i)  = Cyi
-      Cz1(i)  = Czi
-      tux1(i) = tuxi
-      tuy1(i) = tuyi
-      tuz1(i) = tuzi
-      tlx1(i) = tlxi
-      tly1(i) = tlyi
-      tlz1(i) = tlzi
-      tdx1(i) = tdxi
-      tdy1(i) = tdyi
-      tdz1(i) = tdzi
+      VSx(i) = VSxi
+      VSy(i) = VSyi
+      VSz(i) = VSzi
+      VBx(i) = VBxi
+      VBy(i) = VByi
+      VBz(i) = VBzi
+      VSux(i)= VSuxi
+      VSuy(i)= VSuyi
+      VSuz(i)= VSuzi
+      Cx(i)  = Cxi
+      Cy(i)  = Cyi
+      Cz(i)  = Czi
+      tux(i) = tuxi
+      tuy(i) = tuyi
+      tuz(i) = tuzi
+      tlx(i) = tlxi
+      tly(i) = tlyi
+      tlz(i) = tlzi
+      tdx(i) = tdxi
+      tdy(i) = tdyi
+      tdz(i) = tdzi
+      !TRANSPORT_END
 #endif
-
     end do
 !$OMP END DO
 !$OMP END PARALLEL
@@ -5468,38 +5099,6 @@ loop2:  do m=1,NBinsDen
     TX2 = TX2 + momTempX                                 
     TY2 = TY2 + momTempY
     TZ2 = TZ2 + momTempZ
-
-#if  TRANS == 1
-   VSx2 = VSx2 + VSTempX
-   VSy2 = VSy2 + VSTempY
-   VSz2 = VSz2 + VSTempZ
-
-   VSux2 = VSux2 + VSuTempX
-   VSuy2 = VSuy2 + VSuTempY
-   VSuz2 = VSuz2 + VSuTempZ
-
-   VBx2 = VBx2 + VBTempX
-   VBy2 = VBy2 + VBTempY
-   VBz2 = VBz2 + VBTempZ
-
-   Cx2 = Cx2 + CTempX
-   Cy2 = Cy2 + CTempY
-   Cz2 = Cz2 + CTempZ
-
-   tux2 = tux2 + tuTempX
-   tuy2 = tuy2 + tuTempY
-   tuz2 = tuz2 + tuTempZ
-
-   tdx2 = tdx2 + tdTempX
-   tdy2 = tdy2 + tdTempY
-   tdz2 = tdz2 + tdTempZ
-
-   tlx2 = tlx2 + tlTempX
-   tly2 = tly2 + tlTempY
-   tlz2 = tlz2 + tlTempZ
-
-#endif
-
 
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
@@ -6238,28 +5837,14 @@ loop2:  do m=1,NBinsDen
  
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer, contiguous :: VSx1(:), VSy1(:), VSz1(:)
-    real(RK), pointer, contiguous :: VSx2(:), VSy2(:), VSz2(:)
-    real(RK), pointer, contiguous :: VSux1(:),VSuy1(:),VSuz1(:)
-    real(RK), pointer, contiguous :: VSux2(:),VSuy2(:),VSuz2(:)
-    real(RK), pointer, contiguous :: VBx1(:), VBy1(:), VBz1(:)
-    real(RK), pointer, contiguous :: VBx2(:), VBy2(:), VBz2(:)
-    real(RK), pointer, contiguous :: Cx1(:) , Cy1(:) , Cz1(:)
-    real(RK), pointer, contiguous :: Cx2(:) , Cy2(:) , Cz2(:)
-    real(RK), pointer, contiguous :: tux1(:) , tuy1(:) , tuz1(:)
-    real(RK), pointer, contiguous :: tux2(:) , tuy2(:) , tuz2(:)
-    real(RK), pointer, contiguous :: tlx1(:) , tly1(:) , tlz1(:)
-    real(RK), pointer, contiguous :: tlx2(:) , tly2(:) , tlz2(:)
-    real(RK), pointer, contiguous :: tdx1(:) , tdy1(:) , tdz1(:)
-    real(RK), pointer, contiguous :: tdx2(:) , tdy2(:) , tdz2(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:), VSuy(:), VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
-    real(RK)          :: VSTempX(1:this%Site2%NPart), VSTempY(1:this%Site2%NPart), VSTempZ(1:this%Site2%NPart)
-    real(RK)          :: VSuTempX(1:this%Site2%NPart), VSuTempY(1:this%Site2%NPart), VSuTempZ(1:this%Site2%NPart)
-    real(RK)          :: VBTempX(1:this%Site2%NPart), VBTempY(1:this%Site2%NPart), VBTempZ(1:this%Site2%NPart)
-    real(RK)          :: CTempX(1:this%Site2%NPart), CTempY(1:this%Site2%NPart), CTempZ(1:this%Site2%NPart)
-    real(RK)          :: tuTempX(1:this%Site2%NPart), tuTempY(1:this%Site2%NPart), tuTempZ(1:this%Site2%NPart)
-    real(RK)          :: tlTempX(1:this%Site2%NPart), tlTempY(1:this%Site2%NPart), tlTempZ(1:this%Site2%NPart)
-    real(RK)          :: tdTempX(1:this%Site2%NPart), tdTempY(1:this%Site2%NPart), tdTempZ(1:this%Site2%NPart)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -6269,7 +5854,7 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: tdxi,  tdyi,  tdzi
     real(RK)          :: txii,  tyii , tzii
     real(RK)          :: txi ,  tyi  , tzi
-    real(RK)          :: UU
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
     real(RK)          :: r1x, r1y, r1z
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     !TRANSPORT_END
@@ -6302,30 +5887,6 @@ loop2:  do m=1,NBinsDen
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
 
-#if  TRANS == 1
-    VSTempX(:) = 0._RK
-    VSTempY(:) = 0._RK
-    VSTempZ(:) = 0._RK
-    VSuTempX(:)= 0._RK
-    VSuTempY(:)= 0._RK
-    VSuTempZ(:)= 0._RK
-    VBTempX(:) = 0._RK
-    VBTempY(:) = 0._RK
-    VBTempZ(:) = 0._RK
-    CTempX(:)  = 0._RK
-    CTempY(:)  = 0._RK
-    CTempZ(:)  = 0._RK
-    tuTempX(:) = 0._RK
-    tuTempY(:) = 0._RK
-    tuTempz(:) = 0._RK
-    tlTempX(:) = 0._RK
-    tlTempY(:) = 0._RK
-    tlTempz(:) = 0._RK
-    tdTempX(:) = 0._RK
-    tdTempY(:) = 0._RK
-    tdTempz(:) = 0._RK
-#endif
-
 !$OMP PARALLEL &
 !$OMP PRIVATE ( Epsilon, Epsilon1, Epsilon2, RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE (  FX1, FY1, FZ1, OX2, OY2, OZ2) &
@@ -6334,14 +5895,12 @@ loop2:  do m=1,NBinsDen
 !$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
 !$OMP PRIVATE ( OXj, OYj, OZj, eX, eY, eZ, RijSquaredInv, RijInv) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx1, VSy1, VSz1,VSux1,VSuy1,VSuz1, VBx1, VBy1, VBz1, Cx1, Cy1, Cz1) &
-!$OMP PRIVATE(VSx2, VSy2, VSz2,VSux2,VSuy2,VSuz2, VBx2, VBy2, VBz2, Cx2, Cy2, Cz2) &
-!$OMP PRIVATE( tux1 , tuy1, tuz1, tlx1, tly1, tlz1, tdx1, tdy1, tdz1) &
-!$OMP PRIVATE( tux2 , tuy2, tuz2, tlx2, tly2, tlz2, tdx2, tdy2, tdz2) &
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
 !$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
-!$OMP PRIVATE(  UU , r1x, r1y, r1z) &
+!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
@@ -6395,48 +5954,27 @@ loop2:  do m=1,NBinsDen
 
 #if  TRANS == 1
     !TRANSPORT_start
-    VSx1 => this%Site1%vsCx
-    VSy1 => this%Site1%vsCy
-    VSz1 => this%Site1%vsCz
-    VSx2 => this%Site2%vsQx
-    VSy2 => this%Site2%vsQy
-    VSz2 => this%Site2%vsQz
-    VBx1 => this%Site1%vbCx
-    VBy1 => this%Site1%vbCy
-    VBz1 => this%Site1%vbCz
-    VBx2 => this%Site2%vbQx
-    VBy2 => this%Site2%vbQy
-    VBz2 => this%Site2%vbQz
-    VSux1=> this%Site1%vsuCx
-    VSuy1=> this%Site1%vsuCy
-    VSuz1=> this%Site1%vsuCz
-    VSux2=> this%Site2%vsuQx
-    VSuy2=> this%Site2%vsuQy
-    VSuz2=> this%Site2%vsuQz
-    Cx1  => this%Site1%cCx
-    Cy1  => this%Site1%cCy
-    Cz1  => this%Site1%cCz
-    Cx2  => this%Site2%cQx
-    Cy2  => this%Site2%cQy
-    Cz2  => this%Site2%cQz
-    tux1 => this%Site1%tuCx
-    tuy1 => this%Site1%tuCy
-    tuz1 => this%Site1%tuCz
-    tux2 => this%Site2%tuQx
-    tuy2 => this%Site2%tuQy
-    tuz2 => this%Site2%tuQz
-    tlx1 => this%Site1%tlCx
-    tly1 => this%Site1%tlCy
-    tlz1 => this%Site1%tlCz
-    tlx2 => this%Site2%tlQx
-    tly2 => this%Site2%tlQy
-    tlz2 => this%Site2%tlQz
-    tdx1 => this%Site1%tdCx
-    tdy1 => this%Site1%tdCy
-    tdz1 => this%Site1%tdCz
-    tdx2 => this%Site2%tdQx
-    tdy2 => this%Site2%tdQy
-    tdz2 => this%Site2%tdQz
+    VSx => this%Site1%vsCx
+    VSy => this%Site1%vsCy
+    VSz => this%Site1%vsCz
+    VBx => this%Site1%vbCx
+    VBy => this%Site1%vbCy
+    VBz => this%Site1%vbCz
+    VSux=> this%Site1%vsuCx
+    VSuy=> this%Site1%vsuCy
+    VSuz=> this%Site1%vsuCz
+    Cx  => this%Site1%cCx
+    Cy  => this%Site1%cCy
+    Cz  => this%Site1%cCz
+    tux => this%Site1%tuCx
+    tuy => this%Site1%tuCy
+    tuz => this%Site1%tuCz
+    tlx => this%Site1%tlCx
+    tly => this%Site1%tlCy
+    tlz => this%Site1%tlCz
+    tdx => this%Site1%tdCx
+    tdy => this%Site1%tdCy
+    tdz => this%Site1%tdCz
     q1  => this%Site1%Qm0r(:, 1, 1)
     q2  => this%Site1%Qm0r(:, 2, 1)
     q3  => this%Site1%Qm0r(:, 3, 1)
@@ -6463,27 +6001,27 @@ loop2:  do m=1,NBinsDen
       PZi = PZ1(i)
 #if  TRANS == 1
       !TRANSPORT_start
-      VSxi = VSx1(i)
-      VSyi = VSy1(i)
-      VSzi = VSz1(i)
-      VBxi = VBx1(i)
-      VByi = VBy1(i)
-      VBzi = VBz1(i)
-      VSuxi= VSux1(i)
-      VSuyi= VSuy1(i)
-      VSuzi= VSuz1(i)
-      Cxi  = Cx1(i)
-      Cyi  = Cy1(i)
-      Czi  = Cz1(i)
-      tuxi = tux1(i)
-      tuyi = tuy1(i)
-      tuzi = tuz1(i)
-      tlxi = tlx1(i)
-      tlyi = tly1(i)
-      tlzi = tlz1(i)
-      tdxi = tdx1(i)
-      tdyi = tdy1(i)
-      tdzi = tdz1(i)
+      VSxi= VSx(i)
+      VSyi= VSy(i)
+      VSzi= VSz(i)
+      VBxi= VBx(i)
+      VByi= VBy(i)
+      VBzi= VBz(i)
+      VSuxi= VSux(i)
+      VSuyi= VSuy(i)
+      VSuzi= VSuz(i)
+      Cxi = Cx(i)
+      Cyi = Cy(i)
+      Czi = Cz(i)
+      tuxi = tux(i)
+      tuyi = tuy(i)
+      tuzi = tuz(i)
+      tlxi = tlx(i)
+      tlyi = tly(i)
+      tlzi = tlz(i)
+      tdxi = tdx(i)
+      tdyi = tdy(i)
+      tdzi = tdz(i)
       r1x  = ( RXi-PXi ) * BoxLength
       r1y  = ( RYi-PYi ) * BoxLength
       r1z  = ( RZi-PZi ) * BoxLength
@@ -6597,49 +6135,37 @@ loop2:  do m=1,NBinsDen
 
 #if TRANS==1
         !TRANSPORT_start vielleicht
-        VSxi   = VSxi + 0.5 * FXij * PYij
-        VSyi   = VSyi + 0.5 * FXij * PZij
-        VSzi   = VSzi + 0.5 * FYij * PZij
-        VBxi   = VBxi + 0.5 * FXij * PXij
-        VByi   = VByi + 0.5 * FYij * PYij
-        VBzi   = VBzi + 0.5 * FZij * PZij
-        VSuxi  = VSuxi+ 0.5 * FYij * PXij
-        VSuyi  = VSuyi+ 0.5 * FZij * PXij
-        VSuzi  = VSuzi+ 0.5 * FZij * PYij
-        VSTempX(j) = VSTempX(j) + 0.5 * FXij * PYij
-        VSTempY(j) = VSTempY(j) + 0.5 * FXij * PZij
-        VSTempZ(j) = VSTempZ(j) + 0.5 * FYij * PZij
-        VBTempX(j) = VBTempX(j) + 0.5 * FXij * PXij
-        VBTempY(j) = VBTempY(j) + 0.5 * FYij * PYij
-        VBTempZ(j) = VBTempZ(j) + 0.5 * FZij * PZij
-        VSuTempX(j)= VSuTempX(j)+ 0.5 * FYij * PXij
-        VSuTempY(j)= VSuTempY(j)+ 0.5 * FZij * PXij
-        VSuTempZ(j)= VSuTempZ(j)+ 0.5 * FZij * PYij
-
-        UU    =  0.5 * EpotLocal1  
-        Cxi    = Cxi  + UU
-        Cyi    = Cyi  + UU
-        Czi    = Czi  + UU
-        CTempX(j) = CTempX(j) + UU
-        CTempY(j) = CTempY(j) + UU
-        CTempZ(j) = CTempZ(j) + UU
-   
-
+        VSxi   = VSxi + FXij * PYij
+        VSyi   = VSyi + FXij * PZij
+        VSzi   = VSzi + FYij * PZij
+        VBxi   = VBxi + FXij * PXij
+        VByi   = VByi + FYij * PYij
+        VBzi   = VBzi + FZij * PZij
+        VSuxi  = VSuxi+ FYij * PXij
+        VSuyi  = VSuyi+ FZij * PXij
+        VSuzi  = VSuzi+ FZij * PYij
+        UU    =  EpotLocal1  ! Change: EPotLocal1 was not defined before .... 
+        Uxi   =  UU * eX
+        Uyi   =  UU * eY
+        Uzi   =  UU * eZ   
+        Cxi    = Cxi  + Uxi !Why was this term left out?
+        Cyi    = Cyi  + Uyi !Why was this term left out?
+        Czi    = Czi  + Uzi !Why was this term left out?
         txii   = r1y * FZij - r1z * FYij
         tyii   = r1z * FXij - r1x * FZij
         tzii   = r1x * FYij - r1y * FXij
         txi    = A11 * txii + A12 * tyii + A13 * tzii
         tyi    = A21 * txii + A22 * tyii + A23 * tzii
         tzi    = A31 * txii + A32 * tyii + A33 * tzii
-        tuxi   = tuxi + 0.5 * PXij* tyi
-        tuyi   = tuyi + 0.5 * PXij* tzi
-        tuzi   = tuzi + 0.5 * PYij* tzi
-        tlxi   = tlxi + 0.5 * PYij* txi
-        tlyi   = tlyi + 0.5 * PZij* txi
-        tlzi   = tlzi + 0.5 * PZij* tyi
-        tdxi   = tdxi + 0.5 * PXij* txi
-        tdyi   = tdyi + 0.5 * PYij* tyi
-        tdzi   = tdzi + 0.5 * PZij* tzi
+        tuxi   = tuxi + PXij*tyi
+        tuyi   = tuyi + PXij*tzi
+        tuzi   = tuzi + PYij*tzi
+        tlxi   = tlxi + PYij*txi
+        tlyi   = tlyi + PZij*txi
+        tlzi   = tlzi + PZij*tyi
+        tdxi   = tdxi + PXij*txi
+        tdyi   = tdyi + PYij*tyi
+        tdzi   = tdzi + PZij*tzi
 #endif
 
         end if
@@ -6699,31 +6225,30 @@ loop2:  do m=1,NBinsDen
       FZ1(i) = FZi
 #if  TRANS == 1
       !TRANSPORT_start
-      VSx1(i) = VSxi
-      VSy1(i) = VSyi
-      VSz1(i) = VSzi
-      VBx1(i) = VBxi
-      VBy1(i) = VByi
-      VBz1(i) = VBzi
-      VSux1(i)= VSuxi
-      VSuy1(i)= VSuyi
-      VSuz1(i)= VSuzi
-      Cx1(i)  = Cxi
-      Cy1(i)  = Cyi
-      Cz1(i)  = Czi
-      tux1(i) = tuxi
-      tuy1(i) = tuyi
-      tuz1(i) = tuzi
-      tlx1(i) = tlxi
-      tly1(i) = tlyi
-      tlz1(i) = tlzi
-      tdx1(i) = tdxi
-      tdy1(i) = tdyi
-      tdz1(i) = tdzi
+      VSx(i) = VSxi
+      VSy(i) = VSyi
+      VSz(i) = VSzi
+      VBx(i) = VBxi
+      VBy(i) = VByi
+      VBz(i) = VBzi
+      VSux(i)= VSuxi
+      VSuy(i)= VSuyi
+      VSuz(i)= VSuzi
+      Cx(i)  = Cxi
+      Cy(i)  = Cyi
+      Cz(i)  = Czi
+      tux(i) = tuxi
+      tuy(i) = tuyi
+      tuz(i) = tuzi
+      tlx(i) = tlxi
+      tly(i) = tlyi
+      tlz(i) = tlzi
+      tdx(i) = tdxi
+      tdy(i) = tdyi
+      tdz(i) = tdzi
       !TRANSPORT_END
 #endif  
   end do
-
 !$OMP END DO
 !$OMP END PARALLEL
 
@@ -6733,38 +6258,6 @@ loop2:  do m=1,NBinsDen
     TX2 = TX2 + momTempX                                 
     TY2 = TY2 + momTempY
     TZ2 = TZ2 + momTempZ
-   
-#if  TRANS == 1
-   VSx2 = VSx2 + VSTempX*BoxLength
-   VSy2 = VSy2 + VSTempY*BoxLength
-   VSz2 = VSz2 + VSTempZ*BoxLength
-
-   VSux2 = VSux2 + VSuTempX*BoxLength
-   VSuy2 = VSuy2 + VSuTempY*BoxLength
-   VSuz2 = VSuz2 + VSuTempZ*BoxLength
-
-   VBx2 = VBx2 + VBTempX*BoxLength
-   VBy2 = VBy2 + VBTempY*BoxLength
-   VBz2 = VBz2 + VBTempZ*BoxLength
-
-   Cx2 = Cx2 + CTempX
-   Cy2 = Cy2 + CTempY
-   Cz2 = Cz2 + CTempZ
-
-   tux2 = tux2 + tuTempX
-   tuy2 = tuy2 + tuTempY
-   tuz2 = tuz2 + tuTempZ
-
-   tdx2 = tdx2 + tdTempX
-   tdy2 = tdy2 + tdTempY
-   tdz2 = tdz2 + tdTempZ
-
-   tlx2 = tlx2 + tlTempX
-   tly2 = tly2 + tlTempY
-   tlz2 = tlz2 + tlTempZ
-
-#endif
-  
 
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
@@ -7499,28 +6992,14 @@ loop2:  do m=1,NBinsDen
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer, contiguous :: VSx1(:), VSy1(:), VSz1(:)
-    real(RK), pointer, contiguous :: VSux1(:),VSuy1(:),VSuz1(:)
-    real(RK), pointer, contiguous :: VBx1(:), VBy1(:), VBz1(:)
-    real(RK), pointer, contiguous :: Cx1(:) , Cy1(:) , Cz1(:)
-    real(RK), pointer, contiguous :: tux1(:) , tuy1(:) , tuz1(:)
-    real(RK), pointer, contiguous :: tlx1(:) , tly1(:) , tlz1(:)
-    real(RK), pointer, contiguous :: tdx1(:) , tdy1(:) , tdz1(:)
-    real(RK), pointer, contiguous :: VSx2(:) , VSy2(:), VSz2(:)
-    real(RK), pointer, contiguous :: VSux2(:),VSuy2(:),VSuz2(:)
-    real(RK), pointer, contiguous :: VBx2(:), VBy2(:), VBz2(:)
-    real(RK), pointer, contiguous :: Cx2(:) , Cy2(:) , Cz2(:)
-    real(RK), pointer, contiguous :: tux2(:) , tuy2(:) , tuz2(:)
-    real(RK), pointer, contiguous :: tlx2(:) , tly2(:) , tlz2(:)
-    real(RK), pointer, contiguous :: tdx2(:) , tdy2(:) , tdz2(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
-    real(RK)          :: VSTempX(1:this%Site2%NPart), VSTempY(1:this%Site2%NPart), VSTempZ(1:this%Site2%NPart)
-    real(RK)          :: VSuTempX(1:this%Site2%NPart), VSuTempY(1:this%Site2%NPart), VSuTempZ(1:this%Site2%NPart)
-    real(RK)          :: VBTempX(1:this%Site2%NPart), VBTempY(1:this%Site2%NPart), VBTempZ(1:this%Site2%NPart)
-    real(RK)          :: CTempX(1:this%Site2%NPart), CTempY(1:this%Site2%NPart), CTempZ(1:this%Site2%NPart)
-    real(RK)          :: tuTempX(1:this%Site2%NPart), tuTempY(1:this%Site2%NPart), tuTempZ(1:this%Site2%NPart)
-    real(RK)          :: tlTempX(1:this%Site2%NPart), tlTempY(1:this%Site2%NPart), tlTempZ(1:this%Site2%NPart)
-    real(RK)          :: tdTempX(1:this%Site2%NPart), tdTempY(1:this%Site2%NPart), tdTempZ(1:this%Site2%NPart)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -7531,33 +7010,10 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: txii,  tyii , tzii
     real(RK)          :: txir , tyir , tzir
     real(RK)          :: FTXi , FTYi , FTZi
-    real(RK)          :: UU
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
- 
-    VSTempX(:) = 0._RK
-    VSTempY(:) = 0._RK
-    VSTempZ(:) = 0._RK
-    VSuTempX(:)= 0._RK
-    VSuTempY(:)= 0._RK
-    VSuTempZ(:)= 0._RK
-    VBTempX(:) = 0._RK
-    VBTempY(:) = 0._RK
-    VBTempZ(:) = 0._RK
-    CTempX(:)  = 0._RK
-    CTempY(:)  = 0._RK
-    CTempZ(:)  = 0._RK
-    tuTempX(:) = 0._RK
-    tuTempY(:) = 0._RK
-    tuTempz(:) = 0._RK
-    tlTempX(:) = 0._RK
-    tlTempY(:) = 0._RK
-    tlTempz(:) = 0._RK
-    tdTempX(:) = 0._RK
-    tdTempY(:) = 0._RK
-    tdTempz(:) = 0._RK
+    !TRANSPORT_END
 #endif
-
-
 
     FX2 => this%Site2%FX
     FY2 => this%Site2%FY
@@ -7631,48 +7087,27 @@ loop2:  do m=1,NBinsDen
 
 #if  TRANS == 1
     !TRANSPORT_start
-    VSx1 => this%Site1%vsDx
-    VSy1 => this%Site1%vsDy
-    VSz1 => this%Site1%vsDz
-    VSx2 => this%Site2%vsCx
-    VSy2 => this%Site2%vsCy
-    VSz2 => this%Site2%vsCz
-    VBx1 => this%Site1%vbDx
-    VBy1 => this%Site1%vbDy
-    VBz1 => this%Site1%vbDz
-    VBx2 => this%Site2%vbCx
-    VBy2 => this%Site2%vbCy
-    VBz2 => this%Site2%vbCz
-    VSux1=> this%Site1%vsuDx
-    VSuy1=> this%Site1%vsuDy
-    VSuz1=> this%Site1%vsuDz
-    VSux2=> this%Site2%vsuCx
-    VSuy2=> this%Site2%vsuCy
-    VSuz2=> this%Site2%vsuCz
-    Cx1  => this%Site1%cDx
-    Cy1  => this%Site1%cDy
-    Cz1  => this%Site1%cDz
-    Cx2  => this%Site2%cCx
-    Cy2  => this%Site2%cCy
-    Cz2  => this%Site2%cCz
-    tux1 => this%Site1%tuDx
-    tuy1 => this%Site1%tuDy
-    tuz1 => this%Site1%tuDz
-    tux2 => this%Site2%tuCx
-    tuy2 => this%Site2%tuCy
-    tuz2 => this%Site2%tuCz
-    tlx1 => this%Site1%tlDx
-    tly1 => this%Site1%tlDy
-    tlz1 => this%Site1%tlDz
-    tlx2 => this%Site2%tlCx
-    tly2 => this%Site2%tlCy
-    tlz2 => this%Site2%tlCz
-    tdx1 => this%Site1%tdDx
-    tdy1 => this%Site1%tdDy
-    tdz1 => this%Site1%tdDz
-    tdx2 => this%Site2%tdCx
-    tdy2 => this%Site2%tdCy
-    tdz2 => this%Site2%tdCz
+    VSx => this%Site1%vsDx
+    VSy => this%Site1%vsDy
+    VSz => this%Site1%vsDz
+    VBx => this%Site1%vbDx
+    VBy => this%Site1%vbDy
+    VBz => this%Site1%vbDz
+    VSux=> this%Site1%vsuDx
+    VSuy=> this%Site1%vsuDy
+    VSuz=> this%Site1%vsuDz
+    Cx  => this%Site1%cDx
+    Cy  => this%Site1%cDy
+    Cz  => this%Site1%cDz
+    tux => this%Site1%tuDx
+    tuy => this%Site1%tuDy
+    tuz => this%Site1%tuDz
+    tlx => this%Site1%tlDx
+    tly => this%Site1%tlDy
+    tlz => this%Site1%tlDz
+    tdx => this%Site1%tdDx
+    tdy => this%Site1%tdDy
+    tdz => this%Site1%tdDz
     q1  => this%Site1%Qm0r(:, 1, 1)
     q2  => this%Site1%Qm0r(:, 2, 1)
     q3  => this%Site1%Qm0r(:, 3, 1)
@@ -7704,27 +7139,27 @@ loop2:  do m=1,NBinsDen
       TZi = TZ1(i)
 #if  TRANS == 1
         !TRANSPORT_start
-        VSxi= VSx1(i)
-        VSyi= VSy1(i)
-        VSzi= VSz1(i)
-        VBxi= VBx1(i)
-        VByi= VBy1(i)
-        VBzi= VBz1(i)
-        VSuxi= VSux1(i)
-        VSuyi= VSuy1(i)
-        VSuzi= VSuz1(i)
-        Cxi = Cx1(i)
-        Cyi = Cy1(i)
-        Czi = Cz1(i)
-        tuxi = tux1(i)
-        tuyi = tuy1(i)
-        tuzi = tuz1(i)
-        tlxi = tlx1(i)
-        tlyi = tly1(i)
-        tlzi = tlz1(i)
-        tdxi = tdx1(i)
-        tdyi = tdy1(i)
-        tdzi = tdz1(i)
+        VSxi= VSx(i)
+        VSyi= VSy(i)
+        VSzi= VSz(i)
+        VBxi= VBx(i)
+        VByi= VBy(i)
+        VBzi= VBz(i)
+        VSuxi= VSux(i)
+        VSuyi= VSuy(i)
+        VSuzi= VSuz(i)
+        Cxi = Cx(i)
+        Cyi = Cy(i)
+        Czi = Cz(i)
+        tuxi = tux(i)
+        tuyi = tuy(i)
+        tuzi = tuz(i)
+        tlxi = tlx(i)
+        tlyi = tly(i)
+        tlzi = tlz(i)
+        tdxi = tdx(i)
+        tdyi = tdy(i)
+        tdzi = tdz(i)
         A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
         A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
         A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
@@ -7827,36 +7262,24 @@ loop2:  do m=1,NBinsDen
         forceTempX(jk) = forceTempX(jk) - FXij
         forceTempY(jk) = forceTempY(jk) - FYij
         forceTempZ(jk) = forceTempZ(jk) - FZij
-
 #if TRANS==1
           !TRANSPORT_start
-          VSxi   = VSxi + 0.5 * FXij * PYij
-          VSyi   = VSyi + 0.5 * FXij * PZij
-          VSzi   = VSzi + 0.5 * FYij * PZij
-          VBxi   = VBxi + 0.5 * FXij * PXij
-          VByi   = VByi + 0.5 * FYij * PYij
-          VBzi   = VBzi + 0.5 * FZij * PZij
-          VSuxi  = VSuxi+ 0.5 * FYij * PXij
-          VSuyi  = VSuyi+ 0.5 * FZij * PXij
-          VSuzi  = VSuzi+ 0.5 * FZij * PYij
-          VSTempX(j) = VSTempX(j) + 0.5*FXij * PYij
-          VSTempY(j) = VSTempY(j) + 0.5*FXij * PZij
-          VSTempZ(j) = VSTempZ(j) + 0.5*FYij * PZij
-          VBTempX(j) = VBTempX(j) + 0.5*FXij * PXij
-          VBTempY(j) = VBTempY(j) + 0.5*FYij * PYij
-          VBTempZ(j) = VBTempZ(j) + 0.5*FZij * PZij
-          VSuTempX(j)= VSuTempX(j)+ 0.5*FYij * PXij
-          VSuTempY(j)= VSuTempY(j)+ 0.5*FZij * PXij
-          VSuTempZ(j)= VSuTempZ(j)+ 0.5*FZij * PYij
-
-          UU     = 0.5 * EpotLocal1
-          Cxi    = Cxi  + UU
-          Cyi    = Cyi  + UU
-          Czi    = Czi  + UU
-          CTempX(j) = CTempX(j) + UU
-          CTempY(j) = CTempY(j) + UU
-          CTempZ(j) = CTempZ(j) + UU
-
+          VSxi   = VSxi + FXij * PYij
+          VSyi   = VSyi + FXij * PZij
+          VSzi   = VSzi + FYij * PZij
+          VBxi   = VBxi + FXij * PXij
+          VByi   = VByi + FYij * PYij
+          VBzi   = VBzi + FZij * PZij
+          VSuxi  = VSuxi+ FYij * PXij
+          VSuyi  = VSuyi+ FZij * PXij
+          VSuzi  = VSuzi+ FZij * PYij
+          UU     = EpotLocal1  !What is EPotLocal1?
+          Uxi     = UU * eX
+          Uyi     = UU * eY
+          Uzi     = UU * eZ   
+          Cxi    = Cxi  + Uxi
+          Cyi    = Cyi  + Uyi
+          Czi    = Czi  + Uzi
           FTXi = Epsilon1 * eX       ! Chequear                    
           FTYi = Epsilon1 * eY       !Chequear
           FTZi = Epsilon1 * eZ       !Chequear
@@ -7866,24 +7289,16 @@ loop2:  do m=1,NBinsDen
           txir   = A11 * txii + A12 * tyii + A13 * tzii
           tyir   = A21 * txii + A22 * tyii + A23 * tzii
           tzir   = A31 * txii + A32 * tyii + A33 * tzii
-          tuxi   = tuxi + 0.5 * PXij* tyir
-          tuyi   = tuyi + 0.5 * PXij* tzir
-          tuzi   = tuzi + 0.5 * PYij* tzir
-          tlxi   = tlxi + 0.5 * PYij* txir
-          tlyi   = tlyi + 0.5 * PZij* txir
-          tlzi   = tlzi + 0.5 * PZij* tyir
-          tdxi   = tdxi + 0.5 * PXij* txir
-          tdyi   = tdyi + 0.5 * PYij* tyir
-          tdzi   = tdzi + 0.5 * PZij* tzir
-          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyi
-          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzi
-          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzi
-          tlTempX(j)= tlTempX(j) + 0.5*PYij*txi
-          tlTempY(j)= tlTempY(j) + 0.5*PZij*txi
-          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyi
-          tdTempX(j)= tdTempX(j) + 0.5*PXij*txi
-          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyi
-          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzi
+          tuxi   = tuxi + PXij*tyir
+          tuyi   = tuyi + PXij*tzir
+          tuzi   = tuzi + PYij*tzir
+          tlxi   = tlxi + PYij*txir
+          tlyi   = tlyi + PZij*txir
+          tlzi   = tlzi + PZij*tyir
+          tdxi   = tdxi + PXij*txir
+          tdyi   = tdyi + PYij*tyir
+          tdzi   = tdzi + PZij*tzir
+          !TRANSPORT_END
 #endif
         end if
       end do loop1
@@ -7940,29 +7355,29 @@ loop2:  do m=1,NBinsDen
       TZ1(i) = TZi
 #if  TRANS == 1
         !TRANSPORT_start
-        VSx1(i) = VSxi
-        VSy1(i) = VSyi
-        VSz1(i) = VSzi
-        VBx1(i) = VBxi
-        VBy1(i) = VByi
-        VBz1(i) = VBzi
-        VSux1(i)= VSuxi
-        VSuy1(i)= VSuyi
-        VSuz1(i)= VSuzi
-        Cx1(i)  = Cxi
-        Cy1(i)  = Cyi
-        Cz1(i)  = Czi
-        tux1(i) = tuxi
-        tuy1(i) = tuyi
-        tuz1(i) = tuzi
-        tlx1(i) = tlxi
-        tly1(i) = tlyi
-        tlz1(i) = tlzi
-        tdx1(i) = tdxi
-        tdy1(i) = tdyi
-        tdz1(i) = tdzi
+        VSx(i) = VSxi
+        VSy(i) = VSyi
+        VSz(i) = VSzi
+        VBx(i) = VBxi
+        VBy(i) = VByi
+        VBz(i) = VBzi
+        VSux(i)= VSuxi
+        VSuy(i)= VSuyi
+        VSuz(i)= VSuzi
+        Cx(i)  = Cxi
+        Cy(i)  = Cyi
+        Cz(i)  = Czi
+        tux(i) = tuxi
+        tuy(i) = tuyi
+        tuz(i) = tuzi
+        tlx(i) = tlxi
+        tly(i) = tlyi
+        tlz(i) = tlzi
+        tdx(i) = tdxi
+        tdy(i) = tdyi
+        tdz(i) = tdzi
+        !TRANSPORT_END
 #endif
-
     end do
 !$OMP END DO
 !$OMP END PARALLEL
@@ -7970,39 +7385,6 @@ loop2:  do m=1,NBinsDen
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
     FZ2 = FZ2 + forceTempZ
-
-#if  TRANS == 1
-   VSx2 = VSx2 + VSTempX
-   VSy2 = VSy2 + VSTempY
-   VSz2 = VSz2 + VSTempZ
-
-   VSux2 = VSux2 + VSuTempX
-   VSuy2 = VSuy2 + VSuTempY
-   VSuz2 = VSuz2 + VSuTempZ
-
-   VBx2 = VBx2 + VBTempX
-   VBy2 = VBy2 + VBTempY
-   VBz2 = VBz2 + VBTempZ
-
-   Cx2 = Cx2 + CTempX
-   Cy2 = Cy2 + CTempY
-   Cz2 = Cz2 + CTempZ
-
-   tux2 = tux2 + tuTempX
-   tuy2 = tuy2 + tuTempY
-   tuz2 = tuz2 + tuTempZ
-
-   tdx2 = tdx2 + tdTempX
-   tdy2 = tdy2 + tdTempY
-   tdz2 = tdz2 + tdTempZ
-
-   tlx2 = tlx2 + tlTempX
-   tly2 = tly2 + tlTempY
-   tlz2 = tlz2 + tlTempZ
-
-#endif
-
-
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
     Virial = Virial + Third * VirialLocal
@@ -8913,7 +8295,7 @@ loop3:  do j = j0, j1
     real(RK)          :: RijSquared, RijInv, Rij3Inv, Rij4Inv3
     real(RK)          :: CosThetai, CosThetaj, CosGammaij
     real(RK)          :: CosThetai3, CosThetaj3
-    real(RK)          :: Tmp, EPotLocal1
+    real(RK)          :: Tmp
     real(RK)          :: EPotLocal, VirialLocal
     real(RK)          :: EPotLocalInter, VirialLocalInter
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
@@ -8943,28 +8325,14 @@ loop3:  do j = j0, j1
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer, contiguous :: VSx1(:), VSy1(:), VSz1(:)
-    real(RK), pointer, contiguous :: VSx2(:), VSy2(:), VSz2(:)
-    real(RK), pointer, contiguous :: VSux1(:),VSuy1(:),VSuz1(:)
-    real(RK), pointer, contiguous :: VSux2(:),VSuy2(:),VSuz2(:)
-    real(RK), pointer, contiguous :: VBx1(:), VBy1(:), VBz1(:)
-    real(RK), pointer, contiguous :: VBx2(:), VBy2(:), VBz2(:)
-    real(RK), pointer, contiguous :: Cx1(:) , Cy1(:) , Cz1(:)
-    real(RK), pointer, contiguous :: Cx2(:) , Cy2(:) , Cz2(:)
-    real(RK), pointer, contiguous :: tux1(:) , tuy1(:) , tuz1(:)
-    real(RK), pointer, contiguous :: tux2(:) , tuy2(:) , tuz2(:)
-    real(RK), pointer, contiguous :: tlx1(:) , tly1(:) , tlz1(:)
-    real(RK), pointer, contiguous :: tlx2(:) , tly2(:) , tlz2(:)
-    real(RK), pointer, contiguous :: tdx1(:) , tdy1(:) , tdz1(:)
-    real(RK), pointer, contiguous :: tdx2(:) , tdy2(:) , tdz2(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
-    real(RK)          :: VSTempX(1:this%Site2%NPart), VSTempY(1:this%Site2%NPart), VSTempZ(1:this%Site2%NPart)
-    real(RK)          :: VSuTempX(1:this%Site2%NPart), VSuTempY(1:this%Site2%NPart), VSuTempZ(1:this%Site2%NPart)
-    real(RK)          :: VBTempX(1:this%Site2%NPart), VBTempY(1:this%Site2%NPart), VBTempZ(1:this%Site2%NPart)
-    real(RK)          :: CTempX(1:this%Site2%NPart), CTempY(1:this%Site2%NPart), CTempZ(1:this%Site2%NPart)
-    real(RK)          :: tuTempX(1:this%Site2%NPart), tuTempY(1:this%Site2%NPart), tuTempZ(1:this%Site2%NPart)
-    real(RK)          :: tlTempX(1:this%Site2%NPart), tlTempY(1:this%Site2%NPart), tlTempZ(1:this%Site2%NPart)
-    real(RK)          :: tdTempX(1:this%Site2%NPart), tdTempY(1:this%Site2%NPart), tdTempZ(1:this%Site2%NPart)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -8975,32 +8343,10 @@ loop3:  do j = j0, j1
     real(RK)          :: txii,  tyii , tzii
     real(RK)          :: txir , tyir , tzir
     real(RK)          :: FTXi , FTYi , FTZi
-    real(RK)          :: UU
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-
-    VSTempX(:) = 0._RK
-    VSTempY(:) = 0._RK
-    VSTempZ(:) = 0._RK
-    VSuTempX(:)= 0._RK
-    VSuTempY(:)= 0._RK
-    VSuTempZ(:)= 0._RK
-    VBTempX(:) = 0._RK
-    VBTempY(:) = 0._RK
-    VBTempZ(:) = 0._RK
-    CTempX(:)  = 0._RK
-    CTempY(:)  = 0._RK
-    CTempZ(:)  = 0._RK
-    tuTempX(:) = 0._RK
-    tuTempY(:) = 0._RK
-    tuTempz(:) = 0._RK
-    tlTempX(:) = 0._RK
-    tlTempY(:) = 0._RK
-    tlTempz(:) = 0._RK
-    tdTempX(:) = 0._RK
-    tdTempY(:) = 0._RK
-    tdTempz(:) = 0._RK
+    !TRANSPORT_END
 #endif
- 
 
     FX2 => this%Site2%FX
     FY2 => this%Site2%FY
@@ -9033,14 +8379,12 @@ loop3:  do j = j0, j1
 !$OMP PRIVATE (CosThetai3, CosThetaj3,  Tmp) &
 !$OMP PRIVATE (  SameComponent) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx1, VSy1, VSz1, VSux1,VSuy1, VSuz1, VBx1, VBy1, VBz1, Cx1, Cy1, Cz1) &
-!$OMP PRIVATE(VSx2, VSy2, VSz2, VSux2,VSuy2, VSuz2, VBx2, VBy2, VBz2, Cx2, Cy2, Cz2) &
-!$OMP PRIVATE( tux1, tuy1, tuz1, tlx1, tly1, tlz1, tdx1, tdy1, tdz1) &
-!$OMP PRIVATE( tux2, tuy2, tuz2, tlx2, tly2, tlz2, tdx2, tdy2, tdz2) &
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
 !$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
-!$OMP PRIVATE(   Uxi,  FTXi , FTYi , FTZi) &
+!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
@@ -9104,48 +8448,27 @@ loop3:  do j = j0, j1
 
 #if  TRANS == 1
     !TRANSPORT_start
-    VSx1 => this%Site1%vsDx
-    VSy1 => this%Site1%vsDy
-    VSz1 => this%Site1%vsDz
-    VSx2 => this%Site2%vsDx
-    VSy2 => this%Site2%vsDy
-    VSz2 => this%Site2%vsDz
-    VBx1 => this%Site1%vbDx
-    VBy1 => this%Site1%vbDy
-    VBz1 => this%Site1%vbDz
-    VBx2 => this%Site2%vbDx
-    VBy2 => this%Site2%vbDy
-    VBz2 => this%Site2%vbDz
-    VSux1=> this%Site1%vsuDx
-    VSuy1=> this%Site1%vsuDy
-    VSuz1=> this%Site1%vsuDz
-    VSux2=> this%Site2%vsuDx
-    VSuy2=> this%Site2%vsuDy
-    VSuz2=> this%Site2%vsuDz
-    Cx1  => this%Site1%cDx
-    Cy1  => this%Site1%cDy
-    Cz1  => this%Site1%cDz
-    Cx2  => this%Site2%cDx
-    Cy2  => this%Site2%cDy
-    Cz2  => this%Site2%cDz
-    tux1 => this%Site1%tuDx
-    tuy1 => this%Site1%tuDy
-    tuz1 => this%Site1%tuDz
-    tux2 => this%Site2%tuDx
-    tuy2 => this%Site2%tuDy
-    tuz2 => this%Site2%tuDz
-    tlx1 => this%Site1%tlDx
-    tly1 => this%Site1%tlDy
-    tlz1 => this%Site1%tlDz
-    tlx2 => this%Site2%tlDx
-    tly2 => this%Site2%tlDy
-    tlz2 => this%Site2%tlDz
-    tdx1 => this%Site1%tdDx
-    tdy1 => this%Site1%tdDy
-    tdz1 => this%Site1%tdDz
-    tdx2 => this%Site2%tdDx
-    tdy2 => this%Site2%tdDy
-    tdz2 => this%Site2%tdDz
+    VSx => this%Site1%vsDx
+    VSy => this%Site1%vsDy
+    VSz => this%Site1%vsDz
+    VBx => this%Site1%vbDx
+    VBy => this%Site1%vbDy
+    VBz => this%Site1%vbDz
+    VSux=> this%Site1%vsuDx
+    VSuy=> this%Site1%vsuDy
+    VSuz=> this%Site1%vsuDz
+    Cx  => this%Site1%cDx
+    Cy  => this%Site1%cDy
+    Cz  => this%Site1%cDz
+    tux => this%Site1%tuDx
+    tuy => this%Site1%tuDy
+    tuz => this%Site1%tuDz
+    tlx => this%Site1%tlDx
+    tly => this%Site1%tlDy
+    tlz => this%Site1%tlDz
+    tdx => this%Site1%tdDx
+    tdy => this%Site1%tdDy
+    tdz => this%Site1%tdDz
     q1  => this%Site1%Qm0r(:, 1, 1)
     q2  => this%Site1%Qm0r(:, 2, 1)
     q3  => this%Site1%Qm0r(:, 3, 1)
@@ -9180,27 +8503,27 @@ loop3:  do j = j0, j1
         PZi = PZ1(i)
 #if  TRANS == 1
         !TRANSPORT_start
-        VSxi = VSx1(i)
-        VSyi = VSy1(i)
-        VSzi = VSz1(i)
-        VBxi = VBx1(i)
-        VByi = VBy1(i)
-        VBzi = VBz1(i)
-        VSuxi= VSux1(i)
-        VSuyi= VSuy1(i)
-        VSuzi= VSuz1(i)
-        Cxi  = Cx1(i)
-        Cyi  = Cy1(i)
-        Czi  = Cz1(i)
-        tuxi = tux1(i)
-        tuyi = tuy1(i)
-        tuzi = tuz1(i)
-        tlxi = tlx1(i)
-        tlyi = tly1(i)
-        tlzi = tlz1(i)
-        tdxi = tdx1(i)
-        tdyi = tdy1(i)
-        tdzi = tdz1(i)
+        VSxi= VSx(i)
+        VSyi= VSy(i)
+        VSzi= VSz(i)
+        VBxi= VBx(i)
+        VByi= VBy(i)
+        VBzi= VBz(i)
+        VSuxi= VSux(i)
+        VSuyi= VSuy(i)
+        VSuzi= VSuz(i)
+        Cxi = Cx(i)
+        Cyi = Cy(i)
+        Czi = Cz(i)
+        tuxi = tux(i)
+        tuyi = tuy(i)
+        tuzi = tuz(i)
+        tlxi = tlx(i)
+        tlyi = tly(i)
+        tlzi = tlz(i)
+        tdxi = tdx(i)
+        tdyi = tdy(i)
+        tdzi = tdz(i)
         A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
         A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
         A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
@@ -9264,8 +8587,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
             Tmp = CosGammaij - CosThetai * CosThetaj3
             Rij3Inv = Epsilon * RijInv**3
             Rij4Inv3 = 3._RK * Rij3Inv * RijInv
-            EPotLocal1 = Rij3Inv * Tmp
-            EPotLocal = EPotLocal +  EPotLocal1
+            EPotLocal = EPotLocal +  Rij3Inv * Tmp
             EPotLocalInter = EPotLocalInter + Rij3Inv * Tmp
             FXij = Rij4Inv3 * (eX * Tmp - (eX * CosThetai - OXi) * CosThetaj &
 &                                       - (eX * CosThetaj - OXj) * CosThetai)
@@ -9320,61 +8642,40 @@ loop2:    do m=1,NBinsDen
           momTempZ(jk) = momTempZ(jk) + Rij3Inv * (eZ * CosThetai3 - OZi)  
 #if TRANS==1
           !TRANSPORT_start
-          VSxi   = VSxi + 0.5 * FXij * PYij
-          VSyi   = VSyi + 0.5 * FXij * PZij
-          VSzi   = VSzi + 0.5 * FYij * PZij
-          VBxi   = VBxi + 0.5 * FXij * PXij
-          VByi   = VByi + 0.5 * FYij * PYij
-          VBzi   = VBzi + 0.5 * FZij * PZij
-          VSuxi  = VSuxi+ 0.5 * FYij * PXij
-          VSuyi  = VSuyi+ 0.5 * FZij * PXij
-          VSuzi  = VSuzi+ 0.5 * FZij * PYij
-          VSTempX(j) = VSTempX(j) + 0.5*FXij * PYij
-          VSTempY(j) = VSTempY(j) + 0.5*FXij * PZij
-          VSTempZ(j) = VSTempZ(j) + 0.5*FYij * PZij
-          VBTempX(j) = VBTempX(j) + 0.5*FXij * PXij
-          VBTempY(j) = VBTempY(j) + 0.5*FYij * PYij
-          VBTempZ(j) = VBTempZ(j) + 0.5*FZij * PZij
-          VSuTempX(j)= VSuTempX(j)+ 0.5*FYij * PXij
-          VSuTempY(j)= VSuTempY(j)+ 0.5*FZij * PXij
-          VSuTempZ(j)= VSuTempZ(j)+ 0.5*FZij * PYij
-
-          UU        = 0.5 * (EPotLocal1 - RFConstant2 * CosGammaij)
-          Cxi    = Cxi  + UU
-          Cyi    = Cyi  + UU
-          Czi    = Czi  + UU
-          CTempX(j) = CTempX(j) + UU
-          CTempY(j) = CTempY(j) + UU
-          CTempZ(j) = CTempZ(j) + UU
-         
-
+          VSxi   = VSxi + FXij * PYij
+          VSyi   = VSyi + FXij * PZij
+          VSzi   = VSzi + FYij * PZij
+          VBxi   = VBxi + FXij * PXij
+          VByi   = VByi + FYij * PYij
+          VBzi   = VBzi + FZij * PZij
+          VSuxi  = VSuxi+ FYij * PXij
+          VSuyi  = VSuyi+ FZij * PXij
+          VSuzi  = VSuzi+ FZij * PYij
+          UU        = Rij3Inv * Tmp - RFConstant2 * CosGammaij
+          Uxi       = UU * eX
+          Uyi       = UU * eY
+          Uzi       = UU * eZ
           FTXi   = Rij3Inv * (eX * CosThetaj3 - OXj) + OXj * RFConstant2
           FTYi   = Rij3Inv * (eY * CosThetaj3 - OYj) + OYj * RFConstant2
           FTZi   = Rij3Inv * (eZ * CosThetaj3 - OZj) + OZj * RFConstant2
+          Cxi    = Cxi  + Uxi
+          Cyi    = Cyi  + Uyi
+          Czi    = Czi  + Uzi
           txii   = OYi * FTZi - OZi * FTYi
           tyii   = OZi * FTXi - OXi * FTZi
           tzii   = OXi * FTYi - OYi * FTXi
           txir   = A11 * txii + A12 * tyii + A13 * tzii
           tyir   = A21 * txii + A22 * tyii + A23 * tzii
           tzir   = A31 * txii + A32 * tyii + A33 * tzii
-          tuxi   = tuxi + 0.5 * PXij* tyir
-          tuyi   = tuyi + 0.5 * PXij* tzir
-          tuzi   = tuzi + 0.5 * PYij* tzir
-          tlxi   = tlxi + 0.5 * PYij* txir
-          tlyi   = tlyi + 0.5 * PZij* txir
-          tlzi   = tlzi + 0.5 * PZij* tyir
-          tdxi   = tdxi + 0.5 * PXij* txir
-          tdyi   = tdyi + 0.5 * PYij* tyir
-          tdzi   = tdzi + 0.5 * PZij* tzir
-          tuTempX(j)= tuTempX(j) + 0.5 * PXij*tyi
-          tuTempY(j)= tuTempY(j) + 0.5 * PXij*tzi
-          tuTempZ(j)= tuTempZ(j) + 0.5 * PYij*tzi
-          tlTempX(j)= tlTempX(j) + 0.5 * PYij*txi
-          tlTempY(j)= tlTempY(j) + 0.5 * PZij*txi
-          tlTempZ(j)= tlTempZ(j) + 0.5 * PZij*tyi
-          tdTempX(j)= tdTempX(j) + 0.5 * PXij*txi
-          tdTempY(j)= tdTempY(j) + 0.5 * PYij*tyi
-          tdTempZ(j)= tdTempZ(j) + 0.5 * PZij*tzi
+          tuxi   = tuxi + PXij*tyir
+          tuyi   = tuyi + PXij*tzir
+          tuzi   = tuzi + PYij*tzir
+          tlxi   = tlxi + PYij*txir
+          tlyi   = tlyi + PZij*txir
+          tlzi   = tlzi + PZij*tyir
+          tdxi   = tdxi + PXij*txir
+          tdyi   = tdyi + PYij*tyir
+          tdzi   = tdzi + PZij*tzir
           !TRANSPORT_END
 #endif
           end if
@@ -9448,27 +8749,27 @@ loop2:    do m=1,NBinsDen
         TZ1(i) = TZi
 #if  TRANS == 1
         !TRANSPORT_start
-        VSx1(i) = VSxi
-        VSy1(i) = VSyi
-        VSz1(i) = VSzi
-        VBx1(i) = VBxi
-        VBy1(i) = VByi
-        VBz1(i) = VBzi
-        VSux1(i)= VSuxi
-        VSuy1(i)= VSuyi
-        VSuz1(i)= VSuzi
-        Cx1(i)  = Cxi
-        Cy1(i)  = Cyi
-        Cz1(i)  = Czi
-        tux1(i) = tuxi
-        tuy1(i) = tuyi
-        tuz1(i) = tuzi
-        tlx1(i) = tlxi
-        tly1(i) = tlyi
-        tlz1(i) = tlzi
-        tdx1(i) = tdxi
-        tdy1(i) = tdyi
-        tdz1(i) = tdzi
+        VSx(i) = VSxi
+        VSy(i) = VSyi
+        VSz(i) = VSzi
+        VBx(i) = VBxi
+        VBy(i) = VByi
+        VBz(i) = VBzi
+        VSux(i)= VSuxi
+        VSuy(i)= VSuyi
+        VSuz(i)= VSuzi
+        Cx(i)  = Cxi
+        Cy(i)  = Cyi
+        Cz(i)  = Czi
+        tux(i) = tuxi
+        tuy(i) = tuyi
+        tuz(i) = tuzi
+        tlx(i) = tlxi
+        tly(i) = tlyi
+        tlz(i) = tlzi
+        tdx(i) = tdxi
+        tdy(i) = tdyi
+        tdz(i) = tdzi
         !TRANSPORT_END
 #endif
       end do
@@ -9598,37 +8899,6 @@ loop3:  do j = j0, j1
     TX2 = TX2 + momTempX                                 
     TY2 = TY2 + momTempY
     TZ2 = TZ2 + momTempZ
-
-#if  TRANS == 1
-   VSx2 = VSx2 + VSTempX*BoxLength
-   VSy2 = VSy2 + VSTempY*BoxLength
-   VSz2 = VSz2 + VSTempZ*BoxLength
-
-   VSux2 = VSux2 + VSuTempX*BoxLength
-   VSuy2 = VSuy2 + VSuTempY*BoxLength
-   VSuz2 = VSuz2 + VSuTempZ*BoxLength
-
-   VBx2 = VBx2 + VBTempX*BoxLength
-   VBy2 = VBy2 + VBTempY*BoxLength
-   VBz2 = VBz2 + VBTempZ*BoxLength
-
-   Cx2 = Cx2 + CTempX
-   Cy2 = Cy2 + CTempY
-   Cz2 = Cz2 + CTempZ
-
-   tux2 = tux2 + tuTempX
-   tuy2 = tuy2 + tuTempY
-   tuz2 = tuz2 + tuTempZ
-
-   tdx2 = tdx2 + tdTempX
-   tdy2 = tdy2 + tdTempY
-   tdz2 = tdz2 + tdTempZ
-
-   tlx2 = tlx2 + tlTempX
-   tly2 = tly2 + tlTempY
-   tlz2 = tlz2 + tlTempZ
-
-#endif
 
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
@@ -10642,28 +9912,14 @@ loop3:  do j = j0, j1
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer, contiguous :: VSx1(:), VSy1(:), VSz1(:)
-    real(RK), pointer, contiguous :: VSux1(:),VSuy1(:),VSuz1(:)
-    real(RK), pointer, contiguous :: VBx1(:), VBy1(:), VBz1(:)
-    real(RK), pointer, contiguous :: Cx1(:) , Cy1(:) , Cz1(:)
-    real(RK), pointer, contiguous :: tux1(:), tuy1(:), tuz1(:)
-    real(RK), pointer, contiguous :: tlx1(:), tly1(:), tlz1(:)
-    real(RK), pointer, contiguous :: tdx1(:), tdy1(:), tdz1(:)
-    real(RK), pointer, contiguous :: VSx2(:), VSy2(:), VSz2(:)
-    real(RK), pointer, contiguous :: VSux2(:),VSuy2(:),VSuz2(:)
-    real(RK), pointer, contiguous :: VBx2(:), VBy2(:), VBz2(:)
-    real(RK), pointer, contiguous :: Cx2(:) , Cy2(:) , Cz2(:)
-    real(RK), pointer, contiguous :: tux2(:), tuy2(:), tuz2(:)
-    real(RK), pointer, contiguous :: tlx2(:), tly2(:), tlz2(:)
-    real(RK), pointer, contiguous :: tdx2(:), tdy2(:), tdz2(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
-    real(RK)          :: VSTempX(1:this%Site2%NPart), VSTempY(1:this%Site2%NPart), VSTempZ(1:this%Site2%NPart)
-    real(RK)          :: VSuTempX(1:this%Site2%NPart), VSuTempY(1:this%Site2%NPart), VSuTempZ(1:this%Site2%NPart)
-    real(RK)          :: VBTempX(1:this%Site2%NPart), VBTempY(1:this%Site2%NPart), VBTempZ(1:this%Site2%NPart)
-    real(RK)          :: CTempX(1:this%Site2%NPart), CTempY(1:this%Site2%NPart), CTempZ(1:this%Site2%NPart)
-    real(RK)          :: tuTempX(1:this%Site2%NPart), tuTempY(1:this%Site2%NPart), tuTempZ(1:this%Site2%NPart)
-    real(RK)          :: tlTempX(1:this%Site2%NPart), tlTempY(1:this%Site2%NPart), tlTempZ(1:this%Site2%NPart)
-    real(RK)          :: tdTempX(1:this%Site2%NPart), tdTempY(1:this%Site2%NPart), tdTempZ(1:this%Site2%NPart)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -10674,30 +9930,9 @@ loop3:  do j = j0, j1
     real(RK)          :: txii,  tyii , tzii
     real(RK)          :: txir , tyir , tzir
     real(RK)          :: FTXi , FTYi , FTZi
-    real(RK)          :: UU
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-
-    VSTempX(:) = 0._RK
-    VSTempY(:) = 0._RK
-    VSTempZ(:) = 0._RK
-    VSuTempX(:)= 0._RK
-    VSuTempY(:)= 0._RK
-    VSuTempZ(:)= 0._RK
-    VBTempX(:) = 0._RK
-    VBTempY(:) = 0._RK
-    VBTempZ(:) = 0._RK
-    CTempX(:)  = 0._RK
-    CTempY(:)  = 0._RK
-    CTempZ(:)  = 0._RK
-    tuTempX(:) = 0._RK
-    tuTempY(:) = 0._RK
-    tuTempz(:) = 0._RK
-    tlTempX(:) = 0._RK
-    tlTempY(:) = 0._RK
-    tlTempz(:) = 0._RK
-    tdTempX(:) = 0._RK
-    tdTempY(:) = 0._RK
-    tdTempz(:) = 0._RK
+    !TRANSPORT_END
 #endif
 
     FX2 => this%Site2%FX
@@ -10731,14 +9966,12 @@ loop3:  do j = j0, j1
 !$OMP PRIVATE (Tmp, EPotLocal1) &
 !$OMP PRIVATE ( SameComponent) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx1, VSy1, VSz1, VSux1,VSuy1, VSuz1, VBx1, VBy1, VBz1, Cx1, Cy1, Cz1) &
-!$OMP PRIVATE(VSx2, VSy2, VSz2, VSux2,VSuy2, VSuz2, VBx2, VBy2, VBz2, Cx2, Cy2, Cz2) &
-!$OMP PRIVATE( tux1, tuy1, tuz1, tlx1, tly1, tlz1, tdx1, tdy1, tdz1) &
-!$OMP PRIVATE( tux2, tuy2, tuz2, tlx2, tly2, tlz2, tdx2, tdy2, tdz2) &
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
 !$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
-!$OMP PRIVATE(   UU, FTXi , FTYi , FTZi) &
+!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
@@ -10805,49 +10038,27 @@ loop3:  do j = j0, j1
 #if  TRANS == 1
     !TRANSPORT_start
    ! Conductivity = this%Conductivity
-    VSx1 => this%Site1%vsDx
-    VSy1 => this%Site1%vsDy
-    VSz1 => this%Site1%vsDz
-    VSx2 => this%Site2%vsQx
-    VSy2 => this%Site2%vsQy
-    VSz2 => this%Site2%vsQz
-    VBx1 => this%Site1%vbDx
-    VBy1 => this%Site1%vbDy
-    VBz1 => this%Site1%vbDz
-    VBx2 => this%Site2%vbQx
-    VBy2 => this%Site2%vbQy
-    VBz2 => this%Site2%vbQz
-    VSux1=> this%Site1%vsuDx
-    VSuy1=> this%Site1%vsuDy
-    VSuz1=> this%Site1%vsuDz
-    VSux2=> this%Site2%vsuQx
-    VSuy2=> this%Site2%vsuQy
-    VSuz2=> this%Site2%vsuQz
-    Cx1  => this%Site1%cDx
-    Cy1  => this%Site1%cDy
-    Cz1  => this%Site1%cDz
-    Cx2  => this%Site2%cQx
-    Cy2  => this%Site2%cQy
-    Cz2  => this%Site2%cQz
-    tux1 => this%Site1%tuDx
-    tuy1 => this%Site1%tuDy
-    tuz1 => this%Site1%tuDz
-    tux2 => this%Site2%tuQx
-    tuy2 => this%Site2%tuQy
-    tuz2 => this%Site2%tuQz
-    tlx1 => this%Site1%tlDx
-    tly1 => this%Site1%tlDy
-    tlz1 => this%Site1%tlDz
-    tlx2 => this%Site2%tlQx
-    tly2 => this%Site2%tlQy
-    tlz2 => this%Site2%tlQz
-    tdx1 => this%Site1%tdDx
-    tdy1 => this%Site1%tdDy
-    tdz1 => this%Site1%tdDz
-    tdx2 => this%Site2%tdQx
-    tdy2 => this%Site2%tdQy
-    tdz2 => this%Site2%tdQz
-
+    VSx => this%Site1%vsDx
+    VSy => this%Site1%vsDy
+    VSz => this%Site1%vsDz
+    VBx => this%Site1%vbDx
+    VBy => this%Site1%vbDy
+    VBz => this%Site1%vbDz
+    VSux=> this%Site1%vsuDx
+    VSuy=> this%Site1%vsuDy
+    VSuz=> this%Site1%vsuDz
+    Cx  => this%Site1%cDx
+    Cy  => this%Site1%cDy
+    Cz  => this%Site1%cDz
+    tux => this%Site1%tuDx
+    tuy => this%Site1%tuDy
+    tuz => this%Site1%tuDz
+    tlx => this%Site1%tlDx
+    tly => this%Site1%tlDy
+    tlz => this%Site1%tlDz
+    tdx => this%Site1%tdDx
+    tdy => this%Site1%tdDy
+    tdz => this%Site1%tdDz
     q1  => this%Site1%Qm0r(:, 1, 1)
     q2  => this%Site1%Qm0r(:, 2, 1)
     q3  => this%Site1%Qm0r(:, 3, 1)
@@ -10882,27 +10093,27 @@ loop3:  do j = j0, j1
         PZi = PZ1(i)
 #if  TRANS == 1
         !TRANSPORT_start
-        VSxi = VSx1(i)
-        VSyi = VSy1(i)
-        VSzi = VSz1(i)
-        VBxi = VBx1(i)
-        VByi = VBy1(i)
-        VBzi = VBz1(i)
-        VSuxi= VSux1(i)
-        VSuyi= VSuy1(i)
-        VSuzi= VSuz1(i)
-        Cxi  = Cx1(i)
-        Cyi  = Cy1(i)
-        Czi  = Cz1(i)
-        tuxi = tux1(i)
-        tuyi = tuy1(i)
-        tuzi = tuz1(i)
-        tlxi = tlx1(i)
-        tlyi = tly1(i)
-        tlzi = tlz1(i)
-        tdxi = tdx1(i)
-        tdyi = tdy1(i)
-        tdzi = tdz1(i)
+        VSxi= VSx(i)
+        VSyi= VSy(i)
+        VSzi= VSz(i)
+        VBxi= VBx(i)
+        VByi= VBy(i)
+        VBzi= VBz(i)
+        VSuxi= VSux(i)
+        VSuyi= VSuy(i)
+        VSuzi= VSuz(i)
+        Cxi = Cx(i)
+        Cyi = Cy(i)
+        Czi = Cz(i)
+        tuxi = tux(i)
+        tuyi = tuy(i)
+        tuzi = tuz(i)
+        tlxi = tlx(i)
+        tlyi = tly(i)
+        tlzi = tlz(i)
+        tdxi = tdx(i)
+        tdyi = tdy(i)
+        tdzi = tdz(i)
         A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
         A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
         A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
@@ -11026,62 +10237,42 @@ loop2:    do m=1,NBinsDen
             momTempY(jk) = momTempY(jk) - eY * dCosThetaj - OYi * dCosGammaij  
             momTempZ(jk) = momTempZ(jk) - eZ * dCosThetaj - OZi * dCosGammaij   
 #if TRANS==1
-          !TRANSPORT_start
-          VSxi   = VSxi + 0.5 * FXij * PYij
-          VSyi   = VSyi + 0.5 * FXij * PZij
-          VSzi   = VSzi + 0.5 * FYij * PZij
-          VBxi   = VBxi + 0.5 * FXij * PXij
-          VByi   = VByi + 0.5 * FYij * PYij
-          VBzi   = VBzi + 0.5 * FZij * PZij
-          VSuxi  = VSuxi+ 0.5 * FYij * PXij
-          VSuyi  = VSuyi+ 0.5 * FZij * PXij
-          VSuzi  = VSuzi+ 0.5 * FZij * PYij
-          VSTempX(j) = VSTempX(j) + 0.5*FXij * PYij
-          VSTempY(j) = VSTempY(j) + 0.5*FXij * PZij
-          VSTempZ(j) = VSTempZ(j) + 0.5*FYij * PZij
-          VBTempX(j) = VBTempX(j) + 0.5*FXij * PXij
-          VBTempY(j) = VBTempY(j) + 0.5*FYij * PYij
-          VBTempZ(j) = VBTempZ(j) + 0.5*FZij * PZij
-          VSuTempX(j)= VSuTempX(j)+ 0.5*FYij * PXij
-          VSuTempY(j)= VSuTempY(j)+ 0.5*FZij * PXij
-          VSuTempZ(j)= VSuTempZ(j)+ 0.5*FZij * PYij
-
-          UU     =  0.5 * EpotLocal1 
-          Cxi    = Cxi  + UU
-          Cyi    = Cyi  + UU
-          Czi    = Czi  + UU
-          CTempX(j) = CTempX(j) + UU
-          CTempY(j) = CTempY(j) + UU
-          CTempZ(j) = CTempZ(j) + UU
-                  
-          FTXi   = - eX * dCosThetai - OXj * dCosGammaij 
-          FTYi   = - eY * dCosThetai - OYj * dCosGammaij  
-          FTZi   = - eZ * dCosThetaj - OZi * dCosGammaij 
-          txii   = OYi * FTZi - OZi * FTYi
-          tyii   = OZi * FTXi - OXi * FTZi
-          tzii   = OXi * FTYi - OYi * FTXi
-          txir   = A11 * txii + A12 * tyii + A13 * tzii
-          tyir   = A21 * txii + A22 * tyii + A23 * tzii
-          tzir   = A31 * txii + A32 * tyii + A33 * tzii
-          tuxi   = tuxi + 0.5 * PXij*tyir
-          tuyi   = tuyi + 0.5 * PXij*tzir
-          tuzi   = tuzi + 0.5 * PYij*tzir
-          tlxi   = tlxi + 0.5 * PYij*txir
-          tlyi   = tlyi + 0.5 * PZij*txir
-          tlzi   = tlzi + 0.5 * PZij*tyir
-          tdxi   = tdxi + 0.5 * PXij*txir
-          tdyi   = tdyi + 0.5 * PYij*tyir
-          tdzi   = tdzi + 0.5 * PZij*tzir
-          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyi
-          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzi
-          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzi
-          tlTempX(j)= tlTempX(j) + 0.5*PYij*txi
-          tlTempY(j)= tlTempY(j) + 0.5*PZij*txi
-          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyi
-          tdTempX(j)= tdTempX(j) + 0.5*PXij*txi
-          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyi
-          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzi
-          !TRANSPORT_END
+            !TRANSPORT_start
+            VSxi   = VSxi + FXij * PYij
+            VSyi   = VSyi + FXij * PZij
+            VSzi   = VSzi + FYij * PZij
+            VBxi   = VBxi + FXij * PXij
+            VByi   = VByi + FYij * PYij
+            VBzi   = VBzi + FZij * PZij
+            VSuxi  = VSuxi+ FYij * PXij
+            VSuyi  = VSuyi+ FZij * PXij
+            VSuzi  = VSuzi+ FZij * PYij
+            UU     =  EpotLocal1
+            Uxi    =  UU * eX
+            Uyi    =  UU * eY
+            Uzi    =  UU * eZ 
+            Cxi    = Cxi  + Uxi
+            Cyi    = Cyi  + Uyi
+            Czi    = Czi  + Uzi          
+            FTXi   = - eX * dCosThetai - OXj * dCosGammaij 
+            FTYi   = - eY * dCosThetai - OYj * dCosGammaij  
+            FTZi   = - eZ * dCosThetaj - OZi * dCosGammaij 
+            txii   = OYi * FTZi - OZi * FTYi
+            tyii   = OZi * FTXi - OXi * FTZi
+            tzii   = OXi * FTYi - OYi * FTXi
+            txir   = A11 * txii + A12 * tyii + A13 * tzii
+            tyir   = A21 * txii + A22 * tyii + A23 * tzii
+            tzir   = A31 * txii + A32 * tyii + A33 * tzii
+            tuxi   = tuxi + PXij*tyir
+            tuyi   = tuyi + PXij*tzir
+            tuzi   = tuzi + PYij*tzir
+            tlxi   = tlxi + PYij*txir
+            tlyi   = tlyi + PZij*txir
+            tlzi   = tlzi + PZij*tyir
+            tdxi   = tdxi + PXij*txir
+            tdyi   = tdyi + PYij*tyir
+            tdzi   = tdzi + PZij*tzir
+            !TRANSPORT_END
 #endif
           end if
         end do loop1
@@ -11165,27 +10356,27 @@ loop2:    do m=1,NBinsDen
         TZ1(i) = TZi
 #if  TRANS == 1
         !TRANSPORT_start
-        VSx1(i) = VSxi
-        VSy1(i) = VSyi
-        VSz1(i) = VSzi
-        VBx1(i) = VBxi
-        VBy1(i) = VByi
-        VBz1(i) = VBzi
-        VSux1(i)= VSuxi
-        VSuy1(i)= VSuyi
-        VSuz1(i)= VSuzi
-        Cx1(i)  = Cxi
-        Cy1(i)  = Cyi
-        Cz1(i)  = Czi
-        tux1(i) = tuxi
-        tuy1(i) = tuyi
-        tuz1(i) = tuzi
-        tlx1(i) = tlxi
-        tly1(i) = tlyi
-        tlz1(i) = tlzi
-        tdx1(i) = tdxi
-        tdy1(i) = tdyi
-        tdz1(i) = tdzi
+        VSx(i) = VSxi
+        VSy(i) = VSyi
+        VSz(i) = VSzi
+        VBx(i) = VBxi
+        VBy(i) = VByi
+        VBz(i) = VBzi
+        VSux(i)= VSuxi
+        VSuy(i)= VSuyi
+        VSuz(i)= VSuzi
+        Cx(i)  = Cxi
+        Cy(i)  = Cyi
+        Cz(i)  = Czi
+        tux(i) = tuxi
+        tuy(i) = tuyi
+        tuz(i) = tuzi
+        tlx(i) = tlxi
+        tly(i) = tlyi
+        tlz(i) = tlzi
+        tdx(i) = tdxi
+        tdy(i) = tdyi
+        tdz(i) = tdzi
         !TRANSPORT_END
 #endif      
        end do
@@ -11312,38 +10503,6 @@ loop3:  do j = j0, j1
     TX2 = TX2 + momTempX                                 
     TY2 = TY2 + momTempY
     TZ2 = TZ2 + momTempZ
-
-#if  TRANS == 1
-   VSx2 = VSx2 + VSTempX
-   VSy2 = VSy2 + VSTempY
-   VSz2 = VSz2 + VSTempZ
-
-   VSux2 = VSux2 + VSuTempX
-   VSuy2 = VSuy2 + VSuTempY
-   VSuz2 = VSuz2 + VSuTempZ
-
-   VBx2 = VBx2 + VBTempX
-   VBy2 = VBy2 + VBTempY
-   VBz2 = VBz2 + VBTempZ
-
-   Cx2 = Cx2 + CTempX
-   Cy2 = Cy2 + CTempY
-   Cz2 = Cz2 + CTempZ
-
-   tux2 = tux2 + tuTempX
-   tuy2 = tuy2 + tuTempY
-   tuz2 = tuz2 + tuTempZ
-
-   tdx2 = tdx2 + tdTempX
-   tdy2 = tdy2 + tdTempY
-   tdz2 = tdz2 + tdTempZ
-
-   tlx2 = tlx2 + tlTempX
-   tly2 = tly2 + tlTempY
-   tlz2 = tlz2 + tlTempZ
-
-#endif
- 
 
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
@@ -12166,28 +11325,14 @@ loop2:  do m=1,NBinsDen
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer, contiguous :: VSx1(:), VSy1(:), VSz1(:)
-    real(RK), pointer, contiguous :: VSux1(:),VSuy1(:),VSuz1(:)
-    real(RK), pointer, contiguous :: VBx1(:), VBy1(:), VBz1(:)
-    real(RK), pointer, contiguous :: Cx1(:) , Cy1(:) , Cz1(:)
-    real(RK), pointer, contiguous :: tux1(:) , tuy1(:) , tuz1(:)
-    real(RK), pointer, contiguous :: tlx1(:) , tly1(:) , tlz1(:)
-    real(RK), pointer, contiguous :: tdx1(:) , tdy1(:) , tdz1(:)
-    real(RK), pointer, contiguous :: VSx2(:), VSy2(:), VSz2(:)
-    real(RK), pointer, contiguous :: VSux2(:),VSuy2(:),VSuz2(:)
-    real(RK), pointer, contiguous :: VBx2(:), VBy2(:), VBz2(:)
-    real(RK), pointer, contiguous :: Cx2(:) , Cy2(:) , Cz2(:)
-    real(RK), pointer, contiguous :: tux2(:) , tuy2(:) , tuz2(:)
-    real(RK), pointer, contiguous :: tlx2(:) , tly2(:) , tlz2(:)
-    real(RK), pointer, contiguous :: tdx2(:) , tdy2(:) , tdz2(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
-    real(RK)          :: VSTempX(1:this%Site2%NPart), VSTempY(1:this%Site2%NPart), VSTempZ(1:this%Site2%NPart)
-    real(RK)          :: VSuTempX(1:this%Site2%NPart), VSuTempY(1:this%Site2%NPart), VSuTempZ(1:this%Site2%NPart)
-    real(RK)          :: VBTempX(1:this%Site2%NPart), VBTempY(1:this%Site2%NPart), VBTempZ(1:this%Site2%NPart)
-    real(RK)          :: CTempX(1:this%Site2%NPart), CTempY(1:this%Site2%NPart), CTempZ(1:this%Site2%NPart)
-    real(RK)          :: tuTempX(1:this%Site2%NPart), tuTempY(1:this%Site2%NPart), tuTempZ(1:this%Site2%NPart)
-    real(RK)          :: tlTempX(1:this%Site2%NPart), tlTempY(1:this%Site2%NPart), tlTempZ(1:this%Site2%NPart)
-    real(RK)          :: tdTempX(1:this%Site2%NPart), tdTempY(1:this%Site2%NPart), tdTempZ(1:this%Site2%NPart)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -12198,32 +11343,10 @@ loop2:  do m=1,NBinsDen
     real(RK)          :: txii,  tyii , tzii
     real(RK)          :: txir , tyir , tzir
     real(RK)          :: FTXi , FTYi , FTZi
-    real(RK)          :: UU
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-
-    VSTempX(:) = 0._RK
-    VSTempY(:) = 0._RK
-    VSTempZ(:) = 0._RK
-    VSuTempX(:)= 0._RK
-    VSuTempY(:)= 0._RK
-    VSuTempZ(:)= 0._RK
-    VBTempX(:) = 0._RK
-    VBTempY(:) = 0._RK
-    VBTempZ(:) = 0._RK
-    CTempX(:)  = 0._RK
-    CTempY(:)  = 0._RK
-    CTempZ(:)  = 0._RK
-    tuTempX(:) = 0._RK
-    tuTempY(:) = 0._RK
-    tuTempz(:) = 0._RK
-    tlTempX(:) = 0._RK
-    tlTempY(:) = 0._RK
-    tlTempz(:) = 0._RK
-    tdTempX(:) = 0._RK
-    tdTempY(:) = 0._RK
-    tdTempz(:) = 0._RK
+    !TRANSPORT_END
 #endif
-
 
     FX2 => this%Site2%FX
     FY2 => this%Site2%FY
@@ -12244,14 +11367,12 @@ loop2:  do m=1,NBinsDen
 !$OMP PRIVATE (   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
 !$OMP PRIVATE (  eX, eY, eZ, RijSquaredInv, RijInv) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx1, VSy1, VSz1,VSux1,VSuy1,VSuz1, VBx1, VBy1, VBz1, Cx1, Cy1, Cz1) &
-!$OMP PRIVATE(VSx2, VSy2, VSz2,VSux2,VSuy2,VSuz2, VBx2, VBy2, VBz2, Cx2, Cy2, Cz2) &
-!$OMP PRIVATE( tux1, tuy1, tuz1, tlx1, tly1, tlz1, tdx1, tdy1, tdz1) &
-!$OMP PRIVATE( tux2, tuy2, tuz2, tlx2, tly2, tlz2, tdx2, tdy2, tdz2) &
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
 !$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
-!$OMP PRIVATE(   UU, FTXi , FTYi , FTZi) &
+!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
@@ -12309,48 +11430,27 @@ loop2:  do m=1,NBinsDen
 
 #if  TRANS == 1
     !TRANSPORT_start
-    VSx1 => this%Site1%vsQx
-    VSy1 => this%Site1%vsQy
-    VSz1 => this%Site1%vsQz
-    VSx2 => this%Site2%vsCx
-    VSy2 => this%Site2%vsCy
-    VSz2 => this%Site2%vsCz
-    VBx1 => this%Site1%vbQx
-    VBy1 => this%Site1%vbQy
-    VBz1 => this%Site1%vbQz
-    VBx2 => this%Site2%vbCx
-    VBy2 => this%Site2%vbCy
-    VBz2 => this%Site2%vbCz
-    VSux1=> this%Site1%vsuQx
-    VSuy1=> this%Site1%vsuQy
-    VSuz1=> this%Site1%vsuQz
-    VSux2=> this%Site2%vsuCx
-    VSuy2=> this%Site2%vsuCy
-    VSuz2=> this%Site2%vsuCz
-    Cx1  => this%Site1%cQx
-    Cy1  => this%Site1%cQy
-    Cz1  => this%Site1%cQz
-    Cx2  => this%Site2%cCx
-    Cy2  => this%Site2%cCy
-    Cz2  => this%Site2%cCz
-    tux1 => this%Site1%tuQx
-    tuy1 => this%Site1%tuQy
-    tuz1 => this%Site1%tuQz
-    tux2 => this%Site2%tuCx
-    tuy2 => this%Site2%tuCy
-    tuz2 => this%Site2%tuCz
-    tlx1 => this%Site1%tlQx
-    tly1 => this%Site1%tlQy
-    tlz1 => this%Site1%tlQz
-    tlx2 => this%Site2%tlCx
-    tly2 => this%Site2%tlCy
-    tlz2 => this%Site2%tlCz
-    tdx1 => this%Site1%tdQx
-    tdy1 => this%Site1%tdQy
-    tdz1 => this%Site1%tdQz
-    tdx2 => this%Site2%tdCx
-    tdy2 => this%Site2%tdCy
-    tdz2 => this%Site2%tdCz
+    VSx => this%Site1%vsQx
+    VSy => this%Site1%vsQy
+    VSz => this%Site1%vsQz
+    VBx => this%Site1%vbQx
+    VBy => this%Site1%vbQy
+    VBz => this%Site1%vbQz
+    VSux=> this%Site1%vsuQx
+    VSuy=> this%Site1%vsuQy
+    VSuz=> this%Site1%vsuQz
+    Cx  => this%Site1%cQx
+    Cy  => this%Site1%cQy
+    Cz  => this%Site1%cQz
+    tux => this%Site1%tuQx
+    tuy => this%Site1%tuQy
+    tuz => this%Site1%tuQz
+    tlx => this%Site1%tlQx
+    tly => this%Site1%tlQy
+    tlz => this%Site1%tlQz
+    tdx => this%Site1%tdQx
+    tdy => this%Site1%tdQy
+    tdz => this%Site1%tdQz
     q1  => this%Site1%Qm0r(:, 1, 1)
     q2  => this%Site1%Qm0r(:, 2, 1)
     q3  => this%Site1%Qm0r(:, 3, 1)
@@ -12384,27 +11484,27 @@ loop2:  do m=1,NBinsDen
 !CDIR NODEP
 #if  TRANS == 1
         !TRANSPORT_start
-        VSxi = VSx1(i)
-        VSyi = VSy1(i)
-        VSzi = VSz1(i)
-        VBxi = VBx1(i)
-        VByi = VBy1(i)
-        VBzi = VBz1(i)
-        VSuxi= VSux1(i)
-        VSuyi= VSuy1(i)
-        VSuzi= VSuz1(i)
-        Cxi  = Cx1(i)
-        Cyi  = Cy1(i)
-        Czi  = Cz1(i)
-        tuxi = tux1(i)
-        tuyi = tuy1(i)
-        tuzi = tuz1(i)
-        tlxi = tlx1(i)
-        tlyi = tly1(i)
-        tlzi = tlz1(i)
-        tdxi = tdx1(i)
-        tdyi = tdy1(i)
-        tdzi = tdz1(i)
+        VSxi= VSx(i)
+        VSyi= VSy(i)
+        VSzi= VSz(i)
+        VBxi= VBx(i)
+        VByi= VBy(i)
+        VBzi= VBz(i)
+        VSuxi= VSux(i)
+        VSuyi= VSuy(i)
+        VSuzi= VSuz(i)
+        Cxi = Cx(i)
+        Cyi = Cy(i)
+        Czi = Cz(i)
+        tuxi = tux(i)
+        tuyi = tuy(i)
+        tuzi = tuz(i)
+        tlxi = tlx(i)
+        tlyi = tly(i)
+        tlzi = tlz(i)
+        tdxi = tdx(i)
+        tdyi = tdy(i)
+        tdzi = tdz(i)
         A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
         A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
         A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
@@ -12414,6 +11514,7 @@ loop2:  do m=1,NBinsDen
         A31 = 2._RK * (q2(i) * q4(i) + q1(i) * q3(i))
         A32 = 2._RK * (q3(i) * q4(i) - q1(i) * q2(i))
         A33 = q1(i)**2 - q2(i)**2 - q3(i)**2 + q4(i)**2
+        !TRANSPORT_END
 #endif
 
 #if OSMOP == 2
@@ -12511,33 +11612,22 @@ loop2:  do m=1,NBinsDen
           TZi    = TZi - Epsilon1*CosTheta2*eZ
 #if  TRANS == 1
 !TRANSPORT_start
-          VSxi   = VSxi + 0.5 * FXij * PYij
-          VSyi   = VSyi + 0.5 * FXij * PZij
-          VSzi   = VSzi + 0.5 * FYij * PZij
-          VBxi   = VBxi + 0.5 * FXij * PXij
-          VByi   = VByi + 0.5 * FYij * PYij
-          VBzi   = VBzi + 0.5 * FZij * PZij
-          VSuxi  = VSuxi+ 0.5 * FYij * PXij
-          VSuyi  = VSuyi+ 0.5 * FZij * PXij
-          VSuzi  = VSuzi+ 0.5 * FZij * PYij
-          VSTempX(j) = VSTempX(j) + 0.5*FXij * PYij
-          VSTempY(j) = VSTempY(j) + 0.5*FXij * PZij
-          VSTempZ(j) = VSTempZ(j) + 0.5*FYij * PZij
-          VBTempX(j) = VBTempX(j) + 0.5*FXij * PXij
-          VBTempY(j) = VBTempY(j) + 0.5*FYij * PYij
-          VBTempZ(j) = VBTempZ(j) + 0.5*FZij * PZij
-          VSuTempX(j)= VSuTempX(j)+ 0.5*FYij * PXij
-          VSuTempY(j)= VSuTempY(j)+ 0.5*FZij * PXij
-          VSuTempZ(j)= VSuTempZ(j)+ 0.5*FZij * PYij
-
-          UU     = 0.5 * EpotLocal1  
-          Cxi    = Cxi  + UU
-          Cyi    = Cyi  + UU
-          Czi    = Czi  + UU
-          CTempX(j) = CTempX(j) + UU
-          CTempY(j) = CTempY(j) + UU
-          CTempZ(j) = CTempZ(j) + UU
-
+          VSxi   = VSxi + FXij * PYij
+          VSyi   = VSyi + FXij * PZij
+          VSzi   = VSzi + FYij * PZij
+          VBxi   = VBxi + FXij * PXij
+          VByi   = VByi + FYij * PYij
+          VBzi   = VBzi + FZij * PZij
+          VSuxi  = VSuxi+ FYij * PXij
+          VSuyi  = VSuyi+ FZij * PXij
+          VSuzi  = VSuzi+ FZij * PYij
+          UU     = EpotLocal1  
+          Uxi    = UU * eX
+          Uyi    = UU * eY
+          Uzi    = UU * eZ
+          Cxi    = Cxi  + Uxi
+          Cyi    = Cyi  + Uyi
+          Czi    = Czi  + Uzi
           FTXi   = - Epsilon1*CosTheta2*eX 
           FTYi   = - Epsilon1*CosTheta2*eY 
           FTZi   = - Epsilon1*CosTheta2*eZ 
@@ -12547,24 +11637,15 @@ loop2:  do m=1,NBinsDen
           txir   = A11 * txii + A12 * tyii + A13 * tzii
           tyir   = A21 * txii + A22 * tyii + A23 * tzii
           tzir   = A31 * txii + A32 * tyii + A33 * tzii
-          tuxi   = tuxi + 0.5 * PXij *tyir
-          tuyi   = tuyi + 0.5 * PXij *tzir
-          tuzi   = tuzi + 0.5 * PYij *tzir
-          tlxi   = tlxi + 0.5 * PYij *txir
-          tlyi   = tlyi + 0.5 * PZij *txir
-          tlzi   = tlzi + 0.5 * PZij *tyir
-          tdxi   = tdxi + 0.5 * PXij *txir
-          tdyi   = tdyi + 0.5 * PYij *tyir
-          tdzi   = tdzi + 0.5 * PZij *tzir
-          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyi
-          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzi
-          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzi
-          tlTempX(j)= tlTempX(j) + 0.5*PYij*txi
-          tlTempY(j)= tlTempY(j) + 0.5*PZij*txi
-          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyi
-          tdTempX(j)= tdTempX(j) + 0.5*PXij*txi
-          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyi
-          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzi          
+          tuxi   = tuxi + PXij*tyir
+          tuyi   = tuyi + PXij*tzir
+          tuzi   = tuzi + PYij*tzir
+          tlxi   = tlxi + PYij*txir
+          tlyi   = tlyi + PZij*txir
+          tlzi   = tlzi + PZij*tyir
+          tdxi   = tdxi + PXij*txir
+          tdyi   = tdyi + PYij*tyir
+          tdzi   = tdzi + PZij*tzir
           !TRANSPORT_END
 #endif
         end if
@@ -12623,70 +11704,36 @@ loop2:  do m=1,NBinsDen
       TZ1(i) = TZi
 #if  TRANS == 1
         !TRANSPORT_start
-        VSx1(i) = VSxi
-        VSy1(i) = VSyi
-        VSz1(i) = VSzi
-        VBx1(i) = VBxi
-        VBy1(i) = VByi
-        VBz1(i) = VBzi
-        VSux1(i)= VSuxi
-        VSuy1(i)= VSuyi
-        VSuz1(i)= VSuzi
-        Cx1(i)  = Cxi
-        Cy1(i)  = Cyi
-        Cz1(i)  = Czi
-        tux1(i) = tuxi
-        tuy1(i) = tuyi
-        tuz1(i) = tuzi
-        tlx1(i) = tlxi
-        tly1(i) = tlyi
-        tlz1(i) = tlzi
-        tdx1(i) = tdxi
-        tdy1(i) = tdyi
-        tdz1(i) = tdzi
+        VSx(i) = VSxi
+        VSy(i) = VSyi
+        VSz(i) = VSzi
+        VBx(i) = VBxi
+        VBy(i) = VByi
+        VBz(i) = VBzi
+        VSux(i)= VSuxi
+        VSuy(i)= VSuyi
+        VSuz(i)= VSuzi
+        Cx(i)  = Cxi
+        Cy(i)  = Cyi
+        Cz(i)  = Czi
+        tux(i) = tuxi
+        tuy(i) = tuyi
+        tuz(i) = tuzi
+        tlx(i) = tlxi
+        tly(i) = tlyi
+        tlz(i) = tlzi
+        tdx(i) = tdxi
+        tdy(i) = tdyi
+        tdz(i) = tdzi
         !TRANSPORT_END
 #endif
     end do
 !$OMP END DO
 !$OMP END PARALLEL
 
-
-
-
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
     FZ2 = FZ2 + forceTempZ
-
-#if  TRANS == 1
-   VSx2 = VSx2 + VSTempX
-   VSy2 = VSy2 + VSTempY
-   VSz2 = VSz2 + VSTempZ
-
-   VSux2 = VSux2 + VSuTempX
-   VSuy2 = VSuy2 + VSuTempY
-   VSuz2 = VSuz2 + VSuTempZ
-
-   VBx2 = VBx2 + VBTempX
-   VBy2 = VBy2 + VBTempY
-   VBz2 = VBz2 + VBTempZ
-
-   Cx2 = Cx2 + CTempX
-   Cy2 = Cy2 + CTempY
-   Cz2 = Cz2 + CTempZ
-
-   tux2 = tux2 + tuTempX
-   tuy2 = tuy2 + tuTempY
-   tuz2 = tuz2 + tuTempZ
-
-   tdx2 = tdx2 + tdTempX
-   tdy2 = tdy2 + tdTempY
-   tdz2 = tdz2 + tdTempZ
-
-   tlx2 = tlx2 + tlTempX
-   tly2 = tly2 + tlTempY
-   tlz2 = tlz2 + tlTempZ
-
-#endif
 
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
@@ -13630,28 +12677,15 @@ loop3:  do j = j0, j1
 #endif
 
 #if  TRANS == 1
-    real(RK), pointer, contiguous :: VSx1(:), VSy1(:), VSz1(:)
-    real(RK), pointer, contiguous :: VSux1(:),VSuy1(:),VSuz1(:)
-    real(RK), pointer, contiguous :: VBx1(:), VBy1(:), VBz1(:)
-    real(RK), pointer, contiguous :: Cx1(:) , Cy1(:) , Cz1(:)
-    real(RK), pointer, contiguous :: tux1(:) , tuy1(:) , tuz1(:)
-    real(RK), pointer, contiguous :: tlx1(:) , tly1(:) , tlz1(:)
-    real(RK), pointer, contiguous :: tdx1(:) , tdy1(:) , tdz1(:)
-    real(RK), pointer, contiguous :: VSx2(:), VSy2(:), VSz2(:)
-    real(RK), pointer, contiguous :: VSux2(:),VSuy2(:),VSuz2(:)
-    real(RK), pointer, contiguous :: VBx2(:), VBy2(:), VBz2(:)
-    real(RK), pointer, contiguous :: Cx2(:) , Cy2(:) , Cz2(:)
-    real(RK), pointer, contiguous :: tux2(:) , tuy2(:) , tuz2(:)
-    real(RK), pointer, contiguous :: tlx2(:) , tly2(:) , tlz2(:)
-    real(RK), pointer, contiguous :: tdx2(:) , tdy2(:) , tdz2(:)
+    !TRANSPORT_start
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
-    real(RK)          :: VSTempX(1:this%Site2%NPart), VSTempY(1:this%Site2%NPart), VSTempZ(1:this%Site2%NPart)
-    real(RK)          :: VSuTempX(1:this%Site2%NPart), VSuTempY(1:this%Site2%NPart), VSuTempZ(1:this%Site2%NPart)
-    real(RK)          :: VBTempX(1:this%Site2%NPart), VBTempY(1:this%Site2%NPart), VBTempZ(1:this%Site2%NPart)
-    real(RK)          :: CTempX(1:this%Site2%NPart), CTempY(1:this%Site2%NPart), CTempZ(1:this%Site2%NPart)
-    real(RK)          :: tuTempX(1:this%Site2%NPart), tuTempY(1:this%Site2%NPart), tuTempZ(1:this%Site2%NPart)
-    real(RK)          :: tlTempX(1:this%Site2%NPart), tlTempY(1:this%Site2%NPart), tlTempZ(1:this%Site2%NPart)
-    real(RK)          :: tdTempX(1:this%Site2%NPart), tdTempY(1:this%Site2%NPart), tdTempZ(1:this%Site2%NPart)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -13662,30 +12696,9 @@ loop3:  do j = j0, j1
     real(RK)          :: txii,  tyii , tzii
     real(RK)          :: txir , tyir , tzir
     real(RK)          :: FTXi , FTYi , FTZi
-    real(RK)          :: UU
+    real(RK)          :: UU, Uxi,  Uyi, Uzi
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-
-    VSTempX(:) = 0._RK
-    VSTempY(:) = 0._RK
-    VSTempZ(:) = 0._RK
-    VSuTempX(:)= 0._RK
-    VSuTempY(:)= 0._RK
-    VSuTempZ(:)= 0._RK
-    VBTempX(:) = 0._RK
-    VBTempY(:) = 0._RK
-    VBTempZ(:) = 0._RK
-    CTempX(:)  = 0._RK
-    CTempY(:)  = 0._RK
-    CTempZ(:)  = 0._RK
-    tuTempX(:) = 0._RK
-    tuTempY(:) = 0._RK
-    tuTempz(:) = 0._RK
-    tlTempX(:) = 0._RK
-    tlTempY(:) = 0._RK
-    tlTempz(:) = 0._RK
-    tdTempX(:) = 0._RK
-    tdTempY(:) = 0._RK
-    tdTempz(:) = 0._RK
+    !TRANSPORT_END
 #endif
 
     FX2 => this%Site2%FX
@@ -13720,14 +12733,12 @@ loop3:  do j = j0, j1
 !$OMP PRIVATE (Tmp, EPotLocal1) &
 !$OMP PRIVATE (SameComponent) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx1, VSy1, VSz1, VSux1,VSuy1,VSuz1, VBx1, VBy1, VBz1, Cx1, Cy1, Cz1) &
-!$OMP PRIVATE(VSx2, VSy2, VSz2, VSux2,VSuy2,VSuz2, VBx2, VBy2, VBz2, Cx2, Cy2, Cz2) &
-!$OMP PRIVATE( tux1, tuy1, tuz1, tlx1, tly1, tlz1, tdx1, tdy1, tdz1) &
-!$OMP PRIVATE( tux2, tuy2, tuz2, tlx2, tly2, tlz2, tdx2, tdy2, tdz2) &
+!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
+!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
 !$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
-!$OMP PRIVATE( UU, FTXi , FTYi , FTZi) &
+!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
@@ -13792,49 +12803,28 @@ loop3:  do j = j0, j1
     end if
 
 #if  TRANS == 1
- 
-    VSx1 => this%Site1%vsQx
-    VSy1 => this%Site1%vsQy
-    VSz1 => this%Site1%vsQz
-    VSx2 => this%Site2%vsDx
-    VSy2 => this%Site2%vsDy
-    VSz2 => this%Site2%vsDz
-    VBx1 => this%Site1%vbQx
-    VBy1 => this%Site1%vbQy
-    VBz1 => this%Site1%vbQz
-    VBx2 => this%Site2%vbDx
-    VBy2 => this%Site2%vbDy
-    VBz2 => this%Site2%vbDz
-    VSux1=> this%Site1%vsuQx
-    VSuy1=> this%Site1%vsuQy
-    VSuz1=> this%Site1%vsuQz
-    VSux2=> this%Site2%vsuDx
-    VSuy2=> this%Site2%vsuDy
-    VSuz2=> this%Site2%vsuDz
-    Cx1  => this%Site1%cQx
-    Cy1  => this%Site1%cQy
-    Cz1  => this%Site1%cQz
-    Cx2  => this%Site2%cDx
-    Cy2  => this%Site2%cDy
-    Cz2  => this%Site2%cDz
-    tux1 => this%Site1%tuQx
-    tuy1 => this%Site1%tuQy
-    tuz1 => this%Site1%tuQz
-    tux2 => this%Site2%tuDx
-    tuy2 => this%Site2%tuDy
-    tuz2 => this%Site2%tuDz
-    tlx1 => this%Site1%tlQx
-    tly1 => this%Site1%tlQy
-    tlz1 => this%Site1%tlQz
-    tlx2 => this%Site2%tlDx
-    tly2 => this%Site2%tlDy
-    tlz2 => this%Site2%tlDz
-    tdx1 => this%Site1%tdQx
-    tdy1 => this%Site1%tdQy
-    tdz1 => this%Site1%tdQz
-    tdx2 => this%Site2%tdDx
-    tdy2 => this%Site2%tdDy
-    tdz2 => this%Site2%tdDz
+    !TRANSPORT_start
+    VSx => this%Site1%vsQx
+    VSy => this%Site1%vsQy
+    VSz => this%Site1%vsQz
+    VBx => this%Site1%vbQx
+    VBy => this%Site1%vbQy
+    VBz => this%Site1%vbQz
+    VSux=> this%Site1%vsuQx
+    VSuy=> this%Site1%vsuQy
+    VSuz=> this%Site1%vsuQz
+    Cx  => this%Site1%cQx
+    Cy  => this%Site1%cQy
+    Cz  => this%Site1%cQz
+    tux => this%Site1%tuQx
+    tuy => this%Site1%tuQy
+    tuz => this%Site1%tuQz
+    tlx => this%Site1%tlQx
+    tly => this%Site1%tlQy
+    tlz => this%Site1%tlQz
+    tdx => this%Site1%tdQx
+    tdy => this%Site1%tdQy
+    tdz => this%Site1%tdQz
     q1  => this%Site1%Qm0r(:, 1, 1)
     q2  => this%Site1%Qm0r(:, 2, 1)
     q3  => this%Site1%Qm0r(:, 3, 1)
@@ -13870,27 +12860,27 @@ loop3:  do j = j0, j1
 !CDIR NODEP
 #if  TRANS == 1
         !TRANSPORT_start
-        VSxi= VSx1(i)
-        VSyi= VSy1(i)
-        VSzi= VSz1(i)
-        VBxi= VBx1(i)
-        VByi= VBy1(i)
-        VBzi= VBz1(i)
-        VSuxi= VSux1(i)
-        VSuyi= VSuy1(i)
-        VSuzi= VSuz1(i)
-        Cxi = Cx1(i)
-        Cyi = Cy1(i)
-        Czi = Cz1(i)
-        tuxi = tux1(i)
-        tuyi = tuy1(i)
-        tuzi = tuz1(i)
-        tlxi = tlx1(i)
-        tlyi = tly1(i)
-        tlzi = tlz1(i)
-        tdxi = tdx1(i)
-        tdyi = tdy1(i)
-        tdzi = tdz1(i)
+        VSxi= VSx(i)
+        VSyi= VSy(i)
+        VSzi= VSz(i)
+        VBxi= VBx(i)
+        VByi= VBy(i)
+        VBzi= VBz(i)
+        VSuxi= VSux(i)
+        VSuyi= VSuy(i)
+        VSuzi= VSuz(i)
+        Cxi = Cx(i)
+        Cyi = Cy(i)
+        Czi = Cz(i)
+        tuxi = tux(i)
+        tuyi = tuy(i)
+        tuzi = tuz(i)
+        tlxi = tlx(i)
+        tlyi = tly(i)
+        tlzi = tlz(i)
+        tdxi = tdx(i)
+        tdyi = tdy(i)
+        tdzi = tdz(i)
         A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
         A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
         A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
@@ -14014,34 +13004,22 @@ loop2:    do m=1,NBinsDen
 
 #if  TRANS == 1
             !TRANSPORT_start
-          VSxi   = VSxi + 0.5 * FXij * PYij
-          VSyi   = VSyi + 0.5 * FXij * PZij
-          VSzi   = VSzi + 0.5 * FYij * PZij
-          VBxi   = VBxi + 0.5 * FXij * PXij
-          VByi   = VByi + 0.5 * FYij * PYij
-          VBzi   = VBzi + 0.5 * FZij * PZij
-          VSuxi  = VSuxi+ 0.5 * FYij * PXij
-          VSuyi  = VSuyi+ 0.5 * FZij * PXij
-          VSuzi  = VSuzi+ 0.5 * FZij * PYij
-          VSTempX(j) = VSTempX(j) + 0.5*FXij * PYij
-          VSTempY(j) = VSTempY(j) + 0.5*FXij * PZij
-          VSTempZ(j) = VSTempZ(j) + 0.5*FYij * PZij
-          VBTempX(j) = VBTempX(j) + 0.5*FXij * PXij
-          VBTempY(j) = VBTempY(j) + 0.5*FYij * PYij
-          VBTempZ(j) = VBTempZ(j) + 0.5*FZij * PZij
-          VSuTempX(j)= VSuTempX(j)+ 0.5*FYij * PXij
-          VSuTempY(j)= VSuTempY(j)+ 0.5*FZij * PXij
-          VSuTempZ(j)= VSuTempZ(j)+ 0.5*FZij * PYij
-          
-          UU     = 0.5 * EpotLocal1  
-          Cxi    = Cxi  + UU
-          Cyi    = Cyi  + UU
-          Czi    = Czi  + UU
-          CTempX(j) = CTempX(j) + UU
-          CTempY(j) = CTempY(j) + UU
-          CTempZ(j) = CTempZ(j) + UU
-          
-
+            VSxi   = VSxi + FXij * PYij
+            VSyi   = VSyi + FXij * PZij
+            VSzi   = VSzi + FYij * PZij
+            VBxi   = VBxi + FXij * PXij
+            VByi   = VByi + FYij * PYij
+            VBzi   = VBzi + FZij * PZij
+            VSuxi  = VSuxi+ FYij * PXij
+            VSuyi  = VSuyi+ FZij * PXij
+            VSuzi  = VSuzi+ FZij * PYij          
+            UU     = EpotLocal1  
+            Uxi     = UU * eX
+            Uyi     = UU * eY
+            Uzi     = UU * eZ
+            Cxi    = Cxi  + Uxi
+            Cyi    = Cyi  + Uyi
+            Czi    = Czi  + Uzi
             FTXi   = - eX * dCosThetai - OXj * dCosGammaij 
             FTYi   = - eY * dCosThetai - OYj * dCosGammaij
             FTZi   = - eZ * dCosThetai - OZj * dCosGammaij
@@ -14060,16 +13038,6 @@ loop2:    do m=1,NBinsDen
             tdxi   = tdxi + PXij*txir
             tdyi   = tdyi + PYij*tyir
             tdzi   = tdzi + PZij*tzir
-          tuTempX(j)= tuTempX(j) + 0.5 * PXij*tyi
-          tuTempY(j)= tuTempY(j) + 0.5 * PXij*tzi
-          tuTempZ(j)= tuTempZ(j) + 0.5 * PYij*tzi
-          tlTempX(j)= tlTempX(j) + 0.5 * PYij*txi
-          tlTempY(j)= tlTempY(j) + 0.5 * PZij*txi
-          tlTempZ(j)= tlTempZ(j) + 0.5 * PZij*tyi
-          tdTempX(j)= tdTempX(j) + 0.5 * PXij*txi
-          tdTempY(j)= tdTempY(j) + 0.5 * PYij*tyi
-          tdTempZ(j)= tdTempZ(j) + 0.5 * PZij*tzi
-  
             !TRANSPORT_END
 #endif
           end if
@@ -14155,27 +13123,27 @@ loop2:    do m=1,NBinsDen
 
 #if  TRANS == 1
         !TRANSPORT_start
-        VSx1(i) = VSxi
-        VSy1(i) = VSyi
-        VSz1(i) = VSzi
-        VBx1(i) = VBxi
-        VBy1(i) = VByi
-        VBz1(i) = VBzi
-        VSux1(i)= VSuxi
-        VSuy1(i)= VSuyi
-        VSuz1(i)= VSuzi
-        Cx1(i)  = Cxi
-        Cy1(i)  = Cyi
-        Cz1(i)  = Czi
-        tux1(i) = tuxi
-        tuy1(i) = tuyi
-        tuz1(i) = tuzi
-        tlx1(i) = tlxi
-        tly1(i) = tlyi
-        tlz1(i) = tlzi
-        tdx1(i) = tdxi
-        tdy1(i) = tdyi
-        tdz1(i) = tdzi
+        VSx(i) = VSxi
+        VSy(i) = VSyi
+        VSz(i) = VSzi
+        VBx(i) = VBxi
+        VBy(i) = VByi
+        VBz(i) = VBzi
+        VSux(i)= VSuxi
+        VSuy(i)= VSuyi
+        VSuz(i)= VSuzi
+        Cx(i)  = Cxi
+        Cy(i)  = Cyi
+        Cz(i)  = Czi
+        tux(i) = tuxi
+        tuy(i) = tuyi
+        tuz(i) = tuzi
+        tlx(i) = tlxi
+        tly(i) = tlyi
+        tlz(i) = tlzi
+        tdx(i) = tdxi
+        tdy(i) = tdyi
+        tdz(i) = tdzi
         !TRANSPORT_END
 #endif
       end do
@@ -14299,45 +13267,12 @@ loop3:  do j = j0, j1
     end if
 !$OMP END PARALLEL
 
-
     FX2 = FX2 + forceTempX
     FY2 = FY2 + forceTempY
     FZ2 = FZ2 + forceTempZ
     TX2 = TX2 + momTempX                                 
     TY2 = TY2 + momTempY
     TZ2 = TZ2 + momTempZ
-#if  TRANS == 1
-   VSx2 = VSx2 + VSTempX
-   VSy2 = VSy2 + VSTempY
-   VSz2 = VSz2 + VSTempZ
-
-   VSux2 = VSux2 + VSuTempX
-   VSuy2 = VSuy2 + VSuTempY
-   VSuz2 = VSuz2 + VSuTempZ
-
-   VBx2 = VBx2 + VBTempX
-   VBy2 = VBy2 + VBTempY
-   VBz2 = VBz2 + VBTempZ
-
-   Cx2 = Cx2 + CTempX
-   Cy2 = Cy2 + CTempY
-   Cz2 = Cz2 + CTempZ
-
-   tux2 = tux2 + tuTempX
-   tuy2 = tuy2 + tuTempY
-   tuz2 = tuz2 + tuTempZ
-
-   tdx2 = tdx2 + tdTempX
-   tdy2 = tdy2 + tdTempY
-   tdz2 = tdz2 + tdTempZ
-
-   tlx2 = tlx2 + tlTempX
-   tly2 = tly2 + tlTempY
-   tlz2 = tlz2 + tlTempZ
-
-#endif
-
-
 
     ! Update potential energy and virial
     EPot = EPot + EPotLocal
@@ -15417,28 +14352,14 @@ loop3:  do j = j0, j1
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer, contiguous :: VSx1(:), VSy1(:), VSz1(:)
-    real(RK), pointer, contiguous :: VSux1(:),VSuy1(:),VSuz1(:)
-    real(RK), pointer, contiguous :: VBx1(:), VBy1(:), VBz1(:)
-    real(RK), pointer, contiguous :: Cx1(:) , Cy1(:) , Cz1(:)
-    real(RK), pointer, contiguous :: tux1(:) , tuy1(:) , tuz1(:)
-    real(RK), pointer, contiguous :: tlx1(:) , tly1(:) , tlz1(:)
-    real(RK), pointer, contiguous :: tdx1(:) , tdy1(:) , tdz1(:)
-    real(RK), pointer, contiguous :: VSx2(:), VSy2(:), VSz2(:)
-    real(RK), pointer, contiguous :: VSux2(:),VSuy2(:),VSuz2(:)
-    real(RK), pointer, contiguous :: VBx2(:), VBy2(:), VBz2(:)
-    real(RK), pointer, contiguous :: Cx2(:) , Cy2(:) , Cz2(:)
-    real(RK), pointer, contiguous :: tux2(:) , tuy2(:) , tuz2(:)
-    real(RK), pointer, contiguous :: tlx2(:) , tly2(:) , tlz2(:)
-    real(RK), pointer, contiguous :: tdx2(:) , tdy2(:) , tdz2(:)
+    real(RK), pointer, contiguous :: VSx(:), VSy(:), VSz(:)
+    real(RK), pointer, contiguous :: VSux(:),VSuy(:),VSuz(:)
+    real(RK), pointer, contiguous :: VBx(:), VBy(:), VBz(:)
+    real(RK), pointer, contiguous :: Cx(:) , Cy(:) , Cz(:)
+    real(RK), pointer, contiguous :: tux(:) , tuy(:) , tuz(:)
+    real(RK), pointer, contiguous :: tlx(:) , tly(:) , tlz(:)
+    real(RK), pointer, contiguous :: tdx(:) , tdy(:) , tdz(:)
     real(RK), pointer, contiguous :: q1(:), q2(:), q3(:), q4(:)
-    real(RK)          :: VSTempX(1:this%Site2%NPart), VSTempY(1:this%Site2%NPart), VSTempZ(1:this%Site2%NPart)
-    real(RK)          :: VSuTempX(1:this%Site2%NPart), VSuTempY(1:this%Site2%NPart), VSuTempZ(1:this%Site2%NPart)
-    real(RK)          :: VBTempX(1:this%Site2%NPart), VBTempY(1:this%Site2%NPart), VBTempZ(1:this%Site2%NPart)
-    real(RK)          :: CTempX(1:this%Site2%NPart), CTempY(1:this%Site2%NPart), CTempZ(1:this%Site2%NPart)
-    real(RK)          :: tuTempX(1:this%Site2%NPart), tuTempY(1:this%Site2%NPart), tuTempZ(1:this%Site2%NPart)
-    real(RK)          :: tlTempX(1:this%Site2%NPart), tlTempY(1:this%Site2%NPart), tlTempZ(1:this%Site2%NPart)
-    real(RK)          :: tdTempX(1:this%Site2%NPart), tdTempY(1:this%Site2%NPart), tdTempZ(1:this%Site2%NPart)
     real(RK)          :: VSxi, VSyi, VSzi
     real(RK)          :: VSuxi,VSuyi,VSuzi
     real(RK)          :: VBxi, VByi, VBzi
@@ -15449,30 +14370,9 @@ loop3:  do j = j0, j1
     real(RK)          :: txii,  tyii , tzii
     real(RK)          :: txir , tyir , tzir
     real(RK)          :: FTXi , FTYi , FTZi
-    real(RK)          :: UU
+    real(RK)          :: Uxi,  Uyi, Uzi
     real(RK)          :: A11, A12, A13, A21, A22, A23, A31, A32, A33
-
-    VSTempX(:)=0._RK
-    VSTempY(:)=0._RK
-    VSTempZ(:)=0._RK
-    VSuTempX(:)=0._RK
-    VSuTempY(:)=0._RK
-    VSuTempZ(:)=0._RK
-    VBTempX(:)=0._RK
-    VBTempY(:)=0._RK
-    VBTempZ(:)=0._RK
-    CTempX(:)=0._RK
-    CTempY(:)=0._RK
-    CTempZ(:)=0._RK
-    tuTempX(:)=0._RK
-    tuTempY(:)=0._RK
-    tuTempz(:)=0._RK
-    tlTempX(:)=0._RK
-    tlTempY(:)=0._RK
-    tlTempz(:)=0._RK
-    tdTempX(:)=0._RK
-    tdTempY(:)=0._RK
-    tdTempz(:)=0._RK
+    !TRANSPORT_END
 #endif
 
     FX2 => this%Site2%FX
@@ -15581,48 +14481,27 @@ loop3:  do j = j0, j1
 
 #if  TRANS == 1
     !TRANSPORT_start
-    VSx1 => this%Site1%vsQx
-    VSy1 => this%Site1%vsQy
-    VSz1 => this%Site1%vsQz
-    VSx2 => this%Site2%vsQx
-    VSy2 => this%Site2%vsQy
-    VSz2 => this%Site2%vsQz
-    VBx1 => this%Site1%vbQx
-    VBy1 => this%Site1%vbQy
-    VBz1 => this%Site1%vbQz
-    VBx2 => this%Site2%vbQx
-    VBy2 => this%Site2%vbQy
-    VBz2 => this%Site2%vbQz
-    VSux1=> this%Site1%vsuQx
-    VSuy1=> this%Site1%vsuQy
-    VSuz1=> this%Site1%vsuQz
-    VSux2=> this%Site2%vsuQx
-    VSuy2=> this%Site2%vsuQy
-    VSuz2=> this%Site2%vsuQz
-    Cx1  => this%Site1%cQx
-    Cy1  => this%Site1%cQy
-    Cz1  => this%Site1%cQz
-    Cx2  => this%Site2%cQx
-    Cy2  => this%Site2%cQy
-    Cz2  => this%Site2%cQz
-    tux1 => this%Site1%tuQx
-    tuy1 => this%Site1%tuQy
-    tuz1 => this%Site1%tuQz
-    tux2 => this%Site2%tuQx
-    tuy2 => this%Site2%tuQy
-    tuz2 => this%Site2%tuQz
-    tlx1 => this%Site1%tlQx
-    tly1 => this%Site1%tlQy
-    tlz1 => this%Site1%tlQz
-    tlx2 => this%Site2%tlQx
-    tly2 => this%Site2%tlQy
-    tlz2 => this%Site2%tlQz
-    tdx1 => this%Site1%tdQx
-    tdy1 => this%Site1%tdQy
-    tdz1 => this%Site1%tdQz
-    tdx2 => this%Site2%tdQx
-    tdy2 => this%Site2%tdQy
-    tdz2 => this%Site2%tdQz
+    VSx => this%Site1%vsQx
+    VSy => this%Site1%vsQy
+    VSz => this%Site1%vsQz
+    VBx => this%Site1%vbQx
+    VBy => this%Site1%vbQy
+    VBz => this%Site1%vbQz
+    VSux=> this%Site1%vsuQx
+    VSuy=> this%Site1%vsuQy
+    VSuz=> this%Site1%vsuQz
+    Cx  => this%Site1%cQx
+    Cy  => this%Site1%cQy
+    Cz  => this%Site1%cQz
+    tux => this%Site1%tuQx
+    tuy => this%Site1%tuQy
+    tuz => this%Site1%tuQz
+    tlx => this%Site1%tlQx
+    tly => this%Site1%tlQy
+    tlz => this%Site1%tlQz
+    tdx => this%Site1%tdQx
+    tdy => this%Site1%tdQy
+    tdz => this%Site1%tdQz
     q1  => this%Site1%Qm0r(:, 1, 1)
     q2  => this%Site1%Qm0r(:, 2, 1)
     q3  => this%Site1%Qm0r(:, 3, 1)
@@ -15659,27 +14538,27 @@ loop3:  do j = j0, j1
 !CDIR NODEP
 #if  TRANS == 1
         !TRANSPORT_start
-        VSxi= VSx1(i)
-        VSyi= VSy1(i)
-        VSzi= VSz1(i)
-        VBxi= VBx1(i)
-        VByi= VBy1(i)
-        VBzi= VBz1(i)
-        VSuxi= VSux1(i)
-        VSuyi= VSuy1(i)
-        VSuzi= VSuz1(i)
-        Cxi = Cx1(i)
-        Cyi = Cy1(i)
-        Czi = Cz1(i)
-        tuxi = tux1(i)
-        tuyi = tuy1(i)
-        tuzi = tuz1(i)
-        tlxi = tlx1(i)
-        tlyi = tly1(i)
-        tlzi = tlz1(i)
-        tdxi = tdx1(i)
-        tdyi = tdy1(i)
-        tdzi = tdz1(i)
+        VSxi= VSx(i)
+        VSyi= VSy(i)
+        VSzi= VSz(i)
+        VBxi= VBx(i)
+        VByi= VBy(i)
+        VBzi= VBz(i)
+        VSuxi= VSux(i)
+        VSuyi= VSuy(i)
+        VSuzi= VSuz(i)
+        Cxi = Cx(i)
+        Cyi = Cy(i)
+        Czi = Cz(i)
+        tuxi = tux(i)
+        tuyi = tuy(i)
+        tuzi = tuz(i)
+        tlxi = tlx(i)
+        tlyi = tly(i)
+        tlzi = tlz(i)
+        tdxi = tdx(i)
+        tdyi = tdy(i)
+        tdzi = tdz(i)
         A11 = q1(i)**2 + q2(i)**2 - q3(i)**2 - q4(i)**2
         A12 = 2._RK * (q2(i) * q3(i) + q1(i) * q4(i))
         A13 = 2._RK * (q2(i) * q4(i) - q1(i) * q3(i))
@@ -15813,63 +14692,39 @@ loop2:    do m=1,NBinsDen
 
 #if  TRANS == 1
             !TRANSPORT_start
-          VSxi   = VSxi + 0.5 * FXij * PYij
-          VSyi   = VSyi + 0.5 * FXij * PZij
-          VSzi   = VSzi + 0.5 * FYij * PZij
-          VBxi   = VBxi + 0.5 * FXij * PXij
-          VByi   = VByi + 0.5 * FYij * PYij
-          VBzi   = VBzi + 0.5 * FZij * PZij
-          VSuxi  = VSuxi+ 0.5 * FYij * PXij
-          VSuyi  = VSuyi+ 0.5 * FZij * PXij
-          VSuzi  = VSuzi+ 0.5 * FZij * PYij
-          VSTempX(j) = VSTempX(j) + 0.5*FXij * PYij
-          VSTempY(j) = VSTempY(j) + 0.5*FXij * PZij
-          VSTempZ(j) = VSTempZ(j) + 0.5*FYij * PZij
-          VBTempX(j) = VBTempX(j) + 0.5*FXij * PXij
-          VBTempY(j) = VBTempY(j) + 0.5*FYij * PYij
-          VBTempZ(j) = VBTempZ(j) + 0.5*FZij * PZij
-          VSuTempX(j)= VSuTempX(j)+ 0.5*FYij * PXij
-          VSuTempY(j)= VSuTempY(j)+ 0.5*FZij * PXij
-          VSuTempZ(j)= VSuTempZ(j)+ 0.5*FZij * PYij
-
-          UU     = 0.5 * EPotLocal1
-          Cxi    = Cxi  + UU
-          Cyi    = Cyi  + UU
-          Czi    = Czi  + UU
-          CTempX(j) = CTempX(j) + UU
-          CTempY(j) = CTempY(j) + UU
-          CTempZ(j) = CTempZ(j) + UU
-
-          FTXi   = - eX * dCosThetai - OXj * dCosGammaij
-          FTYi   = - eY * dCosThetai - OYj * dCosGammaij
-          FTZi   = - eZ * dCosThetai - OZj * dCosGammaij
-
-          txii   = OYi * FTZi - OZi * FTYi
-          tyii   = OZi * FTXi - OXi * FTZi
-          tzii   = OXi * FTYi - OYi * FTXi
-          txir   = A11 * txii + A12 * tyii + A13 * tzii
-          tyir   = A21 * txii + A22 * tyii + A23 * tzii
-          tzir   = A31 * txii + A32 * tyii + A33 * tzii
-          tuxi   = tuxi + 0.5 * PXij* tyir
-          tuyi   = tuyi + 0.5 * PXij* tzir
-          tuzi   = tuzi + 0.5 * PYij* tzir
-          tlxi   = tlxi + 0.5 * PYij* txir
-          tlyi   = tlyi + 0.5 * PZij* txir
-          tlzi   = tlzi + 0.5 * PZij* tyir
-          tdxi   = tdxi + 0.5 * PXij* txir
-          tdyi   = tdyi + 0.5 * PYij* tyir
-          tdzi   = tdzi + 0.5 * PZij* tzir
-          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyi
-          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzi
-          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzi
-          tlTempX(j)= tlTempX(j) + 0.5*PYij*txi
-          tlTempY(j)= tlTempY(j) + 0.5*PZij*txi
-          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyi
-          tdTempX(j)= tdTempX(j) + 0.5*PXij*txi
-          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyi
-          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzi
-
-      
+            VSxi   = VSxi + FXij * PYij
+            VSyi   = VSyi + FXij * PZij
+            VSzi   = VSzi + FYij * PZij
+            VBxi   = VBxi + FXij * PXij
+            VByi   = VByi + FYij * PYij
+            VBzi   = VBzi + FZij * PZij
+            VSuxi  = VSuxi+ FYij * PXij
+            VSuyi  = VSuyi+ FZij * PXij
+            VSuzi  = VSuzi+ FZij * PYij
+            Uxi     = EPotLocal1 * eX
+            Uyi     = EPotLocal1 * eY
+            Uzi     = EPotLocal1 * eZ
+            FTXi   = - eX * dCosThetai - OXj * dCosGammaij
+            FTYi   = - eY * dCosThetai - OYj * dCosGammaij
+            FTZi   = - eZ * dCosThetai - OZj * dCosGammaij
+            Cxi    = Cxi  + Uxi
+            Cyi    = Cyi  + Uyi
+            Czi    = Czi  + Uzi
+            txii   = OYi * FTZi - OZi * FTYi
+            tyii   = OZi * FTXi - OXi * FTZi
+            tzii   = OXi * FTYi - OYi * FTXi
+            txir   = A11 * txii + A12 * tyii + A13 * tzii
+           tyir   = A21 * txii + A22 * tyii + A23 * tzii
+            tzir   = A31 * txii + A32 * tyii + A33 * tzii
+            tuxi   = tuxi + PXij*tyir
+            tuyi   = tuyi + PXij*tzir
+            tuzi   = tuzi + PYij*tzir
+            tlxi   = tlxi + PYij*txir
+            tlyi   = tlyi + PZij*txir
+            tlzi   = tlzi + PZij*tyir
+            tdxi   = tdxi + PXij*txir
+            tdyi   = tdyi + PYij*tyir
+            tdzi   = tdzi + PZij*tzir
             !TRANSPORT_END
 #endif
           end if
@@ -15969,27 +14824,27 @@ loop2:    do m=1,NBinsDen
 
 #if  TRANS == 1
         !TRANSPORT_start
-        VSx1(i) = VSxi
-        VSy1(i) = VSyi
-        VSz1(i) = VSzi
-        VBx1(i) = VBxi
-        VBy1(i) = VByi
-        VBz1(i) = VBzi
-        VSux1(i)= VSuxi
-        VSuy1(i)= VSuyi
-        VSuz1(i)= VSuzi
-        Cx1(i)  = Cxi
-        Cy1(i)  = Cyi
-        Cz1(i)  = Czi
-        tux1(i) = tuxi
-        tuy1(i) = tuyi
-        tuz1(i) = tuzi
-        tlx1(i) = tlxi
-        tly1(i) = tlyi
-        tlz1(i) = tlzi
-        tdx1(i) = tdxi
-        tdy1(i) = tdyi
-        tdz1(i) = tdzi
+        VSx(i) = VSxi
+        VSy(i) = VSyi
+        VSz(i) = VSzi
+        VBx(i) = VBxi
+        VBy(i) = VByi
+        VBz(i) = VBzi
+        VSux(i)= VSuxi
+        VSuy(i)= VSuyi
+        VSuz(i)= VSuzi
+        Cx(i)  = Cxi
+        Cy(i)  = Cyi
+        Cz(i)  = Czi
+        tux(i) = tuxi
+        tuy(i) = tuyi
+        tuz(i) = tuzi
+        tlx(i) = tlxi
+        tly(i) = tlyi
+        tlz(i) = tlzi
+        tdx(i) = tdxi
+        tdy(i) = tdyi
+        tdz(i) = tdzi
         !TRANSPORT_END
 #endif
       end do
@@ -16134,38 +14989,6 @@ loop3:  do j = j0, j1
     TX2 = TX2 + momTempX                                 
     TY2 = TY2 + momTempY
     TZ2 = TZ2 + momTempZ
-
-#if  TRANS == 1
-   VSx2 = VSx2 + VSTempX
-   VSy2 = VSy2 + VSTempY
-   VSz2 = VSz2 + VSTempZ
-
-   VSux2 = VSux2 + VSuTempX
-   VSuy2 = VSuy2 + VSuTempY
-   VSuz2 = VSuz2 + VSuTempZ
-
-   VBx2 = VBx2 + VBTempX
-   VBy2 = VBy2 + VBTempY
-   VBz2 = VBz2 + VBTempZ
-
-   Cx2 = Cx2 + CTempX
-   Cy2 = Cy2 + CTempY
-   Cz2 = Cz2 + CTempZ
-
-   tux2 = tux2 + tuTempX
-   tuy2 = tuy2 + tuTempY
-   tuz2 = tuz2 + tuTempZ
-
-   tdx2 = tdx2 + tdTempX
-   tdy2 = tdy2 + tdTempY
-   tdz2 = tdz2 + tdTempZ
-
-   tlx2 = tlx2 + tlTempX
-   tly2 = tly2 + tlTempY
-   tlz2 = tlz2 + tlTempZ
-
-#endif
-
 
 
     ! Update potential energy and virial
@@ -17280,15 +16103,16 @@ loop2:  do j = 1, j1
 
             if (this%nmax > 0) then
               ! Normal Amber-type torsion angle
-              earg = 1._RK + cos(-this%gamma0(1))
-              EPotLocal = EPotLocal + earg * this%ForConst(1)
+              earg = 1 * arg - this%gamma0(1)
+              EPotLocal = EPotLocal + this%ForConst(1) * (1._RK + cos(earg))
+              deri = -this%ForConst(1) * 1.0 * sin(earg)
               do j = 1,this%nmax
-                earg= j*arg-this%gamma0(j+1)
+                earg= (j + 1) * arg - this%gamma0(j + 1)
                 ! Energy and forces:
                 ! formulae  E = ForConst*( 1 + cos(earg) )
                 !           F = ForConst*n*sin(earg)
                 EPotLocal = EPotLocal + this%ForConst(j+1)*(1._RK+cos(earg))
-                deri = deri - this%ForConst(j+1)*j*sin(earg)
+                deri = deri - this%ForConst(j + 1)*(j + 1)*sin(earg)
               end do
 
              else ! Improper dihedral angle

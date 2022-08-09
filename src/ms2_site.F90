@@ -41,10 +41,10 @@ module ms2_site
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK)          :: r(3)
+    real(RK),pointer  :: r(:)
     real(RK)          :: sig, eps
     real(RK)          :: mass
-    real(RK)          :: mie_n, mie_m
+	real(RK)          :: mie_n, mie_m
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2
@@ -157,7 +157,7 @@ module ms2_site
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK)          :: r(3), or(3)
+    real(RK),pointer  :: r(:), or(:)
     real(RK)          :: D
     real(RK)          :: mass
     real(RK)          :: shield
@@ -218,7 +218,7 @@ module ms2_site
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK)          :: r(3), or(3)
+    real(RK),pointer  :: r(:), or(:)
     real(RK)          :: Q
     real(RK)          :: mass
     real(RK)          :: shield
@@ -284,23 +284,29 @@ contains
     ! Declare arguments
     type(TSiteMIEnm) :: this
     
+    ! Declare local variables
+    integer          :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
         call FileReadParameter( this%SiteId, iounit_potmod, IdMIE_SiteId, .false. )
     end if
+    
+    nullify ( this%r )
+    allocate( this%r( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
 
       select case( LJorMIE )
       case( 'MIE' ) !Case: Mie-Potential
-         call FileReadParameter( this%mie_n, iounit_potmod, IdMIE_n, .false. ) !read parameters n and m for mie-potential
-         call FileReadParameter( this%mie_m, iounit_potmod, IdMIE_m, .false. )
+	     call FileReadParameter( this%mie_n, iounit_potmod, IdMIE_n, .false. ) !read parameters n and m for mie-potential
+	     call FileReadParameter( this%mie_m, iounit_potmod, IdMIE_m, .false. )
             if ( this%mie_n == 4._RK) this%mie_n = 3.99999_RK !to avoid poles in the correction functions
             if ( this%mie_m == 4._RK) this%mie_m = 3.99999_RK
             if ( this%mie_n == 5._RK) this%mie_n = 4.99999_RK
             if ( this%mie_m == 5._RK) this%mie_m = 4.99999_RK
-      case( 'LJ' )    !Case: LJ126-Potential
-         this%mie_n = 12._RK
-         this%mie_m = 6._RK
+	  case( 'LJ' )    !Case: LJ126-Potential
+	     this%mie_n = 12._RK
+		 this%mie_m = 6._RK
       end select  
     call FileReadParameter( this%r(1), iounit_potmod, IdMIEnm_r1, .false. )
     call FileReadParameter( this%r(2), iounit_potmod, IdMIEnm_r2, .false. )

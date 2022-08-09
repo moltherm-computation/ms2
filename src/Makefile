@@ -2,8 +2,6 @@
 # Makefile for ms2
 ########################################
 #
-#---------------------------------------
-#           see makefile/<COMPILER>.mk
 COMPILER ?= GNU
 #
 TARGET   ?= RELEASE
@@ -15,7 +13,6 @@ SPME     ?= 0
 MPI      ?= 0
 OMP      ?= 0
 SP       ?= 0
-#---------------------------------------
 #
 PROG     = ms2
 PROG     :=  $(PROG)_$(COMPILER)
@@ -147,7 +144,6 @@ endif
 
 clean:
 	rm -f $(OBJS) $(MODS)
-	#rm -f *.optrpt
 
 .SUFFIXES: .F90 .mod .o
 ifeq ($(COMPILER),$(filter $(COMPILER), INTEL CRAYintel))

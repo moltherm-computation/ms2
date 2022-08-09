@@ -72,6 +72,9 @@ module ms2_component
     real(RK), pointer, contiguous :: P4(:, :, :)
     real(RK), pointer, contiguous :: P5(:, :, :)
 
+    ! Quaternion parameters for molecules - only to calculate the initial orientation
+    real(RK), pointer :: Qm0(:, :)
+
     ! Quaternion parameters and their derivatives for Units
     real(RK), pointer, contiguous :: Q0(:, :, :)
     real(RK), pointer, contiguous :: Q0Save(:, :, :)
@@ -93,11 +96,6 @@ module ms2_component
 
     ! Displacement
     real(RK), pointer, contiguous :: Disp(:, :)
-    
-    ! Alpha2 matrix
-    real(RK), pointer, contiguous :: ri0_x(:, :)
-    real(RK), pointer, contiguous :: ri0_y(:, :)
-    real(RK), pointer, contiguous :: ri0_z(:, :)
 
     ! Total forces acting on units
     real(RK), pointer, contiguous :: F(:, :, :)
@@ -130,7 +128,6 @@ module ms2_component
 #if  TRANS == 1
 !TRANSPORT_start
     real(RK), pointer, contiguous :: KinETran(:,:)
-    real(RK), pointer, contiguous :: KinEPart(:)
     real(RK) :: KinETranTotal(3)
     real(RK) :: PartialMolarEnthalpy
 
@@ -229,7 +226,7 @@ module ms2_component
     integer  :: FluctState
     integer  :: GradInsInit
     real(RK) :: ChemPot, WidomContribution
-    real (RK) :: HW_counter, HW_denom
+	real (RK) :: HW_counter, HW_denom
 !DEBUG
     real(RK) :: ChemPot1, ChemPot2
 !DEBUG
@@ -380,6 +377,10 @@ module ms2_component
   
   interface RotateTest
     module procedure TComponent_RotateTest
+  end interface
+
+  interface Mol2Unit
+    module procedure TComponent_Mol2Unit
   end interface
 
   interface InitUnit
@@ -1326,15 +1327,13 @@ contains
     nullify( this%P4 )
     nullify( this%P5 )
     nullify( this%Disp )
-    nullify( this%ri0_x )
-    nullify( this%ri0_y )
-    nullify( this%ri0_z )
     nullify( this%F )
 #if MPI_VER > 0
     nullify( this%FAll )
     nullify( this%NAdd )
 #endif
     nullify( this%Q0 )
+    nullify( this%Qm0 )
     nullify( this%Q0Save )
     nullify( this%Q0tmp )
     nullify( this%Q1 )
@@ -1366,7 +1365,6 @@ contains
 #if  TRANS == 1
 !  Transport  !TRANSPORT_start
     nullify(this%KinETran)
-    nullify(this%KinEPart)
     nullify( this%FS )
     nullify( this%FB )
     nullify( this%FRC )
@@ -1411,31 +1409,31 @@ contains
 
     ! Transport
     allocate( this%KinETran( np, 3 ), STAT = stat )
-    call AllocationError( stat, '3*particles', np )
-    allocate( this%KinEPart( np), STAT = stat )
     call AllocationError( stat, 'particles', np )
     allocate( this%FS( np, 3 ), STAT = stat )
-    call AllocationError( stat, '3*particles', np )
+    call AllocationError( stat, 'particles', np )
     allocate( this%FB( np, 3 ), STAT = stat )
-    call AllocationError( stat, '3*particles', np )
+    call AllocationError( stat, 'particles', np )
     allocate( this%FTC( np, 3 ), STAT = stat )
-    call AllocationError( stat, '3*particles', np )
+    call AllocationError( stat, 'particles', np )
     allocate( this%FRC( np, 3 ), STAT = stat )
-    call AllocationError( stat, '3*particles', np )
+    call AllocationError( stat, 'particles', np )
     allocate( this%FTC1( np, 3 ), STAT = stat )
-    call AllocationError( stat, '3*particles', np )
+    call AllocationError( stat, 'particles', np )
     allocate( this%FTC2( np, 3 ), STAT = stat )
-    call AllocationError( stat, '3*particles', np )
+    call AllocationError( stat, 'particles', np )
     allocate( this%FTC3( np, 3 ), STAT = stat )
-    call AllocationError( stat, '3*particles', np )
+    call AllocationError( stat, 'particles', np )
     allocate( this%FRC1( np, 3 ), STAT = stat )
-    call AllocationError( stat, '3*particles', np )
+    call AllocationError( stat, 'particles', np )
     allocate( this%FRC2( np, 3 ), STAT = stat )
-    call AllocationError( stat, '3*particles', np )
+    call AllocationError( stat, 'particles', np )
     allocate( this%FRC3( np, 3 ), STAT = stat )
-    call AllocationError( stat, '3*particles', np )
+    call AllocationError( stat, 'particles', np )
+    allocate( this%Qm0( np, 4 ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
     allocate( this%Q0( np, 4, nu ), STAT = stat )
-    call AllocationError( stat, 'units*4*particles', nup )
+    call AllocationError( stat, 'units*particles', nup )
 
 #if MPI_VER > 0
     allocate( this%FSAll( np, 3 ), STAT = stat )
@@ -1510,19 +1508,6 @@ contains
       allocate( this%Disp( np, 3 ), STAT = stat )
       call AllocationError( stat, 'particles', np )
       this%Disp(:, :) = 0._RK
-      
-      if( ALPHA2UpdateFrequency > 0 ) then
-          ! Alpha2 
-          allocate( this%ri0_x( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
-          call AllocationError( stat, 'particles', np )
-          allocate( this%ri0_y( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
-          call AllocationError( stat, 'particles', np )          
-          allocate( this%ri0_z( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
-          call AllocationError( stat, 'particles', np )
-          this%ri0_x(:, :) = 0._RK
-          this%ri0_y(:, :) = 0._RK
-          this%ri0_z(:, :) = 0._RK
-      end if
 
       ! Total forces
       allocate( this%F( np, 3, nu ), STAT = stat )
@@ -1554,6 +1539,9 @@ contains
 ! For the calculation of transport properties, the necessary quaternion matrix has
 ! already been allocated in this subroutine!
       ! Quaternion parameters
+      allocate( this%Qm0( np, 4 ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      ! Quaternion parameters for Units
       allocate( this%Q0( np, 4, nu ), STAT = stat )
       call AllocationError( stat, 'units*particles', nup )
 #endif
@@ -2452,16 +2440,6 @@ contains
     if( associated( this%Disp ) ) then
       deallocate( this%Disp )
     end if
-    ! Alpha2
-    if( associated( this%ri0_x ) ) then
-      deallocate( this%ri0_x )
-    end if
-    if( associated( this%ri0_y ) ) then
-      deallocate( this%ri0_y )
-    end if
-    if( associated( this%ri0_z ) ) then
-      deallocate( this%ri0_z )
-    end if
 
     ! Total forces
     if( associated( this%F ) ) then
@@ -2574,9 +2552,6 @@ contains
 ! Transport !TRANSPORT_start
     if( associated( this%KinETran) ) then
       deallocate( this%KinETran )
-    end if
-    if( associated( this%KinEPart) ) then
-      deallocate( this%KinEPart )
     end if
     if( associated( this%FS ) ) then
       deallocate( this%FS )
@@ -4805,25 +4780,21 @@ loop1:do i = 1, this%NPart
     real(RK) :: Korr
     integer  :: np, nra, iUnit
     integer  :: i, j
-    real(RK) :: r(this%NPart, 3)
+    real(RK) :: r(3)
 
     Korr = 2._RK - 1._RK / scale
     np = this%NPart
 
-    do j = 1, 3
-      do i = 1, np
+    do i = 1, np
+      do j = 1, 3
         do iUnit = 1, this%Molecule%NUnit
           this%P1(i, j, iUnit) = Korr * this%P1(i, j, iUnit) + this%P2(i, j, iUnit)
           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) + this%P1(i, j, iUnit)
         end do
+      end do
 
-        if (.not. UseIntDegFreed) then
-            ! Calculate displacement
-            this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j, 1) - this%Pm0old(i, j)
-        end if
-
-        r(i, j) = 0._RK
-
+      r(:) = 0._RK
+      do j = 1, 3
         do iUnit= 1, this%Molecule%NUnit
           ! Check for conservation of particles in primary cell
 #if ARCH == 1
@@ -4836,16 +4807,12 @@ loop1:do i = 1, this%NPart
           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) - anint( this%P0(i, j, iUnit) )
 #endif
           ! Calculate new positions of COM for molecules from new COM of units
-          r(i, j) = r(i, j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
+          r(j) = r(j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
 
-          if (UseIntDegFreed) then
-              this%Pm0(i, j) = r(i, j)/this%Molecule%Mass
-              ! Calculate displacement of molecules
-              this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
-              this%Pm0(i, j) = this%Pm0(i,j) - anint(this%Pm0(i,j))
-          else
-              this%Pm0(i, j) = this%P0(i,j,1)
-          end if
+          this%Pm0(i, j) = r(j)/this%Molecule%Mass
+          ! Calculate displacement of molecules
+          this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+          this%Pm0(i, j) = this%Pm0(i,j) - anint(this%Pm0(i,j))
           this%Pm0old(i,j ) = this%Pm0(i, j)
         end do
       end do
@@ -5351,7 +5318,7 @@ loop1:do i = 1, this%NPart
     type(TComponent) :: this
 
     ! Declare local variables
-    integer  :: np, i, k, nu, j
+    integer  :: np, i, k, nu
     real(RK) :: pos(3), quat(4)
 
     ! Assign local variables
@@ -5408,22 +5375,6 @@ loop1:do i = 1, this%NPart
           end do
         end do
       end if
-      
-      if (.not. printIDF) then
-          do i = 1, np
-            pos(:) = this%Disp(i,:)
-            write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
-          end do
-
-          if( ALPHA2UpdateFrequency > 0 ) then
-            do i = 1, np
-              do j = 0, ALPHA2Length/ALPHA2Shift-1
-                write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%ri0_x(i,j),this%ri0_y(i,j),this%ri0_z(i,j)
-              end do
-            end do
-          end if
-      end if
-      
     else
       write( iounit_restart, '(ES20.12E3)' ) this%DispTran
       write( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
@@ -5619,23 +5570,10 @@ loop1:do i = 1, this%NPart
             do k = 1, nu
               read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P5( i, :, k )
             end do
-          end do      
+          end do
+
         end if
 
-        if (.not. printIDF) then
-            do i = 1, np
-              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%Disp( i, : )
-            end do
-
-            if( ALPHA2UpdateFrequency > 0 ) then
-              do i = 1, np
-                do j = 0, ALPHA2Length/ALPHA2Shift-1
-                  read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%ri0_x(i,j),this%ri0_y(i,j),this%ri0_z(i,j)
-                end do
-              end do
-            end if
-        end if
-        
       else
         read( iounit_restart, '(ES20.12E3)' ) this%DispTran
         read( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
@@ -5819,7 +5757,6 @@ subroutine TComponent_ForceTransport( this )
     this%FTC(:,:) = 0._RK
     this%FRC(:,:) = 0._RK
     this%KinETran(:,:) = 0._RK
-    this%KinEPart(:) = 0._RK
 
     if (RootProc) then
 
@@ -5868,10 +5805,6 @@ subroutine TComponent_ForceTransport( this )
         end do
 
         this%KinETran(:,:) = this%KinETran(:,:)* this%Molecule%Mass*BoxLength_dt2
-
-        do j = 1,3
-          this%KinEPart(:) = this%KinEPart(:) + this%KinETran(:,j)
-        end do
 
         this%KinETranTotal(1) = sum(this%KinETran(:,1))
         this%KinETranTotal(2) = sum(this%KinETran(:,2))
@@ -6693,6 +6626,129 @@ contains
     end do
 
   end subroutine TComponent_Unit2AtomShake
+
+
+!==============================================================!
+!  Subroutine TComponent_Mol2Unit                              !
+!==============================================================!
+
+  subroutine TComponent_Mol2Unit( this, np, nu )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TComponent)    :: this
+    integer, intent(in) :: np
+    integer, intent(in) :: nu
+
+    ! Declare local variables
+    real(RK)                       :: BoxLengthInv
+    real(RK)                       :: PmX(np), PmY(np), PmZ(np)
+    real(RK)                       :: q1, q2, q3, q4, qinv
+    real(RK)                       :: A11(np), A12(np), A13(np)
+    real(RK)                       :: A21(np), A22(np), A23(np)
+    real(RK)                       :: A31(np), A32(np), A33(np)
+    integer                        :: nup
+    type(TUnit), pointer           :: pUnit
+    integer                        :: i, j
+
+    ! Broadcast positions and orientations to all processes
+#if MPI_VER > 0
+    ! in MC simulations, we only communicate during common equilibration
+    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
+      call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), MPI_RK, NRootProc, Communicator, ierror )
+      if( this%Molecule%isElongated ) then
+        call MPI_Bcast( this%Qm0(:, :), size( this%Qm0 ), MPI_RK, NRootProc, Communicator, ierror )
+      end if
+    end if
+#endif
+
+    ! Assign local variables
+    BoxLengthInv = 1._RK / this%BoxLength
+    nup = nu*np
+
+    ! Check number of rotation axes
+    if( this%Molecule%isElongated ) then
+      ! Loop over molecules
+      do i = 1, np
+        ! Positions and quaternions of particle i
+        PmX(i) = this%Pm0(i, 1)
+        PmY(i) = this%Pm0(i, 2)
+        PmZ(i) = this%Pm0(i, 3)
+        q1 = this%Qm0(i, 1)
+        q2 = this%Qm0(i, 2)
+        q3 = this%Qm0(i, 3)
+        q4 = this%Qm0(i, 4)
+
+        ! Normalise quaternions
+#if ARCH == 3
+        qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#else
+        qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+#endif
+        q1 = q1 * qinv
+        q2 = q2 * qinv
+        q3 = q3 * qinv
+        q4 = q4 * qinv
+        this%Qm0(i, 1) = q1
+        this%Qm0(i, 2) = q2
+        this%Qm0(i, 3) = q3
+        this%Qm0(i, 4) = q4
+
+        ! Calculate rotation matrix elements
+        A11(i) = q1**2 + q2**2 - q3**2 - q4**2
+        A12(i) = 2._RK * (q2 * q3 + q1 * q4)
+        A13(i) = 2._RK * (q2 * q4 - q1 * q3)
+        A21(i) = 2._RK * (q2 * q3 - q1 * q4)
+        A22(i) = q1**2 - q2**2 + q3**2 - q4**2
+        A23(i) = 2._RK * (q3 * q4 + q1 * q2)
+        A31(i) = 2._RK * (q2 * q4 + q1 * q3)
+        A32(i) = 2._RK * (q3 * q4 - q1 * q2)
+        A33(i) = q1**2 - q2**2 - q3**2 + q4**2
+
+      end do
+
+      ! Calculate initial COM position and quartenions for Units
+      ! Loop over Units in molecule
+      do j = 1, nu
+         pUnit => this%Molecule%Unit(j)
+         do i = 1, np
+           this%P0(i, 1, j) = PmX(i) + (pUnit%P0(1)*A11(i)+pUnit%P0(2)*A21(i)+pUnit%P0(3)*A31(i)) * BoxLengthInv
+           this%P0(i, 2, j) = PmY(i) + (pUnit%P0(1)*A12(i)+pUnit%P0(2)*A22(i)+pUnit%P0(3)*A32(i)) * BoxLengthInv
+           this%P0(i, 3, j) = PmZ(i) + (pUnit%P0(1)*A13(i)+pUnit%P0(2)*A23(i)+pUnit%P0(3)*A33(i)) * BoxLengthInv
+
+           this%Q0(i,1,j) = this%Qm0(i,1)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(2) - &
+&                            this%Qm0(i,3)*pUnit%Q0(3) - this%Qm0(i,4)*pUnit%Q0(4)
+           this%Q0(i,2,j) = this%Qm0(i,1)*pUnit%Q0(2) + this%Qm0(i,2)*pUnit%Q0(1) + &
+&                            this%Qm0(i,3)*pUnit%Q0(4) - this%Qm0(i,4)*pUnit%Q0(3)
+           this%Q0(i,3,j) = this%Qm0(i,1)*pUnit%Q0(3) + this%Qm0(i,3)*pUnit%Q0(1) - &
+&                            this%Qm0(i,2)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(2)
+           this%Q0(i,4,j) = this%Qm0(i,1)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(1) - &
+&                            this%Qm0(i,2)*pUnit%Q0(3) - this%Qm0(i,3)*pUnit%Q0(2)
+         end do
+       end do
+
+    else    ! if Molecule is not Elongated
+      do i = 1, np
+        ! Positions and quaternions of particle i
+        PmX(i) = this%Pm0(i, 1)
+        PmY(i) = this%Pm0(i, 2)
+        PmZ(i) = this%Pm0(i, 3)
+        do j = 1, nu
+          this%P0(i, 1, j) = PmX(i)
+          this%P0(i, 2, j) = PmY(i)
+          this%P0(i, 3, j) = PmZ(i)
+        end do
+      end do
+    end if
+
+  end subroutine TComponent_Mol2Unit
+
 
 
 !==============================================================!
