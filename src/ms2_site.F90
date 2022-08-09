@@ -44,7 +44,7 @@ module ms2_site
     real(RK),pointer  :: r(:)
     real(RK)          :: sig, eps
     real(RK)          :: mass
-	real(RK)          :: mie_n, mie_m
+    real(RK)          :: mie_n, mie_m
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2

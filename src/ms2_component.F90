@@ -96,6 +96,11 @@ module ms2_component
 
     ! Displacement
     real(RK), pointer, contiguous :: Disp(:, :)
+    
+    ! Alpha2 matrix
+    real(RK), pointer, contiguous :: ri0_x(:, :)
+    real(RK), pointer, contiguous :: ri0_y(:, :)
+    real(RK), pointer, contiguous :: ri0_z(:, :)
 
     ! Total forces acting on units
     real(RK), pointer, contiguous :: F(:, :, :)
@@ -128,6 +133,7 @@ module ms2_component
 #if  TRANS == 1
 !TRANSPORT_start
     real(RK), pointer, contiguous :: KinETran(:,:)
+    real(RK), pointer, contiguous :: KinEPart(:)
     real(RK) :: KinETranTotal(3)
     real(RK) :: PartialMolarEnthalpy
 
@@ -226,7 +232,7 @@ module ms2_component
     integer  :: FluctState
     integer  :: GradInsInit
     real(RK) :: ChemPot, WidomContribution
-	real (RK) :: HW_counter, HW_denom
+    real (RK) :: HW_counter, HW_denom
 !DEBUG
     real(RK) :: ChemPot1, ChemPot2
 !DEBUG

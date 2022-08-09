@@ -12,7 +12,6 @@
 !* Updates and auxiliary routines are available from            *   
 !* http://www.ms-2.de                                           *   
 !****************************************************************
-
 #ifndef ARCH
 #define ARCH    0
 #define FORTRAN 90
@@ -69,6 +68,13 @@ module ms2_ensemble
 
     ! I/O unit for RDF file
     integer :: iounit_rdf
+    
+    ! I/O unit for KBI file
+    integer :: iounit_kbirun
+    integer :: iounit_kbirdf
+    
+    ! I/O unit for alpha2 file
+    integer :: iounit_a2rav
 
     ! I/O unit for ThermoInt File
     integer :: iounit_thermoint
@@ -83,7 +89,7 @@ module ms2_ensemble
     integer :: iounit_dcp
 
 #if  TRANS == 1
-    logical :: Conductivity   !TRANSPORT_thisline
+    !logical :: Conductivity   !TRANSPORT_thisline
     logical :: EConductivity
     logical :: MolarEnthConduct
     logical :: Bulkviscosity
@@ -179,6 +185,28 @@ module ms2_ensemble
     real(RK) :: RDFdr
     real(RK), pointer, contiguous :: RDFVSchale(:)
     real(RK), pointer, contiguous :: RDFValue(:)
+    
+    !KBI Hilfsvariable
+    real(RK) :: KBIdr
+    real(RK), pointer, contiguous :: KBIVSchale(:)
+    real(RK), pointer, contiguous :: KBIRDFextra(:,:)
+    real(RK), pointer, contiguous :: KBIRDFvdVextra(:,:)
+    real(RK), pointer, contiguous :: KBIRDFvdVshfextra(:,:)
+    real(RK), pointer, contiguous :: TDF(:,:)
+    real(RK), pointer, contiguous :: dTDF(:,:)
+    real(RK), pointer, contiguous :: TDF0(:,:)
+    integer                       :: KBIBlockCount
+    
+    !Alpha2 displacement
+    real(RK), pointer, contiguous :: dispR2(:,:)
+    real(RK), pointer, contiguous :: dispR2inv(:,:)
+    real(RK), pointer, contiguous :: dispR4(:,:)
+    real(RK), pointer, contiguous :: dispR2Ave(:)
+    real(RK), pointer, contiguous :: dispR2invAve(:)
+    real(RK), pointer, contiguous :: dispR4Ave(:)
+    integer,  pointer, contiguous :: alpha2tempstep(:)
+    integer                       :: alpha2aveCount
+    
 
     ! Characteristic dielectric constant for reaction field method
     real(RK) :: RFEpsilon
@@ -208,7 +236,7 @@ module ms2_ensemble
     ! Potential energy
     real(RK) :: EPot
 
-	! d2EpotdV2
+    ! d2EpotdV2
     real(RK) :: d2EpotdV2
 
     ! Intra and inter potential energy
@@ -304,6 +332,11 @@ module ms2_ensemble
       type(TAccumulator) :: SumA21resII
       type(TAccumulator) :: SumA12resII
     !end if
+    
+    ! KBI sums Gij
+    type(TAccumulator),pointer, contiguous :: SumKBIGij1(:)
+    type(TAccumulator),pointer, contiguous :: SumKBIGij2(:)
+    type(TAccumulator),pointer, contiguous :: SumKBIGij3(:)
 
     ! 3.) Derived sums
     type(TAccumulator) :: SumBetaT
@@ -374,41 +407,41 @@ module ms2_ensemble
     real(RK) :: TimeStepCorr
     integer  :: NCorr,Mmess
     integer  :: NSpanCF,Nviewcf
-    real(RK), pointer, contiguous :: cf_db(:), cf_soret(:)
-    real(RK), pointer, contiguous :: average_cf_db(:), average_cf_soret(:)
+  
+    real(RK), pointer, contiguous :: cf_soret(:,:), average_cf_soret(:,:), sinte_soret(:,:), average_sinte_soret(:,:)
+    real(RK), pointer, contiguous :: cf_db(:), average_cf_db(:)
     real(RK), pointer, contiguous :: cf_vs(:), cf_vb(:), cf_c(:), cf_ec(:)
     real(RK), pointer, contiguous :: average_cf_vs(:), average_cf_vb(:), average_cf_c(:), average_cf_ec(:)
     real(RK), pointer, contiguous :: lamda(:, :)
     real(RK), pointer, contiguous :: average_lamda(:, :)
     real(RK), pointer, contiguous :: sinte_i(:, :), sinte_lamda(:,:)
     real(RK), pointer, contiguous :: average_sinte_i(:, :), average_sinte_lamda(:,:)
-    real(RK), pointer, contiguous :: sinte_db(:), sinte_soret(:)
-    real(RK), pointer, contiguous :: average_sinte_soret(:), average_sinte_db(:)
+    real(RK), pointer, contiguous :: sinte_db(:), average_sinte_db(:)
     real(RK), pointer, contiguous :: sinte_vs(:), sinte_vb(:)
     real(RK), pointer, contiguous :: average_sinte_vs(:), average_sinte_vb(:)
     real(RK), pointer, contiguous :: sinte_c(:), sinte_ec(:)
     real(RK), pointer, contiguous :: average_sinte_c(:), average_sinte_ec(:)
     real(RK), pointer, contiguous :: a(:, :), A_SpanCF(:,:)
     real(RK), pointer, contiguous :: cf_d (:, :),  average_cf_d (:, :), vsk(:, :)
-    real(RK),pointer, contiguous  :: vsp(:, :), vbk(:, :), vbp(:, :)
+    real(RK), pointer, contiguous  :: vsp(:, :), vbk(:, :), vbp(:, :)
     real(RK), pointer, contiguous :: vckt(:, :), vckr(:, :), vcpt(:, :), vcpr(:, :), vcmt(:,:)
     real(RK)          :: sc(3),sp(3)
 
     real(RK),pointer, contiguous :: selfd_i(:)
     real(RK),pointer, contiguous :: Onsager(:,:)
+    real(RK),pointer, contiguous :: soret(:)
     real(RK)         :: visco_s
     real(RK)         :: visco_b
     real(RK)         :: conduct
-    real(RK)         :: soret
     real(RK)         :: econduct
 
     ! 4.) Transport properties
 
     type(TAccumulator),pointer, contiguous :: Sumself_i(:)
     type(TAccumulator),pointer, contiguous :: SumOnsager(:,:)
+    type(TAccumulator),pointer, contiguous :: SumSoret(:)
     type(TAccumulator)         :: SumVisco_s
     type(TAccumulator)         :: SumVisco_b
-    type(TAccumulator)         :: SumSoret
     type(TAccumulator)         :: SumConduct
     type(TAccumulator)         :: SumEConduct
 !TRANSPORT_END
@@ -432,11 +465,13 @@ module ms2_ensemble
    integer,pointer, contiguous  :: AccComp(:), AccAccSite(:), AccDonSite(:)
    integer,pointer, contiguous  :: DonComp(:), DonAccSite(:), DonDonSite(:)
    real(RK),pointer, contiguous :: DistCrit1(:), DistCrit2(:), AngleCrit(:)
-   integer,pointer, contiguous  :: NHBond0(:), NHBond1(:,:), NHBond2(:,:,:), NHBond3(:,:,:,:), NHBondN(:)
+   integer,pointer, contiguous  :: NHBond0(:), NHBond1(:,:), NHBond2(:,:,:)
+   integer,pointer, contiguous  :: NHBond3(:,:,:,:), NHBond4(:,:,:,:,:), NHBondN(:)
    type(TAccumulator),pointer, contiguous :: SumHBond0(:)
    type(TAccumulator),pointer, contiguous :: SumHBond1(:,:)
    type(TAccumulator),pointer, contiguous :: SumHBond2(:,:,:)
    type(TAccumulator),pointer, contiguous :: SumHBond3(:,:,:,:)
+   type(TAccumulator),pointer, contiguous :: SumHBond4(:,:,:,:,:)
    type(TAccumulator),pointer, contiguous :: SumHBondN(:)
 #endif
 
@@ -835,11 +870,35 @@ module ms2_ensemble
   interface RDFUpdate
     module procedure TEnsemble_RDFUpdate
   end interface
+  
+  interface RDFUpdateBlock
+    module procedure TEnsemble_RDFUpdateBlock
+  end interface
 
   interface RDFClose
     module procedure TEnsemble_RDFClose
   end interface
 
+  interface KBIOpen
+    module procedure TEnsemble_KBIOpen
+  end interface
+
+  interface KBIUpdate
+    module procedure TEnsemble_KBIUpdate
+  end interface
+  
+  interface KBIUpdateBlock
+    module procedure TEnsemble_KBIUpdateBlock
+  end interface
+
+  interface KBIClose
+    module procedure TEnsemble_KBIClose
+  end interface
+  
+  interface ALPHA2Update
+    module procedure TEnsemble_ALPHA2Update
+  end interface
+  
   interface ErrorsUpdate
     module procedure TEnsemble_ErrorsUpdate
   end interface
@@ -1041,7 +1100,7 @@ contains
         this%RefEnthalpy = this%RefEnthalpy / UnitEnergy / NAvogadro 
       end if
     end if
-	
+    
     if( ConstantPressure ) then
       call FileReadParameter( this%RefPressure, iounit_params , IdRefPressure, .false. )
 
@@ -1570,7 +1629,7 @@ contains
       
      this%Bulkviscosity = .true.
      this%MolarEnthConduct = .true.
-     this%Conductivity = .true.
+!     this%Conductivity = .true.
      this%EConductivity = .false.
 
      if (EnsembleType .eq. EnsembleTypeNVE) then
@@ -1580,17 +1639,17 @@ contains
      end if
 
 
-      if (LongRange .eq. Rfield) then
-         this%Conductivity = .true.
-      else
-         this%Conductivity = .false.
-      end if
+!      if (LongRange .eq. Rfield) then
+!         this%Conductivity = .true.
+!      else
+!         this%Conductivity = .false.
+!      end if
 
  
       if ( this%NComponents > 1 .and. LongRange .eq. RField) then
        do i = 1, this%NComponents
             if (this%Component(i)%PartialMolarEnthalpy .eq. 0._RK) then
-               this%Conductivity = .false.
+!               this%Conductivity = .false.
                this%MolarEnthConduct = .false.
             end if
        end do
@@ -1679,7 +1738,7 @@ contains
     write( IOBuffer, '("Cutoff correction to")' )
     call LogWrite
 
-	
+    
     if ( SimulationType .eq. MonteCarlo .and. (.not.  CommonEqui))  then
       write( IOBuffer, '("- potential energy from ", A, T44, F12.8)' ) LJorMIE, this%EPotCorrMIE  / this%NPart
 
@@ -1694,7 +1753,7 @@ contains
     else
       write( IOBuffer, '("- pressure from ", A, T44, F12.8)' ) LJorMIE, this%VirialCorrMIE * NProcs / this%NPart
     endif
-	
+    
     call LogWrite
 
     do i = 1, this%NRealComponents
@@ -1833,7 +1892,7 @@ contains
            end do
          end do
       end if
-     
+   
       if( SimulationType .eq. MolecularDynamics .and. .not. MCOverlapReduction ) then
 
         ! Calculate positions of units
@@ -1841,7 +1900,7 @@ contains
 
         ! Initialize molecular dynamics simulation
         call InitMolecularDynamics( this, .false. )
-
+ 
       else
 
         ! Set temperature
@@ -1852,6 +1911,7 @@ contains
 
         ! Set all potential energy matrices
         call Energy( this, this%EPot )
+
         call UpdateEnergy( this )
 
         ! Set initial values of maximum allowed MC displacements
@@ -1884,6 +1944,9 @@ contains
     this%iounit_rescf     = iounit_rescf     + i
     this%iounit_visualHB  = iounit_visualHB  + i
     this%iounit_dcp       = iounit_dcp       + i
+    this%iounit_kbirun    = iounit_kbirun    + i
+    this%iounit_kbirdf    = iounit_kbirdf    + i
+    this%iounit_a2rav     = iounit_a2rav     + i
 
     ! Calculate RDF VSchale 
     this%RDFdr = this%RCutoffMIEnmMIEnm / RDFNumberShells
@@ -1891,6 +1954,17 @@ contains
       this%RDFVSchale(i) = 4./3.*pi* this%RDFdr**3 *(i**3 - (i-1)**3)
     end do
 
+    ! Calculate KBI VSchale
+    this%KBIdr = (0.5*(this%NPart / (NAvogadro*this%RefDensity*UnitDensity*1000))**(1._RK/3._RK)/UnitLength) &
+&                / KBINumberShells
+    do i = 1, KBINumberShells
+       this%KBIVSchale(i) = 4./3.*pi* this%KBIdr**3 *(i**3 - (i-1)**3)
+    end do
+
+    do i = KBINumberShells+1, KBINShellsCubeEdge !Volume correction for shells outside simulation box
+       this%KBIVSchale(i) = 2.*pi*this%KBIdr**3*(2./3.*i**3-(i-KBINumberShells)**2*(2*i+KBINumberShells)-2./3.*(i-1)**3+(i-1-KBINumberShells)**2*(2*(i-1)+KBINumberShells))
+    end do
+ 
     write( IOBuffer, '(T15, "Reading ensemble ", I3, " successful")') this%EnsembleNumber
     call LogWrite
     write( IOBuffer, '(72(1H-))')
@@ -2545,7 +2619,7 @@ contains
     ! Declare local variables
     integer   :: i, j
 #if HBOND > 0
-    integer   :: k, l,stat
+    integer   :: k, l, m, stat
 
     allocate( this%SumHBond0(this%NComponents ), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents )
@@ -2555,6 +2629,8 @@ contains
     call AllocationError( stat, 'components', (this%NComponents**2)*this%NComponents )
     allocate( this%SumHBond3(this%NComponents, this%NComponents, this%NComponents, this%NComponents ), STAT = stat )
     call AllocationError( stat, 'components', (this%NComponents**2)*(this%NComponents**2) )
+    allocate( this%SumHBond4(this%NComponents, this%NComponents, this%NComponents, this%NComponents, this%NComponents), STAT = stat )
+    call AllocationError( stat, 'components', (this%NComponents**2)*(this%NComponents**2)*this%NComponents )
     allocate( this%SumHBondN(this%NComponents ), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents )
 #endif
@@ -13288,6 +13364,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance( this%iounit_runave )
           end do
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
@@ -13298,6 +13375,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
@@ -13310,6 +13388,22 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do
         end do
+
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            do k = j, this%NComponents
+              do l = k, this%NComponents
+                do m = l, this%NComponents
+                  write( IOBuffer, '("         ", F10.4)' ) this%SumHBond4(i,j,k,l,m)%BlockAverage
+                  call FileWriteNoAdvance( this%iounit_result )
+                  write( IOBuffer, '("         ", F10.4)' ) this%SumHBond4(i,j,k,l,m)%Average
+                  call FileWriteNoAdvance( this%iounit_runave )
+                end do
+              end do
+            end do
+          end do
+        end do
+
         do i = 1, this%NComponents
           write( IOBuffer, '(" ", F10.4)' ) this%SumHBondN(i)%BlockAverage
           call FileWriteNoAdvance( this%iounit_result )
@@ -13436,14 +13530,16 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWriteNoAdvance( this%iounit_rescf )
       end if
 
-      if (this%Conductivity) then
+!      if (this%Conductivity) then
         write( IOBuffer, '(T13,"CO")' )
         call FileWriteNoAdvance( this%iounit_rescf )
-        if(this%Ncomponents==2)then
-            write( IOBuffer, '(T10,"Th_Diff")' )
+        if(this%Ncomponents .gt.  1)then
+          do i = 1, this%NComponents
+            write( IOBuffer, '(T10,"LiQ", I1)' )i
             call FileWriteNoAdvance( this%iounit_rescf )
+          end do
         end if
-      end if
+!      end if
 
       if (this%EConductivity) then
         write( IOBuffer, '(T13,"EC")' )
@@ -13482,14 +13578,16 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWriteNoAdvance( this%iounit_rescf )
       end if
 
-      if (this%Conductivity) then
+ !     if (this%Conductivity) then
         write( IOBuffer, '(T10,"Int C ")' )
         call FileWriteNoAdvance( this%iounit_rescf )
-        if (this%NComponents == 2 ) then
-          write( IOBuffer, '(T10,"Int Th_Diff")' )
-          call FileWriteNoAdvance( this%iounit_rescf )
+        if (this%NComponents .gt. 1 ) then
+          do i = 1, this%NComponents
+            write( IOBuffer, '(T10,"Int LiQ", I1)')i
+            call FileWriteNoAdvance( this%iounit_rescf )
+          end do
         end if       
-      end if
+ !     end if
 
       if (this%EConductivity) then
         write( IOBuffer, '(T9,"Int EC")' )
@@ -13533,14 +13631,17 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if
 
         ! Thermal conductivity and thermal diffusion
-        if (this%Conductivity) then
+ !       if (this%Conductivity) then
           write( IOBuffer, '(T5, F10.5)' )  this%average_cf_c(i)/this%average_cf_c(1)
           call FileWriteNoAdvance( this%iounit_rescf )
-          if (this%NComponents==2)then
-            write( IOBuffer, '(T5,F10.5)' ) this%average_cf_soret(i)/this%average_cf_soret(1)
-            call FileWriteNoAdvance( this%iounit_rescf )
+          if (this%NComponents .gt. 1) then
+            do j=1,this%NComponents
+              value = this%density*this%density*this%Component(j)%Molecule%Mass/(6._RK*this%NPart)
+              write( IOBuffer, '(T5,F10.5)' ) this%average_cf_soret(j,i)*value
+              call FileWriteNoAdvance( this%iounit_rescf )
+            end do
           end if
-        end if
+!        end if
 
         ! Electric Conductivity
         if (this%EConductivity) then
@@ -13579,16 +13680,18 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if 
 
        ! thermal conductivity
-        if (this%Conductivity) then
+  !      if (this%Conductivity) then
           value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
           write( IOBuffer, '(T5, F10.5)' ) this%average_sinte_c(i)*value !this%sinte_c(i) / this%sinte_c(this%NCorr) * this%conduct * value
           call FileWriteNoAdvance( this%iounit_rescf )
-          if ( this%NComponents == 2) then
-            value = dsqrt(UnitEnergy/UnitMass)*UnitLength*(kBoltzmann/UnitEnergy)/1E-12_RK
-            write( IOBuffer, '(T5, F10.4)' ) this%average_sinte_soret(i)*value !/ this%average_sinte_soret(this%NCorr) * this%soret * value
-            call FileWriteNoAdvance( this%iounit_rescf )
+          if ( this%NComponents .gt. 1) then
+            value = dsqrt(UnitEnergy/UnitMass)*UnitMass*UnitTemperature/(1E-6_RK*UnitLength**2)
+            do j = 1, this%NComponents
+              write( IOBuffer, '(T5, F10.4)' ) this%average_sinte_soret(j,i)*value !/ this%average_sinte_soret(this%NCorr) * this%soret * value
+              call FileWriteNoAdvance( this%iounit_rescf )
+            end do
           end if
-        end if
+   !     end if
 
         ! electric conductivity
         if (this%EConductivity) then
@@ -13699,9 +13802,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: Average, Variance
     type(TComponent), pointer :: pc
     integer                   :: i, j, t!, s, o
+    real(RK)                  :: value
 #if  TRANS == 1
     integer                   :: k, m
-    real(RK)                  :: value
     real(RK)                  :: det, inv_det
     real(RK)                  :: x(this%NComponents)
     real(RK)                  :: Inv_x(this%NComponents)
@@ -13714,8 +13817,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: err_D12, err_D13, err_D14, err_D23, err_D24, err_D34
 #endif
 #if HBOND > 0
-    integer                   :: k, l
+    integer                   :: k, l, m
 #endif
+
+#if TRANS == 1
+    real(RK) :: mw,w1,w2,nc,factor
+#endif
+
     ! Declare local variables for velocity of sound
     real(RK) :: molmass, cpid
 
@@ -13784,6 +13892,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Error( this%SumHBond2(i,j,k) )
           do l = k, this%NComponents
             call Error( this%SumHBond3(i,j,k,l) )
+            do m = l, this%NComponents
+              call Error( this%SumHBond4(i,j,k,l,m) )
+            end do
           end do
         end do
       end do
@@ -13974,7 +14085,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("Number of NPT equilibration steps", T36, ":", I10)' ) NStepsP
     call FileWrite( this%iounit_errors )
-	write( IOBuffer, '("Number of NPH equilibration steps", T36, ":", I10)' ) NStepsH
+    write( IOBuffer, '("Number of NPH equilibration steps", T36, ":", I10)' ) NStepsH
     call FileWrite( this%iounit_errors )
 
 
@@ -14881,7 +14992,172 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
     end if
-
+    
+    ! thermodynamic factors with KBI
+    if( KBIUpdateFrequency > 0 .and. Step >= BlockSizeKBI ) then 
+        if (this%NComponents == 2) then         
+            ! RDF standard
+            write( IOBuffer, '("GAMMA11 (RDF)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(1,1), this%dTDF(1,1)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA11,0 (RDF)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(1,1)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )                       
+            ! RDF vdV correction
+            write( IOBuffer, '("GAMMA11 (RDF vdV cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(2,1), this%dTDF(2,1)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA11,0 (RDF vdV cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(2,1)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! RDF vdV + shf correction
+            write( IOBuffer, '("GAMMA11 (RDF vdV+shf cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(3,1), this%dTDF(3,1)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '("GAMMA11,0 (RDF vdV+shf cor.)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(3,1)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+        else if (this%NComponents == 3) then
+            ! RDF standard
+            write( IOBuffer, '("GAMMA_ij (RDF)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,1), this%TDF(1,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,3), this%TDF(1,4)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("dGAMMA_ij (RDF)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,1), this%dTDF(1,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,3), this%dTDF(1,4)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("GAMMA0_ij (RDF)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,1), this%TDF0(1,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,3), this%TDF0(1,4)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! RDF vdV correction
+            write( IOBuffer, '("GAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,1), this%TDF(2,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,3), this%TDF(2,4)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("dGAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,1), this%dTDF(2,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,3), this%dTDF(2,4)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("GAMMA0_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,1), this%TDF0(2,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,3), this%TDF0(2,4)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! RDF vdV+shf correction
+            write( IOBuffer, '("GAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,1), this%TDF(3,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,3), this%TDF(3,4)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("dGAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,1), this%dTDF(3,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,3), this%dTDF(3,4)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("GAMMA0_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,1), this%TDF0(3,2)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,3), this%TDF0(3,4)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+        else if (this%NComponents == 4) then
+            ! RDF standard
+            write( IOBuffer, '("GAMMA_ij (RDF)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,1), this%TDF(1,2), this%TDF(1,3)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,4), this%TDF(1,5), this%TDF(1,6)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,7), this%TDF(1,8), this%TDF(1,9)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("dGAMMA_ij (RDF)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,1), this%dTDF(1,2), this%dTDF(1,3)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,4), this%dTDF(1,5), this%dTDF(1,6)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,7), this%dTDF(1,8), this%dTDF(1,9)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("GAMMA0_ij (RDF)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,1), this%TDF0(1,2), this%TDF0(1,3)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,4), this%TDF0(1,5), this%TDF0(1,6)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,7), this%TDF0(1,8), this%TDF0(1,9)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! RDF vdV correction
+            write( IOBuffer, '("GAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,1), this%TDF(2,2), this%TDF(2,3)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,4), this%TDF(2,5), this%TDF(2,6)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,7), this%TDF(2,8), this%TDF(2,9)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("dGAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,1), this%dTDF(2,2), this%dTDF(2,3)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,4), this%dTDF(2,5), this%dTDF(2,6)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,7), this%dTDF(2,8), this%dTDF(2,9)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("GAMMA0_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,1), this%TDF0(2,2), this%TDF0(2,3)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,4), this%TDF0(2,5), this%TDF0(2,6)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,7), this%TDF0(2,8), this%TDF0(2,9)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            ! RDF vdV+shf correction
+            write( IOBuffer, '("GAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,1), this%TDF(3,2), this%TDF(3,3)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,4), this%TDF(3,5), this%TDF(3,6)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,7), this%TDF(3,8), this%TDF(3,9)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("dGAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,1), this%dTDF(3,2), this%dTDF(3,3)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,4), this%dTDF(3,5), this%dTDF(3,6)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,7), this%dTDF(3,8), this%dTDF(3,9)
+            call FileWrite( this%iounit_errors )            
+            write( IOBuffer, '("GAMMA0_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,1), this%TDF0(3,2), this%TDF0(3,3)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,4), this%TDF0(3,5), this%TDF0(3,6)
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,7), this%TDF0(3,8), this%TDF0(3,9)
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+        end if
+    end if
+    
+            
     ! Separator
     write( IOBuffer, '(76("="))' )
     call FileWrite( this%iounit_errors )
@@ -14894,6 +15170,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       write( IOBuffer, '("HBond0 of [", I2, "]", T36, ":", 2F20.9)' ) i, Average, Variance
       call FileWrite( this%iounit_errors )
     end do
+
     do i = 1, this%NComponents
       do  j = 1, this%NComponents
         Average = this%SumHBond1(i,j)%Average
@@ -14902,6 +15179,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWrite( this%iounit_errors )
       end do
     end do
+
     do i = 1, this%NComponents
       do  j = 1, this%NComponents
         do k = j, this%NComponents
@@ -14912,6 +15190,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end do
       end do
     end do
+
     do i = 1, this%NComponents
       do  j = 1, this%NComponents
         do k = j, this%NComponents
@@ -14924,10 +15203,26 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end do
       end do
     end do
+     
+    do i = 1, this%NComponents
+      do  j = 1, this%NComponents
+        do k = j, this%NComponents
+          do l = k, this%NComponents
+            do m = l, this%NComponents
+              Average = this%SumHBond4(i,j,k,l,m)%Average
+              Variance = this%SumHBond4(i,j,k,l,m)%Variance
+              write( IOBuffer, '("HBond4 of [", I2, "] with (", I2, ",", I2, ",", I2, ",", I2, ")", T36, ":", 2F20.9)' ) i, j, k, l, m, Average, Variance
+              call FileWrite( this%iounit_errors )
+            end do
+          end do
+        end do
+      end do
+    end do
+
     do i = 1, this%NComponents
       Average = this%SumHBondN(i)%Average
       Variance = this%SumHBondN(i)%Variance
-      write( IOBuffer, '("HBond4+ of [", I2, "]", T36, ":", 2F20.9)' ) i, Average, Variance
+      write( IOBuffer, '("HBond5+ of [", I2, "]", T36, ":", 2F20.9)' ) i, Average, Variance
       call FileWrite( this%iounit_errors )
     end do
     call FileWriteBlank( this%iounit_errors )
@@ -14985,12 +15280,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                 call Error(this%SumOnsager(i,j), .true.)
               end do
             end do 
-          end if
-          if( this%NComponents == 2  ) then
-            if (this%MolarEnthConduct .eqv. .true.) then
-              call Error(this%SumSoret, .true.)
-            end if
-          end if
+            do i = 1, this%NComponents
+              call Error(this%SumSoret(i), .true.)
+            end do
+          end if !this%NComponents > 1
+
           do i = 1, this%NComponents
             call Error(this%Sumself_i(i), .true.)
           end do
@@ -15056,21 +15350,27 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
 
-          !...Calculation of Thermal diff. coeff. does not work yet...
-          !if (this%MolarEnthConduct .eqv. .true.) then
-          !  Average  = this%SumSoret%Average
-          !  Variance = this%SumSoret%Variance
-          !  value = dsqrt(UnitEnergy/UnitMass)*UnitLength*(kBoltzmann/UnitEnergy)/1E-12_RK
-          !  write( IOBuffer, '("Thermal diff. coeff",A, T29, "reduced:", 2F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), Average, Variance
-          !  call FileWrite( this%iounit_errors )
-          !  write( IOBuffer, '(T18, "in 1E-12 m^2/(K s):", 2F20.9)' ) Average*value, Variance*value
-          !  call FileWrite( this%iounit_errors )
-          !  call FileWriteBlank( this%iounit_errors )
-          !else
-          !  write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
-          !  call FileWrite( this%iounit_errors )
-          !  call FileWriteBlank( this%iounit_errors )
-          !end if  !this%MolarEnthConduct
+          if (this%MolarEnthConduct) then
+
+            mw = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction + this%Component(2)%Molecule%Mass*this%Component(2)%Fraction
+            w1 = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction/mw
+            w2 = this%Component(2)%Molecule%Mass*this%Component(2)%Fraction/mw
+            nc = this%density*mw
+
+            Average  = this%SumSoret(1)%Average
+            Variance = this%SumSoret(1)%Variance
+            factor = 1._RK/(this%temperature*this%temperature*w1*w2*nc)
+            value = dsqrt(UnitEnergy/UnitMass)*UnitLength/(UnitTemperature*1E-12_RK)
+            write( IOBuffer, '("Thermal diff. coeff",A, T29, "reduced:", 2F20.9)' ) trim(this%Component(1)%Molecule%PotModFileName), Average*factor, Variance*factor
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T17, "in 10E-12 m^2/(K s):", 2F20.9)' ) Average*value*factor, Variance*value*factor
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+          else
+            write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+          end if  !this%MolarEnthConduct
 
         end if !this components = 2
      
@@ -15208,7 +15508,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
 
           !Calculate diffusion coefficients
-          D_14 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(3)) )         
+          D_14 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )         
           D_24 =  1._RK  / ( (B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )        
           D_34 =  1._RK  / ( (B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )       
           D_12 =  1._RK  / ( (1._RK/D_24) - (B(2,1)*Inv_x(2)))
@@ -15217,9 +15517,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
 
           !Obtain error of Diffusion coefficients
-          err_D14 = ABS(1._RK/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(3)) )**2))*err_B(1,1) + &
-                    ABS(x(2)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(3)) )**2))*err_B(1,2) + &
-                    ABS(x(3)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(3)) )**2))*err_B(1,3)
+          err_D14 = ABS(1._RK/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )**2))*err_B(1,1) + &
+                    ABS(x(2)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )**2))*err_B(1,2) + &
+                    ABS(x(3)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )**2))*err_B(1,3)
 
           err_D24 = ABS(1._RK/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,2) + &
                     ABS(x(1)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
@@ -15302,7 +15602,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         !bulk viscosity
         if (this%Bulkviscosity ) then
           Average  = this%SumVisco_b%Average
-           Variance = this%SumVisco_b%Variance
+          Variance = this%SumVisco_b%Variance
           write( IOBuffer, '("Bulk viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T24, "in 1E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
@@ -15315,25 +15615,31 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if
 
         !Thermal conductivity
-        Average  = this%SumConduct%Average
-        Variance = this%SumConduct%Variance
-        value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
-        if (LongRange .eq. Ewald) then
-          write( IOBuffer, '("Thermal conductivity just implemented for reaction field")' )
-        elseif (this%NComponents==1) then
-           write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) Average, Variance
-           call FileWrite( this%iounit_errors )
-           write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value, Variance*value
-        elseif (this%NComponents .gt. 1) then
-          if (this%MolarEnthConduct .eqv. .true.) then
-               write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) Average, Variance
-               call FileWrite( this%iounit_errors )
-               write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value, Variance*value
-          else
-               write( IOBuffer, '("Thermal conductivity requires the partial molar enthalpies of all components")' )
+
+        if (LongRange .eq. Rfield)then
+          Average  = this%SumConduct%Average
+          Variance = this%SumConduct%Variance
+          factor   = 1._RK/(this%Temperature*this%Temperature)
+          value    = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
+ 
+          write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) Average*factor, Variance*factor
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value*factor, Variance*value*factor
+          call FileWrite( this%iounit_errors )
+!          call FileWriteBlank( this%iounit_errors )
+          if (this%NComponents > 1 ) then
+            if (this%MolarEnthConduct) then
+              write( IOBuffer, '("Note: Thermal conductivity includes the enthalpic contribution")')
+              call FileWrite( this%iounit_errors )
+            else
+              write( IOBuffer, '("Note: Thermal conductivity was calculated without the enthalpic contribution")' )
+              call FileWrite( this%iounit_errors )
+            end if
           end if
+        else 
+          write( IOBuffer, '("Thermal conductivity only implemented for Reaction field")' )
+          call FileWrite( this%iounit_errors )
         end if
-        call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
 
         !Electric conductivity
@@ -15349,6 +15655,64 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
+ 
+         ! Onsager coefficients
+        if ( this%NComponents > 1 ) then
+          do i = 1, this%NComponents
+              Average  = this%SumOnsager(i,i)%Average
+              Variance = this%SumOnsager(i,i)%Variance
+              factor = this%density*this%Component(i)%Molecule%Mass* this%Component(i)%Molecule%Mass
+              value = UnitTemperature*UnitMass*UnitTime/(1E-10_RK*UnitLength**3)
+              write( IOBuffer, '("Mass coefficient Lii",2I2,T29, "reduced:", 2F20.9)' ) i,i,Average*factor, Variance*factor
+              call FileWrite( this%iounit_errors )
+              write( IOBuffer, '(T16, "in 10E-10 Kg K s/m^3:", 2F20.9)' ) Average*factor*value, Variance*factor*value
+              call FileWrite( this%iounit_errors )
+          end do
+          call FileWriteBlank( this%iounit_errors )
+
+
+          Average  = this%SumConduct%Average
+          Variance = this%SumConduct%Variance
+          value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann*UnitTemperature*UnitTemperature/UnitLength**2
+          if (this%MolarEnthConduct) then
+             write( IOBuffer, '("Energy coefficient LQQ ", T29, "reduced:", 2F20.9)' ) Average, Variance
+             call FileWrite( this%iounit_errors )
+             write( IOBuffer, '(T26, "in W K/ m :", 2F20.9)' ) Average*value, Variance*value
+             call FileWrite( this%iounit_errors )
+             call FileWriteBlank( this%iounit_errors )
+             do i = 1, this%NComponents
+               Average  = this%SumSoret(i)%Average
+               Variance = this%SumSoret(i)%Variance
+               value = dsqrt(UnitEnergy/UnitMass)*UnitMass*UnitTemperature/(1E-6_RK*UnitLength**2)
+               write( IOBuffer, '("Cross coefficient LiQ",I2, T29, "reduced:", 2F20.9)' )i,Average, Variance
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T16, "in 10E-6 Kg K/(m s) :", 2F20.9)' ) Average*value, Variance*value
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+             end do
+          else
+             write( IOBuffer, '("Energy coefficient LEE ", T29, "reduced:", 2F20.9)' ) Average, Variance
+             call FileWrite( this%iounit_errors )
+             write( IOBuffer, '(T26, "in W K/ m :", 2F20.9)' ) Average*value, Variance*value
+             call FileWrite( this%iounit_errors )
+             call FileWriteBlank( this%iounit_errors )
+             do i = 1, this%NComponents
+               Average  = this%SumSoret(i)%Average
+               Variance = this%SumSoret(i)%Variance
+               value = dsqrt(UnitEnergy/UnitMass)*UnitMass*UnitTemperature/(1E-6_RK*UnitLength**2)
+               write( IOBuffer, '("Cross coefficient LiE", I2, T29, "reduced:", 2F20.9)' ) i, Average, Variance
+               call FileWrite( this%iounit_errors )
+               write( IOBuffer, '(T16, "in 10E-6 Kg K/(m s) :", 2F20.9)' ) Average*value, Variance*value
+               call FileWrite( this%iounit_errors )
+               call FileWriteBlank( this%iounit_errors )
+             end do
+             write( IOBuffer, '("Note: LEE and LiE do not include the enthalpic contribution")' )
+             call FileWrite( this%iounit_errors )
+             call FileWriteBlank( this%iounit_errors )
+          end if  !this%MolarEnthConduct
+
+        end if !this%NComponents > 1
+
 
       else    ! ( this%Mmess > 0 )
 
@@ -15373,19 +15737,20 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWriteBlank( this%iounit_errors )
 
           !...Calculation of Thermal diff. coeff. does not work yet...
-          !if (this%MolarEnthConduct .eqv. .true.) then
-          !  write( IOBuffer, '("Thermal diff. coeff.", A, T29, "reduced:", F20.9)' ) trim(this%Component(2)%Molecule%PotModFileName), 0._RK
-          !  call FileWrite( this%iounit_errors )
-          !  write( IOBuffer, '(T18, "in 1E-12 m^2/(K s):", F20.9)' ) 0._RK 
-          !  call FileWrite( this%iounit_errors )
-          !  call FileWriteBlank( this%iounit_errors )
-          !else
-          !  write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
-          !  call FileWrite( this%iounit_errors )
-          !  call FileWriteBlank( this%iounit_errors )
-          !end if
+          if (this%MolarEnthConduct) then
+            
+            write( IOBuffer, '("Thermal diff. coeff.", A, T29, "reduced:", F20.9)' ) trim(this%Component(1)%Molecule%PotModFileName), 0._RK
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T18, "in 1E-12 m^2/(K s):", F20.9)' ) 0._RK 
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+          else
+            write( IOBuffer, '("Thermal diffusivity requires the partial molar enthalpies of all components")' )
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+          end if
           
-        end if
+        end if !this%NComponents==2
 
          !ternary diffusion coefficient
         if( this%NComponents == 3 ) then
@@ -15431,33 +15796,80 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWriteBlank( this%iounit_errors )
 
         if (LongRange .eq. Ewald) then
-          write( IOBuffer, '("Thermal conductivity just implemented for reaction field")' )
-        elseif (this%NComponents==1) then
+          write( IOBuffer, '("Thermal conductivity not implemented for Ewald")' )
+        end if
+
+        if ( LongRange .eq. Rfield) then
            write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) 0._RK
            call FileWrite( this%iounit_errors )
            write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
-        elseif (this%NComponents .gt. 1) then
-          if (this%MolarEnthConduct .eqv. .true.) then
-               write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) 0._RK
+           call FileWrite( this%iounit_errors )
+           if ( this%NComponents > 1 ) then
+             if (this%MolarEnthConduct) then
+               write( IOBuffer, '("Thermal conductivity includes the  enthalpic contribution")' )
                call FileWrite( this%iounit_errors )
-               write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
-          else
-               write( IOBuffer, '("Thermal conductivity requires the partial molar enthalpies of all components")' )
-          end if
+             else
+               write( IOBuffer, '("Thermal conductivity was calculated without the enthalpic contribution")' )
+               call FileWrite( this%iounit_errors )
+             end if
+           end if
+        else
+          write( IOBuffer, '("Thermal conductivity only implemented for Reaction Field")' )
+          call FileWrite( this%iounit_errors )
         end if
-        call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
       
 
         if (this%EConductivity) then
-           write( IOBuffer, '("Electric conductivity ", T29, "reduced:", F20.9)' )  0._RK
-           call FileWrite( this%iounit_errors )
-           write( IOBuffer, '(T23, "in 1 / (Ohm m):", F20.9)' ) 0._RK
+          write( IOBuffer, '("Electric conductivity ", T29, "reduced:", F20.9)' )  0._RK
+          call FileWrite( this%iounit_errors )
+          write( IOBuffer, '(T23, "in 1 / (Ohm m):", F20.9)' ) 0._RK
         else
           write( IOBuffer, '("Electric conductivity only defined for pure charged particles")' )
         end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
+        
+        
+        if ( this%NComponents > 1 ) then
+          do i = 1, this%NComponents
+            write( IOBuffer, '("Mass coefficient Lii",2I2,T29, "reduced:", 2F20.9)' ) i,i, 0._RK
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T21, "in 10E-10 Kg K s/m^3:", 2F20.9)' ) 0._RK
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+          end do
+
+          if (this%MolarEnthConduct) then
+            write( IOBuffer, '("Energy coefficient LQQ ", T29, "reduced:", 2F20.9)' ) 0._RK
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T25, "in W K/ m:", 2F20.9)' ) 0._RK
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            do i = 1, this%NComponents-1
+              write( IOBuffer, '("Cross coefficient LiQ",I2, T29, "reduced:", 2F20.9)' )i, 0._RK
+              call FileWrite( this%iounit_errors )
+              write( IOBuffer, '(T18, "in 10E-6 Kg K/(m s):", 2F20.9)' ) 0._RK
+              call FileWrite( this%iounit_errors )
+              call FileWriteBlank( this%iounit_errors )
+            end do
+          else
+            write( IOBuffer, '("Energy coefficient LEE ", T29, "reduced:", 2F20.9)' ) 0._RK
+            call FileWrite( this%iounit_errors )
+            write( IOBuffer, '(T23, "in W K/ m:", 2F20.9)' ) 0._RK
+            call FileWrite( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )
+            do i = 1, this%NComponents
+              write( IOBuffer, '("Cross coefficient LiE",I2, T29, "reduced:", 2F20.9)' )i, 0._RK
+              call FileWrite( this%iounit_errors )
+              write( IOBuffer, '(T18, "in 10E-6 Kg K/(m s):", 2F20.9)' ) 0._RK
+              call FileWrite( this%iounit_errors )
+            end do
+              write( IOBuffer, '("LEE and L1E do not include the enthalpic term")' )
+              call FileWrite( this%iounit_errors )
+              call FileWriteBlank( this%iounit_errors )
+          end if  !this%MolarEnthConduct
+        end if !This component > 1
 
       end if
 !TRANSPORT_END
@@ -15600,7 +16012,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       Average = this%LiqDensity + this%LiqDensity * this%LiqBetaT * ( AvgPressure - this%RefPressure)
 
       Variance = sqrt( this%VarLiqDensity**2 + ( this%VarLiqBetaT * ( AvgPressure - this%RefPressure )&
-&                + VarPressure * this%LiqBetaT )**2 )
+&               + VarPressure * this%LiqBetaT )**2 )
 
       write( IOBuffer, '("Liquid density", T29, "reduced:", 2F20.9)' ) Average, Variance
       call FileWrite( this%iounit_errors )
@@ -16019,6 +16431,41 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
       ! Close final result file
       call FileClose( this%iounit_thermoint)
+    end if
+    
+    if( ALPHA2UpdateFrequency > 0 ) then !write *.a2rav 
+        if (RootProc) then
+        write( IOBuffer, '(I16)' ) this%EnsembleNumber
+        call FileRewrite( this%iounit_a2rav, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ALPHA2ravFileExtension )
+        write(IOBuffer, '(T8,"t*")')
+        call FileWriteNoAdvance( this%iounit_a2rav )
+        write(IOBuffer, '(T11,"t/fs")')
+        call FileWriteNoAdvance( this%iounit_a2rav )
+        write(IOBuffer, '(T11,"msd/sig^2")') !msd
+        call FileWriteNoAdvance( this%iounit_a2rav )
+        write(IOBuffer, '(T5,"alpha2")') !alpha2
+        call FileWriteNoAdvance( this%iounit_a2rav )
+        write(IOBuffer, '(T5,"gamma")') !gamma
+        call FileWriteNoAdvance( this%iounit_a2rav )
+        call FileWriteBlank( this%iounit_a2rav )
+        do i=1,ALPHA2Length/ALPHA2UpdateFrequency
+            write(IOBuffer, '(T2,F12.4)') i * ALPHA2UpdateFrequency * TimeStep
+            call FileWriteNoAdvance( this%iounit_a2rav )
+            write(IOBuffer, '(T2,F12.4)') i * ALPHA2UpdateFrequency * TimeStep * UnitTime * 1E15_RK
+            call FileWriteNoAdvance( this%iounit_a2rav )
+            write(IOBuffer, '(T4,F10.4)') this%dispR2Ave(i)*this%BoxLength**2 !msd
+            call FileWriteNoAdvance( this%iounit_a2rav )
+            write(IOBuffer, '(T4,F10.4)') 3_RK*this%dispR4Ave(i)/(5_RK*this%dispR2Ave(i)**2) - 1_RK !alpha2
+            call FileWriteNoAdvance( this%iounit_a2rav )
+            write(IOBuffer, '(T8,F10.4)') this%dispR2Ave(i)/this%dispR2invAve(i)/3_RK - 1_RK !gamma
+            call FileWriteNoAdvance( this%iounit_a2rav )
+            call FileWriteBlank( this%iounit_a2rav )
+        end do
+        write( IOBuffer, '("Number of records", T36, ":", I10)' ) this%alpha2aveCount 
+        call FileWriteNoAdvance( this%iounit_a2rav )
+        call FileWriteBlank( this%iounit_a2rav )
+        call FileClose( this%iounit_a2rav )
+        end if
     end if
 
   end subroutine TEnsemble_ErrorsUpdate
@@ -16582,6 +17029,40 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
   subroutine TEnsemble_RDFUpdate( this )
 
     implicit none
+    
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer  :: i, j
+
+    ! Calculate RDFSum with RDFUpdateFrequency 
+    do i= 1, this%NComponents
+      do j= i, this%NComponents
+        call Get_RDF( this%Interaction(i,j), this%RDFdr/this%BoxLength )
+      end do
+    end do
+
+    ! Rewrite RDF file with ErrorsUpdateFrequency
+    if ( mod( Step-1, ErrorsUpdateFrequency ) == 0 .and. Step .gt. 1 ) then
+        call RDFUpdateBlock (this)
+    end if
+    
+  end subroutine TEnsemble_RDFUpdate
+  
+  
+!==============================================================!
+!  Subroutine TEnsemble_RDFUpdateBlock                         !
+!==============================================================!
+
+  subroutine TEnsemble_RDFUpdateBlock( this )
+
+    implicit none
+    
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -16589,23 +17070,18 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     ! Declare local variables
     integer  :: i, j, s, t, o
     real(RK) :: RDFRho, RDFRhoLocal
+#if MPI_VER > 0
+    real(RK) :: RDF_hilf(RDFNumberShells)
+    integer  :: RDFSum_hilf(RDFNumberShells)
+    integer  :: RDFSum_out(RDFNumberShells)
+#endif
 
-    ! Calculate RDF
+    ! write header of *.rdf file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+    write(IOBuffer, '(T5," r [A]")')
+    call FileWriteNoAdvance( this%iounit_rdf )
     do i= 1, this%NComponents
-      do j= i, this%NComponents
-        call Get_RDF( this%Interaction(i,j), this%RDFdr/this%BoxLength )
-      end do
-    end do
-
-    ! Rewrite RDF file
-    ! if ( mod( Step-1, ErrorsUpdateFrequency ) == 0 .or. Step == NSteps ) then
-    ! RDF files are updated with RDFUpdateFrequence, see ms2_simulation
-
-      write( IOBuffer, '(I16)' ) this%EnsembleNumber
-      call FileRewrite( this%iounit_rdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
-      write(IOBuffer, '(T5," r [A]")')
-      call FileWriteNoAdvance( this%iounit_rdf )
-      do i= 1, this%NComponents
         do j= i, this%NComponents
           do s=1, this%Component(i)%molecule%NMIEnm
             do t=1, this%Component(j)%molecule%NMIEnm
@@ -16614,12 +17090,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do            
         end do
-      end do
-      call FileWriteBlank( this%iounit_rdf )
-      write(IOBuffer, '(T5,"______")')
-      call FileWriteNoAdvance( this%iounit_rdf )
-
-      do i= 1, this%NComponents
+    end do
+    call FileWriteBlank( this%iounit_rdf )
+    write(IOBuffer, '(T5,"______")')
+    call FileWriteNoAdvance( this%iounit_rdf )
+    do i= 1, this%NComponents
         do j= i, this%NComponents
           do s=1, this%Component(i)%molecule%NMIEnm
             do t=1, this%Component(j)%molecule%NMIEnm 
@@ -16628,39 +17103,98 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do
         end do
-      end do
-      call FileWriteBlank( this%iounit_rdf )
-
-    do o = 1, RDFNumberShells
-      write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
-      call FileWriteNoAdvance( this%iounit_rdf )
-      do i= 1, this%NComponents
-        do j= i, this%NComponents
-          do s=1, this%Component(i)%molecule%NMIEnm
-            do t=1, this%Component(j)%molecule%NMIEnm
-              RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
-              if (i == j) then
-                RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
+    end do
+    call FileWriteBlank( this%iounit_rdf )  
+    
+    ! Calculate RDF
+#if MPI_VER > 0
+    if ( SimulationType .eq. MonteCarlo ) then 
+        do o = 1, RDFNumberShells
+            write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
+            call FileWriteNoAdvance( this%iounit_rdf )
+            do i= 1, this%NComponents
+                do j= i, this%NComponents
+                    do s=1, this%Component(i)%molecule%NMIEnm
+                        do t=1, this%Component(j)%molecule%NMIEnm
+                            RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
+                            if (i == j) then
+                                RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
 &                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
-              else
-               RDFRhoLocal = real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
-&                                 / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
-              end if
-              this%RDFValue(o) = RDFRhoLocal / RDFRho  
-              write(IOBuffer, '(F10.4)') this%RDFValue(o)
-              call FileWriteNoAdvance( this%iounit_rdf )
+                            else
+                                RDFRhoLocal = real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
+&                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
+                            end if
+                            this%RDFValue(o) = RDFRhoLocal / RDFRho
+                            ! Calculate average over all prozesses with MPI_Reduce
+                            call MPI_Reduce( this%RDFValue(o), RDF_hilf(o), 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+                            this%RDFValue(o) = RDF_hilf(o) / NProcs
+                            write(IOBuffer, '(F10.4)') this%RDFValue(o)
+                            call FileWriteNoAdvance( this%iounit_rdf )
+                        end do
+                    end do
+                end do
             end do
-          end do
+            call FileWriteBlank( this%iounit_rdf )
+        enddo
+    else
+        do o = 1, RDFNumberShells
+            write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
+            call FileWriteNoAdvance( this%iounit_rdf )
+            do i= 1, this%NComponents
+                do j= i, this%NComponents
+                    do s=1, this%Component(i)%molecule%NMIEnm
+                        do t=1, this%Component(j)%molecule%NMIEnm
+                            RDFSum_hilf(o) = this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o) 
+                            call MPI_Reduce( RDFSum_hilf(o), RDFSum_out(o), 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+                            RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
+                            if (i == j) then
+                                RDFRhoLocal = 2.0 * real(RDFSum_out(o),RK) & 
+&                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
+                            else
+                                RDFRhoLocal = real(RDFSum_out(o),RK) & 
+&                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
+                            end if
+                            this%RDFValue(o) = RDFRhoLocal / RDFRho
+                            write(IOBuffer, '(F10.4)') this%RDFValue(o)
+                            call FileWriteNoAdvance( this%iounit_rdf )
+                        end do
+                    end do
+                end do
+            end do
+            call FileWriteBlank( this%iounit_rdf )
+        enddo
+    end if
+#else
+    do o = 1, RDFNumberShells
+        write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
+        call FileWriteNoAdvance( this%iounit_rdf )
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                do s=1, this%Component(i)%molecule%NMIEnm
+                    do t=1, this%Component(j)%molecule%NMIEnm
+                        RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
+                        if (i == j) then
+                            RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
+&                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
+                        else
+                            RDFRhoLocal = real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
+&                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
+                        end if
+                        this%RDFValue(o) = RDFRhoLocal / RDFRho
+                        write(IOBuffer, '(F10.4)') this%RDFValue(o)
+                        call FileWriteNoAdvance( this%iounit_rdf )
+                    end do
+                end do
+            end do
         end do
-      end do
-     call FileWriteBlank( this%iounit_rdf )
+        call FileWriteBlank( this%iounit_rdf )
     enddo
-
-    ! Close RDF file
+#endif
     call FileClose( this%iounit_rdf )
+    
 
-  end subroutine TEnsemble_RDFUpdate
-
+  end subroutine TEnsemble_RDFUpdateBlock
+  
 
 !==============================================================!
 !  Subroutine TEnsemble_RDFClose                               !
@@ -16679,6 +17213,3543 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call FileClose( this%iounit_rdf )
 
   end subroutine TEnsemble_RDFClose
+
+
+!==============================================================!
+!  Subroutine TEnsemble_KBIOpen                                !
+!==============================================================!
+
+  subroutine TEnsemble_KBIOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer                   :: i, j, p !Component indexes (p: combinations)
+    
+    if( .not. Restart ) then
+        ! initialize KBISum
+        do i=1, this%NComponents
+          do j=i, this%NComponents
+                this%Interaction(i,j)%KBISum(:) = 0   
+          end do
+        end do
+        
+        ! Reset KBI Accumulator for Gij
+        do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
+            call Reset( this%SumKBIGij1(i) )
+            call Reset( this%SumKBIGij2(i) )
+            call Reset( this%SumKBIGij3(i) )
+        end do
+        
+        this%KBIBlockCount = 0 !Counter for KBI Blocks to calculate RDF over all blocks for extrapolation of Gij
+        do p = 1, this%NComponents*(this%NComponents+1)/2
+            this%KBIRDFextra(:,p) = 0
+            this%KBIRDFvdVextra(:,p) = 0
+            this%KBIRDFvdVshfextra(:,p) = 0
+        end do
+        
+        ! Open running KBI RDF file
+        write( IOBuffer, '(I16)' ) this%EnsembleNumber
+        call FileRewrite( this%iounit_kbirdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )
+        call FileWriteBlank( this%iounit_kbirdf )
+        call FileClose( this%iounit_kbirdf )
+        
+        ! Open running KBI file
+        write( IOBuffer, '(I16)' ) this%EnsembleNumber
+        call FileRewrite( this%iounit_kbirun, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrunFileExtension )   
+        write(IOBuffer, '(T5,"last index: 1: RDF; 2: RDFvdV; 3: RDFvdVshf; 0: extrapolated Gij")')
+        call FileWriteNoAdvance( this%iounit_kbirun )
+        call FileWriteBlank( this%iounit_kbirun )
+        write(IOBuffer, '(T5,"Step")')
+        call FileWriteNoAdvance( this%iounit_kbirun )
+        do p = 1, 3 !Method
+            do i= 1, this%NComponents
+                do j= i, this%NComponents
+                    write(IOBuffer, '(T6,"G",I1,I1,",",I1)') i, j, p
+                    call FileWriteNoAdvance( this%iounit_kbirun )   
+                    write(IOBuffer, '(T5,"dG",I1,I1,",",I1)') i, j, p
+                    call FileWriteNoAdvance( this%iounit_kbirun )
+                    write(IOBuffer, '(T6,"G",I1,I1,",0,",I1)') i, j, p
+                    call FileWriteNoAdvance( this%iounit_kbirun )
+                end do
+            end do
+        end do
+        call FileWriteBlank( this%iounit_kbirun )
+        call FileClose( this%iounit_kbirun )        
+            
+    end if
+    
+  end subroutine TEnsemble_KBIOpen
+
+
+!==============================================================!
+!  Subroutine TEnsemble_KBIUpdate                              !
+!==============================================================!
+
+  subroutine TEnsemble_KBIUpdate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer  :: i, j, TempStep
+
+    ! Calculate temporary step in the range of KBIResetFrequency
+    TempStep = mod( Step, BlockSizeKBI ) 
+    if (TempStep == 0) TempStep = BlockSizeKBI
+    
+    if ( SimulationType .eq. MonteCarlo ) then !for MD inside the traversing -> see RunMDStep -> Force ...
+        ! Calculate partners in shells for RDF
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                call CalcRDFforKBI( this%Interaction(i,j), this%BoxLength/this%KBIdr )
+            end do
+        end do
+    end if
+    
+    !End of Block is reached => Gij accumulator
+    if (TempStep+KBIUpdateFrequency > BlockSizeKBI) then 
+        this%KBIBlockCount = this%KBIBlockCount + 1
+        call KBIUpdateBlock( this, TempStep )
+    end if
+    
+  end subroutine TEnsemble_KBIUpdate
+
+!==============================================================!
+!  Subroutine TEnsemble_KBIUpdateBlock                         !
+!==============================================================!  
+
+  subroutine TEnsemble_KBIUpdateBlock( this, TempStep )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: TempStep
+
+    ! Declare local variables
+    integer  :: i, j, k, m, o, p, s, extp  
+    real(RK) :: KBIRho, KBIRhoLocal,c2x1, Average, Variance
+    real(RK) :: fint1, fint2, fint3, fint4, fint5, fint6, dr
+    real(RK) :: KBIr(0:KBINShellsCubeEdge), KBIx(0:KBINShellsCubeEdge), KBIw(0:KBINShellsCubeEdge), KBIu2(0:KBINShellsCubeEdge) 
+    real(RK) :: KBIRDF(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
+    real(RK) :: dN(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2)),Vol,Nj,VrNor
+    real(RK) :: RDFvdV(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2)),meanRDF(this%NComponents*(this%NComponents+1)/2)
+    real(RK) :: RDFvdVshf(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
+    real(RK) :: KBIrGij1(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2)), KBIrGij2(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
+    real(RK) :: KBIrGij3(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2)), KBIrGij4(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
+    real(RK) :: KBIrGij5(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2)), KBIrGij6(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
+    real(RK) :: c1, c2, c3, d12, d13, d23, eta, d120, d130, d230, eta0, dd12, dd13, dd23, deta, helpvar 
+    real(RK) :: G11(3), G12(3), G13(3), G22(3), G23(3), G33(3) !TDF calculation for N=2 or 3 without linear algebra
+    real(RK) :: G11E(3), G12E(3), G13E(3), G22E(3), G23E(3), G33E(3) 
+    real(RK) :: G110(3), G120(3), G130(3), G220(3), G230(3), G330(3)
+    real(RK) :: G(4,4), dG(4,4), G0(4,4), c(4), D(4,4), F(4,4)!TDF calculation for N=4 components with linear algebra
+    real(RK) :: Delta1234, D2(4,4,4), F2(4,4,4), F3(4,4,4,4), DdmudxdG(3,3,4,4), SN, TF(3,9)
+#if MPI_VER > 0
+    real(RK) :: KBI_hilf(KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
+    integer(KIND=8)  :: KBISum_hilf(KBINShellsCubeEdge)
+#endif
+    
+#if MPI_VER > 0
+    if ( SimulationType .eq. MolecularDynamics ) then 
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                do o = 1, KBINShellsCubeEdge
+                    call MPI_Reduce( this%Interaction(i,j)%KBISum(o), KBISum_hilf(o), 1, MPI_INTEGER8, MPI_SUM, NRootProc, Communicator, ierror )
+                    this%Interaction(i,j)%KBISum(o) = KBISum_hilf(o)
+                end do
+            end do
+        end do
+    end if
+#endif
+    
+    ! Calculate RDF for center of mass only
+    dr=this%KBIdr*UnitLength/Angstroem
+    do o = 1, KBINShellsCubeEdge
+        p=0 !Number of combinations, e.g. 11 12 22
+        KBIr(o)=o*dr
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                KBIRho = this%SumDensity%Average  * this%Component(j)%Fraction  
+                if (i == j) then
+                    KBIRhoLocal = 2.0 * real(this%Interaction(i,j)%KBISum(o),RK) & 
+&                                       / (this%KBIVSchale(o) * ((TempStep-1)/KBIUpdateFrequency + 1) * this%Component(i)%NPart)
+                else
+                    KBIRhoLocal = real(this%Interaction(i,j)%KBISum(o),RK) & 
+&                                 / (this%KBIVSchale(o) * ((TempStep-1)/KBIUpdateFrequency + 1) * this%Component(i)%NPart)
+                end if
+                p=p+1 !e.g. NComp=3 => g11:p=1, g12:p=2, g13:p=3, g22:p=4, g23:p=5, g33:p=6
+                KBIRDF(o,p) = KBIRhoLocal / KBIRho  
+            end do
+        end do
+    end do
+    
+#if MPI_VER > 0
+    if ( SimulationType .eq. MonteCarlo ) then 
+        do o = 1, KBINShellsCubeEdge
+            do p = 1, this%NComponents*(this%NComponents+1)/2
+                call MPI_Reduce( KBIRDF(o,p), KBI_hilf(o,p), 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+                KBIRDF(o,p) = KBI_hilf(o,p) / NProcs
+            end do
+        end do
+    end if
+#endif      
+
+    ! Calculate RDF correction via van der Vegt + shift
+    ! Van der Vegt correction
+    Vol=(2.*KBIr(KBINumberShells))**3 !V=L^3 Volume Box
+    dN(0,:)=0.
+    KBIRDF(0,:)=0.
+    RDFvdV(0,:)=0.
+    do o = 1, KBINumberShells
+        p=1 !Number of combinations, e.g. 11 12 22
+        VrNor=(4_RK/3_RK)*Pi*KBIr(o)**3/Vol
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                Nj=this%Component(j)%Fraction*this%NPart !Nj=xj*N
+                dN(o,p)=dN(o-1,p)+(4.*Pi*dr*(Nj/Vol)*(KBIr(o)**2*(KBIRDF(o,p)-1.)+KBIr(o-1)**2*(KBIRDF(o-1,p)-1.)))/2.
+                if (i == j) then !e.g. combination 11 or 22 or 33 ...
+                    RDFvdV(o,p)=KBIRDF(o,p)*(Nj*(1.-VrNor)/(Nj*(1.-VrNor)-dN(o,p)-1.))
+                else
+                    RDFvdV(o,p)=KBIRDF(o,p)*(Nj*(1.-VrNor)/(Nj*(1.-VrNor)-dN(o,p)))
+                end if
+                p=p+1 !e.g. NComp=3 => g11:p=1, g12:p=2, g13:p=3, g22:p=4, g23:p=5, g33:p=6
+            end do
+        end do
+    end do
+    do o = KBINumberShells+1, KBINShellsCubeEdge !vdV cor. from L/2 to sqrt(2)L/2
+        p=1 !Number of combinations, e.g. 11 12 22
+        VrNor=(4_RK/3_RK)*Pi*KBIr(o)**3*(3./(KBIr(o)/KBIr(KBINumberShells))-2.)/Vol
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                Nj=this%Component(j)%Fraction*this%NPart !Nj=xj*N
+                dN(o,p)=dN(o-1,p)+(4.*Pi*dr*(Nj/Vol)*((1.-3.+3.*KBIr(KBINumberShells)/KBIr(o))*KBIr(o)**2*(KBIRDF(o,p)-1.) &
+&                                                    +(1.-3.+3.*KBIr(KBINumberShells)/KBIr(o-1))*KBIr(o-1)**2*(KBIRDF(o-1,p)-1.)))/2.
+                if (i == j) then !e.g. combination 11 or 22 or 33 ...
+                    RDFvdV(o,p)=KBIRDF(o,p)*(Nj*(1.-VrNor)/(Nj*(1.-VrNor)-dN(o,p)-1.))
+                else
+                    RDFvdV(o,p)=KBIRDF(o,p)*(Nj*(1.-VrNor)/(Nj*(1.-VrNor)-dN(o,p)))
+                end if
+                p=p+1 !e.g. NComp=3 => g11:p=1, g12:p=2, g13:p=3, g22:p=4, g23:p=5, g33:p=6
+            end do
+        end do
+    end do
+    
+    ! Shift RDFcor so that the mean value from 3*rc/4 to rc is unity
+    do p = 1, this%NComponents*(this%NComponents+1)/2
+        meanRDF(p)=0.
+        do o=(3*KBINShellsCubeEdge/4)+1, KBINShellsCubeEdge
+            meanRDF(p)=meanRDF(p)+RDFvdV(o,p)
+        end do
+        meanRDF(p)=meanRDF(p)/(KBINShellsCubeEdge/4+1)
+        RDFvdVshf(:,p)=RDFvdV(:,p)/meanRDF(p)
+    end do
+    
+    ! Calculate mean RDF over the blocks for extrapolation of Gij
+    do p = 1, this%NComponents*(this%NComponents+1)/2
+        this%KBIRDFextra(:,p) = (this%KBIRDFextra(:,p)*(this%KBIBlockCount-1)+KBIRDF(:,p))/this%KBIBlockCount
+        this%KBIRDFvdVextra(:,p) = (this%KBIRDFvdVextra(:,p)*(this%KBIBlockCount-1)+RDFvdV(:,p))/this%KBIBlockCount
+        this%KBIRDFvdVshfextra(:,p) = (this%KBIRDFvdVshfextra(:,p)*(this%KBIBlockCount-1)+RDFvdVshf(:,p))/this%KBIBlockCount
+    end do
+
+    
+    !Write running RDF (center of mass) in *.kbirdf file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileAppend( this%iounit_kbirdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )
+    if ( SimulationType .eq. MonteCarlo ) then
+        write(IOBuffer, '(T5,"Step: ",I8," - ",I8)') NProcs*(Step-TempStep), NProcs*Step
+    else
+        write(IOBuffer, '(T5,"Step: ",I8," - ",I8)') (Step-TempStep), Step
+    end if
+    call FileWriteNoAdvance( this%iounit_kbirdf )
+    call FileWriteBlank( this%iounit_kbirdf )
+    write(IOBuffer, '(T5," r [A]")')
+    call FileWriteNoAdvance( this%iounit_kbirdf )
+    do i= 1, this%NComponents
+        do j= i, this%NComponents
+            write(IOBuffer, '(I5,I5)') i, j
+            call FileWriteNoAdvance( this%iounit_kbirdf )            
+        end do
+    end do
+    call FileWriteBlank( this%iounit_kbirdf )
+    do o = 1, KBINShellsCubeEdge
+        p=0 !Number of combinations, e.g. 11 12 22
+        write(IOBuffer, '(F10.4)') KBIr(o)
+        call FileWriteNoAdvance( this%iounit_kbirdf )
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                p=p+1 
+                write(IOBuffer, '(F10.4)') KBIRDF(o,p)  
+                call FileWriteNoAdvance( this%iounit_kbirdf )
+            end do
+        end do
+        call FileWriteBlank( this%iounit_kbirdf )
+    end do
+    write( IOBuffer, '(76("-"))' )
+    call FileWrite( this%iounit_kbirdf )
+            
+    ! Start of numerical Kirkwood-Buff Integration
+    do o = 1, KBINShellsCubeEdge
+        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+            KBIRDF(o,p)=KBIRDF(o,p)-1. !h(r)=g(r)-1 -> standard RDF
+            RDFvdV(o,p)=RDFvdV(o,p)-1. !h(r) of corrected RDF
+            RDFvdVshf(o,p)=RDFvdVshf(o,p)-1.
+        end do
+    end do
+    KBIr(0)=0. !start values = 0
+    KBIx(0)=0.
+    KBIw(0)=0.
+    KBIRDF(0,:)=0.
+    RDFvdV(0,:)=0.
+    RDFvdVshf(0,:)=0.
+    KBIrGij1(0,:)=0.
+    KBIrGij2(0,:)=0.
+    KBIrGij3(0,:)=0.
+    KBIrGij4(0,:)=0.
+    KBIrGij5(0,:)=0.
+    KBIrGij6(0,:)=0.  
+
+    do o = 1, KBINumberShells !KBI until Sphere in Cube only
+        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22        
+            !Calculation of the KBI with the common formula ( (2) in the PDF file ->Tomislav)
+            KBIrGij1(o,p)=0.
+            KBIrGij2(o,p)=0.
+            KBIrGij3(o,p)=0.
+            KBIrGij4(o,p)=0.
+            KBIrGij5(o,p)=0.
+            KBIrGij6(o,p)=0.
+            
+            !Double loop for other two formulae
+            do j=1, o
+                !Function x defined in PDF
+                KBIx(j)=KBIr(j)/KBIr(KBINumberShells)
+                
+                ! Function w for sphere
+                KBIw(j)=4.*Pi*KBIr(j)**2*(1.-(3.*KBIx(j)/2.)+(KBIx(j)**3)/2.);
+                ! Approximation for extrapolation
+                KBIu2(j)=4.*Pi*KBIr(j)**2*(1.-23.*KBIx(j)**3/8.+3.*KBIx(j)**4/4.+9.*KBIx(j)**5/8.);
+                                                
+                !Functions under integrals for trapeze formula
+                fint1=(KBIRDF(j,p)*KBIw(j)+KBIRDF(j-1,p)*KBIw(j-1))/2.
+                fint2=(RDFvdV(j,p)*KBIw(j)+RDFvdV(j-1,p)*KBIw(j-1))/2.
+                fint3=(RDFvdVshf(j,p)*KBIw(j)+RDFvdVshf(j-1,p)*KBIw(j-1))/2.
+                ! Extrapolations
+                fint4=((this%KBIRDFextra(j,p)-1)*KBIu2(j)+(this%KBIRDFextra(j-1,p)-1)*KBIu2(j-1))/2.
+                fint5=((this%KBIRDFvdVextra(j,p)-1)*KBIu2(j)+(this%KBIRDFvdVextra(j-1,p)-1)*KBIu2(j-1))/2.
+                fint6=((this%KBIRDFvdVshfextra(j,p)-1)*KBIu2(j)+(this%KBIRDFvdVshfextra(j-1,p)-1)*KBIu2(j-1))/2.
+
+                !Numerical integration via trapeze              
+                KBIrGij1(o,p)=KBIrGij1(o,p)+dr*fint1*0.6022 !Note:0.6022=NAvogadro*10^-24cm^3 to convert Gij in the unit [cm3/mol]
+                KBIrGij2(o,p)=KBIrGij2(o,p)+dr*fint2*0.6022
+                KBIrGij3(o,p)=KBIrGij3(o,p)+dr*fint3*0.6022         
+                KBIrGij4(o,p)=KBIrGij4(o,p)+dr*fint4*0.6022
+                KBIrGij5(o,p)=KBIrGij5(o,p)+dr*fint5*0.6022
+                KBIrGij6(o,p)=KBIrGij6(o,p)+dr*fint6*0.6022
+            end do
+        end do
+    end do         
+    
+    ! Update accumulator for Gij and error calculation  
+    do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+        call Update( this%SumKBIGij1(p), KBIrGij1(KBINumberShells,p), 0, .true. )
+        call Update( this%SumKBIGij2(p), KBIrGij2(KBINumberShells,p), 0, .true. )
+        call Update( this%SumKBIGij3(p), KBIrGij3(KBINumberShells,p), 0, .true. )
+        call Error( this%SumKBIGij1(p), .false., .true. )
+        call Error( this%SumKBIGij2(p), .false., .true. )
+        call Error( this%SumKBIGij3(p), .false., .true. )
+    end do
+
+    !Write running Gij from Accumulator in *.kbirun file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileAppend( this%iounit_kbirun, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrunFileExtension )
+    if ( SimulationType .eq. MonteCarlo ) then
+        write(IOBuffer, '(I8)') Step*NProcs
+    else
+        write(IOBuffer, '(I8)') Step
+    end if
+    call FileWriteNoAdvance( this%iounit_kbirun )
+    do p = 1, this%NComponents*(this%NComponents+1)/2
+        Average = this%SumKBIGij1(p)%Average
+        Variance = this%SumKBIGij1(p)%Variance
+        write( IOBuffer, '(3F10.4)' ) Average, Variance, KBIrGij4(KBINumberShells,p)
+        call FileWriteNoAdvance( this%iounit_kbirun )
+    end do
+    do p = 1, this%NComponents*(this%NComponents+1)/2
+        Average = this%SumKBIGij2(p)%Average
+        Variance = this%SumKBIGij2(p)%Variance
+        write( IOBuffer, '(3F10.4)' ) Average, Variance, KBIrGij5(KBINumberShells,p)
+        call FileWriteNoAdvance( this%iounit_kbirun )
+    end do
+    do p = 1, this%NComponents*(this%NComponents+1)/2
+        Average = this%SumKBIGij3(p)%Average
+        Variance = this%SumKBIGij3(p)%Variance
+        write( IOBuffer, '(3F10.4)' ) Average, Variance, KBIrGij6(KBINumberShells,p)
+        call FileWriteNoAdvance( this%iounit_kbirun )
+    end do
+    call FileWriteBlank( this%iounit_kbirun )
+
+    
+    
+    if (this%NComponents == 2) then
+       c2x1=this%Component(1)%Fraction*this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3 ->for 2 components     
+       ! RDF standard
+       this%TDF(1,1) = 1.0 / (1.0+c2x1*(this%SumKBIGij1(1)%Average-2.0*this%SumKBIGij1(2)%Average+this%SumKBIGij1(3)%Average))
+       this%dTDF(1,1) = (1.0+c2x1*(this%SumKBIGij1(1)%Average-2.0*this%SumKBIGij1(2)%Average+this%SumKBIGij1(3)%Average))**(-2) &
+&                       *c2x1*sqrt(this%SumKBIGij1(1)%Variance**2+(2*this%SumKBIGij1(2)%Variance)**2+this%SumKBIGij1(3)%Variance**2)
+       this%TDF0(1,1) = 1.0 / (1.0+c2x1*(KBIrGij4(KBINumberShells,1)-2.0*KBIrGij4(KBINumberShells,2)+KBIrGij4(KBINumberShells,3)))
+       ! RDF vdV correction
+       this%TDF(2,1) = 1.0 / (1.0+c2x1*(this%SumKBIGij2(1)%Average-2.0*this%SumKBIGij2(2)%Average+this%SumKBIGij2(3)%Average))
+       this%dTDF(2,1) = (1.0+c2x1*(this%SumKBIGij2(1)%Average-2.0*this%SumKBIGij2(2)%Average+this%SumKBIGij2(3)%Average))**(-2) &
+&                       *c2x1*sqrt(this%SumKBIGij2(1)%Variance**2+(2*this%SumKBIGij2(2)%Variance)**2+this%SumKBIGij2(3)%Variance**2)
+       this%TDF0(2,1) = 1.0 / (1.0+c2x1*(KBIrGij5(KBINumberShells,1)-2.0*KBIrGij5(KBINumberShells,2)+KBIrGij5(KBINumberShells,3)))
+       ! RDF vdV shf correction
+       this%TDF(3,1) = 1.0 / (1.0+c2x1*(this%SumKBIGij3(1)%Average-2.0*this%SumKBIGij3(2)%Average+this%SumKBIGij3(3)%Average))
+       this%dTDF(3,1) = (1.0+c2x1*(this%SumKBIGij3(1)%Average-2.0*this%SumKBIGij3(2)%Average+this%SumKBIGij3(3)%Average))**(-2) &
+&                       *c2x1*sqrt(this%SumKBIGij3(1)%Variance**2+(2*this%SumKBIGij3(2)%Variance)**2+this%SumKBIGij3(3)%Variance**2)
+       this%TDF0(3,1) = 1.0 / (1.0+c2x1*(KBIrGij6(KBINumberShells,1)-2.0*KBIrGij6(KBINumberShells,2)+KBIrGij6(KBINumberShells,3)))
+    else if (this%NComponents == 3) then 
+       c1 = this%Component(1)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
+       c2 = this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
+       c3 = this%Component(3)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
+       ! RDF standard
+       G11(1)=this%SumKBIGij1(1)%Average
+       G12(1)=this%SumKBIGij1(2)%Average
+       G13(1)=this%SumKBIGij1(3)%Average
+       G22(1)=this%SumKBIGij1(4)%Average
+       G23(1)=this%SumKBIGij1(5)%Average
+       G33(1)=this%SumKBIGij1(6)%Average
+       G11E(1)=this%SumKBIGij1(1)%Variance
+       G12E(1)=this%SumKBIGij1(2)%Variance
+       G13E(1)=this%SumKBIGij1(3)%Variance
+       G22E(1)=this%SumKBIGij1(4)%Variance
+       G23E(1)=this%SumKBIGij1(5)%Variance
+       G33E(1)=this%SumKBIGij1(6)%Variance
+       G110(1)=KBIrGij4(KBINumberShells,1)
+       G120(1)=KBIrGij4(KBINumberShells,2)
+       G130(1)=KBIrGij4(KBINumberShells,3)
+       G220(1)=KBIrGij4(KBINumberShells,4)
+       G230(1)=KBIrGij4(KBINumberShells,5)
+       G330(1)=KBIrGij4(KBINumberShells,6)
+       ! RDF vdV correction
+       G11(2)=this%SumKBIGij2(1)%Average
+       G12(2)=this%SumKBIGij2(2)%Average
+       G13(2)=this%SumKBIGij2(3)%Average
+       G22(2)=this%SumKBIGij2(4)%Average
+       G23(2)=this%SumKBIGij2(5)%Average
+       G33(2)=this%SumKBIGij2(6)%Average
+       G11E(2)=this%SumKBIGij2(1)%Variance
+       G12E(2)=this%SumKBIGij2(2)%Variance
+       G13E(2)=this%SumKBIGij2(3)%Variance
+       G22E(2)=this%SumKBIGij2(4)%Variance
+       G23E(2)=this%SumKBIGij2(5)%Variance
+       G33E(2)=this%SumKBIGij2(6)%Variance
+       G110(2)=KBIrGij5(KBINumberShells,1)
+       G120(2)=KBIrGij5(KBINumberShells,2)
+       G130(2)=KBIrGij5(KBINumberShells,3)
+       G220(2)=KBIrGij5(KBINumberShells,4)
+       G230(2)=KBIrGij5(KBINumberShells,5)
+       G330(2)=KBIrGij5(KBINumberShells,6)
+       ! RDF vdV + shift correction
+       G11(3)=this%SumKBIGij3(1)%Average
+       G12(3)=this%SumKBIGij3(2)%Average
+       G13(3)=this%SumKBIGij3(3)%Average
+       G22(3)=this%SumKBIGij3(4)%Average
+       G23(3)=this%SumKBIGij3(5)%Average
+       G33(3)=this%SumKBIGij3(6)%Average
+       G11E(3)=this%SumKBIGij3(1)%Variance
+       G12E(3)=this%SumKBIGij3(2)%Variance
+       G13E(3)=this%SumKBIGij3(3)%Variance
+       G22E(3)=this%SumKBIGij3(4)%Variance
+       G23E(3)=this%SumKBIGij3(5)%Variance
+       G33E(3)=this%SumKBIGij3(6)%Variance
+       G110(3)=KBIrGij6(KBINumberShells,1)
+       G120(3)=KBIrGij6(KBINumberShells,2)
+       G130(3)=KBIrGij6(KBINumberShells,3)
+       G220(3)=KBIrGij6(KBINumberShells,4)
+       G230(3)=KBIrGij6(KBINumberShells,5)
+       G330(3)=KBIrGij6(KBINumberShells,6)
+       
+        do i=1, 3 ! Method loop: 1:RDF, 2:RDFvdV, 3:RDFvdVshf
+            d12  = G11(i)-2.*G12(i)+G22(i)
+            d13  = G11(i)-2.*G13(i)+G33(i)
+            d23  = G22(i)-2.*G23(i)+G33(i)
+            eta  = c1+c2+c3+c1*c2*d12+c2*c3*d23+c1*c3*d13-0.25_RK*c1*c2*c3*(d12**2+d23**2+d13**2-2.*d13*d23-2.*d12*d13-2.*d12*d23)
+            d120  = G110(i)-2.*G120(i)+G220(i)
+            d130  = G110(i)-2.*G130(i)+G330(i)
+            d230  = G220(i)-2.*G230(i)+G330(i)
+            eta0  = c1+c2+c3+c1*c2*d120+c2*c3*d230+c1*c3*d130-0.25_RK*c1*c2*c3*(d120**2+d230**2+d130**2-2.*d130*d230-2.*d120*d130&
+&                   -2.*d120*d230)
+            dd12 = sqrt(G11E(i)**2+G22E(i)**2+(2.*G12E(i))**2)
+            dd13 = sqrt(G11E(i)**2+G33E(i)**2+(2.*G13E(i))**2)
+            dd23 = sqrt(G22E(i)**2+G33E(i)**2+(2.*G23E(i))**2)
+            deta = (c1*c2-0.25_RK*c1*c2*c3*(2.*d12-2.*d13-2.*d23))*dd12 + (c2*c3-0.25_RK*c1*c2*c3*(2.*d23-2.*d13-2.*d12))*dd23 &
+&                  + (c1*c3-0.25_RK*c1*c2*c3*(2.*d13-2.*d23-2.*d12))*dd13
+            
+            ! GAMMA11
+            helpvar        = c2 * ( -c3*G22(i)-1.+2.*c3*G23(i)-c3*G33(i)-(c3/c2) + c1 * (G12(i)-G22(i)-(1./c2)+G23(i)-G13(i)) )
+            this%TDF(i,1)  = -(1./eta) * helpvar
+            this%dTDF(i,1) = abs(this%TDF(i,1)) * sqrt( (((c2*c3)**2) * (G22E(i)**2+(2.*G23E(i))**2+G33E(i)**2) &
+&                            + ((c1*c2)**2) * (G12E(i)**2+G22E(i)**2+G23E(i)**2+G13E(i)**2))/helpvar**2 + (deta/eta)**2 )
+            this%TDF0(i,1) = -(1./eta0) * c2 * ( -c3*G220(i)-1.+2.*c3*G230(i)-c3*G330(i)-(c3/c2) + c1 * (G120(i)-G220(i)&
+&                            -(1./c2)+G230(i)-G130(i)) )
+            ! GAMMA12
+            helpvar        = c1 * ( c2*G12(i)+c3*G12(i)-c2*G13(i)-c3*G13(i) - c2*G22(i)+c2*G23(i)-c3*G23(i)+c3*G33(i) )
+            this%TDF(i,2)  = -(1./eta) * helpvar
+            this%dTDF(i,2) = abs(this%TDF(i,2)) * sqrt( ((c1**2) * ( (c2*G12E(i))**2+(c3*G12E(i))**2+(c2*G13E(i))**2 &
+&                            +(c3*G13E(i))**2+(c2*G22E(i))**2+(c2*G23E(i))**2 + (c3*G23E(i))**2+(c3*G33E(i))**2 ))/helpvar**2&
+&                            + (deta/eta)**2 )
+            this%TDF0(i,2) = -(1./eta0) * c1 * ( c2*G120(i)+c3*G120(i)-c2*G130(i)-c3*G130(i) - c2*G220(i)+c2*G230(i)-c3*G230(i)&
+&                            +c3*G330(i) )
+            ! GAMMA21
+            helpvar        = c2 * ( c1*G11(i)-c1*G12(i)-c3*G12(i)-c1*G13(i) + c3*G13(i)+c1*G23(i)+c3*G23(i)-c3*G33(i) )
+            this%TDF(i,3)  = (1./eta) * helpvar
+            this%dTDF(i,3) = abs(this%TDF(i,3)) * sqrt( ((c2**2) * ( (c1*G11E(i))**2+(c1*G12E(i))**2+(c3*G12E(i))**2 &
+&                            +(c1*G13E(i))**2+(c3*G13E(i))**2+(c1*G23E(i))**2 + (c3*G23E(i))**2+(c3*G33E(i))**2 ))/helpvar**2&
+&                            + (deta/eta)**2 )
+            this%TDF0(i,3) = (1./eta0) * c2 * ( c1*G110(i)-c1*G120(i)-c3*G120(i)-c1*G130(i) + c3*G130(i)+c1*G230(i)+c3*G230(i)&
+&                            -c3*G330(i) )
+            ! GAMMA22
+            helpvar        = c1 * ( c3*G11(i)+1.-2.*c3*G13(i)+c3*G33(i)+(c3/c1) + c2 * (G11(i)-G12(i)-G13(i)+(1./c1)+G23(i)) )
+            this%TDF(i,4)  = (1./eta) * helpvar
+            this%dTDF(i,4) = abs(this%TDF(i,4)) * sqrt( (((c1*c3)**2) * (G11E(i)**2+(2.*G13E(i))**2+G33E(i)**2) &
+&                            + ((c1*c2)**2) * (G11E(i)**2+G12E(i)**2+G13E(i)**2+G23E(i)**2))/helpvar**2 + (deta/eta)**2 )
+            this%TDF0(i,4) = (1./eta0) * c1 * ( c3*G110(i)+1.-2.*c3*G130(i)+c3*G330(i)+(c3/c1) + c2 * (G110(i)-G120(i)-G130(i)&
+&                            +(1./c1)+G230(i)) )
+        end do
+    else if (this%NComponents == 4) then 
+        c(1) = this%Component(1)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
+        c(2) = this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
+        c(3) = this%Component(3)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
+        c(4) = this%Component(4)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
+        do s=1, 3 ! Method loop: 1:RDF, 2:RDFvdV, 3:RDFvdVshf
+            if (s==1) then ! RDF standard               
+                G(1,1)=this%SumKBIGij1(1)%Average
+                G(1,2)=this%SumKBIGij1(2)%Average
+                G(1,3)=this%SumKBIGij1(3)%Average
+                G(1,4)=this%SumKBIGij1(4)%Average
+                G(2,2)=this%SumKBIGij1(5)%Average
+                G(2,3)=this%SumKBIGij1(6)%Average
+                G(2,4)=this%SumKBIGij1(7)%Average
+                G(3,3)=this%SumKBIGij1(8)%Average
+                G(3,4)=this%SumKBIGij1(9)%Average
+                G(4,4)=this%SumKBIGij1(10)%Average
+                dG(1,1)=this%SumKBIGij1(1)%Variance
+                dG(1,2)=this%SumKBIGij1(2)%Variance
+                dG(1,3)=this%SumKBIGij1(3)%Variance
+                dG(1,4)=this%SumKBIGij1(4)%Variance
+                dG(2,2)=this%SumKBIGij1(5)%Variance
+                dG(2,3)=this%SumKBIGij1(6)%Variance
+                dG(2,4)=this%SumKBIGij1(7)%Variance
+                dG(3,3)=this%SumKBIGij1(8)%Variance
+                dG(3,4)=this%SumKBIGij1(9)%Variance
+                dG(4,4)=this%SumKBIGij1(10)%Variance
+                G0(1,1)=KBIrGij4(KBINumberShells,1)
+                G0(1,2)=KBIrGij4(KBINumberShells,2)
+                G0(1,3)=KBIrGij4(KBINumberShells,3)
+                G0(1,4)=KBIrGij4(KBINumberShells,4)
+                G0(2,2)=KBIrGij4(KBINumberShells,5)
+                G0(2,3)=KBIrGij4(KBINumberShells,6)
+                G0(2,4)=KBIrGij4(KBINumberShells,7)
+                G0(3,3)=KBIrGij4(KBINumberShells,8)
+                G0(3,4)=KBIrGij4(KBINumberShells,9)
+                G0(4,4)=KBIrGij4(KBINumberShells,10)
+            else if (s==2) then ! RDF vdV correction
+                G(1,1)=this%SumKBIGij2(1)%Average
+                G(1,2)=this%SumKBIGij2(2)%Average
+                G(1,3)=this%SumKBIGij2(3)%Average
+                G(1,4)=this%SumKBIGij2(4)%Average
+                G(2,2)=this%SumKBIGij2(5)%Average
+                G(2,3)=this%SumKBIGij2(6)%Average
+                G(2,4)=this%SumKBIGij2(7)%Average
+                G(3,3)=this%SumKBIGij2(8)%Average
+                G(3,4)=this%SumKBIGij2(9)%Average
+                G(4,4)=this%SumKBIGij2(10)%Average
+                dG(1,1)=this%SumKBIGij2(1)%Variance
+                dG(1,2)=this%SumKBIGij2(2)%Variance
+                dG(1,3)=this%SumKBIGij2(3)%Variance
+                dG(1,4)=this%SumKBIGij2(4)%Variance
+                dG(2,2)=this%SumKBIGij2(5)%Variance
+                dG(2,3)=this%SumKBIGij2(6)%Variance
+                dG(2,4)=this%SumKBIGij2(7)%Variance
+                dG(3,3)=this%SumKBIGij2(8)%Variance
+                dG(3,4)=this%SumKBIGij2(9)%Variance
+                dG(4,4)=this%SumKBIGij2(10)%Variance
+                G0(1,1)=KBIrGij5(KBINumberShells,1)
+                G0(1,2)=KBIrGij5(KBINumberShells,2)
+                G0(1,3)=KBIrGij5(KBINumberShells,3)
+                G0(1,4)=KBIrGij5(KBINumberShells,4)
+                G0(2,2)=KBIrGij5(KBINumberShells,5)
+                G0(2,3)=KBIrGij5(KBINumberShells,6)
+                G0(2,4)=KBIrGij5(KBINumberShells,7)
+                G0(3,3)=KBIrGij5(KBINumberShells,8)
+                G0(3,4)=KBIrGij5(KBINumberShells,9)
+                G0(4,4)=KBIrGij5(KBINumberShells,10)
+            else if (s==3) then ! RDF vdV + shift correction
+                G(1,1)=this%SumKBIGij3(1)%Average
+                G(1,2)=this%SumKBIGij3(2)%Average
+                G(1,3)=this%SumKBIGij3(3)%Average
+                G(1,4)=this%SumKBIGij3(4)%Average
+                G(2,2)=this%SumKBIGij3(5)%Average
+                G(2,3)=this%SumKBIGij3(6)%Average
+                G(2,4)=this%SumKBIGij3(7)%Average
+                G(3,3)=this%SumKBIGij3(8)%Average
+                G(3,4)=this%SumKBIGij3(9)%Average
+                G(4,4)=this%SumKBIGij3(10)%Average
+                dG(1,1)=this%SumKBIGij3(1)%Variance
+                dG(1,2)=this%SumKBIGij3(2)%Variance
+                dG(1,3)=this%SumKBIGij3(3)%Variance
+                dG(1,4)=this%SumKBIGij3(4)%Variance
+                dG(2,2)=this%SumKBIGij3(5)%Variance
+                dG(2,3)=this%SumKBIGij3(6)%Variance
+                dG(2,4)=this%SumKBIGij3(7)%Variance
+                dG(3,3)=this%SumKBIGij3(8)%Variance
+                dG(3,4)=this%SumKBIGij3(9)%Variance
+                dG(4,4)=this%SumKBIGij3(10)%Variance
+                G0(1,1)=KBIrGij6(KBINumberShells,1)
+                G0(1,2)=KBIrGij6(KBINumberShells,2)
+                G0(1,3)=KBIrGij6(KBINumberShells,3)
+                G0(1,4)=KBIrGij6(KBINumberShells,4)
+                G0(2,2)=KBIrGij6(KBINumberShells,5)
+                G0(2,3)=KBIrGij6(KBINumberShells,6)
+                G0(2,4)=KBIrGij6(KBINumberShells,7)
+                G0(3,3)=KBIrGij6(KBINumberShells,8)
+                G0(3,4)=KBIrGij6(KBINumberShells,9)
+                G0(4,4)=KBIrGij6(KBINumberShells,10)
+            end if
+            
+            do extp=1, 2 !Loop for non-extrapolation and extrapolation
+                if (extp==2) G=G0
+                ! make G or G0 symmetric
+                G(2,1)=G(1,2)
+                G(3,1)=G(1,3)
+                G(4,1)=G(1,4)
+                G(3,2)=G(2,3)
+                G(4,2)=G(2,4)
+                G(4,3)=G(3,4)
+                
+                ! Calculate auxiliary functions
+                do i=1, 4
+                    do j=i, 4
+                        D(i,j) = G(i,i)+G(j,j)-2*G(i,j)
+                        F(i,j) = G(i,i)*G(j,j)-G(i,j)**2
+            
+                        do k=j, 4
+                            D2(i,j,k) = G(i,i)*G(j,j)+G(i,i)*G(k,k)+G(j,j)*G(k,k)+2*(G(i,j)*G(i,k)+G(i,j)*G(j,k)+G(i,k)*G(j,k))&
+&                                       -G(i,j)**2 -G(i,k)**2 -G(j,k)**2 - 2*(G(i,i)*G(j,k) + G(j,j)*G(i,k) + G(k,k)*G(i,j))
+                            F2(i,j,k) = G(i,i)*G(j,j)*G(k,k) + 2*G(i,j)*G(i,k)*G(j,k) - G(i,i)*G(j,k)**2 - G(j,j)*G(i,k)**2&
+&                                       - G(k,k)*G(i,j)**2
+                        end do
+                    end do
+                end do
+                do i=1, 4
+                    do j=1, 4
+                        do k=1, 4
+                            do m=1, 4
+                                F3(i,j,k,m) = G(i,i)*G(j,k)*G(k,m) - G(i,j)*G(i,k)*G(k,m)
+                            end do
+                        end do
+                    end do
+                end do
+                Delta1234 = F2(1,2,3) + F2(1,2,4) + F2(1,3,4) + F2(2,3,4) - 2*(G(3,4)*F(1,2) + G(2,4)*F(1,3) + G(2,3)*F(1,4)&
+&                           + G(1,4)*F(2,3) + G(1,3)*F(2,4) + G(1,2)*F(3,4))+ 2*(F3(1,2,3,4) + F3(1,2,4,3) + F3(1,3,2,4)  &
+&                           + F3(2,1,4,3) + F3(2,1,3,4) + F3(2,3,1,4) + F3(3,1,4,2) + F3(3,1,2,4) + F3(3,2,1,4) &
+&                           + F3(4,2,1,3) + F3(4,1,2,3) + F3(4,1,3,2))
+
+                eta = c(1) + c(2) + c(3) + c(4) + c(1)*c(2)*D(1,2) + c(1)*c(3)*D(1,3) + c(1)*c(4)*D(1,4) + c(2)*c(3)*D(2,3)&
+&                     + c(2)*c(4)*D(2,4) + c(3)*c(4)*D(3,4) + c(1)*c(2)*c(3)*D2(1,2,3) + c(1)*c(2)*c(4)*D2(1,2,4) &
+&                     + c(1)*c(3)*c(4)*D2(1,3,4) + c(2)*c(3)*c(4)*D2(2,3,4) + c(1)*c(2)*c(3)*c(4)*Delta1234 
+
+                ! Thermodynamic factor
+                !GAMMA11
+                TF(s,1) = (1/eta) * (c(1)+c(2)+c(3)+c(4)+c(2)*c(3)*D(2,3)+c(2)*c(4)*D(2,4)+c(3)*c(4)*D(3,4)&
+&                         +c(2)*c(3)*c(4)*D2(2,3,4) + c(1)* c(2)*( G(2,2)-G(1,2)+G(1,4)-G(2,4) )&
+&                         +c(1)* c(3)*( G(3,3)-G(1,3)+G(1,4)-G(3,4) ) &
+&                         +c(1)* c(2)* c(3)*( F(2,3)+G(1,4)*D(2,3)-G(2,2)*(G(1,3)+G(3,4))-G(3,3)*(G(1,2)+G(2,4)) &
+&                         + G(1,2)*(G(2,3)-G(2,4)+G(3,4))+G(1,3)*(G(2,3)+G(2,4)-G(3,4))+G(2,3)*(G(2,4)+G(3,4)))) 
+                !GAMMA12
+                TF(s,2) = (c(1)/eta) * (c(2)*( G(2,2)-G(1,2)+G(1,4)-G(2,4) )+c(3)*( G(1,4)-G(3,4)+G(2,3)-G(1,2) )&
+&                         -c(4)*( G(4,4)-G(1,4)+G(1,2)-G(2,4) ) + c(2)* c(3)*( F(2,3)+G(1,4)*D(2,3)-G(2,2)*(G(1,3)+G(3,4))&
+&                         -G(3,3)*(G(1,2)+G(2,4))+G(1,2)*(G(2,3)-G(2,4)+G(3,4))+ G(1,3)*(G(2,3)+G(2,4)-G(3,4))  &
+&                         +G(2,3)*(G(2,4)+G(3,4)) )-c(3)* c(4)*( F(3,4)+G(1,2)*D(3,4)-G(3,3)*(G(1,4)+G(2,4))-G(4,4)*(G(1,3) &
+&                         +G(2,3))+G(2,3)*(G(1,4)-G(1,3)+G(3,4))+G(2,4)*(G(1,3)-G(1,4)+G(3,4))+G(3,4)*(G(1,3)+G(1,4)) ) ) 
+                !GAMMA13
+                TF(s,3) = (c(1)/eta) * (c(2)*( G(1,4)-G(2,4)+G(2,3)-G(1,3) )+ c(3)*( G(3,3)-G(1,3)+G(1,4)-G(3,4) )&
+&                         -c(4)*( G(4,4)-G(1,4)+G(1,3)-G(3,4) )+c(2)* c(3)*( F(2,3)+G(1,4)*D(2,3)-G(2,2)*(G(1,3)+G(3,4)) &
+&                         -G(3,3)*(G(1,2)+G(2,4))+G(1,2)*(G(2,3)-G(2,4)+G(3,4))+ G(1,3)*(G(2,3)+G(2,4)-G(3,4))+G(2,3)*(G(2,4) & 
+&                         +G(3,4)) )-c(2)* c(4)*( F(2,4)+G(1,3)*D(2,4)-G(2,2)*(G(1,4)+G(3,4))- G(4,4)*(G(1,2)+G(2,3)) & 
+&                         +G(1,2)*(G(3,4)-G(2,3))+G(1,4)*(G(2,3)-G(3,4))+G(2,4)*(G(1,2)+G(1,4)+G(2,3)+G(3,4)) ) ) 
+                !GAMMA21
+                TF(s,4) = (c(2)/eta) * (c(1)*( G(1,1)-G(1,2)+G(2,4)-G(1,4) )+c(3)*( G(2,4)-G(3,4)+G(1,3)-G(1,2) )-c(4)*( G(4,4)&
+&                         -G(1,4)+G(1,2)-G(2,4) ) +c(1)* c(3)*( F(1,3)+G(2,4)*D(1,3)-G(1,1)*(G(2,3)+G(3,4))-G(3,3)*(G(1,2)+G(1,4))&                                        
+&                         +G(1,2)*(G(1,3)-G(1,4)+G(3,4))+ G(1,3)*(G(1,4)+G(2,3)+G(3,4))+G(2,3)*(G(1,4)-G(3,4)) ) & 
+&                         -c(3)* c(4)*( F(3,4)+G(1,2)*D(3,4)-G(3,3)*(G(1,4)+G(2,4))-G(4,4)*(G(1,3)+G(2,3)) &
+&                         + G(2,3)*(G(1,4)-G(1,3)+G(3,4))+G(2,4)*(G(1,3)-G(1,4)+G(3,4))+G(3,4)*(G(1,3)+G(1,4)) ) ) 
+                !GAMMA22
+                TF(s,5) = (1/eta)*(c(1)+c(2)+c(3)+c(4)+c(1)*c(3)*D(1,3)+c(1)*c(4)*D(1,4)+c(3)*c(4)*D(3,4)+c(1)*c(3)*c(4)*D2(1,3,4)&                   
+&                         +c(1)* c(2)*( G(1,1)-G(1,2)+G(2,4)-G(1,4) )+c(2)* c(3)*( G(3,3)-G(2,3)+G(2,4)-G(3,4) ) &
+&                         +c(1)* c(2)* c(3)*( F(1,3)+G(2,4)*D(1,3)-G(1,1)*(G(2,3)+G(3,4))-G(3,3)*(G(1,2)+G(1,4)) &
+&                         +G(1,2)*(G(1,3)-G(1,4)+G(3,4))+G(1,3)*(G(1,4)+G(2,3)+G(3,4))+G(2,3)*(G(1,4)-G(3,4)) ) )
+                !GAMMA23
+                TF(s,6) = (c(2)/eta) * (c(1)*( G(2,4)-G(1,4)+G(1,3)-G(2,3) ) + c(3)*( G(3,3)-G(2,3)+G(2,4)-G(3,4) ) & 
+&                         -c(4)*( G(4,4)-G(2,4)+G(2,3)-G(3,4) ) + c(1)* c(3)*( F(1,3)+G(2,4)*D(1,3)-G(1,1)*(G(2,3)+G(3,4))& 
+&                         -G(3,3)*(G(1,2)+G(1,4))+G(1,2)*(G(1,3)-G(1,4)+G(3,4))+ G(1,3)*(G(1,4)+G(2,3)+G(3,4))+G(2,3)*(G(1,4)& 
+&                         -G(3,4)) )-c(1)* c(4)*( F(1,4)+G(2,3)*D(1,4)-G(1,1)*(G(2,4)+G(3,4))-G(4,4)*(G(1,2)+G(1,3))&
+&                         + G(1,2)*(G(1,4)-G(1,3)+G(3,4))+G(1,4)*(G(1,3)+G(2,4)+G(3,4))+G(2,4)*(G(1,3)-G(3,4)) ) )
+                !GAMMA31         
+                TF(s,7) = (c(3)/eta) * (c(1)*( G(1,1)-G(1,3)+G(3,4)-G(1,4) )+ c(2)*( G(3,4)-G(2,4)+G(1,2)-G(1,3) )- c(4)*( G(4,4)&
+&                         -G(1,4)+G(1,3)-G(3,4) )+ c(1)* c(2)*( F(1,2)+G(3,4)*D(1,2)-G(1,1)*(G(2,3)+G(2,4))-G(2,2)*(G(1,3)+G(1,4))&                                      
+&                         +G(1,2)*(G(1,3)+G(2,3)+G(1,4)+G(2,4)) + G(1,3)*(G(2,4)-G(1,4))+G(2,3)*(G(1,4)-G(2,4)) ) & 
+&                         - c(2)* c(4)*( F(2,4)+G(1,3)*D(2,4)-G(2,2)*(G(1,4)+G(3,4))-G(4,4)*(G(1,2)+G(2,3)) &
+&                         +G(1,2)*(G(3,4)-G(2,3))+G(1,4)*(G(2,3)-G(3,4))+G(2,4)*(G(1,2)+G(1,4)+G(2,3)+G(3,4)) ) )               
+                !GAMMA32         
+                TF(s,8) = (c(3)/eta) * (c(1)*( G(3,4)-G(1,4)+G(1,2)-G(2,3) )+ c(2)*( G(2,2)-G(2,3)+G(3,4)-G(2,4) )&
+&                         -c(4)*( G(4,4)-G(2,4)+G(2,3)-G(3,4) ) +c(1)* c(2)*( F(1,2)+G(3,4)*D(1,2)-G(1,1)*(G(2,3)+G(2,4))&                                   
+&                         -G(2,2)*(G(1,3)+G(1,4))+G(1,2)*(G(1,3)+G(2,3)+G(1,4)+G(2,4))+ G(1,3)*(G(2,4)-G(1,4))  &
+&                         +G(2,3)*(G(1,4)-G(2,4)) )-c(1)* c(4)*( F(1,4)+G(2,3)*D(1,4)-G(1,1)*(G(2,4)+G(3,4))-G(4,4)*(G(1,2) &
+&                         +G(1,3))+ G(1,2)*(G(1,4)-G(1,3)+G(3,4))+G(1,4)*(G(1,3)+G(2,4)+G(3,4))+G(2,4)*(G(1,3)-G(3,4)) ) )    
+                !GAMMA33         
+                TF(s,9) = (1/eta)*(c(1)+c(2)+c(3)+c(4)+c(1)*c(2)*D(1,2)+c(1)*c(4)*D(1,4)+c(2)*c(4)*D(2,4)+c(1)*c(2)*c(4)*D2(1,2,4)&
+&                         +c(1)* c(3)*( G(1,1)-G(1,3)+G(3,4)-G(1,4) )+c(2)* c(3)*( G(2,2)-G(2,3)+G(3,4)-G(2,4) ) &
+&                         +c(1)* c(2)* c(3)*( F(1,2)+G(3,4)*D(1,2)-G(1,1)*(G(2,3)+G(2,4))-G(2,2)*(G(1,3)+G(1,4)) &
+&                         + G(1,2)*(G(1,3)+G(2,3)+G(1,4)+G(2,4))+G(1,3)*(G(2,4)-G(1,4))+G(2,3)*(G(1,4)-G(2,4)) ) ) 
+                if (extp==1) then !non-extrapolated thermodynamic factor
+                    this%TDF(s,:)=TF(s,:) 
+                else              !extrapolated thermodynamic factor
+                    this%TDF0(s,:)=TF(s,:) 
+                end if
+            
+                if (extp==1) then ! Non-extrapolation
+                    ! Auxiliary function for error propagation
+                    SN = c(2)*c(1)*c(3)*c(4)*(c(1)*G(1,1)*c(2)+c(1)*c(4)*G(4,4)+c(1)*c(3)*G(1,1)+c(1)*G(1,1)*c(4)+c(1)*c(3)*G(3,3)&
+&                        +c(3)*c(4)*G(4,4)+c(3)*c(4)*G(3,3)+c(2)*c(3)*G(2,2)+c(2)*c(3)*G(3,3)+c(2)*c(4)*G(4,4)+c(2)*c(4)*G(2,2)&
+&                        +G(2,2)*c(2)*c(1)-c(1)*c(3)*c(4)*G(1,4)**2-c(1)*c(3)*G(1,3)**2*c(4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)&
+&                        *c(4)*G(1,4)**2-c(1)*c(2)*c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(1,3)**2-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(2)&
+&                        *c(3)*G(2,3)**2-c(1)*c(2)*c(4)*G(2,4)**2-c(2)*c(3)*c(4)*G(2,4)**2-c(2)*c(3)*c(4)*G(3,4)**2-c(2)*c(3)*c(4)&
+&                        *G(2,3)**2+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,3)-2&
+&                        *c(1)*c(3)*c(4)*G(1,4)*G(3,3)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+c(1)*c(3)*G(1,1)*G(3,3)*c(4)+2*c(1)*c(3)&
+&                        *c(4)*G(1,3)*G(1,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*c(2)*G(1,1)*G(2,2)*c(4)-2*c(1)*c(2)*c(4)*G(2,2)&
+&                        *G(1,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,4)-2*c(1)*c(2)*c(4)*G(1,2)*G(4,4)&
+&                        +2*c(1)*c(2)*c(4)*G(1,2)*G(2,4)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)&
+&                        *c(3)*G(2,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(2,3)*G(1,3)-2*c(1)*c(2)*c(3)*G(1,2)*G(3,3)-2*c(1)*c(2)*c(3)*G(1,1)&
+&                        *G(2,3)+c(1)*c(2)*c(3)*G(1,1)*G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)&
+&                        *c(2)*c(3)*G(1,2)*G(2,3)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)+c(1)*c(2)*c(3)*G(3,3)*G(2,2)+c(1)*c(2)*c(4)*G(2,2)&
+&                        *G(4,4)+2*c(2)*c(3)*c(4)*G(2,4)*G(2,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+2*c(2)*c(3)*c(4)*G(3,4)*G(2,4)+c(2)&
+&                        *c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)-2*c(2)*c(3)*c(4)*G(2,4)*G(3,3)+2*c(2)*c(3)*c(4)&
+&                        *G(3,4)*G(2,3)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)+c(2)*c(3)*c(4)*G(3,3)*G(2,2)-2*c(3)*c(4)*G(3,4)-2*c(1)*c(4)&
+&                        *G(1,4)-2*c(2)*c(3)*G(2,3)-2*c(1)*c(3)*G(1,3)-2*c(2)*c(4)*G(2,4)-2*c(1)*c(2)*c(3)*c(4)*G(1,3)*G(2,4)&
+&                        *G(1,4)-2*c(1)*c(2)*c(3)*c(4)*G(1,4)*G(1,2)*G(3,4)+2*c(1)*c(2)*c(3)*c(4)*G(2,3)*G(3,4)*G(1,1)-2*c(1)*c(2)&
+&                        *c(3)*c(4)*G(2,4)*G(1,1)*G(3,3)-2*c(1)*c(2)*c(3)*c(4)*G(1,3)*G(1,2)*G(3,4)+2*c(1)*c(2)*c(3)*c(4)*G(1,4)&
+&                        *G(1,2)*G(3,3)-2*c(1)*c(2)*c(3)*c(4)*G(3,3)*G(2,2)*G(1,4)+2*c(1)*c(2)*c(3)*c(4)*G(2,2)*G(1,4)*G(1,3)+c(1)&
+&                        *c(2)*c(3)*c(4)*G(4,4)*G(3,3)*G(1,1)+2*c(1)*c(2)*c(3)*c(4)*G(3,3)*G(2,4)*G(1,4)-2*c(1)*c(2)*c(3)*c(4)&
+&                        *G(2,3)*G(1,4)*G(3,4)-2*c(1)*c(2)*c(3)*c(4)*G(1,2)*G(2,4)*G(3,4)+2*c(1)*c(2)*c(3)*c(4)*G(2,3)*G(1,3)&
+&                        *G(4,4)-2*c(1)*c(2)*c(3)*c(4)*G(2,2)*G(4,4)*G(1,3)-2*c(1)*c(2)*c(3)*c(4)*G(1,4)*G(2,3)*G(2,4)+2*c(1)*c(2)&
+&                        *c(3)*c(4)*G(1,2)*G(2,4)*G(3,3)+2*c(1)*c(2)*c(3)*c(4)*G(1,4)*G(3,4)*G(2,2)-2*c(1)*c(2)*c(3)*c(4)*G(1,2)&
+&                        *G(2,3)*G(3,4)-2*c(1)*c(2)*c(3)*c(4)*G(1,4)*G(2,3)*G(1,3)+c(1)*c(2)*c(3)*c(4)*G(1,1)*G(2,2)*G(4,4)+2*c(1)&
+&                        *c(2)*c(3)*c(4)*G(1,2)*G(2,4)*G(1,4)-2*c(1)*c(2)*c(3)*c(4)*G(3,4)*G(1,1)*G(2,2)+2*c(1)*c(2)*c(3)*c(4)&
+&                        *G(2,4)*G(2,3)*G(1,1)-2*c(1)*c(2)*c(3)*c(4)*G(1,2)*G(2,4)*G(1,3)-2*c(1)*c(2)*c(3)*c(4)*G(1,4)*G(1,2)&
+&                        *G(2,3)+c(1)*c(2)*c(3)*c(4)*G(1,1)*G(2,2)*G(3,3)+2*c(1)*c(2)*c(3)*c(4)*G(1,2)*G(2,3)*G(1,3)-2*c(1)*c(2)&
+&                        *c(3)*c(4)*G(1,2)*G(3,3)*G(4,4)-2*c(1)*c(2)*c(3)*c(4)*G(1,3)*G(3,4)*G(2,4)+2*c(1)*c(2)*c(3)*c(4)*G(1,2)&
+&                        *G(2,3)*G(4,4)+c(1)*c(2)*c(3)*c(4)*G(2,2)*G(3,3)*G(4,4)+2*c(1)*c(2)*c(3)*c(4)*G(2,3)*G(3,4)*G(2,4)+2*c(1)&
+&                        *c(2)*c(3)*c(4)*G(1,3)*G(3,4)*G(2,2)-2*c(1)*c(2)*c(3)*c(4)*G(1,3)*G(2,4)*G(2,3)+2*c(1)*c(2)*c(3)*c(4)&
+&                        *G(1,3)*G(3,4)*G(1,4)-2*c(1)*c(2)*c(3)*c(4)*G(2,3)*G(1,1)*G(4,4)+2*c(1)*c(2)*c(3)*c(4)*G(2,4)*G(3,4)&
+&                        *G(1,1)+2*c(1)*c(2)*c(3)*c(4)*G(1,3)*G(1,2)*G(4,4)-c(1)*c(2)*c(3)*c(4)*G(2,4)**2*G(3,3)-c(1)*c(2)*c(3)&
+&                        *c(4)*G(2,3)**2*G(4,4)-c(1)*c(2)*c(3)*c(4)*G(3,4)**2*G(2,2)+2*c(1)*c(2)*c(3)*c(4)*G(1,2)*G(3,4)**2+2*c(1)&
+&                        *c(2)*c(3)*c(4)*G(1,3)*G(2,4)**2-c(1)*c(2)*c(3)*c(4)*G(3,4)**2*G(1,1)-c(1)*c(2)*c(3)*c(4)*G(1,3)**2&
+&                        *G(4,4)-c(1)*c(2)*c(3)*c(4)*G(1,4)**2*G(3,3)+2*c(1)*c(2)*c(3)*c(4)*G(1,4)**2*G(2,3)+2*c(1)*c(2)*c(3)*c(4)&
+&                        *G(1,3)**2*G(2,4)-c(1)*c(2)*c(3)*c(4)*G(2,4)**2*G(1,1)-c(1)*c(2)*c(3)*c(4)*G(1,2)**2*G(4,4)+2*c(1)*c(2)&
+&                        *c(3)*c(4)*G(1,2)**2*G(3,4)-c(1)*c(2)*c(3)*c(4)*G(2,3)**2*G(1,1)-c(1)*c(2)*c(3)*c(4)*G(1,2)**2*G(3,3)&
+&                        -c(1)*c(2)*c(3)*c(4)*G(1,3)**2*G(2,2)+2*c(1)*c(2)*c(3)*c(4)*G(2,3)**2*G(1,4)-c(1)*c(2)*c(3)*c(4)*G(2,2)&
+&                        *G(1,4)**2+c(1)+c(2)+c(3)+c(4)-2*c(1)*c(2)*G(1,2)) 
+                    ! Error propagation for thermodynamic factor
+                    ! Derivative d (dmu_i/dx_j) /  dG_k,m
+                    DdmudxdG(1, 1, 1, 1) =  (-(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)&
+&                                           *G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)&
+&                                           *c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)&
+&                                           *G(2,3)+c(2)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)&
+&                                           *c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)&
+&                                           *c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2&
+&                                           *c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))**2*c(3)**2*c(4)**2*c(2)**2&
+&                                           / SN**2 / 1*c(1)**2-(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2&
+&                                           +c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))*c(1)**3*c(2)**2*c(3)**2*c(4)**2 / SN**2 / 1*(c(2)*c(3)*c(4)*G(3,3)&
+&                                           *G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)&
+&                                           *c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)&
+&                                           *G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2&
+&                                           +2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)&
+&                                           *G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))) 
+                    DdmudxdG(1, 1, 1, 2) =  (2*(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)&
+&                                           *G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2&
+&                                           *c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)&
+&                                           *c(4)*G(4,4)*G(2,3)+c(2)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)&
+&                                           *G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)&
+&                                           *G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)&
+&                                           *c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(3)**2*c(4)**2&
+&                                           *c(2)**3 / SN**2 / 1*c(1)**2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))+(-c(2)-c(2)*G(3,3)*c(3)-c(2)*G(2,4)*c(3)+c(2)&
+&                                           *c(3)*G(3,4)+c(2)*c(3)*G(2,3))*c(1)*c(2)*c(3)*c(4) / SN / 1+2*(1-c(3)&
+&                                           *G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)&
+&                                           *G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)&
+&                                           *G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)&
+&                                           *G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)&
+&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))*c(1)**3*c(2)**3*c(3)**2&
+&                                           *c(4)**2 / SN**2 / 1*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)&
+&                                           *G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)&
+&                                           *c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)&
+&                                           *G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)*G(3,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))
+                    DdmudxdG(1, 1, 1, 3) =  (-2*(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)&
+&                                           *G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2&
+&                                           *c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)&
+&                                           *c(4)*G(4,4)*G(2,3)+c(2)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)&
+&                                           *G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)&
+&                                           *G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)&
+&                                           *c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(3)**3*c(4)**2&
+&                                           *c(2)**2 / SN**2 / 1*c(1)**2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))+(-c(3)-c(2)*G(2,2)*c(3)-c(2)*c(3)*G(3,4)+c(2)*c(3)*G(2,3)+c(2)*G(2,4)&
+&                                           *c(3))*c(1)*c(2)*c(3)*c(4) / SN / 1-2*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)&
+&                                           *G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)&
+&                                           *c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)&
+&                                           *G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)&
+&                                           *G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)&
+&                                           *G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)&
+&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))*c(1)**3*c(2)**2*c(3)**3*c(4)**2 / SN**2 / 1&
+&                                           *(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)&
+&                                           *G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)&
+&                                           *G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)&
+&                                           *G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)&
+&                                           *G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
+                    DdmudxdG(1, 1, 1, 4) =  (2*(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)&
+&                                           *G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2&
+&                                           *c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)&
+&                                           *c(4)*G(4,4)*G(2,3)+c(2)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)&
+&                                           *G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)&
+&                                           *G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)&
+&                                           *c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(3)**2*c(4)**3&
+&                                           *c(2)**2 / SN**2 / 1*c(1)**2*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)&
+&                                           *c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)&
+&                                           *G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)&
+&                                           *G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)&
+&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))+(c(2)+c(3)+c(2)*G(2,2)*c(3)+c(2)*G(3,3)*c(3)-2&
+&                                           *c(2)*c(3)*G(2,3))*c(1)*c(2)*c(3)*c(4) / SN / 1+2*(1-c(3)*G(1,3)-c(2)*c(3)&
+&                                           *G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)&
+&                                           *c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)&
+&                                           *G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)&
+&                                           *G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)&
+&                                           *G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)&
+&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))**2*c(1)**3*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1)  
+                    DdmudxdG(1, 1, 2, 2) =  ((c(2)*c(3)*c(4)*G(3,3)+c(2)*c(3)*c(4)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)+c(2)&
+&                                           *c(3)+c(2)*c(4))*c(3)*c(4)*c(2) / SN / 1-(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)&
+&                                           *c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)&
+&                                           *c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)&
+&                                           *G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)*c(4)&
+&                                           *G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2&
+&                                           *c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)&
+&                                           *G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(3)**2*c(4)**2*c(2)**3 / SN**2 / 1&
+&                                           *c(1)*(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)&
+&                                           *c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)&
+&                                           *c(3)*c(4)*G(1,3)*G(4,4)+c(1)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)&
+&                                           *G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)&
+&                                           *c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2&
+&                                           *c(1)*c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))+(-c(2)&
+&                                           *c(3)*G(1,3)+c(2)*G(3,3)*c(3)+c(2)+c(2)*c(3)*G(1,4)-c(2)*c(3)*G(3,4))*c(1)*c(2)&
+&                                           *c(3)*c(4) / SN / 1-(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)&
+&                                           *G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)&
+&                                           *G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))*c(1)**2*c(2)**3*c(3)**2*c(4)**2 / SN**2 / 1*(c(1)*c(3)*G(1,1)*G(3,3)&
+&                                           *c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)&
+&                                           *c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)&
+&                                           *G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)&
+&                                           *c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(1, 1, 2, 3) =  ((-2*c(2)*c(3)*c(4)*G(4,4)-2*c(2)*c(3)*c(4)*G(2,3)+2*c(2)*c(3)*c(4)*G(3,4)+2&
+&                                           *c(2)*c(3)*c(4)*G(2,4)-2*c(2)*c(3))*c(3)*c(4)*c(2) / SN / 1+2*(c(2)*c(3)*c(4)&
+&                                           *G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)&
+&                                           *G(2,2)*c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)&
+&                                           *G(2,4)*G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)&
+&                                           *G(2,3)+c(2)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)&
+&                                           *c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)&
+&                                           *c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2&
+&                                           *c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(3)**3*c(4)**2&
+&                                           *c(2)**3 / SN**2 / 1*c(1)*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)&
+&                                           *G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)&
+&                                           *G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))+(-2*c(2)*c(3)*G(2,3)+c(2)*c(3)*G(3,4)+c(2)*c(3)*G(1,3)+c(2)*c(3)&
+&                                           *G(1,2)-2*c(2)*c(3)*G(1,4)+c(2)*G(2,4)*c(3))*c(1)*c(2)*c(3)*c(4) / SN / 1+2&
+&                                           *(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)&
+&                                           *G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)&
+&                                           *G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)&
+&                                           *G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)&
+&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))*c(1)**2*c(2)**3*c(3)**3&
+&                                           *c(4)**2 / SN**2 / 1*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)&
+&                                           *G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)&
+&                                           *G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
+                    DdmudxdG(1, 1, 2, 4) =  ((-2*c(2)*c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)+2*c(2)*c(3)*c(4)*G(3,4)+2&
+&                                           *c(2)*c(3)*c(4)*G(2,3)-2*c(2)*c(4))*c(3)*c(4)*c(2) / SN / 1-2*(c(2)*c(3)*c(4)&
+&                                           *G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)&
+&                                           *G(2,2)*c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)&
+&                                           *G(2,4)*G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)&
+&                                           *G(2,3)+c(2)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)&
+&                                           *c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)&
+&                                           *c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2&
+&                                           *c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(3)**2*c(4)**3&
+&                                           *c(2)**3 / SN**2 / 1*c(1)*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)&
+&                                           *c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)&
+&                                           *G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)&
+&                                           *c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)&
+&                                           *G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)&
+&                                           *G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)&
+&                                           *G(1,1))+(-c(2)-c(2)*c(3)*G(1,2)+c(2)*c(3)*G(1,3)-c(2)*G(3,3)*c(3)+c(2)*c(3)&
+&                                           *G(2,3))*c(1)*c(2)*c(3)*c(4) / SN / 1-2*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)&
+&                                           *G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)&
+&                                           *c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)&
+&                                           *G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)&
+&                                           *G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)&
+&                                           *G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)&
+&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))*c(1)**2*c(2)**3*c(3)**2*c(4)**3 / SN**2 / 1&
+&                                           *(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)&
+&                                           *G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))  
+                    DdmudxdG(1, 1, 3, 3) =  ((c(2)*c(3)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)-2*c(2)*c(3)*c(4)*G(2,4)+c(2)&
+&                                           *c(3)+c(3)*c(4))*c(3)*c(4)*c(2) / SN / 1-(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)&
+&                                           *c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)&
+&                                           *c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)&
+&                                           *G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)*c(4)&
+&                                           *G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2&
+&                                           *c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)&
+&                                           *G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(3)**3*c(4)**2*c(2)**2 / SN**2 / 1&
+&                                           *c(1)*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)&
+&                                           *c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)&
+&                                           *G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)&
+&                                           *c(2)*c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)&
+&                                           *G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)&
+&                                           *c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2&
+&                                           *c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4))+(c(2)&
+&                                           *G(2,2)*c(3)+c(3)-c(2)*c(3)*G(1,2)-c(2)*G(2,4)*c(3)+c(2)*c(3)*G(1,4))*c(1)*c(2)&
+&                                           *c(3)*c(4) / SN / 1-(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)&
+&                                           *G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)&
+&                                           *G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))*c(1)**2*c(2)**2*c(3)**3*c(4)**2 / SN**2 / 1*(c(1)*c(2)*G(1,1)*G(2,2)&
+&                                           *c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)&
+&                                           *c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)&
+&                                           *G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)&
+&                                           *c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)&
+&                                           *G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)&
+&                                           *G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))  
+                    DdmudxdG(1, 1, 3, 4) =  ((-2*c(2)*c(3)*c(4)*G(2,2)-2*c(2)*c(3)*c(4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)+2&
+&                                           *c(2)*c(3)*c(4)*G(2,4)-2*c(3)*c(4))*c(3)*c(4)*c(2) / SN / 1+2*(c(2)*c(3)*c(4)&
+&                                           *G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)&
+&                                           *G(2,2)*c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)&
+&                                           *G(2,4)*G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)&
+&                                           *G(2,3)+c(2)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)&
+&                                           *c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)&
+&                                           *c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2&
+&                                           *c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(3)**3*c(4)**3&
+&                                           *c(2)**2 / SN**2 / 1*c(1)*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)&
+&                                           *G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2&
+&                                           *c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)&
+&                                           *c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)&
+&                                           *G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))+(-c(3)+c(2)&
+&                                           *c(3)*G(2,3)-c(2)*c(3)*G(1,3)+c(2)*c(3)*G(1,2)-c(2)*G(2,2)*c(3))*c(1)*c(2)*c(3)&
+&                                           *c(4) / SN / 1+2*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2&
+&                                           +c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))*c(1)**2*c(2)**2*c(3)**3*c(4)**3 / SN**2 / 1*(1+c(1)*c(2)*G(1,2)&
+&                                           *G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)&
+&                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
+&                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))  
+                    DdmudxdG(1, 1, 4, 4) =  ((c(2)*c(3)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,3)+c(2)&
+&                                           *c(4)+c(3)*c(4))*c(3)*c(4)*c(2) / SN / 1-(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)&
+&                                           *c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)&
+&                                           *c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)&
+&                                           *G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)*c(4)&
+&                                           *G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2&
+&                                           *c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)&
+&                                           *G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(3)**2*c(4)**3*c(2)**2 / SN**2 / 1&
+&                                           *c(1)*(c(1)*c(2)*c(3)*G(1,1)*G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)&
+&                                           *c(3)*G(1,1)*G(2,3)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)&
+&                                           *G(2,2)-2*c(1)*c(2)*c(3)*G(1,3)*G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)&
+&                                           *c(2)*c(3)*G(1,2)*G(3,3)+c(1)*G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)&
+&                                           *G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)&
+&                                           *G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)&
+&                                           *G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)&
+&                                           *G(2,3)+c(2)+c(3))-(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2&
+&                                           +c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))*c(1)**2*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1*(c(1)*c(2)*c(3)*G(1,1)&
+&                                           *G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)*c(3)*G(1,1)*G(2,3)+c(1)*G(1,1)&
+&                                           *c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)*G(2,2)-2*c(1)*c(2)*c(3)*G(1,3)&
+&                                           *G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)*c(2)*c(3)*G(1,2)*G(3,3)+c(1)&
+&                                           *G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)&
+&                                           *G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)&
+&                                           *c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)&
+&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
+                    DdmudxdG(1, 2, 1, 1) =  ((1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)&
+&                                           *G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)&
+&                                           *G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)*G(3,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)&
+&                                           *G(3,3))*c(1)**3*c(2)**2*c(3)**2*c(4)**2 / SN**2 / 1*(c(2)*c(3)*c(4)*G(3,3)&
+&                                           *G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)&
+&                                           *c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)&
+&                                           *G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)&
+&                                           *G(3,4)**2+2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)&
+&                                           *G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))-(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)&
+&                                           *G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)&
+&                                           *c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)&
+&                                           *G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)&
+&                                           *G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)&
+&                                           *G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)&
+&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))*c(1)**3*c(2)**2*c(3)**2*c(4)**2 / SN**2 / 1&
+&                                           *(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)&
+&                                           *G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2&
+&                                           *c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)&
+&                                           *c(4)*G(4,4)*G(2,3)+c(2)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)&
+&                                           *G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)&
+&                                           *G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)&
+&                                           *c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(1, 2, 1, 2) =  (-(c(3)+c(4)+c(3)*c(4)*G(3,3)-2*c(3)*c(4)*G(3,4)+c(3)*c(4)*G(4,4))*c(1)*c(2)&
+&                                           *c(3)*c(4) / SN / 1-2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)&
+&                                           *G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)&
+&                                           *c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)&
+&                                           *G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)*G(3,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)&
+&                                           *G(3,3))**2*c(1)**3*c(2)**3*c(3)**2*c(4)**2 / SN**2 / 1+(-c(2)-c(2)*G(3,3)&
+&                                           *c(3)-c(2)*G(2,4)*c(3)+c(2)*c(3)*G(3,4)+c(2)*c(3)*G(2,3))*c(1)*c(2)*c(3)&
+&                                           *c(4) / SN / 1+2*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2&
+&                                           +c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))*c(1)**3*c(2)**3*c(3)**2*c(4)**2 / SN**2 / 1*(1+c(3)*G(1,2)-c(4)&
+&                                           *G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)&
+&                                           *G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2&
+&                                           +c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)&
+&                                           *c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)&
+&                                           *G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
+                    DdmudxdG(1, 2, 1, 3) =  (-(-c(3)-c(3)*c(4)*G(4,4)-c(4)*c(3)*G(2,3)+c(3)*c(4)*G(2,4)+c(3)*c(4)*G(3,4))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))*c(1)**3*c(2)**2*c(3)**3*c(4)**2 / SN**2 / 1&
+&                                           *(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)&
+&                                           *G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)&
+&                                           *G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)&
+&                                           *G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)&
+&                                           *G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2))+(-c(3)-c(2)*G(2,2)&
+&                                           *c(3)-c(2)*c(3)*G(3,4)+c(2)*c(3)*G(2,3)+c(2)*G(2,4)*c(3))*c(1)*c(2)*c(3)&
+&                                           *c(4) / SN / 1-2*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2&
+&                                           +c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))*c(1)**3*c(2)**2*c(3)**3*c(4)**2 / SN**2 / 1*(-1+c(4)*G(1,4)+c(2)*c(4)&
+&                                           *G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)&
+&                                           *G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)&
+&                                           *G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)&
+&                                           *G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
+                    DdmudxdG(1, 2, 1, 4) =  (-(-c(4)+c(4)*c(3)*G(2,3)+c(3)*c(4)*G(3,4)-c(3)*c(4)*G(2,4)-c(3)*c(4)*G(3,3))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))*c(1)**3*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1&
+&                                           *(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)&
+&                                           *G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)&
+&                                           *G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)&
+&                                           *G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)&
+&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))+(c(2)+c(3)+c(2)&
+&                                           *G(2,2)*c(3)+c(2)*G(3,3)*c(3)-2*c(2)*c(3)*G(2,3))*c(1)*c(2)*c(3)&
+&                                           *c(4) / SN / 1+2*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2&
+&                                           +c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))**2*c(1)**3*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1)  
+                    DdmudxdG(1, 2, 2, 2) =  ((1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)&
+&                                           *G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)&
+&                                           *G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)*G(3,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)&
+&                                           *G(3,3))*c(1)**2*c(2)**3*c(3)**2*c(4)**2 / SN**2 / 1*(c(1)*c(3)*G(1,1)*G(3,3)&
+&                                           *c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)&
+&                                           *c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)&
+&                                           *G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)&
+&                                           *c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))+(-c(2)*c(3)*G(1,3)+c(2)*G(3,3)&
+&                                           *c(3)+c(2)+c(2)*c(3)*G(1,4)-c(2)*c(3)*G(3,4))*c(1)*c(2)*c(3)&
+&                                           *c(4) / SN / 1-(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)&
+&                                           *c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))*c(1)**2*c(2)**3*c(3)**2*c(4)**2 / SN**2 / 1*(c(1)*c(3)*G(1,1)*G(3,3)&
+&                                           *c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)&
+&                                           *c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)&
+&                                           *G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)&
+&                                           *c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(1, 2, 2, 3) =  (-(-c(3)-c(3)*c(4)*G(4,4)-c(4)*G(1,3)*c(3)+c(3)*c(4)*G(1,4)+c(3)*c(4)*G(3,4))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))*c(1)**2*c(2)**3*c(3)**3*c(4)**2 / SN**2 / 1&
+&                                           *(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)&
+&                                           *G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)&
+&                                           *c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)&
+&                                           *G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)&
+&                                           *G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1))+(-2*c(2)*c(3)&
+&                                           *G(2,3)+c(2)*c(3)*G(3,4)+c(2)*c(3)*G(1,3)+c(2)*c(3)*G(1,2)-2*c(2)*c(3)&
+&                                           *G(1,4)+c(2)*G(2,4)*c(3))*c(1)*c(2)*c(3)*c(4) / SN / 1+2*(1-c(3)*G(1,3)-c(2)&
+&                                           *c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)&
+&                                           *c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)&
+&                                           *c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)&
+&                                           *G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)&
+&                                           *G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)&
+&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))*c(1)**2*c(2)**3*c(3)**3&
+&                                           *c(4)**2 / SN**2 / 1*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)&
+&                                           *G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)&
+&                                           *G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
+                    DdmudxdG(1, 2, 2, 4) =  (-(-c(4)-c(3)*c(4)*G(3,3)+c(4)*G(1,3)*c(3)+c(3)*c(4)*G(3,4)-c(3)*c(4)*G(1,4))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))*c(1)**2*c(2)**3*c(3)**2*c(4)**3 / SN**2 / 1&
+&                                           *(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)&
+&                                           *G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))+(-c(2)-c(2)&
+&                                           *c(3)*G(1,2)+c(2)*c(3)*G(1,3)-c(2)*G(3,3)*c(3)+c(2)*c(3)*G(2,3))*c(1)*c(2)*c(3)&
+&                                           *c(4) / SN / 1-2*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2&
+&                                           +c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))*c(1)**2*c(2)**3*c(3)**2*c(4)**3 / SN**2 / 1*(-1+c(1)*G(1,4)*c(3)&
+&                                           *G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)&
+&                                           *G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)&
+&                                           *G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)&
+&                                           *c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)&
+&                                           *G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)*G(1,2)&
+&                                           *G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)*G(1,2)&
+&                                           *G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))  
+                    DdmudxdG(1, 2, 3, 3) =  (-(G(1,2)*c(4)*c(3)-c(3)*c(4)*G(2,4)+c(3)*c(4)*G(4,4)+c(3)-c(3)*c(4)*G(1,4))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))*c(1)**2*c(2)**2*c(3)**3*c(4)**2 / SN**2 / 1&
+&                                           *(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)&
+&                                           *G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2&
+&                                           *c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)&
+&                                           *c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)&
+&                                           *G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)&
+&                                           *G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)&
+&                                           *G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4))+(c(2)*G(2,2)&
+&                                           *c(3)+c(3)-c(2)*c(3)*G(1,2)-c(2)*G(2,4)*c(3)+c(2)*c(3)*G(1,4))*c(1)*c(2)*c(3)&
+&                                           *c(4) / SN / 1-(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)&
+&                                           *c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))*c(1)**2*c(2)**2*c(3)**3*c(4)**2 / SN**2 / 1*(c(1)*c(2)*G(1,1)*G(2,2)&
+&                                           *c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)&
+&                                           *c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)&
+&                                           *G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)&
+&                                           *c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)&
+&                                           *G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)&
+&                                           *G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))  
+                    DdmudxdG(1, 2, 3, 4) =  (-(-2*c(3)*c(4)*G(3,4)-2*G(1,2)*c(4)*c(3)+c(3)*c(4)*G(2,4)+c(4)*G(1,3)&
+&                                           *c(3)+c(4)*c(3)*G(2,3)+c(3)*c(4)*G(1,4))*c(1)*c(2)*c(3)*c(4) / SN / 1-2*(1+c(3)&
+&                                           *G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)&
+&                                           *c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2&
+&                                           +c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)&
+&                                           *c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)&
+&                                           *G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))*c(1)**2*c(2)**2*c(3)**3*c(4)**3 / SN**2 / 1&
+&                                           *(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)&
+&                                           *G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)&
+&                                           *c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)&
+&                                           *G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)&
+&                                           *G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))+(-c(3)+c(2)&
+&                                           *c(3)*G(2,3)-c(2)*c(3)*G(1,3)+c(2)*c(3)*G(1,2)-c(2)*G(2,2)*c(3))*c(1)*c(2)*c(3)&
+&                                           *c(4) / SN / 1+2*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2&
+&                                           +c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))*c(1)**2*c(2)**2*c(3)**3*c(4)**3 / SN**2 / 1*(1+c(1)*c(2)*G(1,2)&
+&                                           *G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)&
+&                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
+&                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))  
+                    DdmudxdG(1, 2, 4, 4) =  (-(-c(4)*c(3)*G(2,3)+c(3)*c(4)*G(3,3)+c(4)-c(4)*G(1,3)*c(3)+G(1,2)*c(4)*c(3))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))*c(1)**2*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1&
+&                                           *(c(1)*c(2)*c(3)*G(1,1)*G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)*c(3)&
+&                                           *G(1,1)*G(2,3)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)*G(2,2)-2&
+&                                           *c(1)*c(2)*c(3)*G(1,3)*G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)*c(2)&
+&                                           *c(3)*G(1,2)*G(3,3)+c(1)*G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)&
+&                                           *c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)&
+&                                           *G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3))-(1-c(3)&
+&                                           *G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)&
+&                                           *G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)&
+&                                           *G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)&
+&                                           *G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)&
+&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))*c(1)**2*c(2)**2&
+&                                           *c(3)**2*c(4)**3 / SN**2 / 1*(c(1)*c(2)*c(3)*G(1,1)*G(2,2)+c(1)*c(2)*c(3)*G(1,1)&
+&                                           *G(3,3)-2*c(1)*c(2)*c(3)*G(1,1)*G(2,3)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(3)+c(1)&
+&                                           *c(2)*c(3)*G(3,3)*G(2,2)-2*c(1)*c(2)*c(3)*G(1,3)*G(2,2)+c(2)*G(2,2)*c(1)+c(2)&
+&                                           *G(2,2)*c(3)-2*c(1)*c(2)*c(3)*G(1,2)*G(3,3)+c(1)*G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2&
+&                                           *c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)&
+&                                           *G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)&
+&                                           *G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
+                    DdmudxdG(1, 3, 1, 1) =  (-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)&
+&                                           *G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)&
+&                                           *G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)&
+&                                           *G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)&
+&                                           *G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2))*c(1)**3*c(2)**2*c(3)**2&
+&                                           *c(4)**2 / SN**2 / 1*(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)&
+&                                           *G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)*G(2,2)+c(2)&
+&                                           *c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)*c(3)+c(3)&
+&                                           *c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)*c(4)*G(4,4)+c(3)*c(4)&
+&                                           *G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)&
+&                                           *G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)&
+&                                           *c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)&
+&                                           *G(3,4)+c(3)+c(4))-(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2&
+&                                           +c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))*c(1)**3*c(2)**2*c(3)**2*c(4)**2 / SN**2 / 1*(c(2)*c(3)*c(4)*G(3,3)&
+&                                           *G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)&
+&                                           *c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)&
+&                                           *G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2&
+&                                           +2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)&
+&                                           *G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(1, 3, 1, 2) =  ((c(2)+c(2)*c(4)*G(4,4)-c(2)*c(4)*G(2,4)-c(2)*c(4)*G(3,4)+c(4)*c(2)*G(2,3))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))*c(1)**3*c(2)**3*c(3)**2*c(4)**2 / SN**2 / 1*(1+c(3)*G(1,2)-c(4)&
+&                                           *G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)&
+&                                           *G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2&
+&                                           +c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)&
+&                                           *c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)&
+&                                           *G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))+(-c(2)-c(2)*G(3,3)*c(3)-c(2)*G(2,4)*c(3)+c(2)&
+&                                           *c(3)*G(3,4)+c(2)*c(3)*G(2,3))*c(1)*c(2)*c(3)*c(4) / SN / 1+2*(1-c(3)&
+&                                           *G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)&
+&                                           *G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)&
+&                                           *G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)&
+&                                           *G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)&
+&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))*c(1)**3*c(2)**3*c(3)**2&
+&                                           *c(4)**2 / SN**2 / 1*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)&
+&                                           *G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)&
+&                                           *c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)&
+&                                           *G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)*G(3,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
+                    DdmudxdG(1, 3, 1, 3) =  ((-c(2)-c(2)*c(4)*G(4,4)-c(2)*c(4)*G(2,2)-c(4)+2*c(2)*c(4)*G(2,4))*c(1)*c(2)&
+&                                           *c(3)*c(4) / SN / 1-2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)&
+&                                           *G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))**2*c(1)**3*c(2)**2*c(3)**3*c(4)**2 / SN**2 / 1+(-c(3)-c(2)*G(2,2)&
+&                                           *c(3)-c(2)*c(3)*G(3,4)+c(2)*c(3)*G(2,3)+c(2)*G(2,4)*c(3))*c(1)*c(2)*c(3)&
+&                                           *c(4) / SN / 1-2*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2&
+&                                           +c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))*c(1)**3*c(2)**2*c(3)**3*c(4)**2 / SN**2 / 1*(-1+c(4)*G(1,4)+c(2)*c(4)&
+&                                           *G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)&
+&                                           *G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)&
+&                                           *G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)&
+&                                           *G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
+                    DdmudxdG(1, 3, 1, 4) =  ((c(4)-c(4)*c(2)*G(2,3)-c(2)*c(4)*G(2,4)+c(2)*c(4)*G(3,4)+c(2)*c(4)*G(2,2))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))*c(1)**3*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1*(1-c(3)*G(1,3)-c(2)*c(3)&
+&                                           *G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)&
+&                                           *c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)&
+&                                           *G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)&
+&                                           *G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)&
+&                                           *G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)&
+&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))+(c(2)+c(3)+c(2)*G(2,2)*c(3)+c(2)*G(3,3)*c(3)-2&
+&                                           *c(2)*c(3)*G(2,3))*c(1)*c(2)*c(3)*c(4) / SN / 1+2*(1-c(3)*G(1,3)-c(2)*c(3)&
+&                                           *G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)&
+&                                           *c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)&
+&                                           *G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)&
+&                                           *G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)&
+&                                           *G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)&
+&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))**2*c(1)**3*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1)  
+                    DdmudxdG(1, 3, 2, 2) =  ((-c(2)*c(4)*G(4,4)-c(2)+c(2)*c(4)*G(3,4)-c(4)*G(1,3)*c(2)+c(2)*c(4)*G(1,4))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))*c(1)**2*c(2)**3*c(3)**2*c(4)**2 / SN**2 / 1*(c(1)*c(3)*G(1,1)*G(3,3)&
+&                                           *c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)&
+&                                           *c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)&
+&                                           *G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)&
+&                                           *c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))+(-c(2)*c(3)*G(1,3)+c(2)*G(3,3)&
+&                                           *c(3)+c(2)+c(2)*c(3)*G(1,4)-c(2)*c(3)*G(3,4))*c(1)*c(2)*c(3)&
+&                                           *c(4) / SN / 1-(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)&
+&                                           *c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))*c(1)**2*c(2)**3*c(3)**2*c(4)**2 / SN**2 / 1*(c(1)*c(3)*G(1,1)*G(3,3)&
+&                                           *c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)&
+&                                           *c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)&
+&                                           *G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)&
+&                                           *c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(1, 3, 2, 3) =  ((c(2)-c(2)*c(4)*G(1,4)-c(2)*c(4)*G(2,4)+c(4)*c(2)*G(1,2)+c(2)*c(4)*G(4,4))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))*c(1)**2*c(2)**3*c(3)**3*c(4)**2 / SN**2 / 1*(1+c(1)*c(4)*G(1,4)&
+&                                           *G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)&
+&                                           *G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)&
+&                                           *c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)&
+&                                           *G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)&
+&                                           *G(3,4)-c(4)*G(2,4)*c(1)*G(1,1))+(-2*c(2)*c(3)*G(2,3)+c(2)*c(3)*G(3,4)+c(2)&
+&                                           *c(3)*G(1,3)+c(2)*c(3)*G(1,2)-2*c(2)*c(3)*G(1,4)+c(2)*G(2,4)*c(3))*c(1)*c(2)&
+&                                           *c(3)*c(4) / SN / 1+2*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2&
+&                                           +c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))*c(1)**2*c(2)**3*c(3)**3*c(4)**2 / SN**2 / 1*(1+c(1)*c(4)*G(1,4)&
+&                                           *G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)&
+&                                           *G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)&
+&                                           *c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)&
+&                                           *G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)&
+&                                           *G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
+                    DdmudxdG(1, 3, 2, 4) =  ((2*c(2)*c(4)*G(2,4)-c(4)*c(2)*G(1,2)-c(2)*c(4)*G(3,4)-c(4)*c(2)*G(2,3)-c(2)&
+&                                           *c(4)*G(1,4)+2*c(4)*G(1,3)*c(2))*c(1)*c(2)*c(3)*c(4) / SN / 1-2*(-1+c(4)&
+&                                           *G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)&
+&                                           *G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)&
+&                                           *G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)&
+&                                           *G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)&
+&                                           *G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2))*c(1)**2*c(2)**3*c(3)**2&
+&                                           *c(4)**3 / SN**2 / 1*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)&
+&                                           *c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)&
+&                                           *G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)&
+&                                           *c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)&
+&                                           *G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)&
+&                                           *G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)&
+&                                           *G(1,1))+(-c(2)-c(2)*c(3)*G(1,2)+c(2)*c(3)*G(1,3)-c(2)*G(3,3)*c(3)+c(2)*c(3)&
+&                                           *G(2,3))*c(1)*c(2)*c(3)*c(4) / SN / 1-2*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)&
+&                                           *G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)&
+&                                           *c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)&
+&                                           *G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)&
+&                                           *G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)&
+&                                           *G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)&
+&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))*c(1)**2*c(2)**3*c(3)**2*c(4)**3 / SN**2 / 1&
+&                                           *(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)&
+&                                           *G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))  
+                    DdmudxdG(1, 3, 3, 3) =  (-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)&
+&                                           *G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)&
+&                                           *G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)&
+&                                           *G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)&
+&                                           *G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2))*c(1)**2*c(2)**2*c(3)**3&
+&                                           *c(4)**2 / SN**2 / 1*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)&
+&                                           *G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)&
+&                                           *c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)&
+&                                           *c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2&
+&                                           *c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2&
+&                                           *c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)&
+&                                           *G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)+c(4))+(c(2)*G(2,2)*c(3)+c(3)-c(2)*c(3)*G(1,2)-c(2)*G(2,4)&
+&                                           *c(3)+c(2)*c(3)*G(1,4))*c(1)*c(2)*c(3)*c(4) / SN / 1-(1-c(3)*G(1,3)-c(2)*c(3)&
+&                                           *G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)&
+&                                           *c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)&
+&                                           *G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)&
+&                                           *G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)&
+&                                           *G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)&
+&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))*c(1)**2*c(2)**2*c(3)**3*c(4)**2 / SN**2 / 1&
+&                                           *(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)&
+&                                           *G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2&
+&                                           *c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)&
+&                                           *c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)&
+&                                           *G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)&
+&                                           *G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)&
+&                                           *G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))  
+                    DdmudxdG(1, 3, 3, 4) =  ((c(4)+c(2)*c(4)*G(2,2)-c(2)*c(4)*G(2,4)-c(4)*c(2)*G(1,2)+c(2)*c(4)*G(1,4))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))*c(1)**2*c(2)**2*c(3)**3*c(4)**3 / SN**2 / 1*(1+c(1)*c(2)*G(1,2)&
+&                                           *G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)&
+&                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
+&                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))+(-c(3)+c(2)*c(3)*G(2,3)-c(2)*c(3)&
+&                                           *G(1,3)+c(2)*c(3)*G(1,2)-c(2)*G(2,2)*c(3))*c(1)*c(2)*c(3)*c(4) / SN / 1+2&
+&                                           *(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)&
+&                                           *G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)&
+&                                           *G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)&
+&                                           *G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)&
+&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))*c(1)**2*c(2)**2*c(3)**3&
+&                                           *c(4)**3 / SN**2 / 1*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)&
+&                                           *G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2&
+&                                           *c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)&
+&                                           *c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)&
+&                                           *G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))  
+                    DdmudxdG(1, 3, 4, 4) =  ((-c(2)*c(4)*G(2,2)-c(4)-c(4)*G(1,3)*c(2)+c(4)*c(2)*G(1,2)+c(4)*c(2)*G(2,3))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))*c(1)**2*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1*(c(1)*c(2)*c(3)*G(1,1)&
+&                                           *G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)*c(3)*G(1,1)*G(2,3)+c(1)*G(1,1)&
+&                                           *c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)*G(2,2)-2*c(1)*c(2)*c(3)*G(1,3)&
+&                                           *G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)*c(2)*c(3)*G(1,2)*G(3,3)+c(1)&
+&                                           *G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)&
+&                                           *G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)&
+&                                           *c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)&
+&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3))-(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)&
+&                                           *G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)&
+&                                           *c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)&
+&                                           *G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)&
+&                                           *G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)&
+&                                           *G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)&
+&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))*c(1)**2*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1&
+&                                           *(c(1)*c(2)*c(3)*G(1,1)*G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)*c(3)&
+&                                           *G(1,1)*G(2,3)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)*G(2,2)-2&
+&                                           *c(1)*c(2)*c(3)*G(1,3)*G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)*c(2)&
+&                                           *c(3)*G(1,2)*G(3,3)+c(1)*G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)&
+&                                           *c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)&
+&                                           *G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
+
+                    DdmudxdG(2, 1, 1, 1) =  ((1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)&
+&                                           *G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)&
+&                                           *G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)*G(3,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)&
+&                                           *G(3,3))*c(1)**3*c(2)**2*c(3)**2*c(4)**2 / SN**2 / 1*(c(2)*c(3)*c(4)*G(3,3)&
+&                                           *G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)&
+&                                           *c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)&
+&                                           *G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2&
+&                                           +2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)&
+&                                           *G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))-(c(3)*G(3,4)*c(1)-c(1)*G(3,3)&
+&                                           *c(3)-c(1)+c(1)*c(3)*G(2,3)-c(3)*G(2,4)*c(1))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1+(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)&
+&                                           *G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**2&
+&                                           *c(4)**2*c(1)**3 / SN**2 / 1*(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)&
+&                                           *G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)&
+&                                           *G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)&
+&                                           *c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)*c(4)*G(4,4)+c(3)&
+&                                           *c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)&
+&                                           *G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)&
+&                                           *c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)&
+&                                           *G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(2, 1, 1, 2) =  (-(c(3)+c(4)+c(3)*c(4)*G(3,3)-2*c(3)*c(4)*G(3,4)+c(3)*c(4)*G(4,4))*c(1)*c(2)&
+&                                           *c(3)*c(4) / SN / 1-2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)&
+&                                           *G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)&
+&                                           *c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)&
+&                                           *G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)*G(3,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)&
+&                                           *G(3,3))**2*c(1)**3*c(2)**3*c(3)**2*c(4)**2 / SN**2 / 1-(c(1)*c(3)&
+&                                           *G(1,4)+c(1)+c(1)*G(3,3)*c(3)-c(3)*G(3,4)*c(1)-c(1)*c(3)*G(1,3))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1-2*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)&
+&                                           *G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**3*c(3)**2&
+&                                           *c(4)**2*c(1)**3 / SN**2 / 1*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
+                    DdmudxdG(2, 1, 1, 3) =  (-(-c(3)-c(3)*c(4)*G(4,4)-c(4)*c(3)*G(2,3)+c(3)*c(4)*G(2,4)+c(3)*c(4)*G(3,4))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))*c(1)**3*c(2)**2*c(3)**3*c(4)**2 / SN**2 / 1&
+&                                           *(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)&
+&                                           *G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)&
+&                                           *G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)&
+&                                           *G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)&
+&                                           *G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2))-(-c(1)*c(3)&
+&                                           *G(1,4)-c(3)*G(3,4)*c(1)+2*c(1)*c(3)*G(1,3)+2*c(3)*G(2,4)*c(1)-c(1)*c(3)&
+&                                           *G(2,3)-c(1)*c(3)*G(1,2))*c(2)*c(3)*c(4)*c(1) / SN / 1+2*(-1+c(1)*G(1,4)*c(3)&
+&                                           *G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)&
+&                                           *G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)&
+&                                           *G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)&
+&                                           *c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)&
+&                                           *G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)*G(1,2)&
+&                                           *G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)*G(1,2)&
+&                                           *G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**3&
+&                                           *c(4)**2*c(1)**3 / SN**2 / 1*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)&
+&                                           *G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)&
+&                                           *G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
+                    DdmudxdG(2, 1, 1, 4) =  (-(-c(4)+c(4)*c(3)*G(2,3)+c(3)*c(4)*G(3,4)-c(3)*c(4)*G(2,4)-c(3)*c(4)*G(3,3))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))*c(1)**3*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1&
+&                                           *(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)&
+&                                           *G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)&
+&                                           *G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)&
+&                                           *G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)&
+&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))-(c(1)*G(3,3)&
+&                                           *c(3)-c(1)*c(3)*G(1,3)-c(1)*c(3)*G(2,3)+c(1)*c(3)*G(1,2)+c(1))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1-2*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)&
+&                                           *G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**2&
+&                                           *c(4)**3*c(1)**3 / SN**2 / 1*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)&
+&                                           *G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)&
+&                                           *c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)&
+&                                           *G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))  
+                    DdmudxdG(2, 1, 2, 2) =  ((1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)&
+&                                           *G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)&
+&                                           *G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)*G(3,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)&
+&                                           *G(3,3))*c(1)**2*c(2)**3*c(3)**2*c(4)**2 / SN**2 / 1*(c(1)*c(3)*G(1,1)*G(3,3)&
+&                                           *c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)&
+&                                           *c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)&
+&                                           *G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)&
+&                                           *c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))+(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)&
+&                                           *G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)&
+&                                           *G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)&
+&                                           *c(3)*G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)&
+&                                           *G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)&
+&                                           *G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)&
+&                                           *G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)&
+&                                           *G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**3*c(3)**2*c(4)**2*c(1)**2 / SN**2 / 1&
+&                                           *(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)&
+&                                           *G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2&
+&                                           *c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)&
+&                                           *c(4)*G(1,3)*G(4,4)+c(1)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)&
+&                                           *G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)&
+&                                           *c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(2, 1, 2, 3) =  (-(-c(3)-c(3)*c(4)*G(4,4)-c(4)*G(1,3)*c(3)+c(3)*c(4)*G(1,4)+c(3)*c(4)*G(3,4))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))*c(1)**2*c(2)**3*c(3)**3*c(4)**2 / SN**2 / 1&
+&                                           *(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)&
+&                                           *G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)&
+&                                           *c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)&
+&                                           *G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)&
+&                                           *G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1))-(-c(1)*c(3)&
+&                                           *G(1,4)+c(3)*G(3,4)*c(1)+c(3)+c(1)*G(1,1)*c(3)-c(1)*c(3)*G(1,3))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1-2*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)&
+&                                           *G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**3*c(3)**3&
+&                                           *c(4)**2*c(1)**2 / SN**2 / 1*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
+                    DdmudxdG(2, 1, 2, 4) =  (-(-c(4)-c(3)*c(4)*G(3,3)+c(4)*G(1,3)*c(3)+c(3)*c(4)*G(3,4)-c(3)*c(4)*G(1,4))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))*c(1)**2*c(2)**3*c(3)**2*c(4)**3 / SN**2 / 1&
+&                                           *(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)&
+&                                           *G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))-(-c(1)-c(3)+2&
+&                                           *c(1)*c(3)*G(1,3)-c(1)*G(3,3)*c(3)-c(1)*G(1,1)*c(3))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1+2*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)&
+&                                           *G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))**2*c(2)**3*c(3)**2&
+&                                           *c(4)**3*c(1)**2 / SN**2 / 1)  
+                    DdmudxdG(2, 1, 3, 3) =  (-(G(1,2)*c(4)*c(3)-c(3)*c(4)*G(2,4)+c(3)*c(4)*G(4,4)+c(3)-c(3)*c(4)*G(1,4))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))*c(1)**2*c(2)**2*c(3)**3*c(4)**2 / SN**2 / 1&
+&                                           *(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)&
+&                                           *G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2&
+&                                           *c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)&
+&                                           *c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)&
+&                                           *G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)&
+&                                           *G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)&
+&                                           *G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4))-(c(1)*c(3)&
+&                                           *G(1,4)-c(1)*G(1,1)*c(3)-c(3)+c(1)*c(3)*G(1,2)-c(3)*G(2,4)*c(1))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1+(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)&
+&                                           *G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**3&
+&                                           *c(4)**2*c(1)**2 / SN**2 / 1*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)&
+&                                           *G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)&
+&                                           *c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)&
+&                                           *c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)&
+&                                           *c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)&
+&                                           *c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)&
+&                                           *c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)+c(4)))  
+                    DdmudxdG(2, 1, 3, 4) =  (-(-2*c(3)*c(4)*G(3,4)-2*G(1,2)*c(4)*c(3)+c(3)*c(4)*G(2,4)+c(4)*G(1,3)&
+&                                           *c(3)+c(4)*c(3)*G(2,3)+c(3)*c(4)*G(1,4))*c(1)*c(2)*c(3)*c(4) / SN / 1-2*(1+c(3)&
+&                                           *G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)&
+&                                           *c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2&
+&                                           +c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)&
+&                                           *c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)&
+&                                           *G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))*c(1)**2*c(2)**2*c(3)**3*c(4)**3 / SN**2 / 1&
+&                                           *(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)&
+&                                           *G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)&
+&                                           *c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)&
+&                                           *G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)&
+&                                           *G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))-(c(1)*G(1,1)&
+&                                           *c(3)-c(1)*c(3)*G(1,3)+c(1)*c(3)*G(2,3)+c(3)-c(1)*c(3)*G(1,2))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1-2*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)&
+&                                           *G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**3&
+&                                           *c(4)**3*c(1)**2 / SN**2 / 1*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)&
+&                                           *G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)&
+&                                           *G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)&
+&                                           *c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)&
+&                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
+&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))  
+                    DdmudxdG(2, 1, 4, 4) =  (-(-c(4)*c(3)*G(2,3)+c(3)*c(4)*G(3,3)+c(4)-c(4)*G(1,3)*c(3)+G(1,2)*c(4)*c(3))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))*c(1)**2*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1&
+&                                           *(c(1)*c(2)*c(3)*G(1,1)*G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)*c(3)&
+&                                           *G(1,1)*G(2,3)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)*G(2,2)-2&
+&                                           *c(1)*c(2)*c(3)*G(1,3)*G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)*c(2)&
+&                                           *c(3)*G(1,2)*G(3,3)+c(1)*G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)&
+&                                           *c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)&
+&                                           *G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3))+(-1+c(1)*G(1,4)&
+&                                           *c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)&
+&                                           *G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)&
+&                                           *G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)&
+&                                           *c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)&
+&                                           *G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)*G(1,2)&
+&                                           *G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)*G(1,2)&
+&                                           *G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**2&
+&                                           *c(4)**3*c(1)**2 / SN**2 / 1*(c(1)*c(2)*c(3)*G(1,1)*G(2,2)+c(1)*c(2)*c(3)*G(1,1)&
+&                                           *G(3,3)-2*c(1)*c(2)*c(3)*G(1,1)*G(2,3)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(3)+c(1)&
+&                                           *c(2)*c(3)*G(3,3)*G(2,2)-2*c(1)*c(2)*c(3)*G(1,3)*G(2,2)+c(2)*G(2,2)*c(1)+c(2)&
+&                                           *G(2,2)*c(3)-2*c(1)*c(2)*c(3)*G(1,2)*G(3,3)+c(1)*G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2&
+&                                           *c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)&
+&                                           *G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)&
+&                                           *G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
+                    DdmudxdG(2, 2, 1, 1) =  ((c(1)*c(3)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(4,4)-2*c(1)*c(3)*c(4)*G(3,4)+c(1)&
+&                                           *c(3)+c(1)*c(4))*c(1)*c(3)*c(4) / SN / 1-(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)&
+&                                           *c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)&
+&                                           *G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)&
+&                                           *G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)*c(4)&
+&                                           *G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)&
+&                                           *G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)&
+&                                           *G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(1)**3*c(3)**2*c(4)**2 / SN**2 / 1&
+&                                           *c(2)*(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)&
+&                                           *c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)&
+&                                           *c(3)*c(4)*G(4,4)*G(2,3)+c(2)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)&
+&                                           *G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)&
+&                                           *c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2&
+&                                           *c(2)*c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))-(c(3)&
+&                                           *G(3,4)*c(1)-c(1)*G(3,3)*c(3)-c(1)+c(1)*c(3)*G(2,3)-c(3)*G(2,4)*c(1))*c(2)*c(3)&
+&                                           *c(4)*c(1) / SN / 1+(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)&
+&                                           *c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)&
+&                                           *G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)&
+&                                           *c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)&
+&                                           *G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)&
+&                                           *G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**2*c(3)**2*c(4)**2*c(1)**3 / SN**2 / 1*(c(2)*c(3)*c(4)*G(3,3)&
+&                                           *G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)&
+&                                           *c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)&
+&                                           *G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2&
+&                                           +2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)&
+&                                           *G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(2, 2, 1, 2) =  (2*(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)&
+&                                           *G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2&
+&                                           *c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)&
+&                                           *c(4)*G(1,3)*G(4,4)+c(1)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)&
+&                                           *G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)&
+&                                           *c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(1)**3&
+&                                           *c(3)**2*c(4)**2 / SN**2 / 1*c(2)**2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))-(c(1)*c(3)*G(1,4)+c(1)+c(1)*G(3,3)*c(3)-c(3)&
+&                                           *G(3,4)*c(1)-c(1)*c(3)*G(1,3))*c(2)*c(3)*c(4)*c(1) / SN / 1-2*(-1+c(1)*G(1,4)&
+&                                           *c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)&
+&                                           *G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)&
+&                                           *G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)&
+&                                           *c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)&
+&                                           *G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)*G(1,2)&
+&                                           *G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)*G(1,2)&
+&                                           *G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**3*c(3)**2*c(4)**2&
+&                                           *c(1)**3 / SN**2 / 1*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)&
+&                                           *G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)&
+&                                           *c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)&
+&                                           *G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)*G(3,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
+                    DdmudxdG(2, 2, 1, 3) =  ((-2*c(1)*c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(1,4)-2*c(1)*c(4)*G(1,3)*c(3)+2&
+&                                           *c(1)*c(3)*c(4)*G(3,4)-2*c(1)*c(3))*c(1)*c(3)*c(4) / SN / 1-2*(c(1)*c(3)*G(1,1)&
+&                                           *G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)&
+&                                           *G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)&
+&                                           *G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)&
+&                                           *G(4,4)+c(1)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)&
+&                                           *c(3)*c(4)*G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2&
+&                                           *c(1)*c(3)*c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2&
+&                                           *c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(1)**3*c(3)**3*c(4)**2&
+&                                           / SN**2 / 1*c(2)*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)&
+&                                           *G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))-(-c(1)*c(3)*G(1,4)-c(3)*G(3,4)*c(1)+2*c(1)*c(3)*G(1,3)+2*c(3)*G(2,4)&
+&                                           *c(1)-c(1)*c(3)*G(2,3)-c(1)*c(3)*G(1,2))*c(2)*c(3)*c(4)*c(1) / SN / 1+2&
+&                                           *(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)&
+&                                           *G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**3&
+&                                           *c(4)**2*c(1)**3 / SN**2 / 1*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
+                    DdmudxdG(2, 2, 1, 4) =  ((-2*c(1)*c(3)*G(3,3)*c(4)+2*c(1)*c(3)*c(4)*G(3,4)+2*c(1)*c(4)*G(1,3)*c(3)-2&
+&                                           *c(1)*c(3)*c(4)*G(1,4)-2*c(1)*c(4))*c(1)*c(3)*c(4) / SN / 1+2*(c(1)*c(3)*G(1,1)&
+&                                           *G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)&
+&                                           *G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)&
+&                                           *G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)&
+&                                           *G(4,4)+c(1)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)&
+&                                           *c(3)*c(4)*G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2&
+&                                           *c(1)*c(3)*c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2&
+&                                           *c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(1)**3*c(3)**2*c(4)**3&
+&                                           / SN**2 / 1*c(2)*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2&
+&                                           +c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))-(c(1)*G(3,3)*c(3)-c(1)*c(3)*G(1,3)-c(1)*c(3)*G(2,3)+c(1)*c(3)&
+&                                           *G(1,2)+c(1))*c(2)*c(3)*c(4)*c(1) / SN / 1-2*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)&
+&                                           *G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)&
+&                                           *G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)&
+&                                           *c(3)*G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)&
+&                                           *G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)&
+&                                           *G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)&
+&                                           *G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)&
+&                                           *G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**2*c(4)**3*c(1)**3 / SN**2 / 1&
+&                                           *(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)&
+&                                           *G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)&
+&                                           *G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)&
+&                                           *G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)&
+&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))  
+                    DdmudxdG(2, 2, 2, 2) =  (-(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)&
+&                                           *G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2&
+&                                           *c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)&
+&                                           *c(4)*G(1,3)*G(4,4)+c(1)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)&
+&                                           *G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)&
+&                                           *c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))**2*c(1)**2&
+&                                           *c(3)**2*c(4)**2 / SN**2 / 1*c(2)**2+(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)&
+&                                           *c(1)*G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)&
+&                                           *G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)&
+&                                           *c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)&
+&                                           *c(1)*G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**3*c(3)**2*c(4)**2*c(1)**2 / SN**2 / 1*(c(1)*c(3)*G(1,1)*G(3,3)&
+&                                           *c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)&
+&                                           *c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)&
+&                                           *G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)&
+&                                           *c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(2, 2, 2, 3) =  (2*(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)&
+&                                           *G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2&
+&                                           *c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)&
+&                                           *c(4)*G(1,3)*G(4,4)+c(1)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)&
+&                                           *G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)&
+&                                           *c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(1)**2&
+&                                           *c(3)**3*c(4)**2 / SN**2 / 1*c(2)**2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))-(-c(1)*c(3)*G(1,4)+c(3)*G(3,4)*c(1)+c(3)+c(1)*G(1,1)*c(3)-c(1)*c(3)&
+&                                           *G(1,3))*c(2)*c(3)*c(4)*c(1) / SN / 1-2*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)&
+&                                           *c(1)*G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)&
+&                                           *G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)&
+&                                           *c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)&
+&                                           *c(1)*G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**3*c(3)**3*c(4)**2*c(1)**2 / SN**2 / 1*(1+c(1)*c(4)*G(1,4)&
+&                                           *G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)&
+&                                           *G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)&
+&                                           *c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)&
+&                                           *G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)&
+&                                           *G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
+                    DdmudxdG(2, 2, 2, 4) =  (-2*(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)&
+&                                           *G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2&
+&                                           *c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)&
+&                                           *c(4)*G(1,3)*G(4,4)+c(1)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)&
+&                                           *G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)&
+&                                           *c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(1)**2&
+&                                           *c(3)**2*c(4)**3 / SN**2 / 1*c(2)**2*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)&
+&                                           *G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)&
+&                                           *G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)&
+&                                           *c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)&
+&                                           *c(1)*G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)&
+&                                           *G(1,1))-(-c(1)-c(3)+2*c(1)*c(3)*G(1,3)-c(1)*G(3,3)*c(3)-c(1)*G(1,1)*c(3))*c(2)&
+&                                           *c(3)*c(4)*c(1) / SN / 1+2*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)&
+&                                           *G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)&
+&                                           *G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)&
+&                                           *c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)&
+&                                           *c(1)*G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)&
+&                                           *G(1,1))**2*c(2)**3*c(3)**2*c(4)**3*c(1)**2 / SN**2 / 1)  
+                    DdmudxdG(2, 2, 3, 3) =  ((c(1)*c(3)*c(4)*G(1,1)+c(1)*c(3)*c(4)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,4)+c(1)&
+&                                           *c(3)+c(3)*c(4))*c(1)*c(3)*c(4) / SN / 1-(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)&
+&                                           *c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)&
+&                                           *G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)&
+&                                           *G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)*c(4)&
+&                                           *G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)&
+&                                           *G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)&
+&                                           *G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(1)**2*c(3)**3*c(4)**2 / SN**2 / 1&
+&                                           *c(2)*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)&
+&                                           *c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)&
+&                                           *G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)&
+&                                           *c(2)*c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)&
+&                                           *G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)&
+&                                           *c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2&
+&                                           *c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4))-(c(1)&
+&                                           *c(3)*G(1,4)-c(1)*G(1,1)*c(3)-c(3)+c(1)*c(3)*G(1,2)-c(3)*G(2,4)*c(1))*c(2)*c(3)&
+&                                           *c(4)*c(1) / SN / 1+(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)&
+&                                           *c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)&
+&                                           *G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)&
+&                                           *c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)&
+&                                           *G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)&
+&                                           *G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**2*c(3)**3*c(4)**2*c(1)**2 / SN**2 / 1*(c(1)*c(2)*G(1,1)*G(2,2)&
+&                                           *c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)&
+&                                           *c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)&
+&                                           *G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)&
+&                                           *c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)&
+&                                           *G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)&
+&                                           *G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))  
+                    DdmudxdG(2, 2, 3, 4) =  ((-2*c(1)*c(3)*c(4)*G(1,1)+2*c(1)*c(3)*c(4)*G(1,4)-2*c(1)*c(3)*c(4)*G(3,4)+2&
+&                                           *c(1)*c(4)*G(1,3)*c(3)-2*c(3)*c(4))*c(1)*c(3)*c(4) / SN / 1+2*(c(1)*c(3)*G(1,1)&
+&                                           *G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)&
+&                                           *G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)&
+&                                           *G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)&
+&                                           *G(4,4)+c(1)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)&
+&                                           *c(3)*c(4)*G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2&
+&                                           *c(1)*c(3)*c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2&
+&                                           *c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(1)**2*c(3)**3*c(4)**3&
+&                                           / SN**2 / 1*c(2)*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)&
+&                                           *G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2&
+&                                           *c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)&
+&                                           *c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)&
+&                                           *G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))-(c(1)*G(1,1)&
+&                                           *c(3)-c(1)*c(3)*G(1,3)+c(1)*c(3)*G(2,3)+c(3)-c(1)*c(3)*G(1,2))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1-2*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)&
+&                                           *G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**3&
+&                                           *c(4)**3*c(1)**2 / SN**2 / 1*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)&
+&                                           *G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)&
+&                                           *G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)&
+&                                           *c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)&
+&                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
+&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))  
+                    DdmudxdG(2, 2, 4, 4) =  ((c(1)*c(3)*c(4)*G(1,1)+c(1)*c(3)*G(3,3)*c(4)-2*c(1)*c(4)*G(1,3)*c(3)+c(1)&
+&                                           *c(4)+c(3)*c(4))*c(1)*c(3)*c(4) / SN / 1-(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)&
+&                                           *c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)&
+&                                           *G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)&
+&                                           *G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)*c(4)&
+&                                           *G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)&
+&                                           *G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)&
+&                                           *G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))*c(1)**2*c(3)**2*c(4)**3 / SN**2 / 1&
+&                                           *c(2)*(c(1)*c(2)*c(3)*G(1,1)*G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)&
+&                                           *c(3)*G(1,1)*G(2,3)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)&
+&                                           *G(2,2)-2*c(1)*c(2)*c(3)*G(1,3)*G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)&
+&                                           *c(2)*c(3)*G(1,2)*G(3,3)+c(1)*G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)&
+&                                           *G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)&
+&                                           *G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)&
+&                                           *G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)&
+&                                           *G(2,3)+c(2)+c(3))+(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)&
+&                                           *c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)&
+&                                           *G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)&
+&                                           *c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)&
+&                                           *G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)&
+&                                           *G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**2*c(3)**2*c(4)**3*c(1)**2 / SN**2 / 1*(c(1)*c(2)*c(3)*G(1,1)&
+&                                           *G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)*c(3)*G(1,1)*G(2,3)+c(1)*G(1,1)&
+&                                           *c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)*G(2,2)-2*c(1)*c(2)*c(3)*G(1,3)&
+&                                           *G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)*c(2)*c(3)*G(1,2)*G(3,3)+c(1)&
+&                                           *G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)&
+&                                           *G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)&
+&                                           *c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)&
+&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
+                    DdmudxdG(2, 3, 1, 1) =  (-(c(1)*c(4)*G(4,4)+c(1)+c(4)*G(2,3)*c(1)-c(4)*G(3,4)*c(1)-c(4)*G(2,4)*c(1))&
+&                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**2*c(3)**2*c(4)**2*c(1)**3 / SN**2 / 1*(c(2)*c(3)*c(4)*G(3,3)&
+&                                           *G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)&
+&                                           *c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)&
+&                                           *G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2&
+&                                           +2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)&
+&                                           *G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))-(c(3)*G(3,4)*c(1)-c(1)*G(3,3)&
+&                                           *c(3)-c(1)+c(1)*c(3)*G(2,3)-c(3)*G(2,4)*c(1))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1+(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)&
+&                                           *G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**2&
+&                                           *c(4)**2*c(1)**3 / SN**2 / 1*(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)&
+&                                           *G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)&
+&                                           *G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)&
+&                                           *c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)*c(4)*G(4,4)+c(3)&
+&                                           *c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)&
+&                                           *G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)&
+&                                           *c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)&
+&                                           *G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(2, 3, 1, 2) =  (-(-c(4)*c(1)*G(1,3)+c(4)*G(3,4)*c(1)+c(1)*c(4)*G(1,4)-c(1)-c(1)*c(4)*G(4,4))&
+&                                           *c(2)*c(3)*c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**3*c(3)**2*c(4)**2*c(1)**3 / SN**2 / 1*(1+c(3)*G(1,2)-c(4)&
+&                                           *G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)&
+&                                           *G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2&
+&                                           +c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)&
+&                                           *c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)&
+&                                           *G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))-(c(1)*c(3)*G(1,4)+c(1)+c(1)*G(3,3)*c(3)-c(3)&
+&                                           *G(3,4)*c(1)-c(1)*c(3)*G(1,3))*c(2)*c(3)*c(4)*c(1) / SN / 1-2*(-1+c(1)*G(1,4)&
+&                                           *c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)&
+&                                           *G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)&
+&                                           *G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)&
+&                                           *c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)&
+&                                           *G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)*G(1,2)&
+&                                           *G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)*G(1,2)&
+&                                           *G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**3*c(3)**2*c(4)**2&
+&                                           *c(1)**3 / SN**2 / 1*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)&
+&                                           *G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)&
+&                                           *c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)&
+&                                           *G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)*G(3,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
+                    DdmudxdG(2, 3, 1, 3) =  (-(-c(1)*c(4)*G(4,4)-c(4)*c(1)*G(1,2)+c(4)*G(2,4)*c(1)+c(1)*c(4)*G(1,4)-c(1))&
+&                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**2*c(3)**3*c(4)**2*c(1)**3 / SN**2 / 1*(-1+c(4)*G(1,4)+c(2)*c(4)&
+&                                           *G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)&
+&                                           *G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)&
+&                                           *G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)&
+&                                           *G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(3,4)+c(2)*c(4)*G(1,4)*G(2,2))-(-c(1)*c(3)*G(1,4)-c(3)*G(3,4)*c(1)+2*c(1)&
+&                                           *c(3)*G(1,3)+2*c(3)*G(2,4)*c(1)-c(1)*c(3)*G(2,3)-c(1)*c(3)*G(1,2))*c(2)*c(3)&
+&                                           *c(4)*c(1) / SN / 1+2*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)&
+&                                           *c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)&
+&                                           *G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)&
+&                                           *c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)&
+&                                           *G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)&
+&                                           *G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**2*c(3)**3*c(4)**2*c(1)**3 / SN**2 / 1*(-1+c(4)*G(1,4)+c(2)*c(4)&
+&                                           *G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)&
+&                                           *G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)&
+&                                           *G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)&
+&                                           *G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
+                    DdmudxdG(2, 3, 1, 4) =  (-(c(4)*G(2,4)*c(1)-2*c(1)*c(4)*G(1,4)+c(4)*c(1)*G(1,2)+c(4)*c(1)*G(1,3)-2*c(4)&
+&                                           *G(2,3)*c(1)+c(4)*G(3,4)*c(1))*c(2)*c(3)*c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)&
+&                                           *G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)&
+&                                           *G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)&
+&                                           *c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)&
+&                                           *G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)&
+&                                           *G(3,4)-c(4)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**2*c(4)**3*c(1)**3 / SN**2 / 1&
+&                                           *(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)&
+&                                           *G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)&
+&                                           *G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)&
+&                                           *G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)&
+&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))-(c(1)*G(3,3)&
+&                                           *c(3)-c(1)*c(3)*G(1,3)-c(1)*c(3)*G(2,3)+c(1)*c(3)*G(1,2)+c(1))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1-2*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)&
+&                                           *G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**2&
+&                                           *c(4)**3*c(1)**3 / SN**2 / 1*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)&
+&                                           *G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)&
+&                                           *c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)&
+&                                           *G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))  
+                    DdmudxdG(2, 3, 2, 2) =  ((1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)&
+&                                           *G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)&
+&                                           *c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)&
+&                                           *G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)&
+&                                           *G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1))*c(2)**3*c(3)**2*c(4)**2&
+&                                           *c(1)**2 / SN**2 / 1*(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)&
+&                                           *G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)&
+&                                           *c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)&
+&                                           *c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2&
+&                                           *c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)*c(3)*c(4)&
+&                                           *G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)*G(3,4)-c(1)*c(3)&
+&                                           *c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)&
+&                                           *G(3,4)+c(3)+c(4))+(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)&
+&                                           *c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)&
+&                                           *G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)&
+&                                           *c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)&
+&                                           *G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)&
+&                                           *G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**3*c(3)**2*c(4)**2*c(1)**2 / SN**2 / 1*(c(1)*c(3)*G(1,1)*G(3,3)&
+&                                           *c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)&
+&                                           *c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)&
+&                                           *G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)&
+&                                           *c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(2, 3, 2, 3) =  (-(c(1)*c(4)*G(4,4)+c(1)*G(1,1)*c(4)+c(4)+c(1)-2*c(1)*c(4)*G(1,4))*c(2)*c(3)&
+&                                           *c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)&
+&                                           *G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)&
+&                                           *G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))**2*c(2)**3*c(3)**3*c(4)**2*c(1)**2 / SN**2 / 1-(-c(1)*c(3)*G(1,4)+c(3)&
+&                                           *G(3,4)*c(1)+c(3)+c(1)*G(1,1)*c(3)-c(1)*c(3)*G(1,3))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1-2*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)&
+&                                           *G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**3*c(3)**3&
+&                                           *c(4)**2*c(1)**2 / SN**2 / 1*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
+                    DdmudxdG(2, 3, 2, 4) =  (-(c(1)*c(4)*G(1,4)-c(4)+c(4)*c(1)*G(1,3)-c(4)*G(3,4)*c(1)-c(1)*G(1,1)*c(4))&
+&                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**3*c(3)**2*c(4)**3*c(1)**2 / SN**2 / 1*(-1+c(1)*G(1,4)*c(3)&
+&                                           *G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)&
+&                                           *G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)&
+&                                           *G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)&
+&                                           *c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)&
+&                                           *G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)*G(1,2)&
+&                                           *G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)*G(1,2)&
+&                                           *G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))-(-c(1)-c(3)+2*c(1)&
+&                                           *c(3)*G(1,3)-c(1)*G(3,3)*c(3)-c(1)*G(1,1)*c(3))*c(2)*c(3)*c(4)*c(1) / SN / 1+2&
+&                                           *(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)&
+&                                           *G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))**2*c(2)**3&
+&                                           *c(3)**2*c(4)**3*c(1)**2 / SN**2 / 1)  
+                    DdmudxdG(2, 3, 3, 3) =  ((1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)&
+&                                           *G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)&
+&                                           *c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)&
+&                                           *G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)&
+&                                           *G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**3*c(4)**2&
+&                                           *c(1)**2 / SN**2 / 1*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)&
+&                                           *G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)&
+&                                           *c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)&
+&                                           *c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2&
+&                                           *c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2&
+&                                           *c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)&
+&                                           *G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)+c(4))-(c(1)*c(3)*G(1,4)-c(1)*G(1,1)*c(3)-c(3)+c(1)*c(3)&
+&                                           *G(1,2)-c(3)*G(2,4)*c(1))*c(2)*c(3)*c(4)*c(1) / SN / 1+(-1+c(1)*G(1,4)*c(3)&
+&                                           *G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)&
+&                                           *G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)&
+&                                           *G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)&
+&                                           *c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)&
+&                                           *G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)*G(1,2)&
+&                                           *G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)*G(1,2)&
+&                                           *G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**3*c(4)**2&
+&                                           *c(1)**2 / SN**2 / 1*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)&
+&                                           *G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)&
+&                                           *c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)&
+&                                           *c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2&
+&                                           *c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2&
+&                                           *c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)&
+&                                           *G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))  
+                    DdmudxdG(2, 3, 3, 4) =  (-(c(4)*c(1)*G(1,2)-c(4)-c(4)*G(2,4)*c(1)-c(1)*G(1,1)*c(4)+c(1)*c(4)*G(1,4))&
+&                                           *c(2)*c(3)*c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**2*c(3)**3*c(4)**3*c(1)**2 / SN**2 / 1*(1+c(1)*c(2)*G(1,2)&
+&                                           *G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)&
+&                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
+&                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))-(c(1)*G(1,1)*c(3)-c(1)*c(3)&
+&                                           *G(1,3)+c(1)*c(3)*G(2,3)+c(3)-c(1)*c(3)*G(1,2))*c(2)*c(3)*c(4)*c(1) / SN / 1-2&
+&                                           *(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)&
+&                                           *G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**3&
+&                                           *c(4)**3*c(1)**2 / SN**2 / 1*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)&
+&                                           *G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)&
+&                                           *G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)&
+&                                           *c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)&
+&                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
+&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))  
+                    DdmudxdG(2, 3, 4, 4) =  (-(-c(4)*c(1)*G(1,3)+c(4)*G(2,3)*c(1)+c(1)*G(1,1)*c(4)+c(4)-c(4)*c(1)*G(1,2))&
+&                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**2*c(3)**2*c(4)**3*c(1)**2 / SN**2 / 1*(c(1)*c(2)*c(3)*G(1,1)&
+&                                           *G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)*c(3)*G(1,1)*G(2,3)+c(1)*G(1,1)&
+&                                           *c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)*G(2,2)-2*c(1)*c(2)*c(3)*G(1,3)&
+&                                           *G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)*c(2)*c(3)*G(1,2)*G(3,3)+c(1)&
+&                                           *G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)&
+&                                           *G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)&
+&                                           *c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)&
+&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3))+(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)&
+&                                           *G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)&
+&                                           *G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)&
+&                                           *c(3)*G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)&
+&                                           *G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)&
+&                                           *G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)&
+&                                           *G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)&
+&                                           *G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**2*c(4)**3*c(1)**2 / SN**2 / 1&
+&                                           *(c(1)*c(2)*c(3)*G(1,1)*G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)*c(3)&
+&                                           *G(1,1)*G(2,3)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)*G(2,2)-2&
+&                                           *c(1)*c(2)*c(3)*G(1,3)*G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)*c(2)&
+&                                           *c(3)*G(1,2)*G(3,3)+c(1)*G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)&
+&                                           *c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)&
+&                                           *G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
+
+                    DdmudxdG(3, 1, 1, 1) =  (-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)&
+&                                           *G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)&
+&                                           *G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)&
+&                                           *G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)&
+&                                           *G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2))*c(1)**3*c(2)**2&
+&                                           *c(3)**2*c(4)**2 / SN**2 / 1*(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)&
+&                                           *G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)*G(2,2)+c(2)&
+&                                           *c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)*c(3)+c(3)&
+&                                           *c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)*c(4)*G(4,4)+c(3)*c(4)&
+&                                           *G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)&
+&                                           *G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)&
+&                                           *c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)&
+&                                           *G(3,4)+c(3)+c(4))+(c(2)*G(2,2)*c(1)-c(1)*c(2)*G(2,3)+c(2)*G(3,4)*c(1)-c(2)&
+&                                           *G(2,4)*c(1)+c(1))*c(2)*c(3)*c(4)*c(1) / SN / 1-(1+c(1)*c(2)*G(1,2)&
+&                                           *G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)&
+&                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
+&                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**2*c(3)**2*c(4)**2*c(1)**3&
+&                                           / SN**2 / 1*(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)&
+&                                           *c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)&
+&                                           *c(3)*c(4)*G(4,4)*G(2,3)+c(2)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)&
+&                                           *G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)&
+&                                           *c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2&
+&                                           *c(2)*c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(3, 1, 1, 2) =  ((c(2)+c(2)*c(4)*G(4,4)-c(2)*c(4)*G(2,4)-c(2)*c(4)*G(3,4)+c(4)*c(2)*G(2,3))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))*c(1)**3*c(2)**3*c(3)**2*c(4)**2 / SN**2 / 1*(1+c(3)*G(1,2)-c(4)&
+&                                           *G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)&
+&                                           *G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2&
+&                                           +c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)&
+&                                           *c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)&
+&                                           *G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))+(c(1)*c(2)*G(2,3)-2*c(1)*c(2)*G(1,2)+c(1)&
+&                                           *G(1,4)*c(2)+c(2)*G(2,4)*c(1)+c(1)*G(1,3)*c(2)-2*c(2)*G(3,4)*c(1))*c(2)*c(3)&
+&                                           *c(4)*c(1) / SN / 1+2*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)&
+&                                           *G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2&
+&                                           *c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)&
+&                                           *c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)&
+&                                           *G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**3*c(3)**2&
+&                                           *c(4)**2*c(1)**3 / SN**2 / 1*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
+                    DdmudxdG(3, 1, 1, 3) =  ((-c(2)-c(2)*c(4)*G(4,4)-c(2)*c(4)*G(2,2)-c(4)+2*c(2)*c(4)*G(2,4))*c(1)*c(2)&
+&                                           *c(3)*c(4) / SN / 1-2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)&
+&                                           *G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))**2*c(1)**3*c(2)**2*c(3)**3*c(4)**2 / SN**2 / 1+(-c(2)*G(2,2)&
+&                                           *c(1)-c(1)-c(1)*G(1,4)*c(2)+c(1)*c(2)*G(1,2)+c(2)*G(2,4)*c(1))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1-2*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)&
+&                                           *c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)&
+&                                           *c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)&
+&                                           *G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)&
+&                                           *G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**2*c(3)**3&
+&                                           *c(4)**2*c(1)**3 / SN**2 / 1*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)&
+&                                           *G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
+                    DdmudxdG(3, 1, 1, 4) =  ((c(4)-c(4)*c(2)*G(2,3)-c(2)*c(4)*G(2,4)+c(2)*c(4)*G(3,4)+c(2)*c(4)*G(2,2))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))*c(1)**3*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1*(1-c(3)*G(1,3)-c(2)*c(3)&
+&                                           *G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)&
+&                                           *c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)&
+&                                           *G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)&
+&                                           *G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)&
+&                                           *G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)&
+&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))+(-c(2)*G(2,2)*c(1)+c(1)*c(2)*G(1,2)-c(1)-c(1)&
+&                                           *G(1,3)*c(2)+c(1)*c(2)*G(2,3))*c(2)*c(3)*c(4)*c(1) / SN / 1+2*(1+c(1)*c(2)&
+&                                           *G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)&
+&                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
+&                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**2*c(3)**2*c(4)**3*c(1)**3&
+&                                           / SN**2 / 1*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)&
+&                                           *G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)&
+&                                           *G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)&
+&                                           *G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)&
+&                                           *G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)&
+&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))  
+                    DdmudxdG(3, 1, 2, 2) =  ((-c(2)*c(4)*G(4,4)-c(2)+c(2)*c(4)*G(3,4)-c(4)*G(1,3)*c(2)+c(2)*c(4)*G(1,4))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))*c(1)**2*c(2)**3*c(3)**2*c(4)**2 / SN**2 / 1*(c(1)*c(3)*G(1,1)*G(3,3)&
+&                                           *c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)&
+&                                           *c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)&
+&                                           *G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)&
+&                                           *c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))+(c(2)*G(3,4)*c(1)-c(1)*G(1,3)&
+&                                           *c(2)-c(1)*G(1,4)*c(2)+c(1)*G(1,1)*c(2)+c(2))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1-(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)&
+&                                           *c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)&
+&                                           *c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)&
+&                                           *G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)&
+&                                           *G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**3*c(3)**2&
+&                                           *c(4)**2*c(1)**2 / SN**2 / 1*(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)&
+&                                           *G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)&
+&                                           *c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)&
+&                                           *c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)*c(4)*G(4,4)+c(3)&
+&                                           *c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)&
+&                                           *c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)&
+&                                           *G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2&
+&                                           *c(3)*c(4)*G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(3, 1, 2, 3) =  ((c(2)-c(2)*c(4)*G(1,4)-c(2)*c(4)*G(2,4)+c(4)*c(2)*G(1,2)+c(2)*c(4)*G(4,4))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))*c(1)**2*c(2)**3*c(3)**3*c(4)**2 / SN**2 / 1*(1+c(1)*c(4)*G(1,4)&
+&                                           *G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)&
+&                                           *G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)&
+&                                           *c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)&
+&                                           *G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)&
+&                                           *G(3,4)-c(4)*G(2,4)*c(1)*G(1,1))+(c(1)*c(2)*G(1,2)-c(2)-c(2)*G(2,4)*c(1)+c(1)&
+&                                           *G(1,4)*c(2)-c(1)*G(1,1)*c(2))*c(2)*c(3)*c(4)*c(1) / SN / 1+2*(1+c(1)*c(2)&
+&                                           *G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)&
+&                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
+&                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**3*c(3)**3*c(4)**2*c(1)**2&
+&                                           / SN**2 / 1*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)&
+&                                           *G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)&
+&                                           *c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)&
+&                                           *G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)&
+&                                           *G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
+                    DdmudxdG(3, 1, 2, 4) =  ((2*c(2)*c(4)*G(2,4)-c(4)*c(2)*G(1,2)-c(2)*c(4)*G(3,4)-c(4)*c(2)*G(2,3)-c(2)&
+&                                           *c(4)*G(1,4)+2*c(4)*G(1,3)*c(2))*c(1)*c(2)*c(3)*c(4) / SN / 1-2*(-1+c(4)&
+&                                           *G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)&
+&                                           *G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)&
+&                                           *G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)&
+&                                           *G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)&
+&                                           *G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2))*c(1)**2*c(2)**3*c(3)**2&
+&                                           *c(4)**3 / SN**2 / 1*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)&
+&                                           *c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)&
+&                                           *G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)&
+&                                           *c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)&
+&                                           *G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)&
+&                                           *G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)&
+&                                           *G(1,1))+(-c(1)*G(1,1)*c(2)-c(1)*c(2)*G(2,3)+c(1)*c(2)*G(1,2)-c(2)+c(1)*G(1,3)&
+&                                           *c(2))*c(2)*c(3)*c(4)*c(1) / SN / 1-2*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)&
+&                                           *c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)&
+&                                           *G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)&
+&                                           *c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)&
+&                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
+&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)&
+&                                           *G(1,1))*c(2)**3*c(3)**2*c(4)**3*c(1)**2 / SN**2 / 1*(-1+c(1)*G(1,4)*c(3)&
+&                                           *G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)&
+&                                           *G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)&
+&                                           *G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)&
+&                                           *c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)&
+&                                           *G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)*G(1,2)&
+&                                           *G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)*G(1,2)&
+&                                           *G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))  
+                    DdmudxdG(3, 1, 3, 3) =  (-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)&
+&                                           *G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)&
+&                                           *G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)&
+&                                           *G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)&
+&                                           *G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2))*c(1)**2*c(2)**2*c(3)**3&
+&                                           *c(4)**2 / SN**2 / 1*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)&
+&                                           *G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)&
+&                                           *c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)&
+&                                           *c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2&
+&                                           *c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2&
+&                                           *c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)&
+&                                           *G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)+c(4))-(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)&
+&                                           *G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2&
+&                                           *c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)&
+&                                           *c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)&
+&                                           *G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**2*c(3)**3&
+&                                           *c(4)**2*c(1)**2 / SN**2 / 1*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)&
+&                                           *G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)&
+&                                           *c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)&
+&                                           *c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)&
+&                                           *c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)&
+&                                           *c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)&
+&                                           *c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)+c(4)))  
+                    DdmudxdG(3, 1, 3, 4) =  ((c(4)+c(2)*c(4)*G(2,2)-c(2)*c(4)*G(2,4)-c(4)*c(2)*G(1,2)+c(2)*c(4)*G(1,4))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))*c(1)**2*c(2)**2*c(3)**3*c(4)**3 / SN**2 / 1*(1+c(1)*c(2)*G(1,2)&
+&                                           *G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)&
+&                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
+&                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))+(c(2)*G(2,2)*c(1)+c(1)*G(1,1)*c(2)-2&
+&                                           *c(1)*c(2)*G(1,2)+c(1)+c(2))*c(2)*c(3)*c(4)*c(1) / SN / 1+2*(1+c(1)*c(2)*G(1,2)&
+&                                           *G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)&
+&                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
+&                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))**2*c(2)**2*c(3)**3*c(4)**3*c(1)**2/SN**2/1)  
+                    DdmudxdG(3, 1, 4, 4) =  ((-c(2)*c(4)*G(2,2)-c(4)-c(4)*G(1,3)*c(2)+c(4)*c(2)*G(1,2)+c(4)*c(2)*G(2,3))&
+&                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))*c(1)**2*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1*(c(1)*c(2)*c(3)*G(1,1)&
+&                                           *G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)*c(3)*G(1,1)*G(2,3)+c(1)*G(1,1)&
+&                                           *c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)*G(2,2)-2*c(1)*c(2)*c(3)*G(1,3)&
+&                                           *G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)*c(2)*c(3)*G(1,2)*G(3,3)+c(1)&
+&                                           *G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)&
+&                                           *G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)&
+&                                           *c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)&
+&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3))-(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)&
+&                                           *c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)&
+&                                           *c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)&
+&                                           *c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)&
+&                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
+&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)&
+&                                           *G(1,1))*c(2)**2*c(3)**2*c(4)**3*c(1)**2 / SN**2 / 1*(c(1)*c(2)*c(3)*G(1,1)&
+&                                           *G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)*c(3)*G(1,1)*G(2,3)+c(1)*G(1,1)&
+&                                           *c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)*G(2,2)-2*c(1)*c(2)*c(3)*G(1,3)&
+&                                           *G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)*c(2)*c(3)*G(1,2)*G(3,3)+c(1)&
+&                                           *G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)&
+&                                           *G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)&
+&                                           *c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)&
+&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
+                    DdmudxdG(3, 2, 1, 1) =  (-(c(1)*c(4)*G(4,4)+c(1)+c(4)*G(2,3)*c(1)-c(4)*G(3,4)*c(1)-c(4)*G(2,4)*c(1))&
+&                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**2*c(3)**2*c(4)**2*c(1)**3 / SN**2 / 1*(c(2)*c(3)*c(4)*G(3,3)&
+&                                           *G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)&
+&                                           *c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)&
+&                                           *G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)&
+&                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2&
+&                                           +2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)&
+&                                           *G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))+(c(2)*G(2,2)*c(1)-c(1)*c(2)&
+&                                           *G(2,3)+c(2)*G(3,4)*c(1)-c(2)*G(2,4)*c(1)+c(1))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1-(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)&
+&                                           *c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)&
+&                                           *c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)&
+&                                           *G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)&
+&                                           *G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**2*c(3)**2&
+&                                           *c(4)**2*c(1)**3 / SN**2 / 1*(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)&
+&                                           *G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)&
+&                                           *G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)&
+&                                           *c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)*c(4)*G(4,4)+c(3)&
+&                                           *c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)&
+&                                           *G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)&
+&                                           *c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)&
+&                                           *G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(3, 2, 1, 2) =  (-(-c(4)*c(1)*G(1,3)+c(4)*G(3,4)*c(1)+c(1)*c(4)*G(1,4)-c(1)-c(1)*c(4)*G(4,4))&
+&                                           *c(2)*c(3)*c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**3*c(3)**2*c(4)**2*c(1)**3 / SN**2 / 1*(1+c(3)*G(1,2)-c(4)&
+&                                           *G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)&
+&                                           *G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2&
+&                                           +c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)&
+&                                           *c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)&
+&                                           *G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3))+(c(1)*c(2)*G(2,3)-2*c(1)*c(2)*G(1,2)+c(1)&
+&                                           *G(1,4)*c(2)+c(2)*G(2,4)*c(1)+c(1)*G(1,3)*c(2)-2*c(2)*G(3,4)*c(1))*c(2)*c(3)&
+&                                           *c(4)*c(1) / SN / 1+2*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)&
+&                                           *G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2&
+&                                           *c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)&
+&                                           *c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)&
+&                                           *G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**3*c(3)**2&
+&                                           *c(4)**2*c(1)**3 / SN**2 / 1*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
+                    DdmudxdG(3, 2, 1, 3) =  (-(-c(1)*c(4)*G(4,4)-c(4)*c(1)*G(1,2)+c(4)*G(2,4)*c(1)+c(1)*c(4)*G(1,4)-c(1))&
+&                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**2*c(3)**3*c(4)**2*c(1)**3 / SN**2 / 1*(-1+c(4)*G(1,4)+c(2)*c(4)&
+&                                           *G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)&
+&                                           *G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)&
+&                                           *G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)&
+&                                           *G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(3,4)+c(2)*c(4)*G(1,4)*G(2,2))+(-c(2)*G(2,2)*c(1)-c(1)-c(1)*G(1,4)*c(2)+c(1)&
+&                                           *c(2)*G(1,2)+c(2)*G(2,4)*c(1))*c(2)*c(3)*c(4)*c(1) / SN / 1-2*(1+c(1)*c(2)&
+&                                           *G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)&
+&                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
+&                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**2*c(3)**3*c(4)**2*c(1)**3&
+&                                           / SN**2 / 1*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)&
+&                                           *c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)&
+&                                           *c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)&
+&                                           *G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)&
+&                                           *G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)&
+&                                           *G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
+                    DdmudxdG(3, 2, 1, 4) =  (-(c(4)*G(2,4)*c(1)-2*c(1)*c(4)*G(1,4)+c(4)*c(1)*G(1,2)+c(4)*c(1)*G(1,3)-2*c(4)&
+&                                           *G(2,3)*c(1)+c(4)*G(3,4)*c(1))*c(2)*c(3)*c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)&
+&                                           *G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)&
+&                                           *G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)&
+&                                           *c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)&
+&                                           *G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)&
+&                                           *G(3,4)-c(4)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**2*c(4)**3*c(1)**3 / SN**2 / 1&
+&                                           *(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)&
+&                                           *G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)&
+&                                           *G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)&
+&                                           *G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)&
+&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))+(-c(2)*G(2,2)&
+&                                           *c(1)+c(1)*c(2)*G(1,2)-c(1)-c(1)*G(1,3)*c(2)+c(1)*c(2)*G(2,3))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1+2*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)&
+&                                           *c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)&
+&                                           *c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)&
+&                                           *G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)&
+&                                           *G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**2*c(3)**2&
+&                                           *c(4)**3*c(1)**3 / SN**2 / 1*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)&
+&                                           *G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)&
+&                                           *c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)&
+&                                           *G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))  
+                    DdmudxdG(3, 2, 2, 2) =  ((1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)&
+&                                           *G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)&
+&                                           *c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)&
+&                                           *G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)&
+&                                           *G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1))*c(2)**3*c(3)**2*c(4)**2&
+&                                           *c(1)**2 / SN**2 / 1*(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)&
+&                                           *G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)&
+&                                           *c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)&
+&                                           *c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2&
+&                                           *c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)*c(3)*c(4)&
+&                                           *G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)*G(3,4)-c(1)*c(3)&
+&                                           *c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)&
+&                                           *G(3,4)+c(3)+c(4))+(c(2)*G(3,4)*c(1)-c(1)*G(1,3)*c(2)-c(1)*G(1,4)*c(2)+c(1)&
+&                                           *G(1,1)*c(2)+c(2))*c(2)*c(3)*c(4)*c(1) / SN / 1-(1+c(1)*c(2)*G(1,2)&
+&                                           *G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)&
+&                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
+&                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**3*c(3)**2*c(4)**2*c(1)**2&
+&                                           / SN**2 / 1*(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)&
+&                                           *c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)&
+&                                           *c(3)*c(4)*G(1,3)*G(4,4)+c(1)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)&
+&                                           *G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)&
+&                                           *c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2&
+&                                           *c(1)*c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(3, 2, 2, 3) =  (-(c(1)*c(4)*G(4,4)+c(1)*G(1,1)*c(4)+c(4)+c(1)-2*c(1)*c(4)*G(1,4))*c(2)*c(3)&
+&                                           *c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)&
+&                                           *G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)&
+&                                           *G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))**2*c(2)**3*c(3)**3*c(4)**2*c(1)**2 / SN**2 / 1+(c(1)*c(2)&
+&                                           *G(1,2)-c(2)-c(2)*G(2,4)*c(1)+c(1)*G(1,4)*c(2)-c(1)*G(1,1)*c(2))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1+2*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)&
+&                                           *c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)&
+&                                           *c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)&
+&                                           *G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)&
+&                                           *G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**3*c(3)**3&
+&                                           *c(4)**2*c(1)**2 / SN**2 / 1*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
+                    DdmudxdG(3, 2, 2, 4) =  (-(c(1)*c(4)*G(1,4)-c(4)+c(4)*c(1)*G(1,3)-c(4)*G(3,4)*c(1)-c(1)*G(1,1)*c(4))&
+&                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**3*c(3)**2*c(4)**3*c(1)**2 / SN**2 / 1*(-1+c(1)*G(1,4)*c(3)&
+&                                           *G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)&
+&                                           *G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)&
+&                                           *G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)&
+&                                           *c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)&
+&                                           *G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)*G(1,2)&
+&                                           *G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)*G(1,2)&
+&                                           *G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))+(-c(1)*G(1,1)&
+&                                           *c(2)-c(1)*c(2)*G(2,3)+c(1)*c(2)*G(1,2)-c(2)+c(1)*G(1,3)*c(2))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1-2*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)&
+&                                           *c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)&
+&                                           *c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)&
+&                                           *G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)&
+&                                           *G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**3*c(3)**2&
+&                                           *c(4)**3*c(1)**2 / SN**2 / 1*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)&
+&                                           *G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)&
+&                                           *G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)&
+&                                           *c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)&
+&                                           *c(1)*G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))  
+                    DdmudxdG(3, 2, 3, 3) =  ((1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)&
+&                                           *G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)&
+&                                           *c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)&
+&                                           *G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)&
+&                                           *G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)&
+&                                           *G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1))*c(2)**2*c(3)**3*c(4)**2&
+&                                           *c(1)**2 / SN**2 / 1*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)&
+&                                           *G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)&
+&                                           *c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)&
+&                                           *c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2&
+&                                           *c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2&
+&                                           *c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)&
+&                                           *G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)+c(4))-(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)&
+&                                           *G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2&
+&                                           *c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)&
+&                                           *c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)&
+&                                           *G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**2*c(3)**3&
+&                                           *c(4)**2*c(1)**2 / SN**2 / 1*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)&
+&                                           *G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)&
+&                                           *c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)&
+&                                           *c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)&
+&                                           *c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)&
+&                                           *c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)&
+&                                           *c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)&
+&                                           *G(2,4)+c(2)+c(4)))  
+                    DdmudxdG(3, 2, 3, 4) =  (-(c(4)*c(1)*G(1,2)-c(4)-c(4)*G(2,4)*c(1)-c(1)*G(1,1)*c(4)+c(1)*c(4)*G(1,4))&
+&                                           *c(2)*c(3)*c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**2*c(3)**3*c(4)**3*c(1)**2 / SN**2 / 1*(1+c(1)*c(2)*G(1,2)&
+&                                           *G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)&
+&                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
+&                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))+(c(2)*G(2,2)*c(1)+c(1)*G(1,1)*c(2)-2&
+&                                           *c(1)*c(2)*G(1,2)+c(1)+c(2))*c(2)*c(3)*c(4)*c(1) / SN / 1+2*(1+c(1)*c(2)*G(1,2)&
+&                                           *G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)&
+&                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
+&                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))**2*c(2)**2*c(3)**3*c(4)**3*c(1)**2/SN**2/1)  
+                    DdmudxdG(3, 2, 4, 4) =  (-(-c(4)*c(1)*G(1,3)+c(4)*G(2,3)*c(1)+c(1)*G(1,1)*c(4)+c(4)-c(4)*c(1)*G(1,2))&
+&                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))*c(2)**2*c(3)**2*c(4)**3*c(1)**2 / SN**2 / 1*(c(1)*c(2)*c(3)*G(1,1)&
+&                                           *G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)*c(3)*G(1,1)*G(2,3)+c(1)*G(1,1)&
+&                                           *c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)*G(2,2)-2*c(1)*c(2)*c(3)*G(1,3)&
+&                                           *G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)*c(2)*c(3)*G(1,2)*G(3,3)+c(1)&
+&                                           *G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)&
+&                                           *G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)&
+&                                           *c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)&
+&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3))-(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)&
+&                                           *c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)&
+&                                           *c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)&
+&                                           *c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)&
+&                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
+&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)&
+&                                           *G(1,1))*c(2)**2*c(3)**2*c(4)**3*c(1)**2 / SN**2 / 1*(c(1)*c(2)*c(3)*G(1,1)&
+&                                           *G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)*c(3)*G(1,1)*G(2,3)+c(1)*G(1,1)&
+&                                           *c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)*G(2,2)-2*c(1)*c(2)*c(3)*G(1,3)&
+&                                           *G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)*c(2)*c(3)*G(1,2)*G(3,3)+c(1)&
+&                                           *G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)&
+&                                           *G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)&
+&                                           *c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)&
+&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
+                    DdmudxdG(3, 3, 1, 1) =  ((c(1)*c(2)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(4,4)-2*c(4)*c(2)*G(2,4)*c(1)+c(2)&
+&                                           *c(1)+c(1)*c(4))*c(2)*c(4)*c(1) / SN / 1-(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)&
+&                                           *c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)&
+&                                           *G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)&
+&                                           *G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)*c(4)&
+&                                           *G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)&
+&                                           *G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2&
+&                                           +2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2&
+&                                           *c(2)*c(4)*G(2,4)+c(2)+c(4))*c(2)**2*c(4)**2*c(1)**3 / SN**2 / 1*c(3)*(c(2)&
+&                                           *c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)&
+&                                           *G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)&
+&                                           *c(3)*c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)&
+&                                           *G(4,4)*G(2,3)+c(2)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)&
+&                                           *c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2&
+&                                           *c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)&
+&                                           *G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))+(c(2)*G(2,2)&
+&                                           *c(1)-c(1)*c(2)*G(2,3)+c(2)*G(3,4)*c(1)-c(2)*G(2,4)*c(1)+c(1))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1-(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)&
+&                                           *c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)&
+&                                           *c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)&
+&                                           *G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)&
+&                                           *G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**2*c(3)**2&
+&                                           *c(4)**2*c(1)**3 / SN**2 / 1*(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)&
+&                                           *G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)&
+&                                           *G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)&
+&                                           *c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(4,4)*G(2,3)+c(2)*c(4)*G(4,4)+c(3)&
+&                                           *c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)&
+&                                           *G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)&
+&                                           *c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)&
+&                                           *G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(3, 3, 1, 2) =  ((-2*c(1)*c(2)*c(4)*G(4,4)+2*c(4)*c(2)*G(2,4)*c(1)+2*c(1)*c(2)*c(4)*G(1,4)-2&
+&                                           *c(1)*c(2)*c(4)*G(1,2)-2*c(2)*c(1))*c(2)*c(4)*c(1) / SN / 1+2*(c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)&
+&                                           *G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)&
+&                                           *G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)&
+&                                           *G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)&
+&                                           *c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)&
+&                                           *c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)&
+&                                           *c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4))*c(2)**3*c(4)**2*c(1)**3 / SN**2&
+&                                           / 1*c(3)*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)&
+&                                           *G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)&
+&                                           *G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)*G(3,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)&
+&                                           *G(3,3))+(c(1)*c(2)*G(2,3)-2*c(1)*c(2)*G(1,2)+c(1)*G(1,4)*c(2)+c(2)*G(2,4)&
+&                                           *c(1)+c(1)*G(1,3)*c(2)-2*c(2)*G(3,4)*c(1))*c(2)*c(3)*c(4)*c(1) / SN / 1+2&
+&                                           *(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)&
+&                                           *G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)&
+&                                           *c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)&
+&                                           *G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)&
+&                                           *G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**3*c(3)**2&
+&                                           *c(4)**2*c(1)**3 / SN**2 / 1*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
+&                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
+&                                           *G(4,4)-c(4)*G(2,4)*c(3)*G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)&
+&                                           *G(3,3)+G(3,3)*c(3)+c(4)*G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)&
+&                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
+&                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
+                    DdmudxdG(3, 3, 1, 3) =  (-2*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)&
+&                                           *G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2&
+&                                           *c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)&
+&                                           *c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)&
+&                                           *G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)&
+&                                           *G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)&
+&                                           *G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4))*c(2)**2*c(4)**2&
+&                                           *c(1)**3 / SN**2 / 1*c(3)**2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
+&                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
+&                                           *G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)&
+&                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(2,2))+(-c(2)*G(2,2)*c(1)-c(1)-c(1)*G(1,4)*c(2)+c(1)*c(2)*G(1,2)+c(2)*G(2,4)&
+&                                           *c(1))*c(2)*c(3)*c(4)*c(1) / SN / 1-2*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)&
+&                                           *c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)&
+&                                           *G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)&
+&                                           *c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)&
+&                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
+&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)&
+&                                           *G(1,1))*c(2)**2*c(3)**3*c(4)**2*c(1)**3 / SN**2 / 1*(-1+c(4)*G(1,4)+c(2)*c(4)&
+&                                           *G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)&
+&                                           *G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)*G(4,4)+c(2)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)&
+&                                           *G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)&
+&                                           *G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)&
+&                                           *G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)&
+&                                           *G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
+                    DdmudxdG(3, 3, 1, 4) =  ((-2*c(1)*c(2)*G(2,2)*c(4)+2*c(1)*c(2)*c(4)*G(1,2)-2*c(1)*c(2)*c(4)*G(1,4)+2&
+&                                           *c(4)*c(2)*G(2,4)*c(1)-2*c(1)*c(4))*c(2)*c(4)*c(1) / SN / 1+2*(c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)&
+&                                           *G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)&
+&                                           *G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)&
+&                                           *G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)&
+&                                           *c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)&
+&                                           *c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)&
+&                                           *c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4))*c(2)**2*c(4)**3*c(1)**3 / SN**2&
+&                                           / 1*c(3)*(1-c(3)*G(1,3)-c(2)*c(3)*G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)&
+&                                           *c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)*c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)&
+&                                           *G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)*G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)&
+&                                           *G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
+&                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
+&                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
+&                                           *G(2,3))+(-c(2)*G(2,2)*c(1)+c(1)*c(2)*G(1,2)-c(1)-c(1)*G(1,3)*c(2)+c(1)*c(2)&
+&                                           *G(2,3))*c(2)*c(3)*c(4)*c(1) / SN / 1+2*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)&
+&                                           *c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)&
+&                                           *G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)&
+&                                           *c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)&
+&                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
+&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)&
+&                                           *G(1,1))*c(2)**2*c(3)**2*c(4)**3*c(1)**3 / SN**2 / 1*(1-c(3)*G(1,3)-c(2)*c(3)&
+&                                           *G(1,3)*G(2,2)-c(2)*c(3)*G(2,3)**2+c(2)*c(3)*G(3,3)*G(2,2)+G(2,2)*c(2)+G(3,3)&
+&                                           *c(3)-c(2)*G(1,2)-c(2)*c(3)*G(1,2)*G(3,3)-c(2)*G(2,4)+G(1,4)*c(2)+c(3)&
+&                                           *G(1,4)-c(3)*G(3,4)+c(2)*c(3)*G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)&
+&                                           *G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)&
+&                                           *G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)&
+&                                           *G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)&
+&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))  
+                    DdmudxdG(3, 3, 2, 2) =  ((c(1)*c(2)*c(4)*G(1,1)+c(1)*c(2)*c(4)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,4)+c(2)&
+&                                           *c(1)+c(2)*c(4))*c(2)*c(4)*c(1) / SN / 1-(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)&
+&                                           *c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)&
+&                                           *G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)&
+&                                           *G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)*c(4)&
+&                                           *G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)&
+&                                           *G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2&
+&                                           +2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2&
+&                                           *c(2)*c(4)*G(2,4)+c(2)+c(4))*c(2)**3*c(4)**2*c(1)**2 / SN**2 / 1*c(3)*(c(1)&
+&                                           *c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)&
+&                                           *G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)&
+&                                           *c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)&
+&                                           *G(1,3)*G(4,4)+c(1)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)&
+&                                           *G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)&
+&                                           *G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)&
+&                                           *c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))+(c(2)*G(3,4)&
+&                                           *c(1)-c(1)*G(1,3)*c(2)-c(1)*G(1,4)*c(2)+c(1)*G(1,1)*c(2)+c(2))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1-(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)&
+&                                           *c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)&
+&                                           *c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)&
+&                                           *G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)&
+&                                           *G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**3*c(3)**2&
+&                                           *c(4)**2*c(1)**2 / SN**2 / 1*(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)&
+&                                           *G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)&
+&                                           *c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)&
+&                                           *c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)*c(4)*G(1,3)*G(4,4)+c(1)*c(4)*G(4,4)+c(3)&
+&                                           *c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)&
+&                                           *c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)&
+&                                           *G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2&
+&                                           *c(3)*c(4)*G(3,4)+c(3)+c(4)))  
+                    DdmudxdG(3, 3, 2, 3) =  (2*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)&
+&                                           *G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2&
+&                                           *c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)&
+&                                           *c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)&
+&                                           *G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)&
+&                                           *G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)&
+&                                           *G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4))*c(2)**3*c(4)**2&
+&                                           *c(1)**2 / SN**2 / 1*c(3)**2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
+&                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
+&                                           *G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)&
+&                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
+&                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
+&                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)&
+&                                           *G(1,1))+(c(1)*c(2)*G(1,2)-c(2)-c(2)*G(2,4)*c(1)+c(1)*G(1,4)*c(2)-c(1)*G(1,1)&
+&                                           *c(2))*c(2)*c(3)*c(4)*c(1) / SN / 1+2*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)&
+&                                           *c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)&
+&                                           *G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)&
+&                                           *c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)&
+&                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
+&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)&
+&                                           *G(1,1))*c(2)**3*c(3)**3*c(4)**2*c(1)**2 / SN**2 / 1*(1+c(1)*c(4)*G(1,4)&
+&                                           *G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)*G(1,4)**2+c(1)*c(4)&
+&                                           *G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)&
+&                                           *c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)&
+&                                           *G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)&
+&                                           *G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)&
+&                                           *G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
+                    DdmudxdG(3, 3, 2, 4) =  ((-2*c(1)*c(2)*c(4)*G(1,1)+2*c(1)*c(2)*c(4)*G(1,2)-2*c(4)*c(2)*G(2,4)*c(1)+2&
+&                                           *c(1)*c(2)*c(4)*G(1,4)-2*c(2)*c(4))*c(2)*c(4)*c(1) / SN / 1-2*(c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)&
+&                                           *G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)&
+&                                           *G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)&
+&                                           *G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)&
+&                                           *c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)&
+&                                           *c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)&
+&                                           *c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4))*c(2)**3*c(4)**3*c(1)**2 / SN**2&
+&                                           / 1*c(3)*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)*G(1,1)-c(3)*c(1)&
+&                                           *G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)*G(3,4)+c(1)*c(3)*G(2,3)&
+&                                           *G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)*G(1,3)**2-c(1)*c(3)&
+&                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
+&                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
+&                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))+(-c(1)*G(1,1)&
+&                                           *c(2)-c(1)*c(2)*G(2,3)+c(1)*c(2)*G(1,2)-c(2)+c(1)*G(1,3)*c(2))*c(2)*c(3)*c(4)&
+&                                           *c(1) / SN / 1-2*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)&
+&                                           *c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)&
+&                                           *c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)&
+&                                           *G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)&
+&                                           *G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
+&                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**3*c(3)**2&
+&                                           *c(4)**3*c(1)**2 / SN**2 / 1*(-1+c(1)*G(1,4)*c(3)*G(3,3)+c(3)*G(3,4)*c(1)&
+&                                           *G(1,1)-c(3)*c(1)*G(1,4)*G(1,3)-c(1)*c(3)*G(1,4)*G(2,3)-c(1)*c(3)*G(1,3)&
+&                                           *G(3,4)+c(1)*c(3)*G(2,3)*G(3,4)+c(3)*c(1)*G(1,4)*G(1,2)+c(3)*G(2,3)+c(1)*c(3)&
+&                                           *G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)&
+&                                           *c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)&
+&                                           *c(1)*G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))  
+                    DdmudxdG(3, 3, 3, 3) =  (-(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)&
+&                                           *G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2&
+&                                           *c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)&
+&                                           *c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)&
+&                                           *G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)&
+&                                           *G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)&
+&                                           *G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4))**2*c(2)**2*c(4)**2&
+&                                           *c(1)**2 / SN**2 / 1*c(3)**2-(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)&
+&                                           *G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)&
+&                                           *G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)&
+&                                           *c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)&
+&                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
+&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)&
+&                                           *G(1,1))*c(2)**2*c(3)**3*c(4)**2*c(1)**2 / SN**2 / 1*(c(1)*c(2)*G(1,1)*G(2,2)&
+&                                           *c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)&
+&                                           *c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)&
+&                                           *G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)&
+&                                           *c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)&
+&                                           *G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)&
+&                                           *G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)&
+&                                           *G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))  
+                    DdmudxdG(3, 3, 3, 4) =  (2*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)&
+&                                           *G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2&
+&                                           *c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)&
+&                                           *c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)&
+&                                           *G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)&
+&                                           *G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)&
+&                                           *G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4))*c(2)**2*c(4)**3&
+&                                           *c(1)**2 / SN**2 / 1*c(3)**2*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)&
+&                                           *G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)&
+&                                           *G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)&
+&                                           *c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)&
+&                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
+&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)&
+&                                           *G(1,1))+(c(2)*G(2,2)*c(1)+c(1)*G(1,1)*c(2)-2*c(1)*c(2)*G(1,2)+c(1)+c(2))*c(2)&
+&                                           *c(3)*c(4)*c(1) / SN / 1+2*(1+c(1)*c(2)*G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)&
+&                                           *G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)*G(2,2)-c(1)*G(1,4)*c(2)&
+&                                           *G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)*G(2,2)+G(2,2)*c(2)+G(1,1)&
+&                                           *c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)&
+&                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
+&                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
+&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)&
+&                                           *G(1,1))**2*c(2)**2*c(3)**3*c(4)**3*c(1)**2 / SN**2 / 1)  
+                    DdmudxdG(3, 3, 4, 4) =  ((c(1)*c(2)*c(4)*G(1,1)+c(1)*c(2)*G(2,2)*c(4)-2*c(1)*c(2)*c(4)*G(1,2)+c(1)&
+&                                           *c(4)+c(2)*c(4))*c(2)*c(4)*c(1) / SN / 1-(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)&
+&                                           *c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)&
+&                                           *G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2*c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)&
+&                                           *G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)*c(4)&
+&                                           *G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)&
+&                                           *G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2&
+&                                           +2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2&
+&                                           *c(2)*c(4)*G(2,4)+c(2)+c(4))*c(2)**2*c(4)**3*c(1)**2 / SN**2 / 1*c(3)*(c(1)&
+&                                           *c(2)*c(3)*G(1,1)*G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)*c(3)*G(1,1)&
+&                                           *G(2,3)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)*G(2,2)-2*c(1)&
+&                                           *c(2)*c(3)*G(1,3)*G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)*c(2)*c(3)&
+&                                           *G(1,2)*G(3,3)+c(1)*G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)&
+&                                           *G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)&
+&                                           *c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)&
+&                                           *G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3))-(1+c(1)*c(2)&
+&                                           *G(1,2)*G(2,3)+G(3,4)*c(1)*c(2)*G(2,2)-c(2)*G(2,4)*c(1)*G(1,1)-c(1)*G(1,3)*c(2)&
+&                                           *G(2,2)-c(1)*G(1,4)*c(2)*G(2,2)-G(1,2)**2*c(2)*c(1)+c(1)*c(2)*G(1,1)&
+&                                           *G(2,2)+G(2,2)*c(2)+G(1,1)*c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)&
+&                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
+&                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
+&                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))*c(2)**2*c(3)**2*c(4)**3*c(1)**2&
+&                                           / SN**2 / 1*(c(1)*c(2)*c(3)*G(1,1)*G(2,2)+c(1)*c(2)*c(3)*G(1,1)*G(3,3)-2*c(1)*c(2)&
+&                                           *c(3)*G(1,1)*G(2,3)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(3)+c(1)*c(2)*c(3)*G(3,3)&
+&                                           *G(2,2)-2*c(1)*c(2)*c(3)*G(1,3)*G(2,2)+c(2)*G(2,2)*c(1)+c(2)*G(2,2)*c(3)-2*c(1)&
+&                                           *c(2)*c(3)*G(1,2)*G(3,3)+c(1)*G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)&
+&                                           *G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)&
+&                                           *G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2&
+&                                           -2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3))) 
+
+
+                    !Gaussian error propagation for TDFij
+                    p=0
+                    do i=1, 3
+                        do j=1, 3
+                            helpvar=0.0
+                            do k=1, 4
+                                do m=k, 4
+                                    helpvar = helpvar + (DdmudxdG(i,j,k,m)*dG(k,m))**2
+                                end do
+                            end do
+                            p=p+1
+                            this%dTDF(s,p)=c(i)*sqrt(helpvar);
+                        end do
+                    end do
+                
+                end if
+                
+            end do
+        end do
+       
+    end if
+    
+
+    ! initialize KBISum for new Block of KBIResetFrequency
+    do i=1, this%NComponents
+        do j=i, this%NComponents
+            this%Interaction(i,j)%KBISum(:) = 0   
+        end do
+    end do
+    
+  end subroutine TEnsemble_KBIUpdateBlock
+
+!==============================================================!
+!  Subroutine TEnsemble_KBIClose                               !
+!==============================================================!
+
+  subroutine TEnsemble_KBIClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Close KBI file
+    call FileClose( this%iounit_kbirdf )
+    call FileClose( this%iounit_kbirun )
+
+  end subroutine TEnsemble_KBIClose
+  
+!==============================================================!
+!  Subroutine TEnsemble_ALPHA2Update                           !
+!==============================================================!
+
+  subroutine TEnsemble_ALPHA2Update( this ) ! Displacement non-gaussian cf. DOI: 10.1103/PhysRevLett.87.055703
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer  :: i, j, k, l, m
+    real(RK) :: dr2, dr4, sum_dr2, sum_dr4, sum_dr2inv
+    
+    ! calculate memory position of ri0(t0)
+    j=mod(INT((Step-1)/ALPHA2Shift),ALPHA2Length/ALPHA2Shift)
+    l=j
+    if (Step .GT. ALPHA2Length) l=INT(ALPHA2Length/ALPHA2Shift)-1
+       
+    do k=0,l    
+        if (this%alpha2tempstep(k) /= 0) then !only calculate alpha2 for t>t0
+            sum_dr2    = 0._RK
+            sum_dr4    = 0._RK
+            sum_dr2inv = 0._RK
+            do i = 1, this%NComponents
+                do m = 1, this%Component(i)%NPart
+                    dr2 = (this%Component(i)%Disp(m, 1)-this%Component(i)%ri0_x(m,k))**2&
+&                       + (this%Component(i)%Disp(m, 2)-this%Component(i)%ri0_y(m,k))**2&
+&                       + (this%Component(i)%Disp(m, 3)-this%Component(i)%ri0_z(m,k))**2
+                    dr4        = dr2**2                    
+                    sum_dr2    = sum_dr2 + dr2
+                    sum_dr4    = sum_dr4 + dr4
+                    sum_dr2inv = sum_dr2inv + 1_RK/dr2
+                end do
+            end do                  
+            this%dispR2    (this%alpha2tempstep(k),k) = sum_dr2/this%NPart
+            this%dispR4    (this%alpha2tempstep(k),k) = sum_dr4/this%NPart
+            this%dispR2inv (this%alpha2tempstep(k),k) = this%NPart/sum_dr2inv       
+        end if      
+        this%alpha2tempstep(k) = this%alpha2tempstep(k)+1   
+    end do
+        
+    if (mod( Step-1, ALPHA2Shift) == 0) then !save ri0(t0) at the beginning/end of new block            
+        if (Step .GT. ALPHA2Length) then  ! calculate alpha2 average at the block end
+            this%alpha2aveCount = this%alpha2aveCount+1 !count number of alpha2 calculations for alpha2average
+            !average calculation            
+            this%dispR2Ave   (:) = ( this%dispR2Ave   (:)*(this%alpha2aveCount-1)+this%dispR2   (:,j) )/this%alpha2aveCount
+            this%dispR4Ave   (:) = ( this%dispR4Ave   (:)*(this%alpha2aveCount-1)+this%dispR4   (:,j) )/this%alpha2aveCount
+            this%dispR2invAve(:) = ( this%dispR2invAve(:)*(this%alpha2aveCount-1)+this%dispR2inv(:,j) )/this%alpha2aveCount            
+            this%alpha2tempstep(j)=1        
+            ! writing of *.a2rav is done with *.res file writing                
+        end if       
+        do i = 1, this%NComponents !save ri0(t0)
+            this%Component(i)%ri0_x(:,j) = this%Component(i)%Disp(:,1)
+            this%Component(i)%ri0_y(:,j) = this%Component(i)%Disp(:,2)
+            this%Component(i)%ri0_z(:,j) = this%Component(i)%Disp(:,3)
+        end do
+    end if
+      
+  end subroutine TEnsemble_ALPHA2Update
+
 
 
 !==============================================================!
@@ -16998,9 +21069,13 @@ endif
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i,j,t,stat,counter,k,Mindex,StepCorr
+    integer                   :: i,j,s,t,o,stat,counter,k,Mindex,StepCorr
     real(RK)                  :: dummy, Factor
-
+#if MPI_VER > 0 
+    integer(KIND=8)           :: KBISum_hilf(KBINShellsCubeEdge*NProcs)
+    integer                   :: RDFSum_hilf(RDFNumberShells*NProcs)
+#endif
+    
     if( RootProc ) then
 
       ! Read contents from restart file
@@ -17015,6 +21090,21 @@ endif
           read( iounit_restart, '(ES20.12E3)' ) this%Volume3
           read( iounit_restart, '(ES20.12E3)' ) this%Volume4
           read( iounit_restart, '(ES20.12E3)' ) this%Volume5
+        end if
+        
+        if(.not. printIDF .and. ALPHA2UpdateFrequency > 0 ) then
+            read( iounit_restart, '(I10)' ) this%alpha2aveCount
+            do j = 0, ALPHA2Length/ALPHA2Shift-1
+              read( iounit_restart, '(I10)' ) this%alpha2tempstep(j)
+            end do            
+            do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
+              do j = 0, ALPHA2Length/ALPHA2Shift-1
+                read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%dispR2(i,j),this%dispR4(i,j),this%dispR2inv(i,j)
+              end do
+            end do
+            do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%dispR2Ave(i),this%dispR4Ave(i),this%dispR2invAve(i)
+            end do  
         end if
 
       else
@@ -17188,6 +21278,68 @@ endif
         call RestartRead( pc%SumHM )
       end if
     end do
+    
+
+    if (RDFUpdateFrequency > 0) then
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                do s=1, this%Component(i)%molecule%NMIEnm
+                    do t=1, this%Component(j)%molecule%NMIEnm
+#if MPI_VER > 0     
+                        if( RootProc ) then
+                            do o = 1, RDFNumberShells*NProcs
+                                read( iounit_restart, '(I10)' ) RDFSum_hilf(o)
+                            end do
+                        end if
+                        call MPI_Scatter( RDFSum_hilf(1:RDFNumberShells*NProcs), RDFNumberShells, MPI_INTEGER, &
+&                           this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )         
+#else 
+                        do o = 1, RDFNumberShells
+                            read( iounit_restart, '(I10)' ) this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o)
+                        end do
+#endif  
+                    end do
+                end do
+            end do
+        end do
+    end if
+    
+    ! RestartRead of RDF for KBI
+    if (KBIUpdateFrequency > 0) then            
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+#if MPI_VER > 0     
+                if( RootProc ) then
+                    do o = 1, KBINShellsCubeEdge*NProcs
+                        read( iounit_restart, '(I10)' ) KBISum_hilf(o)
+                    end do
+                end if
+                call MPI_Scatter( KBISum_hilf(1:KBINShellsCubeEdge*NProcs), KBINShellsCubeEdge, MPI_INTEGER8, &
+&                   this%Interaction(i,j)%KBISum(1:KBINShellsCubeEdge), KBINShellsCubeEdge, MPI_INTEGER8, NRootProc, Communicator, ierror )            
+#else 
+                do o = 1, KBINShellsCubeEdge
+                    read( iounit_restart, '(I10)' ) this%Interaction(i,j)%KBISum(o)
+                end do
+#endif              
+            end do
+        end do
+        if( RootProc ) then    ! Read mean RDF over all blocks for Gij extrapolation 
+            do i = 1, this%NComponents*(this%NComponents+1)/2
+                do o = 1, KBINShellsCubeEdge
+                    read( iounit_restart, '(ES20.12E3)' ) this%KBIRDFextra(o,i)
+                    read( iounit_restart, '(ES20.12E3)' ) this%KBIRDFvdVextra(o,i)
+                    read( iounit_restart, '(ES20.12E3)' ) this%KBIRDFvdVshfextra(o,i)
+                end do
+            end do
+            read( iounit_restart, '(I10)' ) this%KBIBlockCount
+        end if  
+        do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
+            call RestartRead( this%SumKBIGij1(i), .true. )
+            call RestartRead( this%SumKBIGij2(i), .true. )
+            call RestartRead( this%SumKBIGij3(i), .true. )
+        end do
+    end if
+ 
 
 #if TRANS ==1
     if( this%CorrfunMode ) then
@@ -20167,22 +24319,24 @@ contains
     real(RK) :: sx(this%NComponents), sy(this%NComponents)
     real(RK) :: sz(this%NComponents)
     real(RK) :: SXindex(this%NComponents),SYindex(this%NComponents),SZindex(this%NComponents)
-    real(RK) :: Sindex(3), ss(3)
+    real(RK) :: Sindex(this%NComponents,3), ss(this%NComponents,3)
     real(RK) :: KinERot(this%NPart)
     real(RK) :: BoxLength_dt,BoxLength_dt2
     real(RK) :: tempf(3), virf(3)
     real(RK) :: Mass
     real(RK), pointer, contiguous :: pFB(:,:), pFS(:,:), pFTC(:,:), pFRC(:,:)
     type(TComponent),pointer :: pc
-    logical  :: Conductivity, EConductivity, Bulkviscosity
+    logical  :: EConductivity, Bulkviscosity, MolarEnthConduct
+!   logical  :: Conductivity
 
     NPart  = this%NPart
     NPart2 = 2*this%NPart
     BoxLength_dt       =  this%BoxLength/TimeStep
     BoxLength_dt2      =  BoxLength_dt**2
-    Conductivity = this%Conductivity
+  !  Conductivity = this%Conductivity
     EConductivity = this%EConductivity
     Bulkviscosity = this%Bulkviscosity
+    MolarEnthConduct = this%MolarEnthConduct
     ncomp2 = this%NComponents*this%NComponents
 
 
@@ -20251,15 +24405,17 @@ contains
         end if
           
                   
-        if (Conductivity) then
+ !      if (Conductivity) then
           this%vcpr(Mindex, k) = this%vcpr(Mindex, k) + sum(pFRC(:, k))  !Thermal conductivity for mixtures
           this%vcpt(Mindex, k) = this%vcpt(Mindex, k) + sum(pFTC(:, k))
-          this%vckt(Mindex, k) = this%vckt(Mindex, k) + sum( pc%P1(:, k, 1)*sum( pc%KinETran(:,1:3),2 ) )*0.5_RK*BoxLength_dt
-          this%vcmt(Mindex, k) = this%vcmt(Mindex, k) + pc%PartialMolarEnthalpy*sum(pc%P1(:, k, 1))*BoxLength_dt 
+          this%vckt(Mindex, k) = this%vckt(Mindex, k) + sum( pc%P1(:, k, 1)*pc%KinEPart(:) )*0.5_RK*BoxLength_dt
+          if (MolarEnthConduct) then
+            this%vcmt(Mindex, k) = this%vcmt(Mindex, k) + pc%PartialMolarEnthalpy*sum(pc%P1(:, k, 1))* BoxLength_dt
+          end if 
           if ( pc%Molecule%IsElongated ) then
-            this%vckr(Mindex, k)= this%vckr(Mindex, k) + sum( pc%P1(:, k, 1) * KinERot(:) ) * BoxLength_dt
+            this%vckr(Mindex, k)= this%vckr(Mindex, k) + sum( pc%P1(:, k, 1) * KinERot(:) ) *BoxLength_dt
           end if
-        end if
+        !end if
       end do !k =1, 3
 
       ! kinetic part
@@ -20292,32 +24448,31 @@ contains
 
 
     if ( mod(StepCorr, this%NSpanCF) .eq. 0 ) then
-     if (StepCorr .gt. this%NCorr) then
+      if (StepCorr .gt. this%NCorr) then
 
-      CFindex = Mindex +1
-      this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
+       CFindex = Mindex +1
+       this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
 
-      if (Mindex .eq. this%NCorr) then
-        CFindex = 1                       !index of t = t0
-      end if
+       if (Mindex .eq. this%NCorr) then
+         CFindex = 1                       !index of t = t0
+       end if
 
      ! nullify the autocorrelation functions
-	do i = 1, this%NComponents
-	  this%cf_d(i, :) = 0._RK
-        end do
+       do i = 1, this%NComponents
+         this%cf_d(i, :) = 0._RK
+       end do
 
         this%cf_vs(:) = 0._RK
         this%cf_c(:)  = 0._RK
         this%cf_vb(:) = 0._RK
         this%cf_ec(:) = 0._RK
-
-        if (this%NComponents == 2) then
-	  this%cf_soret = 0._RK
-        end if
  
         if (this%NComponents .gt. 1) then 
           do k = 1, ncomp2
              this%lamda(k,:) = 0._RK
+          end do
+          do k = 1, this%NComponents
+             this%cf_soret(k,:) = 0._RK
           end do
         end if
 
@@ -20332,9 +24487,11 @@ contains
           j0 = j0 + np
         end do
 
-        Sindex(1)=SXindex(2)*BoxLength_dt  !mass flux for thermal diffusion
-        Sindex(2)=SYindex(2)*BoxLength_dt 
-        Sindex(3)=SZindex(2)*BoxLength_dt 
+        do i = 1, this%NComponents
+          Sindex(i,1)=SXindex(i)*BoxLength_dt  !mass flux for thermal diffusion
+          Sindex(i,2)=SYindex(i)*BoxLength_dt 
+          Sindex(i,3)=SZindex(i)*BoxLength_dt
+        end do 
 
       ! Calculation of all transport properties 
       ! s .. matrix index of the corresponding values
@@ -20371,9 +24528,11 @@ contains
           j0 = j0 + np
         end do
 
-        ss(1) = sx(2)* BoxLength_dt 
-        ss(2) = sy(2)* BoxLength_dt 
-        ss(3) = sz(2)* BoxLength_dt  
+        do i = 1, this%NComponents
+          ss(i,1) = sx(i)* BoxLength_dt 
+          ss(i,2) = sy(i)* BoxLength_dt 
+          ss(i,3) = sz(i)* BoxLength_dt
+        end do  
 
         ! Just loops over components!
         if (this%NComponents .gt. 1) then
@@ -20412,30 +24571,31 @@ contains
             this%cf_c(nmess) =  this%cf_c(nmess) + this%vckt(CFindex, k)*this%vckt(s, k) + &
 &                                                  this%vckt(CFindex, k)*this%vcpt(s, k) + &
 &                                                  this%vckt(CFindex, k)*this%vckr(s, k) + &
-&                                                  this%vckt(CFindex, k)*this%vcpr(s, k) + &
+&                                                  this%vckt(CFindex, k)*this%vcpr(s, k) - &
 &                                                  this%vckt(CFindex, k)*this%vcmt(s, k) + &
 &                                                  this%vckr(CFindex, k)*this%vckt(s, k) + &
 &                                                  this%vckr(CFindex, k)*this%vcpt(s, k) + &
 &                                                  this%vckr(CFindex, k)*this%vckr(s, k) + &
-&                                                  this%vckr(CFindex, k)*this%vcpr(s, k) + &
+&                                                  this%vckr(CFindex, k)*this%vcpr(s, k) - &
 &                                                  this%vckr(CFindex, k)*this%vcmt(s, k) + &
 &                                                  this%vcpt(CFindex, k)*this%vckt(s, k) + &
 &                                                  this%vcpt(CFindex, k)*this%vcpt(s, k) + &
 &                                                  this%vcpt(CFindex, k)*this%vckr(s, k) + &
-&                                                  this%vcpt(CFindex, k)*this%vcpr(s, k) + &
+&                                                  this%vcpt(CFindex, k)*this%vcpr(s, k) - &
 &                                                  this%vcpt(CFindex, k)*this%vcmt(s, k) + &
 &                                                  this%vcpr(CFindex, k)*this%vckt(s, k) + &
 &                                                  this%vcpr(CFindex, k)*this%vcpt(s, k) + &
 &                                                  this%vcpr(CFindex, k)*this%vckr(s, k) + &
-&                                                  this%vcpr(CFindex, k)*this%vcpr(s, k) + &
-&                                                  this%vcpr(CFindex, k)*this%vcmt(s, k) + &
-&                                                  this%vcmt(CFindex, k)*this%vckt(s, k) + &
-&                                                  this%vcmt(CFindex, k)*this%vcpt(s, k) + &
-&                                                  this%vcmt(CFindex, k)*this%vckr(s, k) + &
+&                                                  this%vcpr(CFindex, k)*this%vcpr(s, k) - &
+&                                                  this%vcpr(CFindex, k)*this%vcmt(s, k) - &
+&                                                  this%vcmt(CFindex, k)*this%vckt(s, k) - &
+&                                                  this%vcmt(CFindex, k)*this%vcpt(s, k) - &
+&                                                  this%vcmt(CFindex, k)*this%vckr(s, k) - &
 &                                                  this%vcmt(CFindex, k)*this%vcpr(s, k) + &
 &                                                  this%vcmt(CFindex, k)*this%vcmt(s, k) 
 
-        end do
+        end do !k = 1, 3
+
 
         ! include the digonal elements to the shear viscosity (Pxx-Pyy)/2 and (Pyy-Pzz)/2
           this%cf_vs(nmess) = this%cf_vs(nmess) + (1._RK/4._RK)* ((this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
@@ -20449,19 +24609,21 @@ contains
 
 
          !Thermal diffusivity
-	if (this%Ncomponents==2) then
-           do k = 1, 3
-	     this%cf_soret(nmess) =  this%cf_soret(nmess) + this%vckt(CFindex, k)*ss(k) + &
-&	               					    this%vckr(CFindex, k)*ss(k) + &
-&		  					    this%vcpt(CFindex, k)*ss(k) + &
-&							    this%vcpr(CFindex, k)*ss(k) + &
-&							    this%vcmt(CFindex, k)*ss(k) + &
-&							    Sindex(k)*this%vckt(s, k) + &
-&							    Sindex(k)*this%vckr(s, k) + &
-&							    Sindex(k)*this%vcpt(s, k) + &
-&							    Sindex(k)*this%vcpr(s, k) + &
-&							    Sindex(k)*this%vcmt(s, k) 
-            end do
+         if (this%Ncomponents .gt. 1) then
+           do j = 1, this%NComponents
+             do k = 1, 3
+               this%cf_soret(j, nmess) =  this%cf_soret(j, nmess) + this%vckt(CFindex, k)*ss(j,k) + &
+&                                                                   this%vckr(CFindex, k)*ss(j,k) + &
+&                                                                   this%vcpt(CFindex, k)*ss(j,k) + &
+&                                                                   this%vcpr(CFindex, k)*ss(j,k) - &
+&                                                                   this%vcmt(CFindex, k)*ss(j,k) + &
+&                                                                   Sindex(j,k)*this%vckt(s, k) + &
+&                                                                   Sindex(j,k)*this%vckr(s, k) + &
+&                                                                   Sindex(j,k)*this%vcpt(s, k) + &
+&                                                                   Sindex(j,k)*this%vcpr(s, k) - &
+&                                                                   Sindex(j,k)*this%vcmt(s, k) 
+             end do
+           end do
          end if
 
         ! electric conductivity
@@ -20499,7 +24661,7 @@ contains
       this%Mmess  = this%Mmess +1
 
       do i = 1, this%NComponents
-	 this%average_cf_d(i, :) = (this%average_cf_d(i,:) + this%cf_d(i,:))
+        this%average_cf_d(i, :) = (this%average_cf_d(i,:) + this%cf_d(i,:))
       end do
 
       this%average_cf_vs(:)= (this%average_cf_vs(:) + this%cf_vs(:))
@@ -20507,13 +24669,12 @@ contains
       this%average_cf_c(:) = (this%average_cf_c(:) + this%cf_c(:))
       this%average_cf_ec(:)= (this%average_cf_ec(:) + this%cf_ec(:))
 
-      if (this%NComponents == 2) then 
-	this%average_cf_soret(:)= (this%average_cf_soret(:) + this%cf_soret(:))
-      end if
-
-      if (this%NComponents .gt. 1) then 
+      if (this%NComponents .gt. 1) then
+        do k = 1, this%NComponents
+          this%average_cf_soret(k,:)= (this%average_cf_soret(k,:) + this%cf_soret(k,:))
+        end do 
         do k = 1, ncomp2
-           this%average_lamda(k,:) = (this%average_lamda(k,:) + this%lamda(k,:))
+          this%average_lamda(k,:) = (this%average_lamda(k,:) + this%lamda(k,:))
         end do
       end if
 
@@ -20549,16 +24710,16 @@ contains
     integer  :: i, j, k
     integer  :: ncomp2
     real(RK) :: helpvar!, det, deter1, deter2, deter3, deter4
-    real(RK) :: x1, x2, x3, w1, w2, MM
+    real(RK) :: x1, x2, x3 !, w1, w2, MM
 !    real(RK) :: Inv_x1, Inv_x2, Inv_x3
 !    real(RK) :: B11, B12, B21, B22
     real(RK) :: BoxLength_dt2
 
     BoxLength_dt2      =  (this%BoxLength/TimeStep)**2
     ncomp2 = this%NComponents*this%NComponents
-    MM = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction + this%Component(2)%Molecule%Mass*this%Component(2)%Fraction
-    w1 = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction/MM
-    w2 = this%Component(2)%Molecule%Mass*this%Component(2)%Fraction/MM
+    !MM = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction + this%Component(2)%Molecule%Mass*this%Component(2)%Fraction
+    !w1 = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction/MM
+    !w2 = this%Component(2)%Molecule%Mass*this%Component(2)%Fraction/MM
 
     
 
@@ -20574,7 +24735,7 @@ contains
 
 
     if ( this%NComponents .gt. 1) then
-      helpvar =  1._RK /(3._RK *this%NPart) * BoxLength_dt2
+      helpvar =  Third /(this%NPart) * BoxLength_dt2
       do k = 1, ncomp2
         if (abs(this%lamda(k, 1)) .gt. 1e-15) then 
            this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1),this%TimeStepCorr, this%NCorr)
@@ -20601,31 +24762,36 @@ contains
     this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
 
 
-    helpvar =  this%Density /(3._RK *this%NPart * this%Temperature)
+    helpvar =  this%Density*Ninth/(this%NPart * this%Temperature)
     if (this%Bulkviscosity) then
       this%sinte_vb = simpson( this%cf_vb(:)/this%cf_vb(1),this%TimeStepCorr, this%NCorr )
       this%average_sinte_vb = simpson( this%average_cf_vb(:)/this%average_cf_vb(1),this%TimeStepCorr, this%NCorr)
-      this%average_sinte_vb = this%average_sinte_vb(:)*this%average_cf_vb(1)*helpvar/(3._RK*this%Mmess)
-      this%visco_b = this%sinte_vb( this%NCorr ) * this%cf_vb(1) * (helpvar / 3._RK)
+      this%average_sinte_vb = this%average_sinte_vb(:)*this%average_cf_vb(1)*helpvar/this%Mmess
+      this%visco_b = this%sinte_vb( this%NCorr ) * this%cf_vb(1) * helpvar
     end if
 
-    if (this%Conductivity) then
+    helpvar = this%Density*Third/this%NPart
+ !   if (this%Conductivity) then
       this%sinte_c = simpson( this%cf_c(:)/this%cf_c(1), this%TimeStepCorr, this%NCorr )
       this%average_sinte_c = simpson( this%average_cf_c(:)/this%average_cf_c(1),this%TimeStepCorr, this%NCorr)
-      this%average_sinte_c = this%average_sinte_c(:)*this%average_cf_c(1)*(helpvar/(this%Temperature*this%Mmess))
-      this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * (helpvar / this%Temperature)
+      this%average_sinte_c = this%average_sinte_c(:)*this%average_cf_c(1)*(helpvar/this%Mmess)
+      this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * helpvar
+ !   end if
+
+     if ( this%NComponents .gt. 1 ) then
+ !     if (abs(this%cf_soret(1)) .gt. 1e-15) then
+        do k = 1, this%NComponents
+          if (abs(this%cf_soret(k,1)) .gt. 1e-15) then
+            this%sinte_soret(k,:) = simpson (this%cf_soret(k,:)/this%cf_soret(k,1), this%TimeStepCorr, this%NCorr )
+            this%average_sinte_soret(k,:) = simpson (this%average_cf_soret(k,:)/this%average_cf_soret(k,1), this%TimeStepCorr, this%NCorr)
+            this%average_sinte_soret(k,:) = this%average_sinte_soret(k,:)*this%average_cf_soret(k,1)*helpvar*this%Component(k)%Molecule%Mass/(2._RK*this%Mmess)
+            this%soret(k) =  this%sinte_soret(k, this%NCorr)*this%cf_soret(k,1)*this%Component(k)%Molecule%Mass*helpvar/2._RK
+          end if
+        end do
+ !     end if
     end if
 
-     if ( this%NComponents == 2 ) then
-      if (abs(this%cf_soret(1)) .gt. 1e-15) then
-         this%sinte_soret = simpson (this%cf_soret(:)/this%cf_soret(1), this%TimeStepCorr, this%NCorr )
-         this%average_sinte_soret = simpson (this%average_cf_soret(:)/this%average_cf_soret(1), this%TimeStepCorr, this%NCorr)
-         this%average_sinte_soret = this%average_sinte_soret(:)*this%average_cf_soret(1)*helpvar*this%Component(2)%Molecule%Mass/(2._RK*this%Mmess*this%Density*MM*this%Temperature*w1*w2)
-         this%soret =  this%sinte_soret( this%NCorr)*this%cf_soret(1)*this%Component(2)%Molecule%Mass*helpvar/(this%Density*this%Temperature*w1*w2*MM*2._RK)
-      end if
-    end if
-
-
+     helpvar = this%Density*Third /(this%NPart * this%Temperature)  
     if (this%EConductivity) then
       this%sinte_ec = simpson( this%cf_ec(:)/this%cf_ec(1), this%TimeStepCorr, this%NCorr )
       this%average_sinte_ec = simpson( this%average_cf_ec(:)/this%average_cf_ec(1),this%TimeStepCorr, this%NCorr)
@@ -20719,7 +24885,7 @@ contains
     type(TComponent), pointer :: pacc, pdon
     type(TSiteCharge), pointer :: paccacc, pdonacc, pmixdon
     logical             :: MixTerm
-    integer             :: h, i, i0, i1, j, k ,l, m
+    integer             :: h, i, i0, i1, j, k ,l, m, n
     real(RK)            :: BoxLengthInv
     real(RK)            :: LAA, LAD, LintraAD, CosAngle
     real(RK)            :: AngleCrit, DistCrit1, DistCrit2
@@ -20728,11 +24894,12 @@ contains
     integer,allocatable :: Counter(:,:), NHBAll(:)
 
     ! Initialize arrays
-    this%NHBond0(:)       = 0
-    this%NHBond1(:,:)     = 0
-    this%NHBond2(:,:,:)   = 0
-    this%NHBond3(:,:,:,:) = 0
-    this%NHBondN(:)       = 0
+    this%NHBond0(:)         = 0
+    this%NHBond1(:,:)       = 0
+    this%NHBond2(:,:,:)     = 0
+    this%NHBond3(:,:,:,:)   = 0
+    this%NHBond4(:,:,:,:,:) = 0
+    this%NHBondN(:)         = 0
 
     allocate( Counter(this%NComponents,this%NPart) )
     Counter(:,:) = 0
@@ -20831,8 +24998,10 @@ contains
                   Counter(this%AccComp(h),i) = Counter(this%AccComp(h),i) + this%DonComp(h)*100
                 elseif ( Counter(this%AccComp(h),i) < 10000 ) then
                   Counter(this%AccComp(h),i) = Counter(this%AccComp(h),i) + this%DonComp(h)*10000
+                elseif ( Counter(this%AccComp(h),i) < 1000000 ) then
+                  Counter(this%AccComp(h),i) = Counter(this%AccComp(h),i) + this%DonComp(h)*1000000
                 else
-                  Counter(this%AccComp(h),i) = 1000000
+                  Counter(this%AccComp(h),i) = 100000000
                 end if
               end if
 
@@ -20858,7 +25027,7 @@ contains
         m = 0
         if ( Counter(h,i) == 0 ) then
           this%NHBond0(h)=this%NHBond0(h) + 1
-        elseif ( Counter(h,i) == 1000000 ) then
+        elseif ( Counter(h,i) == 100000000 ) then
           this%NHBondN(h)=this%NHBondN(h) + 1
         elseif ( Counter(h,i) < 100 ) then
           do while (Counter(h,i) > 0 )
@@ -20885,7 +25054,7 @@ contains
             j = m
           end if
           this%NHBond2(h,j,k)=this%NHBond2(h,j,k) + 1
-        else
+        elseif (Counter(h,i) < 1000000 ) then
           do while (Counter(h,i) > 10000 )
             m = m + 1
             Counter(h,i) = Counter(h,i) - 10000
@@ -20919,6 +25088,61 @@ contains
             end if
           end if
           this%NHBond3(h,j,k,l)=this%NHBond3(h,j,k,l) + 1
+        else
+          do while (Counter(h,i) > 1000000 )
+            m = m + 1
+            Counter(h,i) = Counter(h,i) - 1000000
+          end do
+          j = m
+          m = 0
+          do while (Counter(h,i) > 10000 )
+            m = m + 1
+            Counter(h,i) = Counter(h,i) - 10000
+          end do
+          if (j .le. m) then
+            k = m
+          else
+            k = j
+            j = m
+          end if
+          m = 0
+          do while (Counter(h,i) > 100 )
+            m = m + 1
+            Counter(h,i) = Counter(h,i) - 100
+          end do
+          if (k .le. m) then
+            l = m
+          else
+            l = k
+            if (j .le. m) then
+              k = m
+            else
+              k = j
+              j = m
+            end if
+          end if
+          m = 0
+          do while (Counter(h,i) > 0 )
+            m = m + 1
+            Counter(h,i) = Counter(h,i) - 1
+          end do
+          if (l .le. m) then
+            n = m
+          else
+            n = l
+            if (k .le. m) then
+              l = m
+            else
+              l = k
+              if (j .le. m) then
+                k = m
+              else
+                k = j
+                j = m
+              end if
+            end if
+          end if
+          this%NHBond4(h,j,k,l,n)=this%NHBond4(h,j,k,l,n) + 1
         end if
 
       end do
@@ -20937,6 +25161,10 @@ contains
           do l = k, this%NComponents
             call MPI_Reduce( this%NHBond3(:,j,k,l), NHBAll(:), this%NComponents, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
             if (RootProc) this%NHBond3(:,j,k,l) = NHBAll(:)
+            do n = l, this%NComponents
+              call MPI_Reduce( this%NHBond4(:,j,k,l,n), NHBAll(:), this%NComponents, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+              if (RootProc) this%NHBond4(:,j,k,l,n) = NHBAll(:)
+            end do 
           end do
         end do
       end do
@@ -20944,7 +25172,7 @@ contains
       if (RootProc) this%NHBondN(:) = NHBAll(:)
     end if
 #endif
-    !this%NHBondN(1)=this%NPart-this%NHBond0(1)-this%NHBond1(1,1)-this%NHBond2(1,1,1)-this%NHBond3(1,1,1,1)
+    !this%NHBondN(1)=this%NPart-this%NHBond0(1)-this%NHBond1(1,1)-this%NHBond2(1,1,1)-this%NHBond3(1,1,1,1)-this%NHBond4(1,1,1,1,1)
 
 !      !Output of the H-bonded Molecules
 !      if( (StepTotal > 1) .and. (mod( StepTotal - 1, VisualUpdateFrequency ) == 0) ) then  
