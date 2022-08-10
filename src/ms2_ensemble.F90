@@ -4450,7 +4450,7 @@ xloop:do i = 1, NCells1dim(1)
 
     ! Declare local variables
     integer                   :: i, j, k
-    real(RK)                  :: r
+    real(RK)                  :: dq(3), pm(3), r
     type(TComponent), pointer :: pc
 
     ! Set random orientations of particles
@@ -4458,15 +4458,28 @@ xloop:do i = 1, NCells1dim(1)
       pc => this%Component(i)
       if(pc%Molecule%isElongated ) then
         do j = 1, pc%NPart
-          do
-            do k = 1, 4
-              pc%Qm0(j, k) = rnd( -1._RK, 1._RK )
+          if (.not. UseIntDegFreed) then
+              do
+                do k = 1, 4
+                  pc%Q0(j, k, 1) = rnd( -1._RK, 1._RK )
+                end do
+                r = sum( pc%Q0(j, :, 1)**2 )
+                if( r <= 1._RK ) exit
+              end do
+              pc%Q0(j, :, 1) = pc%Q0(j, :, 1) / sqrt( r )
+          else
+            do
+              do k = 1, 4
+                pc%Qm0(j, k) = rnd( -1._RK, 1._RK )
+              end do
+              r = sum( pc%Qm0(j, :)**2 )
+              if( r <= 1._RK ) exit
             end do
-            r = sum( pc%Qm0(j, :)**2 )
-            if( r <= 1._RK ) exit
-          end do
           pc%Qm0(j, :) = pc%Qm0(j, :) / sqrt( r )
+          end if
         end do
+      else
+        pc%P0(:,:,1) = pc%Pm0(:,:) ! if P0' 3.dim is over 1 -> elongated
       end if
     end do
 
@@ -6309,7 +6322,8 @@ loop5:    do nc = 1, this%NComponents
     if (.not. UseIntDegFreed) then
         this%Pressure = this%Density * this%Temperature + this%Virial / this%Volume0
     else
-        this%Pressure = (this%NUnitTotal * this%Temperature + this%Virial) / this%Volume0
+       ! constraints bonds due to Shake decrease the ideal gas pressure value
+       this%Pressure = ((this%NUnitTotal-this%constrNDF/3._RK) * this%Temperature + this%Virial) / this%Volume0
     end if
 
   end subroutine TEnsemble_Force
@@ -12114,8 +12128,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call Update( this%SumVirialIntra, -3._RK * this%VirialIntra )
     call Update( this%SumVirialInter, -3._RK * this%VirialInter )
 
-    currentdEpotdV   = -(this%Virial+(this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0
-    currentd2EpotdV2 =  ((2._RK*this%Virial/3._RK + this%d2EpotdV2) + (this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0**2 ! diff to trunk...wrong! GABOR!!!
+    if (.not. UseIntDegFreed) then
+        currentdEpotdV   = -this%Density*this%Virial/real( this%NPart, RK )
+        currentd2EpotdV2 =  this%Density**2*(2._RK*this%Virial/3._RK + this%d2EpotdV2) / (real( this%NPart, RK ))**2
+    else
+        currentdEpotdV   = -(this%Virial+(this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0
+        currentd2EpotdV2 =  ((2._RK*this%Virial/3._RK + this%d2EpotdV2) + (this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0**2 ! diff to trunk...wrong! GABOR!!!
+    end if
     call Update( this%SumdEpotdV,   currentdEpotdV)
     call Update( this%Sumd2EpotdV2, currentd2EpotdV2)
 
@@ -12173,17 +12192,33 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call Update( this%SumEPotVirial, -3. * this%Virial * this%EPot / real( this%NPart, RK ) )
 
     if( ConstantPressure ) then
-       call Update( this%SumEnthalpySquared, ( this%EPotInter / real( this%NPart, RK ) + &
-&                this%RefPressure / this%Density - (1-this%NUnitTotal/this%Npart)*this%RefTemperature )**2 )
+       if (.not. UseIntDegFreed) then
+           call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
+&                    this%RefPressure / this%Density - this%RefTemperature )**2 )
    
-       call Update( this%SumEnthalpyV, ( this%EPotInter / real( this%NPart, RK ) + &
-&                this%RefPressure / this%Density - (1-this%NUnitTotal/this%Npart)*this%RefTemperature ) / this%Density )
+           call Update( this%SumEnthalpyV, ( this%EPot / real( this%NPart, RK ) + &
+&                    this%RefPressure / this%Density - this%RefTemperature ) / this%Density )
+       else
+           call Update( this%SumEnthalpySquared, ( this%EPotInter / real( this%NPart, RK ) + &
+&                    this%RefPressure / this%Density - (1-this%NUnitTotal/this%Npart)*this%RefTemperature )**2 )
+   
+           call Update( this%SumEnthalpyV, ( this%EPotInter / real( this%NPart, RK ) + &
+&                    this%RefPressure / this%Density - (1-this%NUnitTotal/this%Npart)*this%RefTemperature ) / this%Density )
+        end if
     else
-       call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
-&                this%Pressure / this%Density )**2 )
+        if (.not. UseIntDegFreed) then
+            call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
+&                     this%Pressure / this%Density - this%RefTemperature )**2 )
    
-       call Update( this%SumEnthalpyV, ( this%EPotInter / real( this%NPart, RK ) + &
-&                this%Pressure / this%Density  ) / this%Density )
+           call Update( this%SumEnthalpyV, ( this%EPot / real( this%NPart, RK ) + &
+&                    this%Pressure / this%Density - this%RefTemperature ) / this%Density )
+        else
+           call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
+&                    this%Pressure / this%Density )**2 )
+   
+           call Update( this%SumEnthalpyV, ( this%EPotInter / real( this%NPart, RK ) + &
+&                    this%Pressure / this%Density  ) / this%Density )
+        end if
     end if
     call Update( this%SumVolumeSquared, 1._RK / this%Density**2 )
 
