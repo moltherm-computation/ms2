@@ -90,10 +90,6 @@ module ms2_potential
     module procedure TPotMIEMIE_ChemicalPotential
   end interface
 
-  interface Energy
-    module procedure TPotMIEMIE_Energy
-  end interface
-
   interface UpdateBoxLength
     module procedure TPotMIEMIE_UpdateBoxLength
   end interface
@@ -144,11 +140,6 @@ module ms2_potential
     module procedure TPotCC_ChemicalPotential
   end interface
 
-  interface Energy
-    module procedure TPotCC_Energy
-    module procedure TPotCC_Energy_Ewald
-  end interface
-
   interface ErrorApprox
     module procedure TPoterfc_approx
   end interface
@@ -197,10 +188,6 @@ module ms2_potential
     module procedure TPotCD_ChemicalPotential
   end interface
 
-  interface Energy
-    module procedure TPotCD_Energy
-  end interface
-
 
 
 !==============================================================!
@@ -243,10 +230,6 @@ module ms2_potential
 
   interface ChemicalPotential
     module procedure TPotCQ_ChemicalPotential
-  end interface
-
-  interface Energy
-    module procedure TPotCQ_Energy
   end interface
 
 
@@ -292,10 +275,6 @@ module ms2_potential
     module procedure TPotDC_ChemicalPotential
   end interface
 
-  interface Energy
-    module procedure TPotDC_Energy
-  end interface
-
 
 !==============================================================!
 !  Type TPotDipoleDipole                                       !
@@ -337,10 +316,6 @@ module ms2_potential
 
   interface ChemicalPotential
     module procedure TPotDD_ChemicalPotential
-  end interface
-
-  interface Energy
-    module procedure TPotDD_Energy
   end interface
 
 
@@ -386,10 +361,6 @@ module ms2_potential
     module procedure TPotDQ_ChemicalPotential
   end interface
 
-  interface Energy
-    module procedure TPotDQ_Energy
-  end interface
-
 !==============================================================!
 !  Type TPotQuadrupoleCharge                                   !
 !==============================================================!
@@ -430,10 +401,6 @@ module ms2_potential
 
   interface ChemicalPotential
     module procedure TPotQC_ChemicalPotential
-  end interface
-
-  interface Energy
-    module procedure TPotQC_Energy
   end interface
 
 
@@ -479,10 +446,6 @@ module ms2_potential
     module procedure TPotQD_ChemicalPotential
   end interface
 
-  interface Energy
-    module procedure TPotQD_Energy
-  end interface
-
 
 !==============================================================!
 !  Type TPotQuadrupoleQuadrupole                               !
@@ -523,10 +486,6 @@ module ms2_potential
 
   interface ChemicalPotential
     module procedure TPotQQ_ChemicalPotential
-  end interface
-
-  interface Energy
-    module procedure TPotQQ_Energy
   end interface
 
 
@@ -1564,8 +1523,10 @@ loop3:  do j = j0, j1
 !$OMP PRIVATE(i0, N1, N2, ji, EvenN) &
 #endif
 #if  TRANS == 1
-!$OMP PRIVATE(VSx1, VSy1, VSz1, VSux1,VSuy1,VSuz1, VBx1, VBy1, VBz1, Cx1, Cy1, Cz1) &
-!$OMP PRIVATE( tux1 , tuy1 , tuz1, tlx1 , tly1 , tlz1, tdx1 , tdy1, tdz1) &
+!$OMP PRIVATE(VSx1, VSy1, VSz1,VSux1,VSuy1,VSuz1, VBx1, VBy1, VBz1, Cx1, Cy1, Cz1) &
+!$OMP PRIVATE(VSx2, VSy2, VSz2,VSux2,VSuy2,VSuz2, VBx2, VBy2, VBz2, Cx2, Cy2, Cz2) &
+!$OMP PRIVATE( tux1, tuy1, tuz1, tlx1, tly1, tlz1, tdx1, tdy1, tdz1) &
+!$OMP PRIVATE( tux2, tuy2, tuz2, tlx2, tly2, tlz2, tdx2, tdy2, tdz2) &
 !$OMP PRIVATE( q1, q2, q3, q4, SigmaInvEpsMie_a, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
@@ -2301,151 +2262,6 @@ loop2:  do j = 1, N2
     end if
 !$OMP END PARALLEL
   end subroutine TPotMIEMIE_ChemicalPotential
-
-
-
-!==============================================================!
-!  Subroutine TPotMIEMIE_Energy                                  !
-!==============================================================!
-
-  subroutine TPotMIEMIE_Energy( this, np, nu, F, E, EIntra, BoxLength, CompIdent )
-
-    implicit none
-
-    ! Declare arguments
-    type(TPotMIEnmMIEnm) :: this
-    integer, intent(in)  :: np
-    integer, intent(in)      :: nu
-    real(RK), intent(in out) :: F(3,nu)
-    real(RK), intent(in out) :: E
-    real(RK), intent(in out) :: EIntra
-    real(RK), intent(in) :: BoxLength
-    logical, intent(in)      :: CompIdent
-
-    ! Declare local variables
-    real(RK)          :: SigmaSquared
-    real(RK)          :: EpsilonMie_a, EpsilonMie_aF
-    real(RK)          :: Mie_n, Mie_m, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK)          :: RXi, RYi, RZi
-    real(RK)          :: PXi, PYi, PZi
-    real(RK)          :: RXij, RYij, RZij
-    real(RK)          :: FXij, FYij, FZij, Fij
-    real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: RijSquared, RijSquaredInv, RijMie_nInv, RijMie_mInv
-    real(RK)          :: tempF(3,nu)
-    real(RK)          :: EPot, EIntra1, ELocal
-    integer           :: j, k
-    integer           :: nu2, unit, jk
-    real(RK)          :: coeff
-
-    ! Assign local variables
-    SigmaSquared = this%SigmaSquared
-    EpsilonMie_a = this%EpsilonMie_a
-    EpsilonMie_aF = this%EpsilonMie_aF
-    Mie_n = this%Mie_n
-    Mie_m = this%Mie_m
-    Mie_nHalf = this%Mie_nHalf
-    Mie_mHalf = this%Mie_mHalf
-    nu2 = this%NUnit2
-    coeff = 1._RK
-    if (this%potintra14) coeff = this%ScaleLJ14
-    EPot = 0._RK
-    EIntra1 = 0._RK
-    tempF(:,:) = 0._RK
-
-    ! Assign pointers
-    RX1 => this%Site1%RX
-    RY1 => this%Site1%RY
-    RZ1 => this%Site1%RZ
-    RX2 => this%Site2%RX
-    RY2 => this%Site2%RY
-    RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-
-    ! Loop over molecules
-    RXi = RX1(np)
-    RYi = RY1(np)
-    RZi = RZ1(np)
-    PXi = PX1(np)
-    PYi = PY1(np)
-    PZi = PZ1(np)
-
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber ! Number of unit, to which this site corresponds
-
-    do k = 1, this%NInCutoff(unit)
-      j = this%CutoffPartner(k, unit) ! Unit-partner of this unit
-      if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
-        if (mod(j,nu2)==0) then
-          jk = INT(j/nu2)   ! number of molecule, to which this unit correspond
-        else
-          jk = INT(j/nu2)+1
-        end if
-        RXij = RXi - RX2(jk)
-        RYij = RYi - RY2(jk)
-        RZij = RZi - RZ2(jk)
-        PXij = PXi - PX2(jk)
-        PYij = PYi - PY2(jk)
-        PZij = PZi - PZ2(jk)
-        RXij = RXij - anint( PXij )
-        RYij = RYij - anint( PYij )
-        RZij = RZij - anint( PZij )
-        RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
-        RijSquaredInv = SigmaSquared / RijSquared
-        RijMie_nInv = RijSquaredInv**Mie_nHalf
-        RijMie_mInv = RijSquaredInv**Mie_mHalf
-        Mie_nRijMie_n = Mie_n * RijMie_nInv
-        Mie_mRijMie_m = Mie_m * RijMie_mInv
-        EPot = EPot + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
-        Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
-        FXij = Fij * RXij
-        FYij = Fij * RYij
-        FZij = Fij * RZij
-        if (CompIdent) then
-          tempF(1,this%Site1%UnitNumber) = tempF(1,this%Site1%UnitNumber) + FXij
-          tempF(2,this%Site1%UnitNumber) = tempF(2,this%Site1%UnitNumber) + FYij
-          tempF(3,this%Site1%UnitNumber) = tempF(3,this%Site1%UnitNumber) + FZij
-        else
-          tempF(1,this%Site2%UnitNumber) = tempF(1,this%Site2%UnitNumber) - FXij
-          tempF(2,this%Site2%UnitNumber) = tempF(2,this%Site2%UnitNumber) - FYij
-          tempF(3,this%Site2%UnitNumber) = tempF(3,this%Site2%UnitNumber) - FZij
-        end if
-      end if
-    end do
-    ! Include intramolecular interaction if need
-    if (this%potintra15 .or. this%potintra14) then
-      RXij = RXi - RX2(np)
-      RYij = RYi - RY2(np)
-      RZij = RZi - RZ2(np)
-      PXij = PXi - PX2(np)
-      PYij = PYi - PY2(np)
-      PZij = PZi - PZ2(np)
-      RXij = RXij - anint( PXij )
-      RYij = RYij - anint( PYij )
-      RZij = RZij - anint( PZij )
-      RijSquared = RXij**2 + RYij**2 + RZij**2
-      RijSquaredInv = SigmaSquared / RijSquared
-      EIntra1 = EIntra1 + (RijSquaredInv**3 * (RijSquaredInv**3 - 1._RK) * coeff)
-      Fij = EpsilonMie_aF * RijSquaredInv**3 * (RijSquaredInv**3 - .5_RK) * RijSquaredInv
-      tempF(1,this%Site1%UnitNumber) = tempF(1,this%Site1%UnitNumber) + Fij * RXij
-      tempF(2,this%Site1%UnitNumber) = tempF(2,this%Site1%UnitNumber) + Fij * RYij
-      tempF(3,this%Site1%UnitNumber) = tempF(3,this%Site1%UnitNumber) + Fij * RZij
-      tempF(1,this%Site2%UnitNumber) = tempF(1,this%Site2%UnitNumber) - Fij * RXij
-      tempF(2,this%Site2%UnitNumber) = tempF(2,this%Site2%UnitNumber) - Fij * RYij
-      tempF(3,this%Site2%UnitNumber) = tempF(3,this%Site2%UnitNumber) - Fij * RZij
-    end if
-
-    F(:,:) = F(:,:) + tempF(:,:)
-    E = E + this%EpsilonMie_a * (EPot + EIntra1)
-    EIntra = EIntra + this%EpsilonMie_a * EIntra1
-
-  end subroutine TPotMIEMIE_Energy
 
 
 
@@ -3272,12 +3088,14 @@ loop2:  do m=1,NBinsDen
 !$OMP PRIVATE(   RXi, RYi, RZi, FXi, FYi, FZi, PXi, PYi, PZi)&
 !$OMP PRIVATE(   RXij, RYij, RZij, FXij, FYij, FZij, PXij, PYij, PZij) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
-!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE(VSx1, VSy1, VSz1,VSux1,VSuy1,VSuz1, VBx1, VBy1, VBz1, Cx1, Cy1, Cz1) &
+!$OMP PRIVATE(VSx2, VSy2, VSz2,VSux2,VSuy2,VSuz2, VBx2, VBy2, VBz2, Cx2, Cy2, Cz2) &
+!$OMP PRIVATE( tux1, tuy1, tuz1, tlx1, tly1, tlz1, tdx1, tdy1, tdz1) &
+!$OMP PRIVATE( tux2, tuy2, tuz2, tlx2, tly2, tlz2, tdx2, tdy2, tdz2) &
 !$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txi ,  tyi  , tzi ) &
-!$OMP PRIVATE(  UU ,  Uxi,  Uyi, Uzi, r1x, r1y, r1z) &
+!$OMP PRIVATE(  UU , r1x, r1y, r1z) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
@@ -4229,295 +4047,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
    end do
 
   end subroutine TPotCC_ChemicalPotential
-
-
-!==============================================================!
-!  Subroutine TPotCC_Energy                                    !
-!==============================================================!
-
-  subroutine TPotCC_Energy( this, np, nu, F,E, EIntra, BoxLength, CompIdent )
-
-    implicit none
-
-    ! Declare arguments
-    type(TPotChargeCharge) :: this
-    integer, intent(in)    :: np
-    integer, intent(in)      :: nu
-    real(RK), intent(in out) :: F(3,nu)
-    real(RK), intent(in out) :: E
-    real(RK), intent(in out) :: EIntra
-    real(RK), intent(in)   :: BoxLength
-    logical, intent(in)      :: CompIdent
-
-    ! Declare local variables
-    real(RK)          :: Epsilon
-    real(RK)          :: RCutoffSquared
-    real(RK)          :: RShieldSquared
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK)          :: RXi, RYi, RZi
-    real(RK)          :: PXi, PYi, PZi
-    real(RK)          :: RXij, RYij, RZij
-    real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijInv, RijSquared
-    real(RK)          :: EPot, EIntra1, EPotLocal, tempF(3,nu)
-    integer           :: j, k
-    integer           :: nu2, unit, su, jk
-    real(RK)          :: coeff
-
-    ! Assign local variables
-    Epsilon = this%Epsilon
-    RCutoffSquared = this%RCutoffSquared
-    RShieldSquared = this%RShieldSquared
-
-    nu2 = this%NUnit2
-    coeff = 1._RK
-    if (this%potintra14) coeff = this%ScaleEl14
-    EPot = 0._RK
-    EIntra1 = 0._RK
-    tempF(:,:) = 0._RK
-    su = this%Site2%UnitNumber
-    if (CompIdent) su = this%Site1%UnitNumber
-
-    ! Assign pointers
-    RX1 => this%Site1%RX
-    RY1 => this%Site1%RY
-    RZ1 => this%Site1%RZ
-    RX2 => this%Site2%RX
-    RY2 => this%Site2%RY
-    RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-
-    ! Loop over molecules
-    RXi = RX1(np)
-    RYi = RY1(np)
-    RZi = RZ1(np)
-    PXi = PX1(np)
-    PYi = PY1(np)
-    PZi = PZ1(np)
-
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
-
-    do k = 1, this%NInCutoff(unit)
-      j = this%CutoffPartner(k, unit)
-      if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
-        if (mod(j,nu2)==0) then
-          jk = INT(j/nu2)
-        else
-          jk = INT(j/nu2)+1
-        end if
-        RXij = RXi - RX2(jk)
-        RYij = RYi - RY2(jk)
-        RZij = RZi - RZ2(jk)
-        PXij = PXi - PX2(jk)
-        PYij = PYi - PY2(jk)
-        PZij = PZi - PZ2(jk)
-        RXij = (RXij - anint( PXij )) * BoxLength
-        RYij = (RYij - anint( PYij )) * BoxLength
-        RZij = (RZij - anint( PZij )) * BoxLength
-        RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
-
-        if( RijSquared <= RShieldSquared ) then
-          EPotLocal = 1E33_RK
-          tempF(:,su) = 1E33_RK
-        else
-
-          RijInv = 1._RK / sqrt( RijSquared )
-
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          EPotLocal = Epsilon * RijInv
-        end if
-        EPot = EPot + EPotLocal
-      end if
-    end do
-    ! Include intramolecular interaction if need
-    if (this%potintra14 .or. this%potintra15) then
-      RXij = RXi - RX2(np)
-      RYij = RYi - RY2(np)
-      RZij = RZi - RZ2(np)
-      PXij = PXi - PX2(np)
-      PYij = PYi - PY2(np)
-      PZij = PZi - PZ2(np)
-      RXij = (RXij - anint( PXij )) * BoxLength
-      RYij = (RYij - anint( PYij )) * BoxLength
-      RZij = (RZij - anint( PZij )) * BoxLength
-#if ARCH == 3
-      RijInv = rsqrt( RXij**2 + RYij**2 + RZij**2 )
-#else
-      RijInv = 1._RK / sqrt( RXij**2 + RYij**2 + RZij**2 )
-#endif
-      EPotLocal = Epsilon * RijInv * coeff
-      eX = RXij * RijInv
-      eY = RYij * RijInv
-      eZ = RZij * RijInv
-
-      EIntra1  = EIntra1 + EPotLocal
-    end if
-
-    ! Update potential energy and virial
-    F(:,:) = F(:,:) + tempF(:,:)
-    E = E + EPot + EIntra1
-    EIntra = EIntra + EIntra1
-
-  end subroutine TPotCC_Energy
-
-
-
-!==============================================================!
-!  Subroutine TPotCC_Energy_Ewald                              !
-!==============================================================!
-
-  subroutine TPotCC_Energy_Ewald( this, np, nu, F, E, EIntra, BoxLength, Kappa, CompIdent )
-
-    implicit none
-
-    ! Declare arguments
-    type(TPotChargeCharge) :: this
-    integer, intent(in)    :: np
-    integer, intent(in)      :: nu
-    real(RK), intent(in out) :: F(3,nu)
-    real(RK), intent(in out) :: E
-    real(RK), intent(in out) :: EIntra
-    real(RK), intent(in)   :: BoxLength
-    real(RK), intent(in)   :: Kappa
-    logical, intent(in)      :: CompIdent
-
-    ! Declare local variables
-    real(RK)          :: Epsilon
-    real(RK)          :: RCutoffSquared
-    real(RK)          :: RShieldSquared
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK)          :: RXi, RYi, RZi
-    real(RK)          :: PXi, PYi, PZi
-    real(RK)          :: RXij, RYij, RZij
-    real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijInv, RijSquared
-    real(RK)          :: Epot, EIntra1, EPotLocal, coeff
-    real(RK)          :: Fij, Faktor, tempF(3,nu)
-    integer           :: j, k
-    real(RK)          :: approx
-    integer           :: nu2, unit, su, jk
-    real(RK)          :: Rij, KappaRij
-
-    ! Assign local variables
-    Epsilon = this%Epsilon
-    RCutoffSquared = this%RCutoffSquared
-    RShieldSquared = this%RShieldSquared
-    nu2 = this%NUnit2
-    coeff = 1._RK
-    if (this%potintra14) coeff = this%ScaleEl14
-    Epot = 0._RK
-    EIntra1 = 0._RK
-    Faktor = 2._RK/sqrt(Pi) * Kappa
-    su = this%Site2%UnitNumber
-    if (CompIdent) su = this%Site1%UnitNumber
-
-    ! Assign pointers
-    RX1 => this%Site1%RX
-    RY1 => this%Site1%RY
-    RZ1 => this%Site1%RZ
-    RX2 => this%Site2%RX
-    RY2 => this%Site2%RY
-    RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-
-    ! Loop over molecules
-    RXi = RX1(np)
-    RYi = RY1(np)
-    RZi = RZ1(np)
-    PXi = PX1(np)
-    PYi = PY1(np)
-    PZi = PZ1(np)
-
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
-
-    do k = 1, this%NInCutoff(unit)
-      j = this%CutoffPartner(k, unit)
-      if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
-        if (mod(j,nu2)==0) then
-          jk = INT(j/nu2)
-        else
-          jk = INT(j/nu2)+1
-        end if
-        RXij = RXi - RX2(jk)
-        RYij = RYi - RY2(jk)
-        RZij = RZi - RZ2(jk)
-        PXij = PXi - PX2(jk)
-        PYij = PYi - PY2(jk)
-        PZij = PZi - PZ2(jk)
-        RXij = (RXij - anint( PXij )) * BoxLength
-        RYij = (RYij - anint( PYij )) * BoxLength
-        RZij = (RZij - anint( PZij )) * BoxLength
-        RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
-
-        if( RijSquared <= RShieldSquared ) then
-          EPotLocal = 1E33_RK
-          tempF(:,su) = 1E33_RK
-        else
-        Rij =  sqrt(RijSquared)
-
-          RijInv = 1._RK / sqrt( Rij )
-
-          KappaRij = Kappa*Rij
-          call ErrorApprox(this, KappaRij,approx)
-
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          EPotLocal = Epsilon * RijInv * approx
-          Fij  = (EPotLocal + Faktor*exp(-KappaRij**2)*Epsilon) * RijInv
-        end if
-        Epot = Epot + EPotLocal
-      end if
-    end do
-    ! Include intramolecular interaction if need
-    if (this%potintra15 .or. this%potintra14) then
-      RXij = RXi - RX2(np)
-      RYij = RYi - RY2(np)
-      RZij = RZi - RZ2(np)
-      PXij = PXi - PX2(np)
-      PYij = PYi - PY2(np)
-      PZij = PZi - PZ2(np)
-      RXij = (RXij - anint( PXij )) * BoxLength
-      RYij = (RYij - anint( PYij )) * BoxLength
-      RZij = (RZij - anint( PZij )) * BoxLength
-#if ARCH == 3
-      RijInv = rsqrt( RXij**2 + RYij**2 + RZij**2 )
-#else
-      RijInv = 1._RK / sqrt( RXij**2 + RYij**2 + RZij**2 )
-#endif
-      Rij =  sqrt(RijSquared)
-      KappaRij = Kappa*Rij
-      call ErrorApprox(this, KappaRij,approx)
-      EPotLocal = Epsilon * RijInv * approx*coeff
-      eX = RXij * RijInv
-      eY = RYij * RijInv
-      eZ = RZij * RijInv
-      Fij  = (EPotLocal + Faktor*exp(-KappaRij**2)*Epsilon) * RijInv
-
-      EIntra1  = EIntra1 + EPotLocal
-    end if
-
-    F(:,:) = F(:,:) + tempF(:,:)
-    E = E + Epot + EIntra1
-    EIntra = EIntra + EIntra1
-
-  end subroutine TPotCC_Energy_Ewald
 
 
 
@@ -5651,146 +5180,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
 
 !==============================================================!
-!  Subroutine TPotCD_Energy                                    !
-!==============================================================!
-
-  subroutine TPotCD_Energy( this, np, nu, F, E, EIntra, BoxLength, CompIdent )
-
-    implicit none
-
-    ! Declare arguments
-    type(TPotChargeDipole) :: this
-    integer, intent(in)    :: np
-    integer, intent(in)      :: nu
-    real(RK), intent(in out) :: F(3,nu)
-    real(RK), intent(in out) :: E
-    real(RK), intent(in out) :: EIntra
-    real(RK), intent(in)   :: BoxLength
-    logical, intent(in)      :: CompIdent
-
-    ! Declare local variables
-    real(RK)          :: Epsilon, Epsilon1
-    real(RK)          :: RShieldSquared
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
-    real(RK)          :: RXi, RYi, RZi
-    real(RK)          :: PXi, PYi, PZi
-    real(RK)          :: RXij, RYij, RZij
-    real(RK)          :: OXj, OYj, OZj
-    real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijSquaredInv, RijInv, RijSquared
-    real(RK)          :: EPotLocal, EPot, EIntra1, tempF(3,nu)
-    real(RK)          :: CosTheta
-    integer           :: j, k, nu2, jk, unit
-    real(RK)          :: coeff
-
-    ! Assign local variables
-    Epsilon = this%Epsilon
-    RShieldSquared = this%RShieldSquared
-    nu2 = this%NUnit2
-    coeff = 1._Rk
-    if (this%potintra14) coeff = this%ScaleEl14
-    EPot = 0._RK
-    EIntra1 = 0._RK
-
-    ! Assign pointers
-    RX1 => this%Site1%RX
-    RY1 => this%Site1%RY
-    RZ1 => this%Site1%RZ
-    RX2 => this%Site2%RX
-    RY2 => this%Site2%RY
-    RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-    OX2 => this%Site2%OX
-    OY2 => this%Site2%OY
-    OZ2 => this%Site2%OZ
-
-    ! Loop over molecules
-    RXi = RX1(np)
-    RYi = RY1(np)
-    RZi = RZ1(np)
-    PXi = PX1(np)
-    PYi = PY1(np)
-    PZi = PZ1(np)
-
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
-
-    do k = 1, this%NInCutoff(unit)
-      j = this%CutoffPartner(k, unit)
-      if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
-        if (mod(j,nu2)==0) then
-          jk = INT(j/nu2)
-        else
-          jk = INT(j/nu2)+1
-        end if
-        RXij = RXi - RX2(jk)
-        RYij = RYi - RY2(jk)
-        RZij = RZi - RZ2(jk)
-        PXij = PXi - PX2(jk)
-        PYij = PYi - PY2(jk)
-        PZij = PZi - PZ2(jk)
-        RXij = (RXij - anint( PXij )) * BoxLength
-        RYij = (RYij - anint( PYij )) * BoxLength
-        RZij = (RZij - anint( PZij )) * BoxLength
-        OXj = OX2(jk)
-        OYj = OY2(jk)
-        OZj = OZ2(jk)
-        RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
-
-        if( RijSquared <= RShieldSquared ) then
-          EPotLocal = 1E33_RK
-        else
-          RijSquaredInv = 1._RK / RijSquared
-          RijInv = sqrt( RijSquaredInv )
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          CosTheta  = OXj * ex + OYj * eY + OZj * eZ
-          Epsilon1 = Epsilon * RijSquaredInv
-          EPotLocal  = Epsilon1 * 3._RK * CosTheta
-        end if
-        EPot = EPot + EPotLocal
-      end if
-    end do
-    ! Include intramolecular interactions if need
-    if (this%potintra15 .or. this%potintra14) then
-      RXij = RXi - RX2(np)
-      RYij = RYi - RY2(np)
-      RZij = RZi - RZ2(np)
-      PXij = PXi - PX2(np)
-      PYij = PYi - PY2(np)
-      PZij = PZi - PZ2(np)
-      RXij = (RXij - anint( PXij )) * BoxLength
-      RYij = (RYij - anint( PYij )) * BoxLength
-      RZij = (RZij - anint( PZij )) * BoxLength
-      OXj = OX2(np)
-      OYj = OY2(np)
-      OZj = OZ2(np)
-      RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
-      RijInv = sqrt( RijSquaredInv )
-      eX = RXij * RijInv
-      eY = RYij * RijInv
-      eZ = RZij * RijInv
-      CosTheta  = OXj * ex + OYj * eY + OZj * eZ
-      EPotLocal = Epsilon * RijSquaredInv*coeff * 3._RK * CosTheta
-      EIntra1  = EIntra1 + EPotLocal
-    end if
-
-    F(:,:) = F(:,:) + tempF(:,:)
-    E = E + EPot + EIntra1
-    EIntra = EIntra + EIntra1
-
-  end subroutine TPotCD_Energy
-
-
-!==============================================================!
 !  Subroutine TPotCQ_Construct                                 !
 !==============================================================!
 
@@ -6915,145 +6304,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
 
 !==============================================================!
-!  Subroutine TPotCQ_Energy                                    !
-!==============================================================!
-
-  subroutine TPotCQ_Energy( this, np, nu, F, E, EIntra, BoxLength, CompIdent )
-
-    implicit none
-
-    ! Declare arguments
-    type(TPotChargeQuadrupole) :: this
-    integer, intent(in)        :: np
-    integer, intent(in)        :: nu
-    real(RK), intent(in out)   :: F(3,nu)
-    real(RK), intent(in out)   :: E
-    real(RK), intent(in out)   :: EIntra
-    real(RK), intent(in)       :: BoxLength
-    logical, intent(in)        :: CompIdent
-
-    ! Declare local variables
-    real(RK)          :: Epsilon
-    real(RK)          :: RShieldSquared
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
-    real(RK)          :: RXi, RYi, RZi
-    real(RK)          :: PXi, PYi, PZi
-    real(RK)          :: RXij, RYij, RZij
-    real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: OXj, OYj, OZj
-    real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijSquaredInv, RijInv, RijSquared
-    real(RK)          :: CosTheta
-    real(RK)          :: EPot, EIntra1, EPotLocal, tempF(3,nu)
-    integer           :: j, k, nu2, jk, unit
-    real(RK)          :: coeff
-
-    ! Assign local variables
-    Epsilon = this%Epsilon
-    RShieldSquared = this%RShieldSquared
-    nu2 = this%NUnit2
-    coeff = 1._RK
-    if (this%potintra14) coeff = this%ScaleEl14
-    EPot = 0._RK
-    EIntra1 = 0._RK
-
-    ! Assign pointers
-    RX1 => this%Site1%RX
-    RY1 => this%Site1%RY
-    RZ1 => this%Site1%RZ
-    RX2 => this%Site2%RX
-    RY2 => this%Site2%RY
-    RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-    OX2 => this%Site2%OX
-    OY2 => this%Site2%OY
-    OZ2 => this%Site2%OZ
-
-    ! Loop over molecules
-    RXi = RX1(np)
-    RYi = RY1(np)
-    RZi = RZ1(np)
-    PXi = PX1(np)
-    PYi = PY1(np)
-    PZi = PZ1(np)
-
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
-
-    do k = 1, this%NInCutoff(unit)
-      j = this%CutoffPartner(k, unit)
-      if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
-        if (mod(j,nu2)==0) then
-          jk = INT(j/nu2)
-        else
-          jk = INT(j/nu2)+1
-        end if
-        RXij = RXi - RX2(jk)
-        RYij = RYi - RY2(jk)
-        RZij = RZi - RZ2(jk)
-        PXij = PXi - PX2(jk)
-        PYij = PYi - PY2(jk)
-        PZij = PZi - PZ2(jk)
-        RXij = (RXij - anint( PXij )) * BoxLength                                 ! Abstandsvektor von Q nach C wie bei Price
-        RYij = (RYij - anint( PYij )) * BoxLength
-        RZij = (RZij - anint( PZij )) * BoxLength
-        OXj = OX2(jk)
-        OYj = OY2(jk)
-        OZj = OZ2(jk)
-        RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
-
-        if( RijSquared <= RShieldSquared ) then
-          EPotLocal = 1E33_RK
-        else
-          RijSquaredInv = 1._RK / RijSquared
-          RijInv = sqrt( RijSquaredInv )
-          eX = RXij * RijInv                                                      ! Normierter Abstandsvektor
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          CosTheta  = OXj * ex + OYj * eY + OZj * eZ
-          EPotLocal = Epsilon * RijSquaredInv * RijInv * ( CosTheta * CosTheta - Third )
-        end if
-        EPot = EPot + EPotLocal
-      end if
-    end do
-    ! Include intramolecular interactions if need
-    if (this%potintra14 .or. this%potintra15) then
-      RXij = RXi - RX2(np)
-      RYij = RYi - RY2(np)
-      RZij = RZi - RZ2(np)
-      PXij = PXi - PX2(np)
-      PYij = PYi - PY2(np)
-      PZij = PZi - PZ2(np)
-      RXij = (RXij - anint( PXij )) * BoxLength
-      RYij = (RYij - anint( PYij )) * BoxLength
-      RZij = (RZij - anint( PZij )) * BoxLength
-      OXj = OX2(np)
-      OYj = OY2(np)
-      OZj = OZ2(np)
-      RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
-      RijInv = sqrt( RijSquaredInv )
-      eX = RXij * RijInv
-      eY = RYij * RijInv
-      eZ = RZij * RijInv
-      CosTheta  = OXj * ex + OYj * eY + OZj * eZ
-      EPotLocal = Epsilon * RijSquaredInv * RijInv * coeff * ( CosTheta * CosTheta - Third )
-      EIntra1 = EIntra1 + EPotLocal
-    end if
-
-    F(:,:) = F(:,:) + tempF(:,:)
-    E = E + EPot + EIntra1
-    EIntra = EIntra + EIntra1
-
-  end subroutine TPotCQ_Energy
-
-
-!==============================================================!
 !  Subroutine TPotDC_Construct                                 !
 !==============================================================!
 
@@ -8153,143 +7403,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
 
 
 !==============================================================!
-!  Subroutine TPotDC_Energy                                    !
-!==============================================================!
-
-  subroutine TPotDC_Energy( this, np, nu, F, E, EIntra, BoxLength, CompIdent )
-
-    implicit none
-
-    ! Declare arguments
-    type(TPotDipoleCharge) :: this
-    integer, intent(in)    :: np
-    integer, intent(in)      :: nu
-    real(RK), intent(in out) :: F(3,nu)
-    real(RK), intent(in out) :: E
-    real(RK), intent(in out) :: EIntra
-    real(RK), intent(in)   :: BoxLength
-    logical, intent(in)      :: CompIdent
-
-    ! Declare local variables
-    real(RK)          :: Epsilon, Epsilon1
-    real(RK)          :: RShieldSquared
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:)
-    real(RK)          :: RXi, RYi, RZi
-    real(RK)          :: PXi, PYi, PZi
-    real(RK)          :: RXij, RYij, RZij
-    real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: OXi, OYi, OZi
-    real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijSquaredInv, RijInv, RijSquared
-    real(RK)          :: CosTheta
-    real(RK)          :: EPot, EIntra1, EPotLocal, tempF(3,nu)
-    integer           :: j, k, nu2, jk, unit
-    real(RK)          :: coeff
-
-    ! Assign local variables
-    Epsilon = this%Epsilon
-    RShieldSquared = this%RShieldSquared
-    nu2 = this%NUnit2
-    coeff = 1._RK
-    if (this%potintra14) coeff = this%ScaleEl14
-    EPot = 0._RK
-    EIntra1 = 0._RK
-
-    ! Assign pointers
-    RX1 => this%Site1%RX
-    RY1 => this%Site1%RY
-    RZ1 => this%Site1%RZ
-    RX2 => this%Site2%RX
-    RY2 => this%Site2%RY
-    RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-    OX1 => this%Site1%OX
-    OY1 => this%Site1%OY
-    OZ1 => this%Site1%OZ
-
-    ! Loop over molecules
-    RXi = RX1(np)
-    RYi = RY1(np)
-    RZi = RZ1(np)
-    PXi = PX1(np)
-    PYi = PY1(np)
-    PZi = PZ1(np)
-    OXi = OX1(np)
-    OYi = OY1(np)
-    OZi = OZ1(np)
-
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
-
-    do k = 1, this%NInCutoff(unit)
-      j = this%CutoffPartner(k, unit)
-      if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
-        if (mod(j,nu2)==0) then
-          jk = INT(j/nu2)
-        else
-          jk = INT(j/nu2)+1
-        end if
-        RXij = RXi - RX2(jk)
-        RYij = RYi - RY2(jk)
-        RZij = RZi - RZ2(jk)
-        PXij = PXi - PX2(jk)
-        PYij = PYi - PY2(jk)
-        PZij = PZi - PZ2(jk)
-        RXij = (RXij - anint( PXij )) * BoxLength
-        RYij = (RYij - anint( PYij )) * BoxLength
-        RZij = (RZij - anint( PZij )) * BoxLength
-        RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
-
-        if( RijSquared <= RShieldSquared ) then
-          EPotLocal = 1E33_RK
-        else
-          RijSquaredInv = 1._RK / RijSquared
-          RijInv = sqrt( RijSquaredInv )
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          CosTheta = OXi * ex + OYi * eY + OZi * eZ
-          Epsilon1 = Epsilon * RijSquaredInv
-          EPotLocal = - Epsilon1 * CosTheta
-        end if
-        EPot = EPot + EPotLocal
-      end if
-    end do
-    ! Include intramolecular interaction if need
-    if (this%potintra14 .or. this%potintra15) then
-      RXij = RXi - RX2(np)
-      RYij = RYi - RY2(np)
-      RZij = RZi - RZ2(np)
-      PXij = PXi - PX2(np)
-      PYij = PYi - PY2(np)
-      PZij = PZi - PZ2(np)
-      RXij = (RXij - anint( PXij )) * BoxLength
-      RYij = (RYij - anint( PYij )) * BoxLength
-      RZij = (RZij - anint( PZij )) * BoxLength
-      RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
-      RijInv = sqrt( RijSquaredInv )
-      eX = RXij * RijInv
-      eY = RYij * RijInv
-      eZ = RZij * RijInv
-      CosTheta  = OXi * ex + OYi * eY + OZi * eZ
-      EPotLocal = - Epsilon * RijSquaredInv * coeff * CosTheta
-      EIntra1  = EIntra1 + EPotLocal
-    end if
-
-    F(:,:) = F(:,:) + tempF(:,:)
-    E = E + EPot + EIntra1
-    EIntra = EIntra + EIntra1
-
-  end subroutine TPotDC_Energy
-
-
-!==============================================================!
 !  Subroutine TPotDD_Construct                                 !
 !==============================================================!
 
@@ -9042,7 +8155,7 @@ loop3:  do j = j0, j1
 !$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
-!$OMP PRIVATE(   Uxi,  FTXi , FTYi , FTZi) &
+!$OMP PRIVATE(   UU,  FTXi , FTYi , FTZi) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
@@ -9846,149 +8959,6 @@ loop2:  do j = 1, j1
 !$OMP END PARALLEL
   end subroutine TPotDD_ChemicalPotential
 
-
-
-!==============================================================!
-!  Subroutine TPotDD_Energy                                    !
-!==============================================================!
-
-  subroutine TPotDD_Energy( this, np, nu, F, E, EIntra, BoxLength, CompIdent )
-
-    implicit none
-
-    ! Declare arguments
-    type(TPotDipoleDipole) :: this
-    integer, intent(in)    :: np
-    integer, intent(in)      :: nu
-    real(RK), intent(in out) :: F(3,nu)
-    real(RK), intent(in out) :: E
-    real(RK), intent(in out) :: EIntra
-    real(RK), intent(in)   :: BoxLength
-    logical, intent(in)      :: CompIdent
-
-    ! Declare local variables
-    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer, contiguous :: PX2(:), PY2(:), PZ2(:)
-    real(RK)          :: RXi, RYi, RZi
-    real(RK)          :: OXi, OYi, OZi
-    real(RK)          :: PXi, PYi, PZi
-    real(RK)          :: RXij, RYij, RZij
-    real(RK)          :: OXj, OYj, OZj
-    real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijSquared, RijInv, Rij3Inv
-    real(RK)          :: CosThetai, CosThetaj, CosGammaij
-    real(RK)          :: Tmp
-    real(RK)          :: E1, EIntra1, ELocal, tempF(3,nu)
-    integer           :: j, k, nu2, jk, unit
-    real(RK)          :: coeff
-
-    ! Assign local variables
-    nu2 = this%NUnit2
-    coeff = 1._RK
-    if (this%potintra14) coeff = this%ScaleEl14
-    E1 = 0._RK
-    EIntra1 = 0._RK
-
-    ! Assign pointers
-    RX2 => this%Site2%RX
-    RY2 => this%Site2%RY
-    RZ2 => this%Site2%RZ
-    OX2 => this%Site2%OX
-    OY2 => this%Site2%OY
-    OZ2 => this%Site2%OZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-
-    ! Loop over molecules
-    RXi = this%Site1%RX(np)
-    RYi = this%Site1%RY(np)
-    RZi = this%Site1%RZ(np)
-    OXi = this%Site1%OX(np)
-    OYi = this%Site1%OY(np)
-    OZi = this%Site1%OZ(np)
-    PXi = this%Site1%PX(np)
-    PYi = this%Site1%PY(np)
-    PZi = this%Site1%PZ(np)
-
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
-
-    do k = 1, this%NInCutoff(unit)
-      j = this%CutoffPartner(k, unit)
-      if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
-        if (mod(j,nu2)==0) then
-          jk = INT(j/nu2)
-        else
-          jk = INT(j/nu2)+1
-        end if
-        RXij = RXi - RX2(jk)
-        RYij = RYi - RY2(jk)
-        RZij = RZi - RZ2(jk)
-        PXij = PXi - PX2(jk)
-        PYij = PYi - PY2(jk)
-        PZij = PZi - PZ2(jk)
-        RXij = (RXij - anint( PXij )) * BoxLength
-        RYij = (RYij - anint( PYij )) * BoxLength
-        RZij = (RZij - anint( PZij )) * BoxLength
-        RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
-
-        if( RijSquared <= this%RShieldSquared ) then
-          ELocal = 1E33_RK
-        else
-          OXj = OX2(jk)
-          OYj = OY2(jk)
-          OZj = OZ2(jk)
-          RijInv = 1._RK / sqrt( RijSquared )
-
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          CosThetai = OXi * eX + OYi * eY + OZi * eZ
-          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
-          CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
-          Tmp = CosGammaij - CosThetai * 3._RK * CosThetaj
-          Rij3Inv = this%Epsilon * RijInv**3
-          ELocal = Rij3Inv * Tmp
-        end if
-        E1 = E1 + ELocal
-      end if
-    end do
-    ! Include intramolecular interactions if need
-    if (this%potintra15 .or. this%potintra14) then
-      RXij = RXi - RX2(np)
-      RYij = RYi - RY2(np)
-      RZij = RZi - RZ2(np)
-      PXij = PXi - PX2(np)
-      PYij = PYi - PY2(np)
-      PZij = PZi - PZ2(np)
-      RXij = (RXij - anint( PXij )) * BoxLength
-      RYij = (RYij - anint( PYij )) * BoxLength
-      RZij = (RZij - anint( PZij )) * BoxLength
-      OXj = OX2(np)
-      OYj = OY2(np)
-      OZj = OZ2(np)
-
-      RijInv = 1._RK / sqrt( RijSquared )
-
-      eX = RXij * RijInv
-      eY = RYij * RijInv
-      eZ = RZij * RijInv
-      CosThetai = OXi * eX + OYi * eY + OZi * eZ
-      CosThetaj = OXj * eX + OYj * eY + OZj * eZ
-      CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
-      Tmp = CosGammaij - CosThetai * 3._RK * CosThetaj
-      Rij3Inv = this%Epsilon * RijInv**3
-      ELocal = Rij3Inv * Tmp
-      EIntra1 = EIntra1 + ELocal
-    end if
-
-    F(:,:) = F(:,:) + tempF(:,:)
-    E = E + E1 + EIntra1
-    EIntra = EIntra + EIntra1
-
-  end subroutine TPotDD_Energy
 
 
 !==============================================================!
@@ -11558,153 +10528,6 @@ loop2:  do j = 1, j1
   end subroutine TPotDQ_ChemicalPotential
 
 
-
-!==============================================================!
-!  Subroutine TPotDQ_Energy                                    !
-!==============================================================!
-
-  subroutine TPotDQ_Energy( this, np, nu, F, E, EIntra, BoxLength, CompIdent )
-
-    implicit none
-
-    ! Declare arguments
-    type(TPotDipoleQuadrupole) :: this
-    integer, intent(in)        :: np
-    integer, intent(in)        :: nu
-    real(RK), intent(in out)   :: F(3,nu)
-    real(RK), intent(in out)   :: E
-    real(RK), intent(in out)   :: EIntra
-    real(RK), intent(in)       :: BoxLength
-    logical, intent(in)        :: CompIdent
-
-    ! Declare local variables
-    real(RK), pointer, contiguous :: RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer, contiguous :: PX2(:), PY2(:), PZ2(:)
-    real(RK)          :: RXi, RYi, RZi
-    real(RK)          :: OXi, OYi, OZi
-    real(RK)          :: PXi, PYi, PZi
-    real(RK)          :: RXij, RYij, RZij
-    real(RK)          :: OXj, OYj, OZj
-    real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijSquared, RijInv, Rij4Inv
-    real(RK)          :: CosThetai, CosThetaj, CosThetaj2, CosGammaij
-    real(RK)          :: E1, EIntra1, ELocal, tempF(3,nu)
-    integer           :: j, k, nu2, jk, unit
-    real(RK)          :: coeff
-
-    ! Assign local variables
-    nu2 = this%NUnit2
-    coeff = 1._RK
-    if (this%potintra14) coeff = this%ScaleEl14
-    E1   = 0._RK
-    EIntra1   = 0._RK
-
-    ! Assign pointers
-    RX2 => this%Site2%RX
-    RY2 => this%Site2%RY
-    RZ2 => this%Site2%RZ
-    OX2 => this%Site2%OX
-    OY2 => this%Site2%OY
-    OZ2 => this%Site2%OZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-
-    ! Loop over molecules
-    RXi = this%Site1%RX(np)
-    RYi = this%Site1%RY(np)
-    RZi = this%Site1%RZ(np)
-    OXi = this%Site1%OX(np)
-    OYi = this%Site1%OY(np)
-    OZi = this%Site1%OZ(np)
-    PXi = this%Site1%PX(np)
-    PYi = this%Site1%PY(np)
-    PZi = this%Site1%PZ(np)
-
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
-
-    do k = 1, this%NInCutoff(unit)
-      j = this%CutoffPartner(k, unit)
-      if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
-        if (mod(j,nu2)==0) then
-          jk = INT(j/nu2)
-        else
-          jk = INT(j/nu2)+1
-        end if
-        RXij = RXi - RX2(jk)
-        RYij = RYi - RY2(jk)
-        RZij = RZi - RZ2(jk)
-        PXij = PXi - PX2(jk)
-        PYij = PYi - PY2(jk)
-        PZij = PZi - PZ2(jk)
-        RXij = (RXij - anint( PXij )) * BoxLength
-        RYij = (RYij - anint( PYij )) * BoxLength
-        RZij = (RZij - anint( PZij )) * BoxLength
-        RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
-
-        if( RijSquared <= this%RShieldSquared ) then
-          ELocal = 1E33_RK
-        else
-          OXj = OX2(jk)
-          OYj = OY2(jk)
-          OZj = OZ2(jk)
-
-          RijInv = 1._RK / sqrt( RijSquared )
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          CosThetai = OXi * eX + OYi * eY + OZi * eZ
-          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
-          CosThetaj2 = CosThetaj**2
-          CosGammaij = 2._RK * (OXi * OXj + OYi * OYj + OZi * OZj)
-          Rij4Inv = this%Epsilon / RijSquared**2
-          ELocal = Rij4Inv * (CosGammaij * CosThetaj - CosThetai * (5._RK * CosThetaj2 - 1))
-        end if
-        E1 = E1 + ELocal
-      end if
-    end do
-    ! Include intramolecular interaction if need
-    if (this%potintra15 .or. this%potintra14) then
-      RXij = RXi - RX2(np)
-      RYij = RYi - RY2(np)
-      RZij = RZi - RZ2(np)
-      PXij = PXi - PX2(np)
-      PYij = PYi - PY2(np)
-      PZij = PZi - PZ2(np)
-      RXij = (RXij - anint( PXij )) * BoxLength
-      RYij = (RYij - anint( PYij )) * BoxLength
-      RZij = (RZij - anint( PZij )) * BoxLength
-      OXj = OX2(np)
-      OYj = OY2(np)
-      OZj = OZ2(np)
-      RijSquared = RXij**2 + RYij**2 + RZij**2
-
-#if ARCH == 3
-      RijInv = rsqrt( RijSquared )
-#else
-      RijInv = 1._RK / sqrt( RijSquared )
-#endif
-      eX = RXij * RijInv
-      eY = RYij * RijInv
-      eZ = RZij * RijInv
-      CosThetai = OXi * eX + OYi * eY + OZi * eZ
-      CosThetaj = OXj * eX + OYj * eY + OZj * eZ
-      CosThetaj2 = CosThetaj**2
-      CosGammaij = 2._RK * (OXi * OXj + OYi * OYj + OZi * OZj)
-      Rij4Inv = this%Epsilon / RijSquared**2
-      ELocal = coeff * Rij4Inv * (CosGammaij * CosThetaj - CosThetai * (5._RK * CosThetaj2 - 1))
-      EIntra1 = EIntra1 + ELocal
-    end if
-
-    F(:,:) = F(:,:) + tempF(:,:)
-    E = E + E1 + EIntra1
-    EIntra = EIntra + EIntra1
-
-  end subroutine TPotDQ_Energy
-
-
 !==============================================================!
 !  Subroutine TPotQC_Construct                                 !
 !==============================================================!
@@ -12833,145 +11656,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
     end do
 
   end subroutine TPotQC_ChemicalPotential
-
-
-
-!==============================================================!
-!  Subroutine TPotQC_Energy                                    !
-!==============================================================!
-
-  subroutine TPotQC_Energy( this, np, nu, F, E, EIntra, BoxLength, CompIdent )
-
-    implicit none
-
-    ! Declare arguments
-    type(TPotQuadrupoleCharge) :: this
-    integer, intent(in)        :: np
-    integer, intent(in)        :: nu
-    real(RK), intent(in out)   :: F(3,nu)
-    real(RK), intent(in out)   :: E
-    real(RK), intent(in out)   :: EIntra
-    real(RK), intent(in)       :: BoxLength
-    logical, intent(in)        :: CompIdent
-
-    ! Declare local variables
-    real(RK)          :: Epsilon
-    real(RK)          :: RShieldSquared
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:)
-    real(RK)          :: RXi, RYi, RZi
-    real(RK)          :: PXi, PYi, PZi
-    real(RK)          :: RXij, RYij, RZij
-    real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: OXi, OYi, OZi
-    real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijSquaredInv, RijInv, RijSquared
-    real(RK)          :: CosTheta, CosTheta2, CosAux
-    real(RK)          :: EPot, EIntra1, EPotLocal, tempF(3,nu)
-    integer           :: j, k, nu2, jk, unit
-    real(RK)          :: coeff
-
-    ! Assign local variables
-    Epsilon = this%Epsilon
-    RShieldSquared = this%RShieldSquared
-    nu2 = this%NUnit2
-    coeff = 1._RK
-    if (this%potintra14) coeff = this%ScaleEl14
-    EPot   = 0._RK
-    EIntra1   = 0._RK
-
-    ! Assign pointers
-    RX1 => this%Site1%RX
-    RY1 => this%Site1%RY
-    RZ1 => this%Site1%RZ
-    RX2 => this%Site2%RX
-    RY2 => this%Site2%RY
-    RZ2 => this%Site2%RZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-    OX1 => this%Site1%OX
-    OY1 => this%Site1%OY
-    OZ1 => this%Site1%OZ
-
-    ! Loop over molecules
-    RXi = RX1(np)
-    RYi = RY1(np)
-    RZi = RZ1(np)
-    PXi = PX1(np)
-    PYi = PY1(np)
-    PZi = PZ1(np)
-    OXi = OX1(np)
-    OYi = OY1(np)
-    OZi = OZ1(np)
-
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
-
-    do k = 1, this%NInCutoff(unit)
-      j = this%CutoffPartner(k, unit)
-      if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
-        if (mod(j,nu2)==0) then
-          jk = INT(j/nu2)
-        else
-          jk = INT(j/nu2)+1
-        end if
-        RXij = RXi - RX2(jk)
-        RYij = RYi - RY2(jk)
-        RZij = RZi - RZ2(jk)
-        PXij = PXi - PX2(jk)
-        PYij = PYi - PY2(jk)
-        PZij = PZi - PZ2(jk)
-        RXij = (RXij - anint( PXij )) * BoxLength
-        RYij = (RYij - anint( PYij )) * BoxLength
-        RZij = (RZij - anint( PZij )) * BoxLength
-        RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
-
-        if( RijSquared <= RShieldSquared ) then
-          EPotLocal = 1E33_RK
-        else
-          RijSquaredInv = 1._RK / RijSquared
-          RijInv = sqrt( RijSquaredInv )
-          eX = - RXij * RijInv        ! Normierter Abstandsvektor nach Price
-          eY = - RYij * RijInv
-          eZ = - RZij * RijInv
-          CosTheta  = OXi * ex + OYi * eY + OZi * eZ  
-          ! Scalarprodukt normierter Abstandsvektor mit Orientierungsvektor Quadrupol
-          EPotLocal = Epsilon * RijSquaredInv * RijInv * ( CosTheta * CosTheta - Third )
-        end if
-
-        EPot = EPot + EPotLocal
-      end if
-    end do
-    ! Include intramolecular interaction if need
-    if (this%potintra15 .or. this%potintra14) then
-      RXij = RXi - RX2(np)
-      RYij = RYi - RY2(np)
-      RZij = RZi - RZ2(np)
-      PXij = PXi - PX2(np)
-      PYij = PYi - PY2(np)
-      PZij = PZi - PZ2(np)
-      RXij = (RXij - anint( PXij )) * BoxLength
-      RYij = (RYij - anint( PYij )) * BoxLength
-      RZij = (RZij - anint( PZij )) * BoxLength
-      RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
-      RijInv = sqrt( RijSquaredInv )
-      eX = - RXij * RijInv
-      eY = - RYij * RijInv
-      eZ = - RZij * RijInv
-      CosTheta  = OXi * ex + OYi * eY + OZi * eZ
-      EPotLocal = Epsilon * RijSquaredInv * RijInv * coeff * ( CosTheta * CosTheta - Third )
-      EIntra1  = EIntra1 + EPotLocal
-    end if
-
-    F(:,:) = F(:,:) + tempF(:,:)
-    E = E + EPot + EIntra1
-    EIntra = EIntra + EIntra1
-
-  end subroutine TPotQC_Energy
 
 
 
@@ -14555,166 +13239,6 @@ loop2:  do j = 1, j1
 
 
 !==============================================================!
-!  Subroutine TPotQD_Energy                                    !
-!==============================================================!
-
-  subroutine TPotQD_Energy( this, np, nu, F, E, EIntra, BoxLength, CompIdent )
-
-    implicit none
-
-    ! Declare arguments
-    type(TPotQuadrupoleDipole) :: this
-    integer, intent(in)        :: np
-    integer, intent(in)        :: nu
-    real(RK), intent(in out)   :: F(3,nu)
-    real(RK), intent(in out)   :: E
-    real(RK), intent(in out)   :: EIntra
-    real(RK), intent(in)       :: BoxLength
-    logical, intent(in)        :: CompIdent
-
-    ! Declare local variables
-    real(RK)          :: Epsilon
-    real(RK)          :: RShieldSquared
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK)          :: RXi, RYi, RZi
-    real(RK)          :: OXi, OYi, OZi
-    real(RK)          :: PXi, PYi, PZi
-    real(RK)          :: RXij, RYij, RZij
-    real(RK)          :: OXj, OYj, OZj
-    real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijSquared, RijInv, Rij4Inv
-    real(RK)          :: CosThetai, CosThetaj, CosThetai2, CosGammaij
-    real(RK)          :: EPot, EIntra1, EPotLocal, tempF(3,nu)
-    integer           :: j, k, nu2, jk, unit
-    real(RK)          :: coeff
-
-    ! Assign local variables
-    Epsilon = this%Epsilon
-    RShieldSquared = this%RShieldSquared
-    nu2 = this%NUnit2
-    coeff = 1._RK
-    if (this%potintra14) coeff = this%ScaleEl14
-    EPot   = 0._RK
-    EIntra1   = 0._RK
-
-    ! Assign pointers
-    RX1 => this%Site1%RX
-    RY1 => this%Site1%RY
-    RZ1 => this%Site1%RZ
-    RX2 => this%Site2%RX
-    RY2 => this%Site2%RY
-    RZ2 => this%Site2%RZ
-    OX1 => this%Site1%OX
-    OY1 => this%Site1%OY
-    OZ1 => this%Site1%OZ
-    OX2 => this%Site2%OX
-    OY2 => this%Site2%OY
-    OZ2 => this%Site2%OZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-
-    ! Loop over molecules
-    RXi = RX1(np)
-    RYi = RY1(np)
-    RZi = RZ1(np)
-    OXi = OX1(np)
-    OYi = OY1(np)
-    OZi = OZ1(np)
-    PXi = PX1(np)
-    PYi = PY1(np)
-    PZi = PZ1(np)
-
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
-
-    do k = 1, this%NInCutoff(unit)
-      j = this%CutoffPartner(k, unit)
-      if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
-        if (mod(j,nu2)==0) then
-          jk = INT(j/nu2)
-        else
-          jk = INT(j/nu2)+1
-        end if
-        RXij = RXi - RX2(jk)
-        RYij = RYi - RY2(jk)
-        RZij = RZi - RZ2(jk)
-        PXij = PXi - PX2(jk)
-        PYij = PYi - PY2(jk)
-        PZij = PZi - PZ2(jk)
-        RXij = (RXij - anint( PXij )) * BoxLength
-        RYij = (RYij - anint( PYij )) * BoxLength
-        RZij = (RZij - anint( PZij )) * BoxLength
-        RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
-
-        if( RijSquared <= RShieldSquared ) then
-          EPotLocal = 1E33_RK
-        else
-          OXj = OX2(jk)
-          OYj = OY2(jk)
-          OZj = OZ2(jk)
-
-          RijInv = 1._RK / sqrt( RijSquared )
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          CosThetai = OXi * eX + OYi * eY + OZi * eZ
-          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
-          CosThetai2 = CosThetai**2
-          CosGammaij = 2._RK * (OXi * OXj + OYi * OYj + OZi * OZj)
-          Rij4Inv = Epsilon / RijSquared**2
-          EPotLocal = Rij4Inv * (CosThetaj * (5._RK * CosThetai2 - 1._RK) - CosGammaij * CosThetai)
-        end if
-        EPot = EPot + EPotLocal
-      end if
-    end do
-    ! Include intramolecular interaction if need
-    if (this%potintra14 .or. this%potintra15) then
-      RXij = RXi - RX2(np)
-      RYij = RYi - RY2(np)
-      RZij = RZi - RZ2(np)
-      PXij = PXi - PX2(np)
-      PYij = PYi - PY2(np)
-      PZij = PZi - PZ2(np)
-      RXij = (RXij - anint( PXij )) * BoxLength
-      RYij = (RYij - anint( PYij )) * BoxLength
-      RZij = (RZij - anint( PZij )) * BoxLength
-      RijSquared = RXij**2 + RYij**2 + RZij**2
-      OXj = OX2(np)
-      OYj = OY2(np)
-      OZj = OZ2(np)
-
-#if ARCH == 3
-      RijInv = rsqrt( RijSquared )
-#else
-      RijInv = 1._RK / sqrt( RijSquared )
-#endif
-      eX = RXij * RijInv
-      eY = RYij * RijInv
-      eZ = RZij * RijInv
-      CosThetai = OXi * eX + OYi * eY + OZi * eZ
-      CosThetaj = OXj * eX + OYj * eY + OZj * eZ
-      CosThetai2 = CosThetai**2
-      CosGammaij = 2._RK * (OXi * OXj + OYi * OYj + OZi * OZj)
-      Rij4Inv = Epsilon / RijSquared**2
-      EPotLocal = coeff * Rij4Inv * (CosThetaj * (5._RK * CosThetai2 - 1._RK) - CosGammaij * CosThetai)
-      EIntra1 = EIntra1 + EPotLocal
-    end if
-
-    F(:,:) = F(:,:) + tempF(:,:)
-    E = E + EPot + EIntra1
-    EIntra = EIntra + EIntra1
-
-  end subroutine TPotQD_Energy
-
-
-
-!==============================================================!
 !  Subroutine TPotQQ_Construct                                 !
 !==============================================================!
 
@@ -15509,12 +14033,14 @@ loop3:  do j = j0, j1
 !$OMP PRIVATE (dCosThetai, dCosThetaj, dCosGammaij, Tmp) &
 !$OMP PRIVATE (EPotLocal1, SameComponent) &
 #if  TRANS == 1
-!$OMP PRIVATE(VSx, VSy, VSz ,VSux,VSuy,VSuz, VBx, VBy, VBz, Cx , Cy , Cz) &
-!$OMP PRIVATE( tux , tuy , tuz, tlx , tly , tlz, tdx , tdy , tdz) &
+!$OMP PRIVATE(VSx1, VSy1, VSz1,VSux1,VSuy1,VSuz1, VBx1, VBy1, VBz1, Cx1, Cy1, Cz1) &
+!$OMP PRIVATE(VSx2, VSy2, VSz2,VSux2,VSuy2,VSuz2, VBx2, VBy2, VBz2, Cx2, Cy2, Cz2) &
+!$OMP PRIVATE( tux1, tuy1, tuz1, tlx1, tly1, tlz1, tdx1, tdy1, tdz1) &
+!$OMP PRIVATE( tux2, tuy2, tuz2, tlx2, tly2, tlz2, tdx2, tdy2, tdz2) &
 !$OMP PRIVATE( q1, q2, q3, q4, VSxi, VSyi, VSzi, VSuxi,VSuyi,VSuzi) &
 !$OMP PRIVATE( VBxi, VByi, VBzi, Cxi,  Cyi,  Czi, tuxi,  tuyi,  tuzi, tlxi,  tlyi,  tlzi) &
 !$OMP PRIVATE(  tdxi,  tdyi,  tdzi, txii,  tyii , tzii, txir ,  tyir  , tzir ) &
-!$OMP PRIVATE(   Uxi,  Uyi, Uzi, FTXi , FTYi , FTZi) &
+!$OMP PRIVATE( UU, FTXi , FTYi , FTZi) &
 !$OMP PRIVATE( A11, A12, A13, A21, A22, A23, A31, A32, A33) &
 #endif
 #if MPI_VER > 0
@@ -16404,182 +14930,6 @@ loop2:  do j = 1, j1
 !$OMP END PARALLEL
 
   end subroutine TPotQQ_ChemicalPotential
-
-
-
-!==============================================================!
-!  Subroutine TPotQQ_Energy                                    !
-!==============================================================!
-
-  subroutine TPotQQ_Energy( this, np, nu, F, E, EIntra, BoxLength, CompIdent )
-
-    implicit none
-
-    ! Declare arguments
-    type(TPotQuadrupoleQuadrupole) :: this
-    integer, intent(in)            :: np
-    integer, intent(in)            :: nu
-    real(RK), intent(in out)       :: F(3,nu)
-    real(RK), intent(in out)       :: E
-    real(RK), intent(in out)       :: EIntra
-    real(RK), intent(in)           :: BoxLength
-    logical, intent(in)            :: CompIdent
-
-    ! Declare local variables
-    real(RK)          :: Epsilon
-    real(RK)          :: RShieldSquared
-    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
-    real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK)          :: RXi, RYi, RZi
-    real(RK)          :: OXi, OYi, OZi
-    real(RK)          :: PXi, PYi, PZi
-    real(RK)          :: RXij, RYij, RZij
-    real(RK)          :: OXj, OYj, OZj
-    real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijSquared, RijInv, Rij5Inv
-    real(RK)          :: CosThetai, CosThetaj, CosGammaij
-    real(RK)          :: CosThetaiSquared, CosThetajSquared
-    real(RK)          :: Tmp
-    real(RK)          :: EPot, EIntra1, EPotLocal, tempF(3,nu)
-    integer           :: j, k, nu2, jk, unit
-    real(RK)          :: coeff
-
-    ! Assign local variables
-    nu2 = this%NUnit2
-    Epsilon = this%Epsilon
-    RShieldSquared = this%RShieldSquared
-    coeff = 1._RK
-    if (this%potintra14) coeff = this%ScaleEl14
-    EPot   = 0._RK
-    EIntra1   = 0._RK
-
-    ! Assign pointers
-    RX1 => this%Site1%RX
-    RY1 => this%Site1%RY
-    RZ1 => this%Site1%RZ
-    RX2 => this%Site2%RX
-    RY2 => this%Site2%RY
-    RZ2 => this%Site2%RZ
-    OX1 => this%Site1%OX
-    OY1 => this%Site1%OY
-    OZ1 => this%Site1%OZ
-    OX2 => this%Site2%OX
-    OY2 => this%Site2%OY
-    OZ2 => this%Site2%OZ
-    PX1 => this%Site1%PX
-    PY1 => this%Site1%PY
-    PZ1 => this%Site1%PZ
-    PX2 => this%Site2%PX
-    PY2 => this%Site2%PY
-    PZ2 => this%Site2%PZ
-
-    ! Loop over molecules
-    RXi = RX1(np)
-    RYi = RY1(np)
-    RZi = RZ1(np)
-    OXi = OX1(np)
-    OYi = OY1(np)
-    OZi = OZ1(np)
-    PXi = PX1(np)
-    PYi = PY1(np)
-    PZi = PZ1(np)
-
-    unit=this%NUnit1*(np-1)+this%Site1%UnitNumber
-
-    do k = 1, this%NInCutoff(unit)
-      j = this%CutoffPartner(k, unit)
-      if ( mod(j-this%Site2%UnitNumber, nu2)==0) then
-        if (mod(j,nu2)==0) then
-          jk = INT(j/nu2)
-        else
-          jk = INT(j/nu2)+1
-        end if
-        RXij = RXi - RX2(jk)
-        RYij = RYi - RY2(jk)
-        RZij = RZi - RZ2(jk)
-        PXij = PXi - PX2(jk)
-        PYij = PYi - PY2(jk)
-        PZij = PZi - PZ2(jk)
-        RXij = (RXij - anint( PXij )) * BoxLength
-        RYij = (RYij - anint( PYij )) * BoxLength
-        RZij = (RZij - anint( PZij )) * BoxLength
-        RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
-
-        if( RijSquared <= RShieldSquared ) then
-          EPotLocal = 1E33_RK
-        else
-          OXj = OX2(jk)
-          OYj = OY2(jk)
-          OZj = OZ2(jk)
-
-          RijInv = 1._RK / sqrt( RijSquared )
-          eX = RXij * RijInv
-          eY = RYij * RijInv
-          eZ = RZij * RijInv
-          CosThetai = OXi * eX + OYi * eY + OZi * eZ
-          CosThetaj = OXj * eX + OYj * eY + OZj * eZ
-          CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
-          CosThetaiSquared = CosThetai**2
-          CosThetajSquared = CosThetaj**2
-          Tmp = CosGammaij - 5._RK * CosThetai * CosThetaj
-
-#if ARCH == 1
-          Rij5Inv = Epsilon * RijInv * (RijInv**2)**2
-#else
-          Rij5Inv = Epsilon * RijInv**5
-#endif
-          EPotLocal = Rij5Inv * (1._RK - 5._RK * (CosThetaiSquared + CosThetajSquared) &
-&           - 15._RK * CosThetaiSquared * CosThetajSquared + 2._RK * Tmp**2)
-        end if
-        EPot = EPot + EPotLocal
-      end if
-    end do
-    ! Include intramolecular interaction if need
-    if (this%potintra15 .or. this%potintra14) then
-      RXij = RXi - RX2(np)
-      RYij = RYi - RY2(np)
-      RZij = RZi - RZ2(np)
-      PXij = PXi - PX2(np)
-      PYij = PYi - PY2(np)
-      PZij = PZi - PZ2(np)
-      RXij = (RXij - anint( PXij )) * BoxLength
-      RYij = (RYij - anint( PYij )) * BoxLength
-      RZij = (RZij - anint( PZij )) * BoxLength
-      RijSquared = RXij**2 + RYij**2 + RZij**2
-      OXj = OX2(np)
-      OYj = OY2(np)
-      OZj = OZ2(np)
-#if ARCH == 3
-      RijInv = rsqrt( RijSquared )
-#else
-      RijInv = 1._RK / sqrt( RijSquared )
-#endif
-      eX = RXij * RijInv
-      eY = RYij * RijInv
-      eZ = RZij * RijInv
-      CosThetai = OXi * eX + OYi * eY + OZi * eZ
-      CosThetaj = OXj * eX + OYj * eY + OZj * eZ
-      CosGammaij = OXi * OXj + OYi * OYj + OZi * OZj
-      CosThetaiSquared = CosThetai**2
-      CosThetajSquared = CosThetaj**2
-      Tmp = CosGammaij - 5._RK * CosThetai * CosThetaj
-#if ARCH == 1
-      Rij5Inv = Epsilon * RijInv * (RijInv**2)**2
-#else
-      Rij5Inv = Epsilon * RijInv**5
-#endif
-      EPotLocal = coeff * Rij5Inv * (1._RK - 5._RK * (CosThetaiSquared + CosThetajSquared) &
-&                    - 15._RK * CosThetaiSquared * CosThetajSquared + 2._RK * Tmp**2)
-      EIntra1 = EIntra1 + EPotLocal
-    end if
-
-    F(:,:) = F(:,:) + tempF(:,:)
-    E = E + EPot + EIntra1
-    EIntra = EIntra + EIntra1
-
-  end subroutine TPotQQ_Energy
 
 
 

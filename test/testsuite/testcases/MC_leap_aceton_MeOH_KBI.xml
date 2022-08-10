@@ -11,16 +11,16 @@
 		<file>MC_leap_aceton_MeOH_KBI_1.kbirdf</file>
 	</reference>
 	<reference>
-		<file>MC_leap_aceton_MeOH_KBI_1.kbirun</file>
+		<file>MC_leap_aceton_MeOH_KBI_1.kbirav</file>
 		<relativeTolerance>7.5e-3</relativeTolerance>
 	</reference>
-	<reference>
+<!-- 	<reference>
 		<file>MC_leap_aceton_MeOH_KBI_1.rav</file>
-	</reference>
+	</reference> -->
 	<reference>
 		<file>MC_leap_aceton_MeOH_KBI_1.res</file>
 	</reference>
-	<reference>
+<!-- 	<reference>
 		<file>MC_leap_aceton_MeOH_KBI_1.run</file>
-	</reference>
+	</reference> -->
 </testcase>
