@@ -2685,6 +2685,9 @@ contains
             call Construct( this%SumHBond2(i,j,k), .false. )
             do l = k, this%NComponents
               call Construct( this%SumHBond3(i,j,k,l), .false. )
+              do m = l, this%NComponents
+                call Construct( this%SumHBond4(i,j,k,l,m), .false. )
+              end do
             end do
           end do
         end do
@@ -2723,6 +2726,16 @@ contains
         call Construct( this%SumHmUm3dUdV, .false. )
         call Construct( this%SumHmUm3dUdV2, .false. )
       end if
+      
+      ! KBI sum Gij
+      if( EnsembleType .eq. EnsembleTypeNVT .and.  KBIUpdateFrequency > 0) then
+        do i= 1, this%NComponents*(this%NComponents+1)/2 !Number of comb., e.g. 11 12 22
+            call Construct( this%SumKBIGij1(i), .false., .false., .true.)
+            call Construct( this%SumKBIGij2(i), .false., .false., .true.)
+            call Construct( this%SumKBIGij3(i), .false., .false., .true.)
+        end do
+      end if
+                
 
       ! 3.) Derived sums
       call Construct( this%SumBetaT, .true. )
@@ -2768,17 +2781,22 @@ contains
       do i = 1, this%NComponents
         call Construct( this%Sumself_i(i),  .false., .true. )
       end do
-
-      do i = 1, this%NComponents
-        do j = 1, this%NComponents
-           call Construct( this%SumOnsager(i,j), .false., .true. )
+    
+      if (this%NComponents .gt. 1) then
+        do i = 1, this%NComponents
+          do j = 1, this%NComponents
+            call Construct( this%SumOnsager(i,j), .false., .true. )
+          end do
         end do
-     end do
+
+        do i = 1, this%NComponents  
+          call Construct( this%SumSoret(i), .false., .true. )
+        end do
+      end if 
 
       call Construct( this%SumVisco_s, .false., .true. )
       call Construct( this%SumVisco_b, .false., .true. )
       call Construct( this%SumConduct, .false., .true. )
-      call Construct( this%SumSoret,   .false., .true. )
       call Construct( this%SumEConduct,.false., .true. )
 
     end if
@@ -2814,7 +2832,7 @@ contains
     ! Declare local variables
     integer :: i, j
 #if HBOND > 0
-    integer :: k, l
+    integer :: k, l, m
 #endif
 
     ! Destruct accumulators
@@ -2857,6 +2875,9 @@ contains
             call Destruct( this%SumHBond2(i,j,k) )
             do l = k, this%NComponents
               call Destruct( this%SumHBond3(i,j,k,l) )
+              do m = l, this%NComponents
+                call Destruct( this%SumHBond4(i,j,k,l,m) )
+              end do
             end do
           end do
         end do
@@ -2895,6 +2916,15 @@ contains
       call Destruct( this%SumHmUm3dUdV )
       call Destruct( this%SumHmUm3dUdV2 )
     end if
+    
+    ! KBI sum Gij
+      if( EnsembleType .eq. EnsembleTypeNVT .and.  KBIUpdateFrequency > 0) then
+        do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
+            call Destruct( this%SumKBIGij1(i) )
+            call Destruct( this%SumKBIGij2(i) )
+            call Destruct( this%SumKBIGij3(i) )
+        end do
+      end if
 
     ! 3.) Derived sums
     call Destruct( this%SumBetaT )
@@ -2940,17 +2970,20 @@ contains
       do i = 1, this%NComponents
          call Destruct( this%Sumself_i(i) )
       end do
-
-      do i = 1, this%NComponents
-         do j = 1, this%NComponents
+       
+      if (this%NComponents .gt. 1) then  
+        do i = 1, this%NComponents
+          do j = 1, this%NComponents
             call Destruct( this%SumOnsager(i,j) )
-         end do
-      end do
-
+          end do
+        end do
+        do i = 1, this%NComponents
+          call Destruct( this%SumSoret(i) )
+        end do
+      end if
       call Destruct( this%SumVisco_s )
       call Destruct( this%SumVisco_b )
       call Destruct( this%SumConduct )
-      call Destruct( this%SumSoret )
       call Destruct( this%SumEConduct )
 
     end if
@@ -3300,7 +3333,7 @@ contains
     integer :: number
 #if TRANS ==1
     integer :: NPart3
-    integer :: NComp2
+    integer :: NComp2, NC
 #endif
 
 
@@ -3311,7 +3344,24 @@ contains
     nullify( this%BiasedPartners )
     nullify( this%RDFValue )
     nullify( this%RDFVSchale )
+    nullify( this%KBIVSchale )
+    nullify( this%KBIRDFextra )
+    nullify( this%KBIRDFvdVextra )
+    nullify( this%KBIRDFvdVshfextra )
+    nullify( this%TDF )
+    nullify( this%dTDF )
+    nullify( this%TDF0 )
+    nullify( this%dispR2 )
+    nullify( this%dispR2inv )
+    nullify( this%dispR4 )
+    nullify( this%dispR2Ave )
+    nullify( this%dispR2invAve )
+    nullify( this%dispR4Ave )
+    nullify( this%alpha2tempstep )
+    
 
+    
+    
     ! Allocate scale coefficients for sigma and epsilon
     allocate( this%ScaleSigma(this%NComponents, this%NComponents), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents )
@@ -3327,6 +3377,50 @@ contains
       allocate( this%RDFValue(RDFNumberShells), STAT = stat )
       call AllocationError( stat, 'components', RDFNumberShells )    
     endif
+    
+    ! Allocate KBI arrays
+    if( KBIUpdateFrequency > 0 ) then
+      allocate( this%KBIVSchale(KBINShellsCubeEdge), STAT = stat )
+      call AllocationError( stat, 'KBI shells', KBINShellsCubeEdge )         
+      allocate( this%KBIRDFextra(0:KBINShellsCubeEdge, this%NComponents*(this%NComponents+1)/2), STAT = stat )
+      call AllocationError( stat, 'KBI RDF extrap.', KBINShellsCubeEdge )
+      allocate( this%KBIRDFvdVextra(0:KBINShellsCubeEdge, this%NComponents*(this%NComponents+1)/2), STAT = stat )
+      call AllocationError( stat, 'KBI RDFvdV extrap.', KBINShellsCubeEdge )
+      allocate( this%KBIRDFvdVshfextra(0:KBINShellsCubeEdge, this%NComponents*(this%NComponents+1)/2), STAT = stat )
+      call AllocationError( stat, 'KBI RDFvdVshf extrap.', KBINShellsCubeEdge )      
+      allocate( this%TDF(3, (this%NComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
+      call AllocationError( stat, 'TDF' )
+      allocate( this%dTDF(3, (this%NComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
+      call AllocationError( stat, 'dTDF' )
+      allocate( this%TDF0(3, (this%NComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
+      call AllocationError( stat, 'TDF0' )  
+      allocate( this%SumKBIGij1(this%NComponents*(this%NComponents+1)/2), STAT = stat )
+      call AllocationError( stat, 'Sum KBI Gij1', this%NComponents )
+      allocate( this%SumKBIGij2(this%NComponents*(this%NComponents+1)/2), STAT = stat )
+      call AllocationError( stat, 'Sum KBI Gij2', this%NComponents )
+      allocate( this%SumKBIGij3(this%NComponents*(this%NComponents+1)/2), STAT = stat )
+      call AllocationError( stat, 'Sum KBI Gij3', this%NComponents )
+    endif
+    
+    if( ALPHA2UpdateFrequency > 0 ) then
+      allocate( this%dispR2(ALPHA2Length/ALPHA2UpdateFrequency, 0:ALPHA2Length/ALPHA2Shift-1), STAT = stat ) 
+      call AllocationError( stat, 'dispR2' )          
+      allocate( this%dispR2inv(ALPHA2Length/ALPHA2UpdateFrequency, 0:ALPHA2Length/ALPHA2Shift-1), STAT = stat ) 
+      call AllocationError( stat, 'dispR2inv' )
+      allocate( this%dispR4(ALPHA2Length/ALPHA2UpdateFrequency, 0:ALPHA2Length/ALPHA2Shift-1), STAT = stat ) 
+      call AllocationError( stat, 'dispR4' )
+      allocate( this%dispR2Ave(ALPHA2Length/ALPHA2UpdateFrequency), STAT = stat ) !average 
+      call AllocationError( stat, 'dispR2Ave' )           
+      allocate( this%dispR2invAve(ALPHA2Length/ALPHA2UpdateFrequency), STAT = stat )  
+      call AllocationError( stat, 'dispR2invAve' )
+      allocate( this%dispR4Ave(ALPHA2Length/ALPHA2UpdateFrequency), STAT = stat ) 
+      call AllocationError( stat, 'dispR4Ave' )
+      allocate( this%alpha2tempstep(0:ALPHA2Length/ALPHA2Shift-1), STAT = stat ) !alpha2tempstep displacement
+      call AllocationError( stat, 'alpha2tempstep' )
+      this%alpha2tempstep(:)=0
+      this%alpha2aveCount=0
+    end if
+    
 
     ! Allocate test particles
     if( this%NTestMax > 0 ) then
@@ -3398,6 +3492,8 @@ contains
     call AllocationError( stat, 'components', this%NComponents**2*this%NComponents )
     allocate( this%NHBond3( this%NComponents, this%NComponents, this%NComponents, this%NComponents ), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents**2*this%NComponents**2 )
+    allocate( this%NHBond4( this%NComponents, this%NComponents, this%NComponents, this%NComponents, this%NComponents ), STAT = stat )
+    call AllocationError( stat, 'components', this%NComponents**2*this%NComponents**2*this%NComponents )
     allocate( this%NHBondN( this%NComponents ), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents )
 #endif
@@ -3416,6 +3512,7 @@ contains
 !TRANSPORT_start
       NPart3 = 3*this%NPart
       NComp2 = this%NComponents*this%NComponents
+      NC     = this%NComponents
 
     ! Allocate correlation fucntions
      if( this%CorrfunMode ) then
@@ -3456,10 +3553,10 @@ contains
       allocate( this%average_cf_db( this%NCorr), STAT = stat )
       call AllocationError( stat, 'binary_diffusion', this%NCorr )
 
-      allocate( this%cf_soret( this%NCorr), STAT = stat )
+      allocate( this%cf_soret( NC, this%NCorr), STAT = stat )
       call AllocationError( stat, 'thermal_diffusion', this%NCorr )
 
-      allocate( this%average_cf_soret( this%NCorr), STAT = stat )
+      allocate( this%average_cf_soret(NC, this%NCorr), STAT = stat )
       call AllocationError( stat, 'thermal_diffusion', this%NCorr )
 
       allocate( this%lamda( NComp2, this%NCorr ), STAT = stat )
@@ -3480,10 +3577,10 @@ contains
       allocate( this%average_sinte_db( this%NCorr), STAT = stat )
       call AllocationError( stat, 'mutual_diffusion integrated', this%NCorr )
 
-      allocate( this%sinte_soret( this%NCorr), STAT = stat )
+      allocate( this%sinte_soret(NC, this%NCorr), STAT = stat )
       call AllocationError( stat, 'thermal_diffusion integrated', this%NCorr )
 
-      allocate( this%average_sinte_soret( this%NCorr), STAT = stat )
+      allocate( this%average_sinte_soret( NC, this%NCorr), STAT = stat )
       call AllocationError( stat, 'thermal_diffusion integrated', this%NCorr )
 
       allocate( this%sinte_lamda( NComp2, this%NCorr), STAT = stat )
@@ -3561,27 +3658,31 @@ contains
       allocate( this%SumOnsager(this%NComponents,this%NComponents), STAT = stat  )
       call AllocationError( stat, 'SumOnsager', this%NComponents )
 
+      allocate( this%soret(NC), STAT = stat )
+      call AllocationError( stat, 'Soret', this%NComponents ) 
 
+      allocate( this%SumSoret(NC), STAT = stat )
+      call AllocationError( stat, 'SumSoret', this%NComponents ) 
 
 
       ! Set correlation-fucntion vectors
       this%cf_d(:,:)      = 0._RK
       this%cf_db(:)       = 0._RK
-      this%cf_soret(:)    = 0._RK
+      this%cf_soret(:,:)  = 0._RK
       this%lamda(:,:)     = 0._RK
       this%cf_vs(:)       = 0._RK
       this%cf_vb(:)       = 0._RK
       this%cf_c(:)        = 0._RK
       this%cf_ec(:)       = 0._RK
 
-      this%average_cf_d(:,:)   = 0._RK
-      this%average_cf_db(:)    = 0._RK
-      this%average_cf_soret(:) = 0._RK
-      this%average_lamda(:,:)  = 0._RK
-      this%average_cf_vs(:)    = 0._RK
-      this%average_cf_vb(:)    = 0._RK
-      this%average_cf_c(:)     = 0._RK
-      this%average_cf_ec(:)    = 0._RK
+      this%average_cf_d(:,:)     = 0._RK
+      this%average_cf_db(:)      = 0._RK
+      this%average_cf_soret(:,:) = 0._RK
+      this%average_lamda(:,:)    = 0._RK
+      this%average_cf_vs(:)      = 0._RK
+      this%average_cf_vb(:)      = 0._RK
+      this%average_cf_c(:)       = 0._RK
+      this%average_cf_ec(:)      = 0._RK
   
       this%a(:,:)           = 0._RK
       this%A_SpanCF(:,:)    = 0._RK
@@ -3589,7 +3690,7 @@ contains
       this%sinte_i(:,:)     = 0._RK
       this%sinte_lamda(:,:) = 0._RK
       this%sinte_db (:)     = 0._RK
-      this%sinte_soret(:)   = 0._RK
+      this%sinte_soret(:,:) = 0._RK
       this%sinte_vs(:)      = 0._RK
       this%sinte_vb(:)      = 0._RK
       this%sinte_c(:)       = 0._RK
@@ -3597,7 +3698,7 @@ contains
       
       this%average_sinte_i(:,:)     = 0._RK
       this%average_sinte_db (:)     = 0._RK
-      this%average_sinte_soret(:)   = 0._RK
+      this%average_sinte_soret(:,:) = 0._RK
       this%average_sinte_lamda(:,:) = 0._RK
       this%average_sinte_vs(:)      = 0._RK
       this%average_sinte_vb(:)      = 0._RK
@@ -3720,8 +3821,79 @@ contains
 
     if( associated( this%RDFValue ) ) then
       deallocate( this%RDFValue )
-    end if    
+    end if  
 
+    if( associated( this%KBIVSchale ) ) then
+      deallocate( this%KBIVSchale )
+    end if
+    
+    if( associated( this%KBIRDFextra ) ) then
+      deallocate( this%KBIRDFextra )
+    end if 
+    
+    if( associated( this%KBIRDFvdVextra ) ) then
+      deallocate( this%KBIRDFvdVextra )
+    end if 
+    
+    if( associated( this%KBIRDFvdVshfextra ) ) then
+      deallocate( this%KBIRDFvdVshfextra )
+    end if 
+    
+    if( associated( this%TDF ) ) then
+      deallocate( this%TDF )
+    end if 
+    
+    if( associated( this%dTDF ) ) then
+      deallocate( this%dTDF )
+    end if 
+    
+    if( associated( this%TDF0 ) ) then
+      deallocate( this%TDF0 )
+    end if 
+    
+    if( associated( this%dispR2 ) ) then
+      deallocate( this%dispR2 )
+    end if
+    
+    if( associated( this%dispR2inv ) ) then
+      deallocate( this%dispR2inv )
+    end if
+    
+    if( associated( this%dispR4 ) ) then
+      deallocate( this%dispR4 )
+    end if
+    
+    if( associated( this%dispR2Ave ) ) then
+      deallocate( this%dispR2Ave )
+    end if
+    
+    if( associated( this%dispR2invAve ) ) then
+      deallocate( this%dispR2invAve )
+    end if
+    
+    if( associated( this%dispR4Ave ) ) then
+      deallocate( this%dispR4Ave )
+    end if
+    
+    if( associated( this%alpha2tempstep ) ) then
+      deallocate( this%alpha2tempstep )
+    end if
+    
+    
+
+    if( associated( this%SumKBIGij1 ) ) then
+      deallocate( this%SumKBIGij1 )
+    end if
+    
+    if( associated( this%SumKBIGij2 ) ) then
+      deallocate( this%SumKBIGij2 )
+    end if
+    
+    if( associated( this%SumKBIGij3 ) ) then
+      deallocate( this%SumKBIGij3 )
+    end if
+
+    
 #if  TRANS == 1
 !TRANSPORT_start
     ! Deallocate arrays for correlation fucntions
@@ -3902,6 +4074,16 @@ contains
     if( associated( this%SumOnsager ) ) then
       deallocate( this%SumOnsager )
     end if
+
+    if( associated( this%soret ) ) then
+      deallocate( this%soret )
+    end if
+
+    if( associated( this%SumSoret ) ) then
+      deallocate( this%SumSoret )
+    end if
+
+
 
 !TRANSPORT_END
 #endif
@@ -5073,7 +5255,8 @@ loop5:    do nc = 1, this%NComponents
 
     ! Set distance
     do i = 2, this%NComponents, 2
-      this%Component(i)%P0(:, 1, :) = this%Component(i)%P0(:, 1, :) + r / this%BoxLength ! (i+1,1:3) and (i,2:3) set to 0.0 in ConstructSVC
+      this%Component(i)%P0(:, 1, :) = r / this%BoxLength
+!       call Mol2Atom( this%Component(i), 1, this%Component(i)%NPart )
       call Unit2Atom(this%Component(i), this%Component(i)%NPart)
     end do
 
@@ -5118,7 +5301,7 @@ loop5:    do nc = 1, this%NComponents
       call FileWriteBlank( this%iounit_result )
 
       ! Number of steps
-      write( IOBuffer, '("     NR")' )
+      write( IOBuffer, '("       NR")' )
       call FileWriteNoAdvance( this%iounit_result )
 
       ! Radius
@@ -5269,7 +5452,7 @@ loop5:    do nc = 1, this%NComponents
          if (this%Component(i)%Molecule%NUnit .ne. 1)  call Error( "!!!!!!Transportproperties only implemented for rigid molecules!!!!!!!" )
          call Atom2Unit_Trans( this%Component(i), this%Component(i)%NPart, this%Component(i)%Molecule%NUnit )
       else
-         call Atom2Unit( this%Component(i), this%Component(i)%NPart, this%Component(i)%Molecule%NUnit )
+         call Atom2Unit( this%Component(i), this%Component(i)%NPart)
       end if
 #else
       call Atom2Unit( this%Component(i), this%Component(i)%NPart)
@@ -5297,7 +5480,7 @@ loop5:    do nc = 1, this%NComponents
        this%VirialProfile(m) = this%VirialProfile(m) + (TotalDenProfile(m) * this%VirialCorrMIE * NProcs)/NBinsDen
     end do
 
-    if ((LongRange .eq. Ewald) then
+    if (LongRange .eq. Ewald) then
       this%VirialProfile(:) = this%VirialProfile(:) + this%EVirial/NBinsDen
 #if SPME > 0
     else if (LongRange .eq. PME) then
@@ -5539,22 +5722,6 @@ loop5:    do nc = 1, this%NComponents
         this%Volume3 = this%Volume3 + Corr * Gear23
         this%Volume4 = this%Volume4 + Corr * Gear24
         this%Volume5 = this%Volume5 + Corr * Gear25
-
-#if ABL
-        vol = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
-        fac = TimeStepSquared2*Gear20
-        denom = fac*(this%Pressure - this%RefPressure) - this%PistonMass*this%Volume2*Gear20 ! Michael Sch.: per def = 0, also obsolet...
-        denom2 = denom**2
-        nen = this%PistonMass*fac / (vol * denom2)
-        do i=1,this%NComponents
-          do j=1,this%Component(i)%Molecule%NMIEnm
-            this%AblPS(i,j)   =  this%AblPS(i,j) + this%Interaction(1, 1)%PotMIEnmMIEnm(i, j)%AblSigCorr(i,j)
-            this%AblPE(i,j)   =  this%AblPE(i,j) + this%Interaction(1, 1)%PotMIEnmMIEnm(i, j)%AblEpsCorr(i,j)
-            this%AblRhoS(i,j) = nen * this%AblPS(i,j)
-            this%AblRhoE(i,j) = nen * this%AblPE(i,j)
-          end do
-        end do
-#endif
 
       end if
 #if MPI_VER > 0
@@ -6062,16 +6229,21 @@ loop5:    do nc = 1, this%NComponents
     do i = 1, this%NComponents
       do j = i, this%NComponents
 #if TRANS == 1
-        if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
-           call Force_Trans( this%Interaction( i, j ), EPot, Virial, idfEPot, &
-&                           VirialIntra, VirialInter, d2EpotdV2, this%BoxLength )
+        if(.not. Equilibration) then
+           if((mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
+              call Force_Trans( this%Interaction( i, j ), EPot, Virial, idfEPot, &
+&                              VirialIntra, VirialInter, d2EpotdV2, this%BoxLength, this%BoxLength/this%KBIdr)!L/KBIdr is optional if MD with KBI is active
+            else
+              call Force( this%Interaction( i, j ), EPot, Virial, idfEPot, &
+&                        VirialIntra, VirialInter, d2EpotdV2, this%BoxLength, this%BoxLength/this%KBIdr)!L/KBIdr is optional if MD with KBI is active
+            endif
         else
           call Force( this%Interaction( i, j ), EPot, Virial, idfEPot, &
 &                     VirialIntra, VirialInter, d2EpotdV2, this%BoxLength )
         endif
 #else
         call Force( this%Interaction( i, j ), EPot, Virial, idfEPot, &
-&                   VirialIntra, VirialInter, d2EpotdV2, this%BoxLength )
+&                   VirialIntra, VirialInter, d2EpotdV2, this%BoxLength, this%BoxLength/this%KBIdr)!L/KBIdr is optional if MD with KBI is active
 #endif
 
       end do
@@ -6922,12 +7094,10 @@ loop2:        do nc = 1, this%NComponents
       do i = 1, this%NComponents
         pi => this%Interaction(nc, i)
         n = pi%NUnit2*pi%NPart2
-
         ! Loop over units
         do np = 1, this%Component(nc)%NPart
           do nu=1, this%Component(nc)%Molecule%NUnit
             call Energy( pi, np, nu, this%BoxLength )
-
             if ( pi%SameComponent .and. UseIntDegFreed ) then
               call IntraEnergy(pi, np, nu, this%BoxLength)
               pi%EPotAngleNew((np-1)*pi%NAngle+1:np*pi%NAngle) = pi%EPot1Angle(:)
@@ -6939,11 +7109,9 @@ loop2:        do nc = 1, this%NComponents
             ! Save new energy matrix
             pi%EPotNew(nu1, 1:n) = pi%EPot1(1:n)
             pi%d2EpotdV2New(nu1, 1:n) = pi%d2EpotdV21(1:n)
-
             if (this%OptPressure) then
               pi%VirialNew(nu1, 1:n) = pi%Virial1(1:n)
             end if
-
             ! Sum energy
             E = E + sum( pi%EPot1(1:n) )
           end do
@@ -7701,7 +7869,7 @@ loop2:        do nc = 1, this%NComponents
       if (.not. UseIntDegFreed ) then
           this%EPot = this%EPot - EPotDelta
       end if
-#endif	  
+#endif    
     else
 
       ! Reject move
@@ -8007,8 +8175,7 @@ loop2:        do nc = 1, this%NComponents
       if (.not. UseIntDegFreed) then
           this%EPot = this%EPot - EPotDelta
       end if
-#endif	  
-
+#endif    
 
     else
 
@@ -9694,13 +9861,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
 
     ! Find potential change
-	
-	! NPH
+    
+    ! NPH
     if( EnsembleType .eq. EnsembleTypeNPH ) then
-	  if( exp(( real (this%NDF, RK) / 2._RK - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) &
+      if( exp(( real (this%NDF, RK) / 2._RK - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) &
 &       / (this%RefEnthalpy*this%NPart - EPotOld - this%RefPressure * VolumeOld)) + this%NPart * log(this%Volume0 / VolumeOld)) > rnd( 0._RK, 1._RK )) then
 
-	    ! Accept volume change
+        ! Accept volume change
         this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK)
         this%NResizeSuccesses = this%NResizeSuccesses + 1
         call UpdateEnergy( this )
@@ -9757,9 +9924,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if
 #if MPI_VER > 0
         ! in MC simulations we only communicate during common equilibration 
-        if (Equilibration .and. CommonEqui .and. .not. UseIntDegFreed) then
-          call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , &
-&           MPI_RK, MPI_SUM, Communicator, ierror )
+        if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) .and. .not. UseIntDegFreed) then
+          call MPI_Allreduce( GetEnergy( this ), this%EPot, 1, MPI_RK, MPI_SUM, Communicator, ierror )
         else if (.not. UseIntDegFreed) then
           this%EPot = GetEnergy( this )
         endif  
@@ -9769,7 +9935,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if
 #endif  
 
-	  else
+      else
         ! Reject volume change
         this%Volume0 = VolumeOld
         call UpdateBoxLength( this )
@@ -9843,8 +10009,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
         end if
       end if
-	
-	else !NPT
+    
+    else !NPT
       EPotDelta = this%RefPressure * (this%Volume0 - VolumeOld) + this%EPot - EPotOld &
 &     + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 )
 
@@ -11045,7 +11211,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                   :: a1, a3, a4, a5! dummy arguments
     type(idfPotentialEnergies):: a2
 #if HBOND > 0
-    integer                   :: k, l
+    integer                   :: k, l, m
 #endif
 
     if( Step == 1 ) then
@@ -11099,6 +11265,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call Reset( this%SumHBond2(i,j,k) )
             do l = k, this%NComponents
               call Reset( this%SumHBond3(i,j,k,l) )
+              do m = l, this%NComponents
+                call Reset( this%SumHBond4(i,j,k,l,m) )
+              end do 
             end do
           end do
         end do
@@ -11729,6 +11898,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWriteNoAdvance( this%iounit_result )
           call FileWriteNoAdvance( this%iounit_runave )
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             write( IOBuffer, '("  HB1_(", I1, ",", I1, ")")' ) i, j
@@ -11736,6 +11906,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance( this%iounit_runave )
           end do
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
@@ -11745,6 +11916,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             do k = j, this%NComponents
@@ -11756,6 +11928,21 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             end do
           end do
         end do
+
+        do i = 1, this%NComponents
+          do  j = 1, this%NComponents
+            do k = j, this%NComponents
+              do l = k, this%NComponents
+                do m = l, this%NComponents
+                  write( IOBuffer, '("  HB4_(", I1, ",", I1, ",", I1, ",", I1,",", I1, ")")' ) i, j, k, l, m
+                  call FileWriteNoAdvance( this%iounit_result )
+                  call FileWriteNoAdvance( this%iounit_runave )
+                end do
+              end do
+            end do
+          end do
+        end do
+
         do i = 1, this%NComponents
           write( IOBuffer, '("  HB4+_(", I1, ")")' ) i
           call FileWriteNoAdvance( this%iounit_result )
@@ -11907,6 +12094,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Update( this%SumHBond2(i,j,k), real(this%NHBond2(i,j,k),RK) )
           do l = k, this%NComponents
             call Update( this%SumHBond3(i,j,k,l), real(this%NHBond3(i,j,k,l),RK) )
+            do m = l, this%NComponents
+              call Update( this%SumHBond4(i,j,k,l,m), real(this%NHBond4(i,j,k,l,m),RK) )
+            end do
           end do
         end do
       end do
@@ -12243,11 +12433,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Update( this%Sumself_i(i), this%selfd_i(i), this%Mmess )
         end do
 
-        if(this%NComponents == 2) then
-          call Update( this%SumSoret, this%soret, this%Mmess )
-        end if
-
-        if(this%NComponents .gt. 1 ) then
+        if(this%NComponents .gt. 1) then
+          do i = 1, this%NComponents  
+           call Update( this%SumSoret(i), this%soret(i), this%Mmess )
+          end do
           do i = 1, this%NComponents
             do j = 1, this%NComponents
               call Update( this%SumOnsager(i,j),this%Onsager(i,j), this%Mmess )
@@ -13356,6 +13545,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           write( IOBuffer, '(" ", F10.4)' ) this%SumHBond0(i)%Average
           call FileWriteNoAdvance( this%iounit_runave )
         end do
+
         do i = 1, this%NComponents
           do  j = 1, this%NComponents
             write( IOBuffer, '("   ", F10.4)' ) this%SumHBond1(i,j)%BlockAverage
@@ -16596,7 +16786,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* G. Rutkai, A. KÃ¶ster, G. Guevara-Carrion, T. Janzen, M. Schappals,       *")')
+    write( IOBuffer, '("* G. Rutkai, A. Köster, G. Guevara-Carrion, T. Janzen, M. Schappals,       *")')
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("* C.W. Glass, M. Bernreuther, A. Wafai, S. Stephan, M. Kohns, S. Reiser,   *")')
     call FileWrite( this%iounit_errors )
@@ -17002,16 +17192,18 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     ! Declare local variables
     integer                   :: i, j, s, t
 
-    ! initialize RDFSum
-    do i=1, this%NComponents
-      do j=1, this%NComponents
-        do s=1, this%component(i)%molecule%NMIEnm
-          do t=1, this%component(j)%molecule%NMIEnm
-            this%Interaction(i,j)%PotMIEnmMIEnm(s, t)%RDFSum(:) = 0
+    if( .not. Restart ) then
+        ! initialize RDFSum
+        do i=1, this%NComponents
+          do j=1, this%NComponents
+            do s=1, this%component(i)%molecule%NMIEnm
+              do t=1, this%component(j)%molecule%NMIEnm
+                this%Interaction(i,j)%PotMIEnmMIEnm(s, t)%RDFSum(:) = 0
+              end do
+            end do
           end do
         end do
-      end do
-    end do
+    end if
 
     ! Open visualization file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
@@ -20749,9 +20941,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     end if
       
   end subroutine TEnsemble_ALPHA2Update
-
-
-
+  
 !==============================================================!
 !  Subroutine TEnsemble_RestartSave                            !
 !==============================================================!
@@ -20760,61 +20950,83 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     implicit none
 
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
     ! Declare arguments
     type(TEnsemble) :: this
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i
+    integer                   :: i,j,s,t,o
 #if TRANS ==1
-    integer                   :: j, k, Mindex, StepCorr
+    integer                   :: k, Mindex, StepCorr
 #endif
+#if MPI_VER > 0 
+    integer(KIND=8)           :: KBISum_hilf(KBINShellsCubeEdge*NProcs)
+    integer                   :: RDFSum_hilf(RDFNumberShells*NProcs)
+#endif
+    
 
-    if( SimulationType .eq. MonteCarlo ) then
-      if( NProc /= NRootProc ) return
-    endif 
+    if( RootProc ) then
+        ! Save contents to restart file
+        write( iounit_restart, '(I10)' ) this%NPart
+        write( iounit_restart, '(ES20.12E3)' ) this%Volume0
 
-    ! Save contents to restart file
-    write( iounit_restart, '(I10)' ) this%NPart
-    write( iounit_restart, '(ES20.12E3)' ) this%Volume0
+        if( SimulationType .eq. MolecularDynamics ) then
+          write( iounit_restart, '(ES20.12E3)' ) this%Volume1
+          write( iounit_restart, '(ES20.12E3)' ) this%Volume2
 
-    if( SimulationType .eq. MolecularDynamics ) then
-      write( iounit_restart, '(ES20.12E3)' ) this%Volume1
-      write( iounit_restart, '(ES20.12E3)' ) this%Volume2
+          if( IntegratorType .eq. IntegratorTypeGear ) then
+            write( iounit_restart, '(ES20.12E3)' ) this%Volume3
+            write( iounit_restart, '(ES20.12E3)' ) this%Volume4
+            write( iounit_restart, '(ES20.12E3)' ) this%Volume5
+          end if
+          
+          if(.not. printIDF .and. ALPHA2UpdateFrequency > 0 ) then
+            write( iounit_restart, '(I10)' ) this%alpha2aveCount
+            do j = 0, ALPHA2Length/ALPHA2Shift-1
+              write( iounit_restart, '(I10)' ) this%alpha2tempstep(j)
+            end do            
+            do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
+              do j = 0, ALPHA2Length/ALPHA2Shift-1
+                write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%dispR2(i,j),this%dispR4(i,j),this%dispR2inv(i,j)
+              end do
+            end do
+            do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
+              write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%dispR2Ave(i),this%dispR4Ave(i),this%dispR2invAve(i)
+            end do  
+          end if
 
-      if( IntegratorType .eq. IntegratorTypeGear ) then
-        write( iounit_restart, '(ES20.12E3)' ) this%Volume3
-        write( iounit_restart, '(ES20.12E3)' ) this%Volume4
-        write( iounit_restart, '(ES20.12E3)' ) this%Volume5
-      end if
+        else
+          write( iounit_restart, '(ES20.12E3)' ) this%DispVol
+          write(iounit_restart, '(2I10)' ) this%NResizeAttempts, this%NResizeSuccesses
 
-    else
-      write( iounit_restart, '(ES20.12E3)' ) this%DispVol
-      write(iounit_restart, '(2I10)' ) this%NResizeAttempts, this%NResizeSuccesses
+          if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
+            write(iounit_restart, '(2I10)' ) this%NInsertAttempts, this%NInsertSuccesses
+            write(iounit_restart, '(2I10)' ) this%NDeleteAttempts, this%NDeleteSuccesses
+          end if
+        end if
 
-      if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
-        write(iounit_restart, '(2I10)' ) this%NInsertAttempts, this%NInsertSuccesses
-        write(iounit_restart, '(2I10)' ) this%NDeleteAttempts, this%NDeleteSuccesses
-      end if
-    end if
+        write( iounit_restart, '(I10)' ) this%NRCutoffMax
 
-    write( iounit_restart, '(I10)' ) this%NRCutoffMax
+        ! Save components
+        do i = 1, this%NComponents
+          call RestartSave( this%Component(i) )
+        end do
 
-    ! Save components
-    do i = 1, this%NComponents
-      call RestartSave( this%Component(i) )
-    end do
-
-    ! Save accumulators
-    ! 1.) Basic sums
-    call RestartSave( this%SumPressure )
-    call RestartSave( this%SumDensity )
-    call RestartSave( this%SumTemperature )
-    call RestartSave( this%SumEPot )
-    call RestartSave( this%SumEnthalpy )
-    call RestartSave( this%SumConfEnthalpy )
-    call RestartSave( this%SumVolume )
-    call RestartSave( this%SumVirial )
+        ! Save accumulators
+        ! 1.) Basic sums
+        call RestartSave( this%SumPressure )
+        call RestartSave( this%SumDensity )
+        call RestartSave( this%SumTemperature )
+        call RestartSave( this%SumEPot )
+        call RestartSave( this%SumEnthalpy )
+        call RestartSave( this%SumConfEnthalpy )
+        call RestartSave( this%SumVolume )
+        call RestartSave( this%SumVirial )
     if (printIDF) then
       call RestartSave( this%SumEPotInter )
       call RestartSave( this%SumEPotIntra )
@@ -20825,111 +21037,172 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call RestartSave( this%SumVirialIntra )
       call RestartSave( this%SumVirialInter )
     end if
-    call RestartSave( this%SumdEpotdV )
-    call RestartSave( this%Sumd2EpotdV2 )
+        call RestartSave( this%SumdEpotdV )
+        call RestartSave( this%Sumd2EpotdV2 )
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
-      call RestartSave( this%SumNPart )
-      do i = 1, this%NComponents
-        pc => this%Component(i)
-        call RestartSave( pc%SumFraction )
-      end do
+        if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA ) then
+          call RestartSave( this%SumNPart )
+          do i = 1, this%NComponents
+            pc => this%Component(i)
+            call RestartSave( pc%SumFraction )
+          end do
+        end if
+
+        ! 2.) Combined sums
+        call RestartSave( this%SumEPotSquared )
+        call RestartSave( this%SumEPotV )
+        call RestartSave( this%SumEPotVirial )
+        call RestartSave( this%SumEnthalpySquared )
+        call RestartSave( this%SumEnthalpyV )
+        call RestartSave( this%SumVolumeSquared )
+        call RestartSave( this%SumEPotCubic )
+        call RestartSave( this%SumdEpotdVSquared )
+        call RestartSave( this%SumEPotdEpotdV )
+        call RestartSave( this%SumEPotSquareddEpotdV )
+        call RestartSave( this%SumEPotdEpotdVSquared )
+        call RestartSave( this%SumEPotd2EpotdV2 )
+        if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
+          call RestartSave( this%SumHmU )
+          call RestartSave( this%SumHmUm1)
+          call RestartSave( this%SumHmUm2 )
+          call RestartSave( this%SumHmUm3 )
+          call RestartSave( this%SumHmUm1dUdV )
+          call RestartSave( this%SumHmUm1dUdV2 )
+          call RestartSave( this%SumHmUm1d2UdV2 )
+          call RestartSave( this%SumHmUm2dUdV )
+          call RestartSave( this%SumHmUm2dUdV2 )
+          call RestartSave( this%SumHmUm2d2UdV2 )
+          call RestartSave( this%SumHmUm3dUdV )
+          call RestartSave( this%SumHmUm3dUdV2 )
+        end if
+        ! 3.) Derived sums
+        if( ConstantPressure ) then
+          call RestartSave( this%SumBetaT )
+          call RestartSave( this%SumdHdP )
+          call RestartSave( this%SumCP )
+          call RestartSave( this%SumAlphaP )
+        else
+          call RestartSave( this%SumdUdV )
+          call RestartSave( this%SumCV )
+        endif
+        if( LongRange .eq. Rfield) then
+          if ( EnsembleType .eq. EnsembleTypeNVT ) then
+            call RestartSave( this%SumA10resI )
+            call RestartSave( this%SumA01resI )
+            call RestartSave( this%SumA20resI )
+            call RestartSave( this%SumA11resI )
+            call RestartSave( this%SumA02resI )
+            call RestartSave( this%SumA30resI )
+            call RestartSave( this%SumA21resI )
+            call RestartSave( this%SumA12resI )
+          elseif ( EnsembleType .eq. EnsembleTypeNVE ) then
+            call RestartSave( this%SumA10resI )
+            call RestartSave( this%SumA01resI )
+            call RestartSave( this%SumA20resI )
+            call RestartSave( this%SumA11resI )
+            call RestartSave( this%SumA02resI )
+            call RestartSave( this%SumA30resI )
+            call RestartSave( this%SumA21resI )
+            call RestartSave( this%SumA12resI )
+            call RestartSave( this%SumA10resII )
+            call RestartSave( this%SumA01resII )
+            call RestartSave( this%SumA20resII )
+            call RestartSave( this%SumA11resII )
+            call RestartSave( this%SumA02resII )
+            call RestartSave( this%SumA30resII )
+            call RestartSave( this%SumA21resII )
+            call RestartSave( this%SumA12resII )
+          end if
+        end if
+
+        ! 4.) Chemical potential and partial molar volumes
+        do i = 1, this%NRealComponents
+          pc => this%Component(i)
+          select case( pc%ChemPotMethod )
+          case( ChemPotMethodGradIns )
+            call RestartSave( pc%SumInvChemPotRho )
+            call RestartSave( pc%SumInvChemPot )
+          case( ChemPotMethodWidom )
+            call RestartSave( pc%SumChemPotV )
+            call RestartSave( pc%SumChemPotVV )
+            call RestartSave( pc%SumHW_counter )
+            call RestartSave( pc%SumHW_denom )
+          case( ChemPotMethodThermoInt )
+            call RestartSave( pc%SumChemPotV )
+            call RestartSave( pc%SumChemPotVV )
+            call RestartSave( pc%SumChemPotThermoIntWidom )
+            call RestartSave( pc%SumChemPotThermoIntWidomV )
+            call RestartSave( pc%SumHW_counter )
+            call RestartSave( pc%SumHW_denom )
+          end select
+
+          if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
+            call RestartSave( pc%SumVW )
+           call RestartSave( pc%SumHM )
+          end if
+        end do
+    end if
+    
+    if (RDFUpdateFrequency > 0) then
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                do s=1, this%Component(i)%molecule%NMIEnm
+                    do t=1, this%Component(j)%molecule%NMIEnm
+#if MPI_VER > 0     
+                        call MPI_Gather( this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), RDFNumberShells, MPI_INTEGER, &
+&                           RDFSum_hilf(1:RDFNumberShells*NProcs), RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )
+                        if( RootProc ) then
+                            do o = 1, RDFNumberShells*NProcs
+                                write(iounit_restart, '(I10)' ) RDFSum_hilf(o)
+                            end do
+                        end if
+#else 
+                        do o = 1, RDFNumberShells
+                            write(iounit_restart, '(I10)' ) this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o)
+                        end do
+#endif                
+                    end do
+                end do
+            end do
+        end do
     end if
 
-    ! 2.) Combined sums
-    call RestartSave( this%SumEPotSquared )
-    call RestartSave( this%SumEPotV )
-    call RestartSave( this%SumEPotVirial )
-    call RestartSave( this%SumEnthalpySquared )
-    call RestartSave( this%SumEnthalpyV )
-    call RestartSave( this%SumVolumeSquared )
-    call RestartSave( this%SumEPotCubic )
-    call RestartSave( this%SumdEpotdVSquared )
-    call RestartSave( this%SumEPotdEpotdV )
-    call RestartSave( this%SumEPotSquareddEpotdV )
-    call RestartSave( this%SumEPotdEpotdVSquared )
-    call RestartSave( this%SumEPotd2EpotdV2 )
-    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield) then
-      call RestartSave( this%SumHmU )
-      call RestartSave( this%SumHmUm1)
-      call RestartSave( this%SumHmUm2 )
-      call RestartSave( this%SumHmUm3 )
-      call RestartSave( this%SumHmUm1dUdV )
-      call RestartSave( this%SumHmUm1dUdV2 )
-      call RestartSave( this%SumHmUm1d2UdV2 )
-      call RestartSave( this%SumHmUm2dUdV )
-      call RestartSave( this%SumHmUm2dUdV2 )
-      call RestartSave( this%SumHmUm2d2UdV2 )
-      call RestartSave( this%SumHmUm3dUdV )
-      call RestartSave( this%SumHmUm3dUdV2 )
+        
+    if (KBIUpdateFrequency > 0) then            
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+#if MPI_VER > 0     
+                call MPI_Gather( this%Interaction(i,j)%KBISum(1:KBINShellsCubeEdge), KBINShellsCubeEdge, MPI_INTEGER8, &
+&                   KBISum_hilf(1:KBINShellsCubeEdge*NProcs), KBINShellsCubeEdge, MPI_INTEGER8, NRootProc, Communicator, ierror )
+                if( RootProc ) then
+                    do o = 1, KBINShellsCubeEdge*NProcs
+                        write(iounit_restart, '(I10)' ) KBISum_hilf(o)
+                    end do
+                end if
+#else 
+                do o = 1, KBINShellsCubeEdge
+                    write(iounit_restart, '(I10)' ) this%Interaction(i,j)%KBISum(o)
+                end do
+#endif              
+            end do
+        end do
+        if( RootProc ) then    ! Save mean RDF over all blocks for Gij extrapolation 
+            do i = 1, this%NComponents*(this%NComponents+1)/2
+                do o = 1, KBINShellsCubeEdge
+                    write(iounit_restart, '(ES20.12E3)' ) this%KBIRDFextra(o,i)
+                    write(iounit_restart, '(ES20.12E3)' ) this%KBIRDFvdVextra(o,i)
+                    write(iounit_restart, '(ES20.12E3)' ) this%KBIRDFvdVshfextra(o,i)
+                end do
+            end do
+            write(iounit_restart, '(I10)' ) this%KBIBlockCount
+        end if          
+        do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
+            call RestartSave( this%SumKBIGij1(i), .false., .true. )
+            call RestartSave( this%SumKBIGij2(i), .false., .true. )
+            call RestartSave( this%SumKBIGij3(i), .false., .true. )
+        end do
     end if
-    ! 3.) Derived sums
-    if( ConstantPressure ) then
-      call RestartSave( this%SumBetaT )
-      call RestartSave( this%SumdHdP )
-      call RestartSave( this%SumCP )
-      call RestartSave( this%SumAlphaP )
-    else
-      call RestartSave( this%SumdUdV )
-      call RestartSave( this%SumCV )
-    endif
-    if( LongRange .eq. Rfield) then
-      if ( EnsembleType .eq. EnsembleTypeNVT ) then
-        call RestartSave( this%SumA10resI )
-        call RestartSave( this%SumA01resI )
-        call RestartSave( this%SumA20resI )
-        call RestartSave( this%SumA11resI )
-        call RestartSave( this%SumA02resI )
-        call RestartSave( this%SumA30resI )
-        call RestartSave( this%SumA21resI )
-        call RestartSave( this%SumA12resI )
-      elseif ( EnsembleType .eq. EnsembleTypeNVE ) then
-        call RestartSave( this%SumA10resI )
-        call RestartSave( this%SumA01resI )
-        call RestartSave( this%SumA20resI )
-        call RestartSave( this%SumA11resI )
-        call RestartSave( this%SumA02resI )
-        call RestartSave( this%SumA30resI )
-        call RestartSave( this%SumA21resI )
-        call RestartSave( this%SumA12resI )
-        call RestartSave( this%SumA10resII )
-        call RestartSave( this%SumA01resII )
-        call RestartSave( this%SumA20resII )
-        call RestartSave( this%SumA11resII )
-        call RestartSave( this%SumA02resII )
-        call RestartSave( this%SumA30resII )
-        call RestartSave( this%SumA21resII )
-        call RestartSave( this%SumA12resII )
-      end if
-    end if
-
-    ! 4.) Chemical potential and partial molar volumes
-    do i = 1, this%NRealComponents
-      pc => this%Component(i)
-      select case( pc%ChemPotMethod )
-      case( ChemPotMethodGradIns )
-        call RestartSave( pc%SumInvChemPotRho )
-        call RestartSave( pc%SumInvChemPot )
-      case( ChemPotMethodWidom )
-        call RestartSave( pc%SumChemPotV )
-        call RestartSave( pc%SumChemPotVV )
-        call RestartSave( pc%SumHW_counter )
-        call RestartSave( pc%SumHW_denom )
-      case( ChemPotMethodThermoInt )
-        call RestartSave( pc%SumChemPotV )
-        call RestartSave( pc%SumChemPotVV )
-        call RestartSave( pc%SumChemPotThermoIntWidom )
-        call RestartSave( pc%SumChemPotThermoIntWidomV )
-        call RestartSave( pc%SumHW_counter )
-        call RestartSave( pc%SumHW_denom )
-      end select
-
-      if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. ConstantPressure .and. this%NRealComponents > 1 ) then
-        call RestartSave( pc%SumVW )
-       call RestartSave( pc%SumHM )
-      end if
-    end do
-
+    
 #if TRANS ==1
 if( RootProc .and. this%CorrfunMode ) then
 
@@ -20996,9 +21269,11 @@ if( RootProc .and. this%CorrfunMode ) then
         write( iounit_restart, '(ES20.12E3)' ) this%average_cf_ec(i)
     end do
 
-    if (this%NComponents==2) then
-      do i = 1, this%NCorr
-        write( iounit_restart, '(ES20.12E3)' ) this%average_cf_soret(i)
+    if (this%NComponents .gt. 1) then
+      do i = 1, this%NComponents
+        do j = 1, this%NCorr
+          write( iounit_restart, '(ES20.12E3)' ) this%average_cf_soret(i,j)
+        end do
       end do
     end if
 
@@ -21022,18 +21297,23 @@ if( RootProc .and. this%CorrfunMode ) then
       call RestartSave( this%Sumself_i(i), .true. )
     end do
 
-     if(this%NComponents > 1) then
+    if(this%NComponents > 1) then
       do i = 1, this%NComponents
          do j = 1, this%NComponents
            call RestartSave( this%SumOnsager(i,j), .true. )
          end do
       end do
+      do i = 1, this%NComponents
+         call RestartSave( this%SumSoret(i), .true. )
+      end do   
     end if
+ 
+
+    
 
     call RestartSave( this%SumVisco_s, .true. )
     call RestartSave( this%SumVisco_b, .true. )
     call RestartSave( this%SumConduct, .true. )
-    call RestartSave( this%SumSoret,   .true. )
     call RestartSave( this%SumEConduct,.true. )
 
     do i = 1,3
@@ -21419,9 +21699,11 @@ endif
         read( iounit_restart, '(ES20.12E3)' )  this%average_cf_ec(i)
       end do
 
-      if (this%NComponents==2) then
-        do i = 1, this%NCorr
-          read( iounit_restart, '(ES20.12E3)' ) this%average_cf_soret(i)
+      if (this%NComponents .gt. 1) then
+        do i = 1, this%NComponents
+          do j = 1, this%NCorr
+             read( iounit_restart, '(ES20.12E3)' ) this%average_cf_soret(i,j)
+          end do
         end do
       end if
 
@@ -21441,7 +21723,7 @@ endif
       read( iounit_restart, '(I10)' ) NBlocksMaxCF
 
       do i = 1, this%NComponents
-      call RestartRead( this%Sumself_i(i) )
+        call RestartRead( this%Sumself_i(i) )
       end do
 
       if(this%NComponents >= 2) then
@@ -21450,12 +21732,14 @@ endif
              call RestartRead( this%SumOnsager(i,j) )
            end do
         end do
+        do i = 1, this%NComponents
+          call RestartRead( this%SumSoret(i) )
+        end do
       end if
 
       call RestartRead( this%SumVisco_s )
       call RestartRead( this%SumVisco_b )
       call RestartRead( this%SumConduct )
-      call RestartRead( this%SumSoret   )
       call RestartRead( this%SumEConduct)
 
       do i = 1,3

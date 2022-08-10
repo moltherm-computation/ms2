@@ -1475,7 +1475,7 @@ loop3:  do j = j0, j1
     real(RK)          :: forceTempY(1:this%Site2%NPart)
     real(RK)          :: forceTempZ(1:this%Site2%NPart)
 
-#if  TRANS == 1
+#if TRANS == 1
     real(RK), pointer, contiguous :: VSx1(:), VSy1(:), VSz1(:)
     real(RK), pointer, contiguous :: VSx2(:), VSy2(:), VSz2(:) 
     real(RK), pointer, contiguous :: VSux1(:),VSuy1(:),VSuz1(:)
@@ -2325,7 +2325,7 @@ loop2:  do j = 1, N2
     ! Declare local variables
     real(RK)          :: SigmaSquared
     real(RK)          :: EpsilonMie_a, EpsilonMie_aF
-	real(RK)          :: Mie_n, Mie_m, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
+    real(RK)          :: Mie_n, Mie_m, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK)          :: RXi, RYi, RZi
@@ -2343,11 +2343,11 @@ loop2:  do j = 1, N2
     ! Assign local variables
     SigmaSquared = this%SigmaSquared
     EpsilonMie_a = this%EpsilonMie_a
-	EpsilonMie_aF = this%EpsilonMie_aF
+    EpsilonMie_aF = this%EpsilonMie_aF
     Mie_n = this%Mie_n
-	Mie_m = this%Mie_m
-	Mie_nHalf = this%Mie_nHalf
-	Mie_mHalf = this%Mie_mHalf
+    Mie_m = this%Mie_m
+    Mie_nHalf = this%Mie_nHalf
+    Mie_mHalf = this%Mie_mHalf
     nu2 = this%NUnit2
     coeff = 1._RK
     if (this%potintra14) coeff = this%ScaleLJ14
@@ -2398,10 +2398,10 @@ loop2:  do j = 1, N2
         RZij = RZij - anint( PZij )
         RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
         RijSquaredInv = SigmaSquared / RijSquared
-		RijMie_nInv = RijSquaredInv**Mie_nHalf
-		RijMie_mInv = RijSquaredInv**Mie_mHalf
+        RijMie_nInv = RijSquaredInv**Mie_nHalf
+        RijMie_mInv = RijSquaredInv**Mie_mHalf
         Mie_nRijMie_n = Mie_n * RijMie_nInv
-		Mie_mRijMie_m = Mie_m * RijMie_mInv
+        Mie_mRijMie_m = Mie_m * RijMie_mInv
         EPot = EPot + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
         Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
         FXij = Fij * RXij
