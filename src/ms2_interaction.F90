@@ -71,10 +71,6 @@ module ms2_interaction
     ! Array for the shells of RDF inside of KBI
     integer(KIND=8), pointer, contiguous          :: KBISum(:)
 
-    ! Orientation Distribution Function
-    integer, pointer, contiguous          :: ODFSum(:,:,:,:)
-    integer                               :: ODFErrSum
-    
     ! Virial
     real(RK), pointer, contiguous :: Virial(:, :), Virial1(:), VirialNew(:, :), VirialMol(:,:)
     logical           :: OptPressure
@@ -210,10 +206,6 @@ module ms2_interaction
    module procedure TInteraction_RDF
   end interface
 
-  interface Get_ODF
-   module procedure TInteraction_ODF
-  end interface
-  
   interface CalcRDFforKBI
    module procedure TInteraction_KBI
   end interface  
@@ -869,11 +861,6 @@ contains
       allocate( this%KBISum(KBINumberShellsMax+2), STAT = stat ) !Shells until corner of box
       call AllocationError( stat, 'KBISum', KBINumberShellsMax+2 )
     endif
-    
-    if( ODFUpdateFrequency > 0 ) then
-        allocate( this%ODFSum(nPhi,nPhi,nGamma,nR), STAT = stat ) ! for now ODF is only computed on the molecular level, not on the site level
-        call AllocationError( stat, 'ODFSum', nPhi*nPhi*nGamma*nR)
-    endif
 
     ! Allocate arrays
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) .or. MCOverlapReduction ) then
@@ -1073,116 +1060,9 @@ contains
     if( associated( this%KBISum ) ) then
       deallocate( this%KBISum )
     end if
-    if( associated( this%ODFSum ) ) then
-      deallocate( this%ODFSum )
-    end if
+
   end subroutine TInteraction_Deallocate
 
-!==============================================================!
-!  Subroutine TInteraction_ODF                                 !
-!==============================================================!
-   subroutine TInteraction_ODF( this, dPhi, dGamma, dR )
-
-    
-    implicit none
-
-    ! Declare arguments
-    type(TInteraction)       :: this
-    real(RK), intent(in)     :: dPhi
-    real(RK), intent(in)     :: dGamma
-    real(RK), intent(in)     :: dR
-    !ODF indices
-    real(RK)          :: distance, distanceInv, CosPhi1, CosPhi2, CosGamma12, Gamma12, Normi, Normj
-    integer           :: iPhi1, iPhi2, iGamma12, iR 
-
-    ! Declare local variables
-    real(RK), pointer :: RX1(:, :), RY1(:, :), RZ1(:, :), RX2(:, :), RY2(:, :), RZ2(:, :)
-    real(RK), pointer, contiguous :: OX1(:, :), OY1(:, :), OZ1(:, :), OX2(:, :), OY2(:, :), OZ2(:, :)
-    real(RK)          :: Rij(3), Ri(3), Oi(3), Oj(3,this%NPart2), rejOi(3), rejOj(3)
-    integer           :: i, j, k, i0, i1
-
-    ! Assign pointers
-    RX1 => this%PX1
-    RY1 => this%PY1
-    RZ1 => this%PZ1
-    RX2 => this%PX2
-    RY2 => this%PY2
-    RZ2 => this%PZ2
-    
-    OX1 => this%MueX1
-    OY1 => this%MueY1
-    OZ1 => this%MueZ1
-    OX2 => this%MueX2
-    OY2 => this%MueY2
-    OZ2 => this%MueZ2
-    
-    Normi = SQRT(OX1(1, 1)*OX1(1, 1)+OY1(1, 1)*OY1(1, 1)+OZ1(1, 1)*OZ1(1, 1))
-    Normj = SQRT(OX2(1, 1)*OX2(1, 1)+OY2(1, 1)*OY2(1, 1)+OZ2(1, 1)*OZ2(1, 1))
-    
-    do i = 1, this%NPart2
-        Oj(1,i) = OX2(i, 1) / Normj
-        Oj(2,i) = OY2(i, 1) / Normj
-        Oj(3,i) = OZ2(i, 1) / Normj
-    end do
-
-#if MPI_VER > 0
-    ! Loop over molecules
-    i0 = this%NPart10
-    i1 = this%NPart12
-    do i = i0, i1
-#else
-    i1 = this%NPart1
-    do i = 1, i1
-#endif
-      !position coordinates
-
-      !orientation vectors
-      Oi(1) = OX1(i, 1) / Normi
-      Oi(2) = OY1(i, 1) / Normi
-      Oi(3) = OZ1(i, 1) / Normi
-
-      do k = 1, this%NInCutoff(i)
-        j = this%CutoffPartner(k, i)
-        
-        ! 1D distances
-        Rij(1) = RX1(i, 1) - RX2(j, 1)
-        Rij(2) = RY1(i, 1) - RY2(j, 1)
-        Rij(3) = RZ1(i, 1) - RZ2(j, 1)
-        ! minimum image convention
-        Rij(1) = Rij(1) - anint( Rij(1) )
-        Rij(2) = Rij(2) - anint( Rij(2) )
-        Rij(3) = Rij(3) - anint( Rij(3) )
-
-        ! Calculate distance, angles and respective indices
-        distance = sqrt(dot_product(Rij,Rij))
-        distanceInv = 1._RK / distance
-        iR = floor(distance/dR) + 1
-        
-        CosPhi1 = DOT_PRODUCT(Oi, Rij) * distanceInv
-        CosPhi2 = DOT_PRODUCT(Oj(:,j), Rij) * distanceInv
-        
-        rejOi = Oi(:) - CosPhi1*distanceInv*Rij(:)
-        rejOj = Oj(:,j) - CosPhi2*distanceInv*Rij(:)
-        
-        CosGamma12 = (DOT_PRODUCT(rejOi,rejOj))/sqrt(dot_product(rejOi,rejOi)*dot_product(rejOj,rejOj))
-        Gamma12 = acos(CosGamma12)
-
-        iPhi1 = floor((CosPhi1+1._RK) /dPhi)+1
-        iPhi2 = floor((CosPhi2+1._RK) /dPhi)+1
-        iGamma12 = floor((Gamma12) /dGamma)+1
-
-        if(iPhi1 .gt. nPhi .OR. iPhi1 .le. 0 .OR. &
-             &iPhi2 .gt. nPhi .OR. iPhi2 .le. 0 .OR. &
-             &iGamma12 .gt. nGamma .OR. iGamma12 .le. 0 .OR. &
-             &iR .gt. nR .OR. iR .le. 0) then
-            this%ODFErrSum = this%ODFErrSum + 1
-        else
-            this%ODFSum(iPhi1, iPhi2, iGamma12, iR) = this%ODFSum(iPhi1, iPhi2, iGamma12, iR) + 1
-        end if
-      end do 
-    end do
-  end subroutine TInteraction_ODF
-  
   
 !==============================================================!
 !  Subroutine TInteraction_RDF                                 !
@@ -1769,8 +1649,7 @@ contains
         end do
       end do
 
-      EPot = EPot + this%RFConst2 * EPotLocal
-      Virial = Virial + this%RFConst2* EPotLocal
+      EPot = EPot + this%RFConst2 * EPotlocal
       idfEPot%EPotInter = idfEPot%EPotInter + this%RFConst2 * EPotLocal
     end if
 
@@ -1999,7 +1878,6 @@ contains
       end do
 
       EPot = EPot + this%RFConst2 * EPotLocal
-      Virial = Virial + this%RFConst2* EPotLocal
       idfEPot%EPotInter = idfEPot%EPotInter + this%RFConst2 * EPotLocal
     end if
 
@@ -3191,9 +3069,6 @@ contains
             end if
             EPot(j) = EPot(j) + this%RFConst2 * &
 &                   ( mueXi * MueX2(jk,nu2) + mueYi * MueY2(jk,nu2) + mueZi * MueZ2(jk,nu2) )
-            if ( OptPressure ) then
-              Virial(j) = Virial(j) + this%RFConst2 * ( mueXi * MueX2(j, nu2) + mueYi * MueY2(j, nu2) + mueZi * MueZ2(j, nu2) )
-            end if 
           end do
 
         else         ! Extended ReactionField
@@ -3841,7 +3716,6 @@ contains
 
     end if
     this%EPot1 = EPot
-    
 end subroutine TInteraction_Energy
 
 
@@ -4454,7 +4328,6 @@ end subroutine TInteraction_Energy
     real(RK), intent(in)     :: BoxLength
     logical, intent(in)      :: CompIdent
 
-#if 0
     ! Declare local variables
     integer        :: i, j, k, jk, unit1
     real(RK)       :: EBonded
@@ -4465,7 +4338,7 @@ end subroutine TInteraction_Energy
     ! Calculate Lennard-Jones forces
     do i = 1, this%N1MIEnm
       do j = 1, this%N2MIEnm
-        !call Energy( this%PotMIEnmMIEnm( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+        call Energy( this%PotMIEnmMIEnm( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
       end do
     end do
     ! Calculate point charge forces
@@ -4548,7 +4421,7 @@ end subroutine TInteraction_Energy
           end do
       end do
     end if
-# endif
+
  end subroutine TInteraction_MDEnergy
 
 

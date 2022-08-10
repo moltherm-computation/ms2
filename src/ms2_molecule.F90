@@ -628,24 +628,7 @@ contains
         this%Unit(1)%SiteQuadrupole(j) = this%SiteQuadrupole(j)
         this%SiteQuadrupole(j)%UnitNumber = 1
       end do
-
-        if (.not. UseIntDegFreed) then
-            ! Read number of rotation axes
-            call FileReadParameter( stype, iounit_potmod, IdSite_NDFRot, .false. )
-            select case( stype )
-            case( '0' )
-              this%Unit(1)%NDFRot = 0
-            case( '2' )
-              this%Unit(1)%NDFRot = 2
-            case( '3' )
-              this%Unit(1)%NDFRot = 3
-            case( 'AUTO', 'Auto', 'auto' )
-              this%Unit(1)%NDFRot = -1
-            case default
-              call Error( IdSite_NDFRot//' cannot be equal to '//trim( stype ) )
-            end select
-        end if
-
+      this%Unit(1)%NDFRot = -1
     end if
 
     !sort_sitetypes
@@ -1473,8 +1456,8 @@ contains
     ! Reduction of point charges and dipoles to body fixed dipole vector
     this%Mue(:) = 0._RK
     if( (this%NCharge > 0).or.(this%NDipole > 0) ) then
-      if ((LongRange .ne. Ewald).or.(ODFUpdateFrequency > 0)) then
-        if ((LongRange .ne. PME).or.(ODFUpdateFrequency > 0)) then
+      if (LongRange .ne. Ewald) then
+        if (LongRange .ne. PME) then
           do i =1, this%NCharge
             this%Mue(:) = this%Mue(:) + this%SiteCharge(i)%r(:) * this%SiteCharge(i)%e
           end do

@@ -102,13 +102,6 @@ module ms2_component
     real(RK), pointer, contiguous :: ri0_y(:, :)
     real(RK), pointer, contiguous :: ri0_z(:, :)
 
-#if TRANS==1
-    !EinsteinCoef  ri0_E Component
-    real(RK), pointer, contiguous :: ri0_E_x(:, :)
-    real(RK), pointer, contiguous :: ri0_E_y(:, :)
-    real(RK), pointer, contiguous :: ri0_E_z(:, :)
-    integer :: NEinstein !  NCorr / NSpanCF
-#endif
     ! Total forces acting on units
     real(RK), pointer, contiguous :: F(:, :, :)
 #if MPI_VER > 0
@@ -417,20 +410,20 @@ module ms2_component
   interface Unit2AtomTest
     module procedure TComponent_Unit2AtomTest
   end interface
-  
+
   interface Atom2Unit
     module procedure TComponent_Atom2Unit
   end interface
-
+  
   interface Atom2Unit_Trans
     module procedure TComponent_Atom2Unit_Trans
   end interface
-  
+
   interface Unit2Mol
     module procedure TComponent_Unit2Mol
     module procedure TComponent_Unit2Mol1
   end interface
-  
+
 #if OSMOP > 0
   interface DensityProfile
     module procedure TComponent_DensityProfile
@@ -676,7 +669,7 @@ contains
         if( this%NTest <= 0 ) call Error( 'Number of test particles need to be > 0' )
         write( IOBuffer, '(T10, "-> Number of test particles:", I11 )' ) this%NTest
 
-#if MPI_VER > 0        
+#if MPI_VER > 0
         if (SimulationType .eq. MolecularDynamics .and. .not. UseIntDegFreed) then
            this%NTest = ((this%NTest -1)/NProcs +1)
         endif
@@ -1392,10 +1385,6 @@ contains
     nullify( this%FRC2 )
     nullify( this%FRC3 )
 
-    nullify( this%ri0_E_x ) !EinsteinCoef ri0_E nullify
-    nullify( this%ri0_E_y )
-    nullify( this%ri0_E_z )
-
 #if OSMOP > 0
     nullify( this%FOsmoticPressure )
     nullify( this%DensityProfileN )
@@ -1536,28 +1525,13 @@ contains
           allocate( this%ri0_x( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
           call AllocationError( stat, 'particles', np )
           allocate( this%ri0_y( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
-          call AllocationError( stat, 'particles', np )
+          call AllocationError( stat, 'particles', np )          
           allocate( this%ri0_z( np, 0:ALPHA2Length/ALPHA2Shift-1 ), STAT = stat )
           call AllocationError( stat, 'particles', np )
           this%ri0_x(:, :) = 0._RK
           this%ri0_y(:, :) = 0._RK
           this%ri0_z(:, :) = 0._RK
       end if
-
-#if TRANS==1
-      !EinsteinCoef allocate ri0_E
-      if( EinsteinCoefCalc) then
-          allocate( this%ri0_E_x( np, 0:this%NEinstein-1 ), STAT = stat )
-          call AllocationError( stat, 'particles', np )
-          allocate( this%ri0_E_y( np, 0:this%NEinstein-1 ), STAT = stat )
-          call AllocationError( stat, 'particles', np )
-          allocate( this%ri0_E_z( np, 0:this%NEinstein-1 ), STAT = stat )
-          call AllocationError( stat, 'particles', np )
-          this%ri0_E_x(:, :) = 0._RK
-          this%ri0_E_y(:, :) = 0._RK
-          this%ri0_E_z(:, :) = 0._RK
-      end if
-#endif
 
       ! Total forces
       allocate( this%F( np, 3, nu ), STAT = stat )
@@ -2609,18 +2583,6 @@ contains
 
 #if  TRANS == 1
 ! Transport !TRANSPORT_start
-    !EinsteinCoef ri0_E deallocate
-    if( associated( this%ri0_E_x ) ) then
-      deallocate( this%ri0_E_x )
-    end if
-    if( associated( this%ri0_E_y ) ) then
-      deallocate( this%ri0_E_y )
-    end if
-    if( associated( this%ri0_E_z ) ) then
-      deallocate( this%ri0_E_z )
-    end if
-
-
     if( associated( this%KinETran) ) then
       deallocate( this%KinETran )
     end if
@@ -2966,14 +2928,14 @@ contains
       end do
       P(:) = P(:) / this%NPart
       L(:) = L(:) / this%NPart
- 
+
       ! Remove net momentum
       do i = 1, 3
         Pim = P(i) / this%Molecule%Unit(k)%Mass
         do j = 1, this%NPart
           this%P1(j, i, k) = this%P1(j, i, k) - Pim
         end do
-
+ 
         if( i <= this%Molecule%Unit(k)%NDFRot ) then
           Pim = L(i) / this%Molecule%Unit(k)%MOI(i)
           do j = 1, this%NPart
@@ -5463,7 +5425,7 @@ loop1:do i = 1, this%NPart
             pos(:) = this%Disp(i,:)
             write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) pos(:)
           end do
-      
+
           if( ALPHA2UpdateFrequency > 0 ) then
             do i = 1, np
               do j = 0, ALPHA2Length/ALPHA2Shift-1
@@ -5472,17 +5434,7 @@ loop1:do i = 1, this%NPart
             end do
           end if
       end if
-
-#if TRANS == 1
-      if( EinsteinCoefCalc ) then  !EinsteinCoef ri0_E rest write
-            do i = 1, np
-              do j = 0, this%NEinstein-1
-                write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%ri0_E_x(i,j),this%ri0_E_y(i,j),this%ri0_E_z(i,j)
-              end do
-            end do
-       end if
-#endif
-
+      
     else
       write( iounit_restart, '(ES20.12E3)' ) this%DispTran
       write( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses
@@ -5680,12 +5632,12 @@ loop1:do i = 1, this%NPart
             end do
           end do      
         end if
-        
+
         if (.not. printIDF) then
             do i = 1, np
               read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%Disp( i, : )
             end do
-        
+
             if( ALPHA2UpdateFrequency > 0 ) then
               do i = 1, np
                 do j = 0, ALPHA2Length/ALPHA2Shift-1
@@ -5694,16 +5646,7 @@ loop1:do i = 1, this%NPart
               end do
             end if
         end if
-#if TRANS==1
-        !EinsteinCoef rest read ri0_E_x
-         if( EinsteinCoefCalc ) then
-              do i = 1, np
-                do j = 0, this%NEinstein-1
-                  read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%ri0_E_x(i,j),this%ri0_E_y(i,j),this%ri0_E_z(i,j)
-                end do
-              end do
-         end if
-#endif
+        
       else
         read( iounit_restart, '(ES20.12E3)' ) this%DispTran
         read( iounit_restart, '(2I10)' ) this%NMoveAttempts, this%NMoveSuccesses

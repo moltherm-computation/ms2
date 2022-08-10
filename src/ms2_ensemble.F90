@@ -9,8 +9,8 @@
 !==============================================================!
 
 !****************************************************************
-!* Updates and auxiliary routines are available from            *
-!* http://www.ms-2.de                                            *
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
 !****************************************************************
 #ifndef ARCH
 #define ARCH    0
@@ -69,18 +69,12 @@ module ms2_ensemble
     ! I/O unit for RDF file
     integer :: iounit_rdf
     
-    ! I/O unit for ODF file
-    integer :: iounit_odf
-
     ! I/O unit for KBI file
-    integer :: iounit_kbirav
+    integer :: iounit_kbirun
     integer :: iounit_kbirdf
-
+    
     ! I/O unit for alpha2 file
     integer :: iounit_a2rav
-
-    ! I/0 Unit for EinsteinCoef data
-    integer :: iounit_ecoef !EinsteinCoef
 
     ! I/O unit for ThermoInt File
     integer :: iounit_thermoint
@@ -93,14 +87,6 @@ module ms2_ensemble
 
     ! I/O unit for Profile file
     integer :: iounit_dcp
-
-    !DC NOTE- I/O unit for cluster crit files 
-    integer :: iounit_ccpos
-    !DC NOTE- I/O unit for cluster crit files 
-    integer :: iounit_cc
-    !DC NOTE- I/O unit for cluster crit files 
-    integer :: iounit_ccgrid
-
 
 #if  TRANS == 1
     !logical :: Conductivity   !TRANSPORT_thisline
@@ -154,7 +140,7 @@ module ms2_ensemble
     type(TComponent), pointer, contiguous :: Component(:)
 
     ! Interactions
-    type(TInteraction), pointer, contiguous :: Interaction(:, :)
+    type(TInteraction), pointer :: Interaction(:, :)
 
     ! Initial values of temperature, pressure, density, hamiltonian and enthalpy
     real(RK) :: RefTemperature, RefPressure, RefDensity, RefHamiltonian, RefEnthalpy
@@ -180,10 +166,6 @@ module ms2_ensemble
 
     ! Virial
     real(RK) :: Virial
-    
-    ! Sampling of Dielectric Constant
-    real(RK) :: DielectricConstant
-    real(RK) :: TotalDipoleMoment,TotalDipoleMomentSquared
 
     ! Inter und Intra(Bond) Virial
     real(RK) :: VirialInter
@@ -204,12 +186,6 @@ module ms2_ensemble
     real(RK), pointer, contiguous :: RDFVSchale(:)
     real(RK), pointer, contiguous :: RDFValue(:)
     
-    !ODF Hilfsvariable
-    real(RK) :: dPhi
-    real(RK) :: dGamma
-    real(RK) :: dR
-    real(RK), pointer, contiguous :: ODFvalue(:,:,:,:)
-
     !KBI Hilfsvariable
     real(RK) :: KBIdr
     real(RK), pointer, contiguous :: KBIVSchale(:)
@@ -220,7 +196,7 @@ module ms2_ensemble
     real(RK), pointer, contiguous :: dTDF(:,:)
     real(RK), pointer, contiguous :: TDF0(:,:)
     integer                       :: KBIBlockCount
-
+    
     !Alpha2 displacement
     real(RK), pointer, contiguous :: dispR2(:,:)
     real(RK), pointer, contiguous :: dispR2inv(:,:)
@@ -230,28 +206,7 @@ module ms2_ensemble
     real(RK), pointer, contiguous :: dispR4Ave(:)
     integer,  pointer, contiguous :: alpha2tempstep(:)
     integer                       :: alpha2aveCount
-
-#if TRANS==1
-    !EinsteinCoef definition
-    real(RK), pointer, contiguous :: DselfEinstein(:,:,:) !some current sample of Dself coefficients, index 1 - length, 2 - number of samples, 3 - number of component
-    real(RK), pointer, contiguous :: DselfEinsteinAve(:,:) !final averaged result for Dself coefficients, index 1 - length, 2 - number of component
-    real(RK), pointer, contiguous :: OnsagerEinstein(:,:,:,:) !yep, 4 dim. array seems not very good, but let's try, index 1 - length, 2 - number of samples, 3,4 - elements of Onsager matrix
-    real(RK), pointer, contiguous :: OnsagerEinsteinAve(:,:,:) !a little bit better than 4 dim. array, index 1 - length, 2,3 - elements of Onsager matrix
-    integer,  pointer, contiguous :: EinsteinCoefTimeStep(:) !index 1 - length
-    integer                       :: EinsteinCoefAveCount
-
-    real(RK), pointer, contiguous :: DselfEinsteinCurrent(:)
-    real(RK), pointer, contiguous :: OnsagerEinsteinCurrent(:,:)
-    real(RK)                      :: ShearEinsteinCurrent
-
-    real(RK), pointer, contiguous :: EinsteinShearAve(:)
-    real(RK), pointer, contiguous :: EinsteinShear(:)
-    real(RK), pointer, contiguous :: EinsteinShearInt(:)
-
-    type(TAccumulator),pointer, contiguous :: EinsteinDSelfAcc(:)
-    type(TAccumulator),pointer, contiguous :: EinsteinOnsagerAcc(:,:)
-    type(TAccumulator)                     :: EinsteinShearAcc
-#endif
+    
 
     ! Characteristic dielectric constant for reaction field method
     real(RK) :: RFEpsilon
@@ -377,7 +332,7 @@ module ms2_ensemble
       type(TAccumulator) :: SumA21resII
       type(TAccumulator) :: SumA12resII
     !end if
-
+    
     ! KBI sums Gij
     type(TAccumulator),pointer, contiguous :: SumKBIGij1(:)
     type(TAccumulator),pointer, contiguous :: SumKBIGij2(:)
@@ -427,7 +382,7 @@ module ms2_ensemble
 
     ! Extended ReactionField Method
     real(RK)        :: DebyeLen
-
+    
     ! Residence Time
     integer         :: ResidPairs
     integer         :: ResidComp1, ResidSite1
@@ -447,12 +402,12 @@ module ms2_ensemble
 !TRANSPORT_start
     ! Correlation functions
     logical  :: CorrFunMode
-
+    
     integer  :: NStepCorr
     real(RK) :: TimeStepCorr
     integer  :: NCorr,Mmess
     integer  :: NSpanCF,Nviewcf
-
+  
     real(RK), pointer, contiguous :: cf_soret(:,:), average_cf_soret(:,:), sinte_soret(:,:), average_sinte_soret(:,:)
     real(RK), pointer, contiguous :: cf_db(:), average_cf_db(:)
     real(RK), pointer, contiguous :: cf_vs(:), cf_vb(:), cf_c(:), cf_ec(:)
@@ -492,11 +447,6 @@ module ms2_ensemble
 !TRANSPORT_END
 #endif
 
-    ! 5.) Sampling of Dielectric Constant
-    type(TAccumulator) :: SumTotalDipoleMoment
-    type(TAccumulator) :: SumTotalDipoleMomentSquared
-    type(TAccumulator) :: SumDielectricConstant
-
 #if CONSTR > 0
    integer         :: NCons
    integer,pointer, contiguous :: Cons1Comp(:)
@@ -524,21 +474,6 @@ module ms2_ensemble
    type(TAccumulator),pointer, contiguous :: SumHBond4(:,:,:,:,:)
    type(TAccumulator),pointer, contiguous :: SumHBondN(:)
 #endif
-   logical  :: isCCSimulation   !DC NOTE- enable/disable the CC functionality
-   logical  :: isStopSimulation !DC NOTE- enable pausing of the ensamble calculation
-   logical  :: isCvim           !DC NOTE- enable cvim output file creation and print
-   
-   integer  :: CCFrequency      !DC NOTE- the frequency of CC calculation and visualization 
-   integer  :: Ccrittype        !DC NOTE- type specifier (integer values for easier handling)
-   real(RK) :: Ccritdist        !DC NOTE- distance criteria
-   integer  :: Ccount           !DC NOTE- molecules per cluster count
-   real(RK) :: Cmax             !DC NOTE- maximal allowed number of clusters
-
-   integer  :: NGridPoints    !DC NOTE- number of grid points in one dimension
-   integer  :: NGridPointsAll !DC NOTE- number of all grid points = NGridPoints**3
-   integer  :: NGridPoints0   !DC NOTE- starting index of grid points - usefull for parallel
-   integer  :: NGridPoints1   !DC NOTE- size of grid points atributed to MPI unit - usefull for parallel
-   integer  :: NGridPoints2   !DC NOTE- finish index of grid points - usefull for parallel
 
   end type TEnsemble
 
@@ -686,6 +621,14 @@ module ms2_ensemble
     module procedure TEnsemble_Atom2Unit
   end interface
 
+  interface Mol2Unit
+    module procedure TEnsemble_Mol2Unit
+  end interface
+
+  interface Unit2Mol
+    module procedure TEnsemble_Unit2Mol
+  end interface
+
   interface Predict
     module procedure TEnsemble_Predict
   end interface
@@ -806,7 +749,7 @@ module ms2_ensemble
     module procedure TEnsemble_Rotate_NVE
     module procedure TEnsemble_RotateMol_NVE
   end interface
-
+  
   interface Move_NPH
     module procedure TEnsemble_Move_NPH
     module procedure TEnsemble_MoveMol_NPH
@@ -920,22 +863,6 @@ module ms2_ensemble
     module procedure TEnsemble_ResultClose
   end interface
 
-  interface ODFOpen
-    module procedure TEnsemble_ODFOpen
-  end interface
-  
-  interface ODFUpdate
-    module procedure TEnsemble_ODFUpdate
-  end interface
-  
-  interface ODFUpdateBlock
-    module procedure TEnsemble_ODFUpdateBlock
-  end interface
-  
-  interface ODFClose
-    module procedure TEnsemble_ODFClose
-  end interface
-  
   interface RDFOpen
     module procedure TEnsemble_RDFOpen
   end interface
@@ -943,7 +870,7 @@ module ms2_ensemble
   interface RDFUpdate
     module procedure TEnsemble_RDFUpdate
   end interface
-
+  
   interface RDFUpdateBlock
     module procedure TEnsemble_RDFUpdateBlock
   end interface
@@ -959,7 +886,7 @@ module ms2_ensemble
   interface KBIUpdate
     module procedure TEnsemble_KBIUpdate
   end interface
-
+  
   interface KBIUpdateBlock
     module procedure TEnsemble_KBIUpdateBlock
   end interface
@@ -967,11 +894,11 @@ module ms2_ensemble
   interface KBIClose
     module procedure TEnsemble_KBIClose
   end interface
-
+  
   interface ALPHA2Update
     module procedure TEnsemble_ALPHA2Update
   end interface
-
+  
   interface ErrorsUpdate
     module procedure TEnsemble_ErrorsUpdate
   end interface
@@ -997,26 +924,6 @@ module ms2_ensemble
 
   interface VisualClose
     module procedure TEnsemble_VisualClose
-  end interface
-
-  interface VisualCCOpen
-    module procedure TEnsemble_VisualCCOpen
-  end interface
-
-  interface VisualCCUpdate
-    module procedure TEnsemble_VisualCCUpdate
-  end interface
-
-  interface VisualCCClose
-    module procedure TEnsemble_VisualCCClose
-  end interface
-
-  interface CCOpen
-    module procedure TEnsemble_CCOpen
-  end interface
-
-  interface CCClose
-    module procedure TEnsemble_CCClose
   end interface
 
 #if OSMOP > 0
@@ -1095,10 +1002,6 @@ module ms2_ensemble
   interface IntCorrFun
     module procedure TEnsemble_IntCorrFun
   end interface
-
-  interface EinsteinCoefProcedure  !EinsteinCoef interface
-    module procedure TEnsemble_EinsteinCoefProcedure
-  end interface
 !TRANSPORT_END
 #endif
 
@@ -1113,10 +1016,7 @@ module ms2_ensemble
     module procedure TEnsemble_HBonding
   end interface
 #endif
-
-  interface ClustCrit
-    module procedure TEnsemble_ClustCrit
-  end interface
+  
 contains
 
 !==============================================================!
@@ -1142,9 +1042,9 @@ contains
     integer :: i, j
     integer :: stat
     character( IOBufferLength ) :: str
-
-    integer :: counter  
-    real(RK), pointer, contiguous :: GP0(:,:) ! positions of the gridpoints
+    
+    !Declare variable for walltime solution in ms2_global
+    integer :: time_limit
 
     ! Allocate simulation box length
     allocate( this%BoxLength, STAT = stat )
@@ -1197,10 +1097,10 @@ contains
     if( EnsembleType .eq. EnsembleTypeNPH ) then
       call FileReadParameter( this%RefEnthalpy, iounit_params , IdRefEnthalpy, .false. )
       if( .not. UseReducedUnits ) then
-        this%RefEnthalpy = this%RefEnthalpy / UnitEnergy / NAvogadro
+        this%RefEnthalpy = this%RefEnthalpy / UnitEnergy / NAvogadro 
       end if
     end if
-
+    
     if( ConstantPressure ) then
       call FileReadParameter( this%RefPressure, iounit_params , IdRefPressure, .false. )
 
@@ -1281,7 +1181,7 @@ contains
 
       write( IOBuffer, '("Pressure0: ",T26, F12.6, " MPa")' ) this%RefPressure * UnitPressure * 1E-6_RK
       call LogWrite
-      write( IOBuffer, '("Liquid density: ",T26, F12.6, " (", F13.6, ") mol/l")' ) &
+      write( IOBuffer, '("Liquid density: ",T26, F12.6, " (", F13.6, ") mol/l")' ) & 
 &       this%LiqDensity * UnitDensity, this%VarLiqDensity * UnitDensity
       call LogWrite
       write( IOBuffer, '("Liquid enthalpy: ",T22, F16.6, " (", F13.6, ") J/mol")' ) this%LiqEnthalpy * UnitEnergy * NAvogadro, &
@@ -1327,7 +1227,7 @@ contains
     call LogWrite
     if( EnsembleType .eq. EnsembleTypeNPH ) then
       write( IOBuffer, '("Reduced Enthalpy: ",T26, F12.6)' ) this%RefEnthalpy
-      call LogWrite
+      call LogWrite 
     end if
 
     ! Read mass of piston
@@ -1359,7 +1259,7 @@ contains
 
       if ( .not. ConstantPressure .and. .not. this%OptPressure) then
           this%OptPressure = .true.
-          write( IOBuffer, '("Pressure Calculation in NVT, NVE and GE necessary: Logical CalcPressure is set to yes")' )
+          write( IOBuffer, '("Pressure Calculation in NVT, NVE and GE necessary: Logical OptPressure is set to yes")' )
           call LogWrite
       end if
     end if
@@ -1373,7 +1273,7 @@ contains
           this%ResidenceTime = .true.
           write( IOBuffer, '("Calculation of residence time: ",A)' ) trim( str )
           call LogWrite
-          write( IOBuffer, '("Maximum molecules in hydration shell: 10 (default in code)")' )
+          write( IOBuffer, '("Maximum molecules in hydration shell: 10 (default in code)")' ) 
           call LogWrite
           call FileReadParameter( this%ResidComp1, iounit_params , IdResidComp1, .false. )
           call FileReadParameter( this%ResidSite1, iounit_params , IdResidSite1, .false. )
@@ -1425,7 +1325,7 @@ contains
       case default
         call Error( 'Select yes/no for common equilibration '// ProgramFileName//ConfigFileExtension )
     end select
-
+  
     ! Read initial number of particles in ensemble
     call FileReadParameter( this%NPart, iounit_params , IdNPart, .false. )
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
@@ -1447,89 +1347,6 @@ contains
 
     if( this%NComponents > 999 ) call Error( 'Cannot work with more than 999 components on '//Hardware )
 
-    !DC NOTE- Enasemble reading of parameters if not CC valid skip the reading
-    this%isStopSimulation = .false.
-    if (this%isCCSimulation .eqv. .true.) then
-    !DC NOTE- if the visualization frequency is nonsense skip it is not valid CC case
-      call FileReadParameter( this%CCFrequency, iounit_params , IdCCUpdateFrequency, .false., -10 )
-      if( this%CCFrequency .gt. 0 ) then              
-        write( IOBuffer, '("Calculate Cluster Criteria and update each", I7, " time steps")' ) this%CCFrequency
-      else
-        this%isCCSimulation = .false.
-        write( IOBuffer, '("Simulation does not have valid calculation frequency -> taken as normal ensemble ")' )        
-      end if
-      call LogWrite     
-
-      if (this%isCCSimulation .eqv. .true.) then
-        !DC NOTE- parse the criteria type
-        call FileReadParameter( str, iounit_params , IdCcrittype, .false., 'None' )     
-        select case( str )
-          case( 'VAP', 'vap', 'Vap', 'Vapor', 'Vapour', 'VAPOR', 'VAPOUR')
-            this%Ccrittype = CCritTypeVapor
-            str = 'Vapor'
-
-          case( 'GRIDVAP', 'VAPGRID', 'gridvap', 'vapgrid', 'Gridvap', 'Vapgrid' )
-            this%Ccrittype = CCritTypeGridvap
-            str = 'Grid vapor'
-
-          case( 'GRIDLIQ', 'LIQGRID', 'gridliq', 'liqgrid', 'Gridliq', 'Liqgrid' )
-            this%Ccrittype = CCritTypeGridliq
-            str = 'Grid liquid'
-
-          case default
-            call Error( 'Invalid cluster criteria type argument: '//trim( str )//NEW_LINE('A')//'       should be one of vap, gridvap, gridliq' )
-
-        end select
-
-        call LogWriteBlank
-        write( IOBuffer, '("Cluster Criteria options for enasemble:",T49, I3)' ) this%EnsembleNumber
-        call LogWrite
-        
-        write( IOBuffer, '("Cluster criteria type: ",T51, A)' ) trim( str )
-        call LogWrite
-
-        call FileReadParameter( this%Ccritdist, iounit_params , IdCcritdist, .false., -1.0_RK )
-        if (this%Ccritdist .le. 0.0_RK) then
-          call Error('Invalid or missing '//trim(IdCcritdist)//NEW_LINE('A')//'       control option')
-        else
-          write( IOBuffer, '("Reading Cluster criteria dist: ",T45, F16.8)' ) this%Ccritdist
-          call LogWrite
-        end if
-
-        call FileReadParameter( this%Ccount, iounit_params , IdCcount, .false. , -1 )
-        if (this%Ccount .lt. 0) then
-          call Error('Invalid or missing '//trim(IdCcount)//NEW_LINE('A')//'       control option should be >= 0')
-        else
-          write( IOBuffer, '("Reading molecule count for cluster",T46, I6)' ) this%Ccount
-          call LogWrite
-        end if
-
-        call FileReadParameter( this%Cmax , iounit_params , IdCmax, .false., -1.0_RK )
-        if (this%Cmax .lt. 0.0_RK .or. this%Cmax .gt. 100.0_RK) then
-          call Error('Invalid or missing '//trim(IdCcritdist)//NEW_LINE('A')//'       control option should be within <0.0, 100.0> range')
-        else
-          write( IOBuffer, '("Reading maximal allowed cluster count",T47, E14.4, " %")' ) this%Cmax
-          call LogWrite
-        end if
-
-        call FileReadParameter( str , iounit_params , IDisCvim, .false. , 'no' )
-        select case( str )
-          case( 'yes', 'Yes', 'YES' , 'ok', 'OK', 'True', 'true', 'ja' )
-            this%isCvim = .true.
-            write( IOBuffer, '("Criteria position visualization:                  .true.")' ) 
-            call LogWrite
-
-          case( 'no', 'No', 'NO', 'False', 'false' ,'nein')
-            this%isCvim = .false.
-            write( IOBuffer, '("Criteria position visualization:                  .false.")' ) 
-            call LogWrite
-
-          case default
-            call Error('Unknown position visualization control option :   '//trim(str))
-        end select
-      end if      
-    end if
-    
 #if  TRANS == 1
 !TRANSPORT_start
     call LogWriteBlank
@@ -1575,7 +1392,7 @@ contains
         this%NStepCorr = 1
         write( IOBuffer, '("Correlation Functions (CF) are calculated every time step")')
         call LogWrite
-        write( IOBuffer, '("StepsCorrfun is set to 1. SpanCorrfun is not divisible by StepsCorrfun")')
+        write( IOBuffer, '("StepsCorrfun is set to 1. SpanCorrfun is not divisible by StepsCorrfun")') 
         call LogWrite
       endif
 
@@ -1589,7 +1406,7 @@ contains
         write( IOBuffer, '("Length of CF is extended to:",T40, I7)') this%NCorr*this%NStepCorr
         call LogWrite
       endif
-
+      
       ! Correlation length output
       write( IOBuffer, '("Time Span between CF:",T26, I7)' ) this%NSpanCF*this%NStepCorr
       call LogWrite
@@ -1809,7 +1626,7 @@ contains
 
 ! Initialization of the transport property "Conductivity" and "EConductivity"
 #if TRANS == 1
-
+      
      this%Bulkviscosity = .true.
      this%MolarEnthConduct = .true.
 !     this%Conductivity = .true.
@@ -1828,7 +1645,7 @@ contains
 !         this%Conductivity = .false.
 !      end if
 
-
+ 
       if ( this%NComponents > 1 .and. LongRange .eq. RField) then
        do i = 1, this%NComponents
             if (this%Component(i)%PartialMolarEnthalpy .eq. 0._RK) then
@@ -1838,7 +1655,7 @@ contains
        end do
       end if
 
-
+      
       if (LongRange .eq. Ewald) then
         do i = 1, this%NComponents
           if ( abs(this%Component(i)%Molecule%Charge) .gt. 1e-7) then
@@ -1921,7 +1738,7 @@ contains
     write( IOBuffer, '("Cutoff correction to")' )
     call LogWrite
 
-
+    
     if ( SimulationType .eq. MonteCarlo .and. (.not.  CommonEqui))  then
       write( IOBuffer, '("- potential energy from ", A, T44, F12.8)' ) LJorMIE, this%EPotCorrMIE  / this%NPart
 
@@ -1931,34 +1748,33 @@ contains
 
     call LogWrite
 
-    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui))  then
+    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui))  then  
       write( IOBuffer, '("- pressure from ", A, T44, F12.8)' ) LJorMIE, this%VirialCorrMIE  / this%NPart
     else
       write( IOBuffer, '("- pressure from ", A, T44, F12.8)' ) LJorMIE, this%VirialCorrMIE * NProcs / this%NPart
     endif
-
+    
     call LogWrite
 
     do i = 1, this%NRealComponents
       write( IOBuffer, '("- chem. pot. of ", A, " from ", A, T44, F12.8)' ) trim( this%Component(i)%PotModFileName ), &
-&        trim(LJorMIE), this%Component(i)%EPotTestCorrMIE
+&        LJorMIE, this%Component(i)%EPotTestCorrMIE
       call LogWrite
     end do
 
-    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui))  then
+    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui))  then 
       write( IOBuffer, '("- potential energy from reaction field (RF)",T44, F12.8)' ) &
 &       this%EPotCorrRF  / this%NPart
+
     else
       write( IOBuffer, '("- potential energy from reaction field (RF)",T44, F12.8)' ) &
 &       this%EPotCorrRF * NProcs / this%NPart
+
     endif
+
     call LogWrite
 
-    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui))  then
-       write( IOBuffer, '("- pressure from reaction field:",T44, F12.8)' ) this%VirialCorrRF / this%NPart
-    else
-       write( IOBuffer, '("- pressure from reaction field:",T44, F12.8)' ) this%VirialCorrRF * NProcs / this%NPart
-    endif
+    write( IOBuffer, '("- pressure from reaction field:",T44, F12.8)' ) this%VirialCorrRF / this%NPart
     call LogWrite
 
     do i = 1, this%NRealComponents
@@ -1966,7 +1782,7 @@ contains
 &       this%Component(i)%EPotTestCorrRF
       call LogWrite
     end do
-
+    
     ! Calculate maximum cutoff radius
     if( this%NDipoleMax > 0 ) then
       this%RCutoffMax2 = max(this%RCutoffMax2, 2._RK * this%RCutoffDipoleDipole )
@@ -1986,7 +1802,7 @@ contains
       ! Update all BoxLength-dependent constants
       call UpdateBoxLength( this )
 
-      ! Abort, if maximum cutoff larger than boxlength
+      ! Abort, if maximum cutoff larger than boxlength 
       if (this%RCutoffMax2 > this%BoxLength) call Error('Cutoff is larger than the boxsize')
 
       ! Set initial positions of particles in simulation box
@@ -2076,12 +1892,15 @@ contains
            end do
          end do
       end if
-
+   
       if( SimulationType .eq. MolecularDynamics .and. .not. MCOverlapReduction ) then
+
+        ! Calculate positions of units
+        call Mol2Unit( this)   ! Calculate initial orientations and positions of units
 
         ! Initialize molecular dynamics simulation
         call InitMolecularDynamics( this, .false. )
-
+ 
       else
 
         ! Set temperature
@@ -2125,25 +1944,16 @@ contains
     this%iounit_rescf     = iounit_rescf     + i
     this%iounit_visualHB  = iounit_visualHB  + i
     this%iounit_dcp       = iounit_dcp       + i
-    this%iounit_kbirav    = iounit_kbirav    + i
+    this%iounit_kbirun    = iounit_kbirun    + i
     this%iounit_kbirdf    = iounit_kbirdf    + i
     this%iounit_a2rav     = iounit_a2rav     + i
-    this%iounit_ecoef     = iounit_ecoef     + i  !EinsteinCoef
-    this%iounit_ccpos     = iounit_ccpos     + i !DC edit
-    this%iounit_cc        = iounit_cc        + i !DC edit
-    this%iounit_ccgrid    = iounit_ccgrid    + i !DC edit
 
-    ! Calculate RDF VSchale
+    ! Calculate RDF VSchale 
     this%RDFdr = this%RCutoffMIEnmMIEnm / RDFNumberShells
     do i = 1, RDFNumberShells
       this%RDFVSchale(i) = 4./3.*pi* this%RDFdr**3 *(i**3 - (i-1)**3)
     end do
-    
-    ! Calculate bin sizes for ODF
-    this%dR = this%RCutoffDipoleDipole / nR
-    this%dPhi = 2._RK / nPhi
-    this%dGamma = pi / nGamma
-    
+
     ! Calculate KBI VSchale
     this%KBIdr = (0.5*(this%NPart / (NAvogadro*this%RefDensity*UnitDensity*1000))**(1._RK/3._RK)/UnitLength) &
 &                / KBINumberShells
@@ -2154,71 +1964,11 @@ contains
     do i = KBINumberShells+1, KBINShellsCubeEdge !Volume correction for shells outside simulation box
        this%KBIVSchale(i) = 2.*pi*this%KBIdr**3*(2./3.*i**3-(i-KBINumberShells)**2*(2*i+KBINumberShells)-2./3.*(i-1)**3+(i-1-KBINumberShells)**2*(2*(i-1)+KBINumberShells))
     end do
-
+ 
     write( IOBuffer, '(T15, "Reading ensemble ", I3, " successful")') this%EnsembleNumber
     call LogWrite
     write( IOBuffer, '(72(1H-))')
     call LogWrite
-
-  if (this%isCCSimulation .eqv. .true.) then
-    !DC NOTE- prepare the gird neighbours if it is needed
-    !DC BEWARE this relies on the box lenght to calculate the grid    
-    if (this%Ccrittype .eq. CCritTypeGridliq .or. this%Ccrittype .eq. CCritTypeGridvap ) then
-    
-      this%NGridPoints = 1+ int(this%BoxLength/this%Ccritdist)
-      this%NGridPointsAll = this%NGridPoints**3
-      !DC OPTIM- at this moment 21.08.2019 the cmax is used only by root so this is wasting on the rest of PU
-      this%Cmax = int(this%NGridPointsAll * (this%Cmax/100.0)) 
-  
-      this%NGridPoints1 = ProcRange( this%NGridPointsAll, this%NGridPoints0, this%NGridPoints2 )
-  
-      !DC NOTE- allocate the holding arrays only what is required
-      allocate(GP0(this%NGridPoints1, 3), STAT = stat )
-      call AllocationError( stat, 'ccrit Grid position Grid Point array error allocation', Nproc )
-      
-      !DC NOTE- assign the grid points
-      counter = 0
-      do i = this%NGridPoints0 - 1 , this%NGridPoints2 - 1
-        !DC BEWARE- correction for i indexation in loop -> C/FORTRAN counting so the modulo operation work as expected
-        counter = counter + 1
-        !DC BEWARE- shift into the <-0.5,0.5) coordinate interval
-        GP0(counter, 1) = -0.5_RK + (this%Ccritdist/this%BoxLength) * MOD(i, this%NGridPoints) ! X coordinate is point within the coresponding line of the corresponding plane
-        GP0(counter, 2) = -0.5_RK + (this%Ccritdist/this%BoxLength) * (MOD(i, this%NGridPoints**2)/ this%NGridPoints) ! Y coordinate is within the plane of corresponding line
-        GP0(counter, 3) = -0.5_RK + (this%Ccritdist/this%BoxLength) * (i / this%NGridPoints**2 ) ! Z coordinate is simply the corresponding plane  
-      end do
-       
-      if (NProc .eq. NRootProc) then
-        !DC NOTE- OPEN section for .grid file
-        write( IOBuffer, '(I16)' ) this%EnsembleNumber
-        call FileRewrite( this%iounit_ccgrid, trim( OutputNameTag )//'_'//'CC'//'_'//trim( adjustl( IOBuffer ) )//GridFileExtension )
-
-        write( IOBuffer, '("# Cluster criteria grid output file generated by D. Celny into ms2")' )
-        call FileWrite( this%iounit_ccgrid )
-        call FileWriteBlank( this%iounit_ccgrid )
-
-        !DC NOTE- UPDATE section for .grid file
-        write( IOBuffer, '("# Edge:", I6," NGridPoints:", I6," New Cmax criteria number:", I6)' ) this%NGridPoints, this%NGridPointsAll, int(this%Cmax)
-        call FileWrite( this%iounit_ccgrid )
-        write( IOBuffer, '("# Debug boxsize: ", F16.10," griddistance: ", F16.10)' ) this%BoxLength, (this%Ccritdist/this%BoxLength)
-        call FileWrite( this%iounit_ccgrid )        
-        write( IOBuffer, '("# position    X,        Y,        Z    [reduced box_size] ")' )
-        call FileWrite( this%iounit_ccgrid )
-
-        !DC NOTE- the grid is recalculated again as it is done on root processor preventing mixed writeous of the grid
-        do i = 0 , this%NGridPointsAll - 1
-          write( IOBuffer, '( F16.10, F16.10, F16.10)' ) -0.5_RK + (this%Ccritdist/this%BoxLength) * MOD(i, this%NGridPoints),&
-          &                                              -0.5_RK + (this%Ccritdist/this%BoxLength) * (MOD(i, this%NGridPoints**2)/ this%NGridPoints),&
-          &                                              -0.5_RK + (this%Ccritdist/this%BoxLength) * (i / this%NGridPoints**2 )
-          call FileWrite( this%iounit_ccgrid )
-        end do
-        call FileWriteBlank( this%iounit_ccgrid )
-        
-        !DC NOTE- CLOSE section for .grid file
-        call FileClose( this%iounit_ccgrid )
-
-      end if
-    end if    
-  end if
 
 #if MPI_VER > 0
 ! Abortion of simulation run due to wall-time Constraints
@@ -2404,9 +2154,6 @@ contains
     this%iounit_errors = iounit_errors + i
     this%iounit_visual = iounit_visual + i
     this%iounit_visualHB = iounit_visualHB + i
-    this%iounit_ccpos  = iounit_ccpos + i !DC edit
-    this%iounit_cc     = iounit_cc    + i !DC edit
-    this%iounit_ccgrid = iounit_ccgrid+ i !DC edit
 
   end subroutine TEnsemble_ConstructSVC
 
@@ -2453,46 +2200,46 @@ contains
 
     if (LongRange .eq. Ewald) then
 
-      if ( associated ( this%Ewald_Prefac ) ) then
+      if ( associated ( this%Ewald_Prefac ) ) then 
          deallocate( this%Ewald_Prefac )
       end if
 
-      if ( associated ( this%Ewald_Vec ) ) then
+      if ( associated ( this%Ewald_Vec ) ) then 
          deallocate( this%Ewald_Vec )
       end if
 
 #if MPI_VER > 0
-      if ( associated ( this%NBox0 ) ) then
+      if ( associated ( this%NBox0 ) ) then 
          deallocate( this%NBox0 )
       end if
 
-      if ( associated ( this%NBox1 ) ) then
+      if ( associated ( this%NBox1 ) ) then 
          deallocate( this%NBox1 )
       end if
 
-      if ( associated ( this%NBox2 ) ) then
+      if ( associated ( this%NBox2 ) ) then 
          deallocate( this%NBox2 )
       end if
 
 #endif
 
-      if ( associated ( this%U_fourierLocal ) ) then
+      if ( associated ( this%U_fourierLocal ) ) then 
          deallocate( this%U_fourierLocal )
       end if
 
-      if ( associated ( this%SSin ) ) then
+      if ( associated ( this%SSin ) ) then 
          deallocate( this%SSin )
       end if
 
-      if ( associated ( this%SCos ) ) then
+      if ( associated ( this%SCos ) ) then 
          deallocate( this%SCos )
       end if
 
-      if ( associated ( this%rold ) ) then
+      if ( associated ( this%rold ) ) then 
          deallocate( this%rold )
       end if
 
-      if ( associated ( this%Vec2 ) ) then
+      if ( associated ( this%Vec2 ) ) then 
          deallocate( this%Vec2 )
       end if
 
@@ -2506,27 +2253,27 @@ contains
     if (LongRange .eq. PME) then
       call dfftw_destroy_plan(this%qgrid_forward)
       call dfftw_destroy_plan(this%qgrid_backward)
-      if ( associated ( this%qgrida ) ) then
+      if ( associated ( this%qgrida ) ) then 
          deallocate( this%qgrida )
       end if
 
-      if ( associated ( this%qgrida_old ) ) then
+      if ( associated ( this%qgrida_old ) ) then 
          deallocate( this%qgrida_old )
       end if
 
-      if ( associated ( this%bsp_arr ) ) then
+      if ( associated ( this%bsp_arr ) ) then 
          deallocate( this%bsp_arr )
       end if
 
-      if ( associated ( this%bsp_modx ) ) then
+      if ( associated ( this%bsp_modx ) ) then 
          deallocate( this%bsp_modx )
       end if
 
-      if ( associated ( this%bsp_mody ) ) then
+      if ( associated ( this%bsp_mody ) ) then 
          deallocate( this%bsp_mody )
       end if
 
-      if ( associated ( this%bsp_modz ) ) then
+      if ( associated ( this%bsp_modz ) ) then 
          deallocate( this%bsp_modz )
       end if
 
@@ -2645,12 +2392,6 @@ contains
     ! Set new number of components (including fluctuating particles)
     this%NComponents = ncomp
 
-#if TRANS==1
-    !EinsteinCoef NEinstein
-    do i = 1, this%NRealComponents
-        this%Component(i)%NEinstein = this%NCorr / this%NSpanCF
-    end do
-#endif
   end subroutine TEnsemble_CreateComponents
 
 
@@ -2747,7 +2488,7 @@ contains
     ! set pointers for virial profile
     do i = 1, this%NComponents
       do j = 1, this%NComponents
-
+      
         if( this%Interaction(i,j)%N1MIEnm > 0 .and. this%Interaction(i,j)%N2MIEnm > 0 ) then
           do j1 = 1, this%Interaction(i,j)%N1MIEnm
             do j2 = 1, this%Interaction(i,j)%N2MIEnm
@@ -2985,7 +2726,7 @@ contains
         call Construct( this%SumHmUm3dUdV, .false. )
         call Construct( this%SumHmUm3dUdV2, .false. )
       end if
-
+      
       ! KBI sum Gij
       if( EnsembleType .eq. EnsembleTypeNVT .and.  KBIUpdateFrequency > 0) then
         do i= 1, this%NComponents*(this%NComponents+1)/2 !Number of comb., e.g. 11 12 22
@@ -2994,7 +2735,7 @@ contains
             call Construct( this%SumKBIGij3(i), .false., .false., .true.)
         end do
       end if
-
+                
 
       ! 3.) Derived sums
       call Construct( this%SumBetaT, .true. )
@@ -3040,7 +2781,7 @@ contains
       do i = 1, this%NComponents
         call Construct( this%Sumself_i(i),  .false., .true. )
       end do
-
+    
       if (this%NComponents .gt. 1) then
         do i = 1, this%NComponents
           do j = 1, this%NComponents
@@ -3048,10 +2789,10 @@ contains
           end do
         end do
 
-        do i = 1, this%NComponents
+        do i = 1, this%NComponents  
           call Construct( this%SumSoret(i), .false., .true. )
         end do
-      end if
+      end if 
 
       call Construct( this%SumVisco_s, .false., .true. )
       call Construct( this%SumVisco_b, .false., .true. )
@@ -3059,33 +2800,9 @@ contains
       call Construct( this%SumEConduct,.false., .true. )
 
     end if
-
-    !EinsteinCoef Construct acc
-    if (EinsteinCoefCalc) then
-
-        do i = 1, this%NComponents
-            call Construct( this%EinsteinDSelfAcc(i),  .false., .true. )
-        end do
-
-        if (this%NComponents .gt. 1) then
-            do i = 1, this%NComponents
-                do j = 1, this%NComponents
-                    call Construct( this%EinsteinOnsagerAcc(i,j), .false., .true. )
-                end do
-            end do
-        end if
-
-      call Construct( this%EinsteinShearAcc, .false., .true. )
-    end if
-
 !TRANSPORT_END
 #endif
 
-! 5.) Sampling of Dielectric Constant
-    call Construct( this%SumTotalDipoleMoment, .false. )
-    call Construct( this%SumTotalDipoleMomentSquared, .false. )
-    call Construct( this%SumDielectricConstant, .false. )
-    
 ! Calculation of residence times
      if (this%ResidenceTime) then
       call Construct( this%SumResidenceDuration, .false. )
@@ -3199,7 +2916,7 @@ contains
       call Destruct( this%SumHmUm3dUdV )
       call Destruct( this%SumHmUm3dUdV2 )
     end if
-
+    
     ! KBI sum Gij
       if( EnsembleType .eq. EnsembleTypeNVT .and.  KBIUpdateFrequency > 0) then
         do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
@@ -3253,8 +2970,8 @@ contains
       do i = 1, this%NComponents
          call Destruct( this%Sumself_i(i) )
       end do
-
-      if (this%NComponents .gt. 1) then
+       
+      if (this%NComponents .gt. 1) then  
         do i = 1, this%NComponents
           do j = 1, this%NComponents
             call Destruct( this%SumOnsager(i,j) )
@@ -3271,30 +2988,8 @@ contains
 
     end if
 
-    !EinsteinCoef destruct acc
-    if (EinsteinCoefCalc) then
-
-        do i = 1, this%NComponents
-        call Destruct( this%EinsteinDSelfAcc(i) )
-        end do
-
-        if (this%NComponents .gt. 1) then
-            do i = 1, this%NComponents
-            do j = 1, this%NComponents
-                call Destruct( this%EinsteinOnsagerAcc(i,j) )
-            end do
-            end do
-        end if
-
-        call Destruct( this%EinsteinShearAcc )
-    end if
 !TRANSPORT_END
 #endif
-
-    ! 5.) Sampling of Dielectric Constant
-    call Destruct( this%SumTotalDipoleMoment )
-    call Destruct( this%SumTotalDipoleMomentSquared )
-    call Destruct( this%SumDielectricConstant )
 
 ! Calculation of residence times
     if ( this%ResidenceTime ) then
@@ -3339,11 +3034,11 @@ contains
     ! Set maximum number of particles
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       this%NPartMax = 2 * this%NPart
-! Max. number of particles of component i in a fluctuating state
+! Max. number of particles of component i in a fluctuating state 
       this%NPartMaxFluct = 1
     else
       this%NPartMax = this%NPart
-! Max. number of particles of component i in a fluctuating state
+! Max. number of particles of component i in a fluctuating state 
       this%NPartMaxFluct = 1
     end if
 
@@ -3406,8 +3101,12 @@ contains
         pc%NDFRot = pc%NDFRot + pc%Molecule%Unit(j)%NDFRot ! for one molecule
       end do
      ! Inner Degrees of Freedom of one particle
-      if (UseIntDegFreed .and. Shake > 0 ) then
-        this%constrNDF = this%constrNDF + pc%NPart*pc%Molecule%NBond
+      if (UseIntDegFreed) then
+        pc%Molecule%NDF = pc%Molecule%NUnit * 3
+        pc%Molecule%NDF = pc%Molecule%NDF + pc%NDFRot
+        if ( Shake > 0 ) then
+          this%constrNDF = this%constrNDF + pc%NPart*pc%Molecule%NBond
+        end if
       end if
       pc%NDFRot = pc%NPart * pc%NDFRot
       pc%NDF = pc%NDFTran + pc%NDFRot
@@ -3425,7 +3124,6 @@ contains
       pc%NPart1 = ProcRange( pc%NPart, pc%NPart0, pc%NPart2 )
 
 !      if( pc%NTest > 0 ) pc%NTest = 1 + (pc%NTest - 1) / NProcs
-      pc%NTestAll = NProcs * pc%NTest
       this%NTestMax = max( pc%NTest, this%NTestMax )
       this%NFluctMax = max( pc%NFluctMax, this%NFluctMax )
     end do
@@ -3644,7 +3342,6 @@ contains
     nullify( this%Q0Test )
     nullify( this%EPotTest )
     nullify( this%BiasedPartners )
-    nullify( this%ODFvalue )
     nullify( this%RDFValue )
     nullify( this%RDFVSchale )
     nullify( this%KBIVSchale )
@@ -3661,25 +3358,10 @@ contains
     nullify( this%dispR2invAve )
     nullify( this%dispR4Ave )
     nullify( this%alpha2tempstep )
+    
 
-#if TRANS==1
-    !EinsteinCoef nullify
-    nullify( this%DselfEinstein)
-    nullify( this%DselfEinsteinAve)
-    nullify( this%OnsagerEinstein)
-    nullify( this%OnsagerEinsteinAve)
-    nullify( this%EinsteinCoefTimeStep)
-
-    nullify( this%DselfEinsteinCurrent)
-    nullify( this%OnsagerEinsteinCurrent)
-
-
-    nullify( this%EinsteinShear)
-    nullify( this%EinsteinShearAve)
-    nullify( this%EinsteinShearInt)
-#endif
-
-
+    
+    
     ! Allocate scale coefficients for sigma and epsilon
     allocate( this%ScaleSigma(this%NComponents, this%NComponents), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents )
@@ -3688,36 +3370,30 @@ contains
     allocate( this%BiasedPartners(this%NPartMax), STAT = stat )
     call AllocationError( stat, 'NPartMax', this%NPartMax )
 
-    ! Allocate ODF arrays
-    if( ODFUpdateFrequency > 0 ) then
-      allocate( this%ODFvalue(nPhi,nPhi, nGamma,nR), STAT = stat )
-      call AllocationError( stat, 'components', nPhi*nPhi*nGamma*nR )    
-    endif
-    
     ! Allocate RDF arrays
     if( RDFUpdateFrequency > 0 ) then
       allocate( this%RDFVSchale(RDFNumberShells), STAT = stat )
       call AllocationError( stat, 'components', RDFNumberShells )
       allocate( this%RDFValue(RDFNumberShells), STAT = stat )
-      call AllocationError( stat, 'components', RDFNumberShells )
+      call AllocationError( stat, 'components', RDFNumberShells )    
     endif
-
+    
     ! Allocate KBI arrays
     if( KBIUpdateFrequency > 0 ) then
       allocate( this%KBIVSchale(KBINShellsCubeEdge), STAT = stat )
-      call AllocationError( stat, 'KBI shells', KBINShellsCubeEdge )
+      call AllocationError( stat, 'KBI shells', KBINShellsCubeEdge )         
       allocate( this%KBIRDFextra(0:KBINShellsCubeEdge, this%NComponents*(this%NComponents+1)/2), STAT = stat )
       call AllocationError( stat, 'KBI RDF extrap.', KBINShellsCubeEdge )
       allocate( this%KBIRDFvdVextra(0:KBINShellsCubeEdge, this%NComponents*(this%NComponents+1)/2), STAT = stat )
       call AllocationError( stat, 'KBI RDFvdV extrap.', KBINShellsCubeEdge )
       allocate( this%KBIRDFvdVshfextra(0:KBINShellsCubeEdge, this%NComponents*(this%NComponents+1)/2), STAT = stat )
-      call AllocationError( stat, 'KBI RDFvdVshf extrap.', KBINShellsCubeEdge )
+      call AllocationError( stat, 'KBI RDFvdVshf extrap.', KBINShellsCubeEdge )      
       allocate( this%TDF(3, (this%NComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
       call AllocationError( stat, 'TDF' )
       allocate( this%dTDF(3, (this%NComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
       call AllocationError( stat, 'dTDF' )
       allocate( this%TDF0(3, (this%NComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
-      call AllocationError( stat, 'TDF0' )
+      call AllocationError( stat, 'TDF0' )  
       allocate( this%SumKBIGij1(this%NComponents*(this%NComponents+1)/2), STAT = stat )
       call AllocationError( stat, 'Sum KBI Gij1', this%NComponents )
       allocate( this%SumKBIGij2(this%NComponents*(this%NComponents+1)/2), STAT = stat )
@@ -3725,66 +3401,26 @@ contains
       allocate( this%SumKBIGij3(this%NComponents*(this%NComponents+1)/2), STAT = stat )
       call AllocationError( stat, 'Sum KBI Gij3', this%NComponents )
     endif
-
+    
     if( ALPHA2UpdateFrequency > 0 ) then
-      allocate( this%dispR2(ALPHA2Length/ALPHA2UpdateFrequency, 0:ALPHA2Length/ALPHA2Shift-1), STAT = stat )
-      call AllocationError( stat, 'dispR2' )
-      allocate( this%dispR2inv(ALPHA2Length/ALPHA2UpdateFrequency, 0:ALPHA2Length/ALPHA2Shift-1), STAT = stat )
+      allocate( this%dispR2(ALPHA2Length/ALPHA2UpdateFrequency, 0:ALPHA2Length/ALPHA2Shift-1), STAT = stat ) 
+      call AllocationError( stat, 'dispR2' )          
+      allocate( this%dispR2inv(ALPHA2Length/ALPHA2UpdateFrequency, 0:ALPHA2Length/ALPHA2Shift-1), STAT = stat ) 
       call AllocationError( stat, 'dispR2inv' )
-      allocate( this%dispR4(ALPHA2Length/ALPHA2UpdateFrequency, 0:ALPHA2Length/ALPHA2Shift-1), STAT = stat )
+      allocate( this%dispR4(ALPHA2Length/ALPHA2UpdateFrequency, 0:ALPHA2Length/ALPHA2Shift-1), STAT = stat ) 
       call AllocationError( stat, 'dispR4' )
-      allocate( this%dispR2Ave(ALPHA2Length/ALPHA2UpdateFrequency), STAT = stat ) !average
-      call AllocationError( stat, 'dispR2Ave' )
-      allocate( this%dispR2invAve(ALPHA2Length/ALPHA2UpdateFrequency), STAT = stat )
+      allocate( this%dispR2Ave(ALPHA2Length/ALPHA2UpdateFrequency), STAT = stat ) !average 
+      call AllocationError( stat, 'dispR2Ave' )           
+      allocate( this%dispR2invAve(ALPHA2Length/ALPHA2UpdateFrequency), STAT = stat )  
       call AllocationError( stat, 'dispR2invAve' )
-      allocate( this%dispR4Ave(ALPHA2Length/ALPHA2UpdateFrequency), STAT = stat )
+      allocate( this%dispR4Ave(ALPHA2Length/ALPHA2UpdateFrequency), STAT = stat ) 
       call AllocationError( stat, 'dispR4Ave' )
       allocate( this%alpha2tempstep(0:ALPHA2Length/ALPHA2Shift-1), STAT = stat ) !alpha2tempstep displacement
       call AllocationError( stat, 'alpha2tempstep' )
       this%alpha2tempstep(:)=0
       this%alpha2aveCount=0
     end if
-
-#if TRANS==1
-    !EinsteinCoef allocate
-    if( EinsteinCoefCalc ) then
-
-      allocate( this%DselfEinstein(this%NCorr, 0:this%NCorr/this%NSpanCF-1, this%NComponents), STAT = stat )
-      call AllocationError( stat, 'DselfEinstein' )
-      allocate( this%DselfEinsteinAve(this%NCorr, this%NComponents), STAT = stat )
-      call AllocationError( stat, 'DselfEinsteinAve' )
-      allocate( this%OnsagerEinstein(this%NCorr, 0:this%NCorr/this%NSpanCF-1, this%NComponents, this%NComponents ), STAT = stat )
-      call AllocationError( stat, 'OnsagerEinstein' )
-      allocate( this%OnsagerEinsteinAve(this%NCorr, this%NComponents, this%NComponents), STAT = stat )
-      call AllocationError( stat, 'OnsagerEinsteinAve' )
-      allocate( this%EinsteinCoefTimeStep(0:this%NCorr/this%NSpanCF-1), STAT = stat)
-      call AllocationError (stat, 'EinsteinCoefTimeStep')
-      this%EinsteinCoefAveCount = 0
-      this%EinsteinCoefTimeStep(:) = 0
-      this%DselfEinstein(:,:,:) = 0
-      this%DselfEinsteinAve(:,:) = 0
-      this%OnsagerEinstein(:,:,:,:) = 0
-      this%OnsagerEinsteinAve(:,:,:) = 0
-
-      allocate( this%DselfEinsteinCurrent(this%NComponents), STAT = stat)
-      call AllocationError (stat, 'DselfEinsteinCurrent')
-      allocate( this%OnsagerEinsteinCurrent(this%NComponents,this%NComponents), STAT = stat)
-      call AllocationError (stat, 'OnsagerEinsteinCurrent')
-      this%DselfEinsteinCurrent(:) = 0
-      this%OnsagerEinsteinCurrent(:,:) = 0
-      this%ShearEinsteinCurrent = 0
-
-      allocate( this%EinsteinShear(this%NCorr), STAT = stat)
-      call AllocationError (stat, 'EinsteinShear')
-      allocate( this%EinsteinShearAve(this%NCorr), STAT = stat)
-      call AllocationError (stat, 'EinsteinShearAve')
-      allocate( this%EinsteinShearInt(this%NCorr), STAT = stat)
-      call AllocationError (stat, 'EinsteinShearInt')
-      this%EinsteinShear = 0
-      this%EinsteinShearAve = 0
-      this%EinsteinShearInt = 0
-    end if
-#endif
+    
 
     ! Allocate test particles
     if( this%NTestMax > 0 ) then
@@ -3801,7 +3437,7 @@ contains
 
     ! Allocate components
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. &
-&       SimulationType .eq. Gibbs .or. SimulationType .eq. SecondVirialCoeff ) then
+&       SimulationType .eq. Gibbs .or. SimulationType .eq. SecondVirialCoeff ) then       
 
        do i = 1, this%NComponents
          this%Component(i)%NPartMax => this%NPartMax
@@ -3822,7 +3458,7 @@ contains
            this%Component(i)%NPartMax => this%Component(i)%NPart
            this%Component(i)%NUnitMax => this%Component(i)%Molecule%NUnit
 
-         else
+         else 
            this%Component(i)%NPartMax => this%NPartMaxFluct
            this%Component(i)%NUnitMax => this%NUnitMax
          end if
@@ -3843,7 +3479,7 @@ contains
     if (LongRange .eq. Ewald) then
      allocate(this%Ewald_Prefac(this%NVecMax),STAT=stat)
      allocate(this%Ewald_Vec(3,this%NVecMax),STAT=stat)
-    end if
+    end if 
 
 
 #if HBOND > 0
@@ -3951,7 +3587,7 @@ contains
       call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )
 
       allocate( this%average_sinte_lamda( NComp2, this%NCorr), STAT = stat )
-      call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )
+      call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )      
 
       allocate( this%sinte_vs( this%NCorr), STAT = stat )
       call AllocationError( stat, 'shear_viscosity_integrated', this%NCorr )
@@ -4023,19 +3659,11 @@ contains
       call AllocationError( stat, 'SumOnsager', this%NComponents )
 
       allocate( this%soret(NC), STAT = stat )
-      call AllocationError( stat, 'Soret', this%NComponents )
+      call AllocationError( stat, 'Soret', this%NComponents ) 
 
       allocate( this%SumSoret(NC), STAT = stat )
-      call AllocationError( stat, 'SumSoret', this%NComponents )
+      call AllocationError( stat, 'SumSoret', this%NComponents ) 
 
-      !Einsteincoef allocate
-      if (EinsteinCoefCalc) then
-          allocate( this%EinsteinDSelfAcc(this%NComponents), STAT = stat  )
-          call AllocationError( stat, 'EinsteinDSelfAcc', this%NComponents )
-          allocate( this%EinsteinOnsagerAcc(this%NComponents,this%NComponents), STAT = stat  )
-          call AllocationError( stat, 'EinsteinOnsagerAcc', this%NComponents )
-
-      end if
 
       ! Set correlation-fucntion vectors
       this%cf_d(:,:)      = 0._RK
@@ -4055,10 +3683,10 @@ contains
       this%average_cf_vb(:)      = 0._RK
       this%average_cf_c(:)       = 0._RK
       this%average_cf_ec(:)      = 0._RK
-
+  
       this%a(:,:)           = 0._RK
       this%A_SpanCF(:,:)    = 0._RK
-
+      
       this%sinte_i(:,:)     = 0._RK
       this%sinte_lamda(:,:) = 0._RK
       this%sinte_db (:)     = 0._RK
@@ -4067,7 +3695,7 @@ contains
       this%sinte_vb(:)      = 0._RK
       this%sinte_c(:)       = 0._RK
       this%sinte_ec(:)      = 0._RK
-
+      
       this%average_sinte_i(:,:)     = 0._RK
       this%average_sinte_db (:)     = 0._RK
       this%average_sinte_soret(:,:) = 0._RK
@@ -4187,195 +3815,85 @@ contains
       deallocate( this%BiasedPartners )
     end if
 
-    if( associated( this%ODFvalue ) ) then
-      deallocate( this%ODFvalue )
-    end if 
-    
     if( associated( this%RDFVSchale ) ) then
       deallocate( this%RDFVSchale )
     end if
 
     if( associated( this%RDFValue ) ) then
       deallocate( this%RDFValue )
-    end if
+    end if  
 
     if( associated( this%KBIVSchale ) ) then
       deallocate( this%KBIVSchale )
     end if
-
+    
     if( associated( this%KBIRDFextra ) ) then
       deallocate( this%KBIRDFextra )
-    end if
-
+    end if 
+    
     if( associated( this%KBIRDFvdVextra ) ) then
       deallocate( this%KBIRDFvdVextra )
-    end if
-
+    end if 
+    
     if( associated( this%KBIRDFvdVshfextra ) ) then
       deallocate( this%KBIRDFvdVshfextra )
-    end if
-
+    end if 
+    
     if( associated( this%TDF ) ) then
       deallocate( this%TDF )
-    end if
-
+    end if 
+    
     if( associated( this%dTDF ) ) then
       deallocate( this%dTDF )
-    end if
-
+    end if 
+    
     if( associated( this%TDF0 ) ) then
       deallocate( this%TDF0 )
-    end if
-
+    end if 
+    
     if( associated( this%dispR2 ) ) then
       deallocate( this%dispR2 )
     end if
-
+    
     if( associated( this%dispR2inv ) ) then
       deallocate( this%dispR2inv )
     end if
-
+    
     if( associated( this%dispR4 ) ) then
       deallocate( this%dispR4 )
     end if
-
+    
     if( associated( this%dispR2Ave ) ) then
       deallocate( this%dispR2Ave )
     end if
-
+    
     if( associated( this%dispR2invAve ) ) then
       deallocate( this%dispR2invAve )
     end if
-
+    
     if( associated( this%dispR4Ave ) ) then
       deallocate( this%dispR4Ave )
     end if
-
+    
     if( associated( this%alpha2tempstep ) ) then
       deallocate( this%alpha2tempstep )
     end if
-
-#if TRANS==1
-    !EinsteinCoef associated
-        if( associated( this%DselfEinstein ) ) then
-            deallocate( this%DselfEinstein )
-        end if
-
-        if( associated( this%DselfEinsteinAve ) ) then
-            deallocate( this%DselfEinsteinAve )
-        end if
-
-        if( associated( this%OnsagerEinstein ) ) then
-            deallocate( this%OnsagerEinstein )
-        end if
-
-        if( associated( this%OnsagerEinsteinAve ) ) then
-            deallocate( this%OnsagerEinsteinAve )
-        end if
-
-        if (associated ( this%EinsteinCoefTimeStep) ) then
-            deallocate (this%EinsteinCoefTimeStep)
-        end if
-
-        if (associated (this%DselfEinsteinCurrent) ) then
-            deallocate (this%DselfEinsteinCurrent)
-        end if
-
-        if (associated (this%OnsagerEinsteinCurrent) ) then
-            deallocate (this%OnsagerEinsteinCurrent)
-        end if
-
-        if (associated (this%EinsteinShear) ) then
-            deallocate (this%EinsteinShear)
-        end if
-
-        if (associated (this%EinsteinShearAve) ) then
-            deallocate (this%EinsteinShearAve)
-        end if
-
-        if (associated (this%EinsteinShearInt) ) then
-            deallocate (this%EinsteinShearInt)
-        end if
-
-        !if (EinsteinCoef > 0) then
-        if( associated( this%EinsteinDSelfAcc ) ) then
-        deallocate( this%EinsteinDSelfAcc )
-        end if
-        if( associated( this%EinsteinOnsagerAcc ) ) then
-        deallocate( this%EinsteinOnsagerAcc )
-        end if
-        !end if
-#endif
-
-
-
-#if TRANS==1
-    !EinsteinCoef associated
-        if( associated( this%DselfEinstein ) ) then
-            deallocate( this%DselfEinstein )
-        end if
-
-        if( associated( this%DselfEinsteinAve ) ) then
-            deallocate( this%DselfEinsteinAve )
-        end if
-
-        if( associated( this%OnsagerEinstein ) ) then
-            deallocate( this%OnsagerEinstein )
-        end if
-
-        if( associated( this%OnsagerEinsteinAve ) ) then
-            deallocate( this%OnsagerEinsteinAve )
-        end if
-
-        if (associated ( this%EinsteinCoefTimeStep) ) then
-            deallocate (this%EinsteinCoefTimeStep)
-        end if
-
-        if (associated (this%DselfEinsteinCurrent) ) then
-            deallocate (this%DselfEinsteinCurrent)
-        end if
-
-        if (associated (this%OnsagerEinsteinCurrent) ) then
-            deallocate (this%OnsagerEinsteinCurrent)
-        end if
-
-        if (associated (this%EinsteinShear) ) then
-            deallocate (this%EinsteinShear)
-        end if
-
-        if (associated (this%EinsteinShearAve) ) then
-            deallocate (this%EinsteinShearAve)
-        end if
-
-        if (associated (this%EinsteinShearInt) ) then
-            deallocate (this%EinsteinShearInt)
-        end if
-
-        !if (EinsteinCoef > 0) then
-        if( associated( this%EinsteinDSelfAcc ) ) then
-        deallocate( this%EinsteinDSelfAcc )
-        end if
-        if( associated( this%EinsteinOnsagerAcc ) ) then
-        deallocate( this%EinsteinOnsagerAcc )
-        end if
-        !end if
-#endif
-
-
+    
+    
 
     if( associated( this%SumKBIGij1 ) ) then
       deallocate( this%SumKBIGij1 )
     end if
-
+    
     if( associated( this%SumKBIGij2 ) ) then
       deallocate( this%SumKBIGij2 )
     end if
-
+    
     if( associated( this%SumKBIGij3 ) ) then
       deallocate( this%SumKBIGij3 )
     end if
 
-
+    
 #if  TRANS == 1
 !TRANSPORT_start
     ! Deallocate arrays for correlation fucntions
@@ -4383,7 +3901,7 @@ contains
     if( associated( this%cf_d  ) )   then
       deallocate( this%cf_d  )
     end if
-
+   
      if( associated( this%average_cf_d  ) )   then
       deallocate( this%average_cf_d  )
     end if
@@ -4471,7 +3989,7 @@ contains
     if( associated( this%average_sinte_vs) ) then
       deallocate( this%average_sinte_vs )
     end if
-
+    
     if( associated( this%sinte_vb) ) then
       deallocate( this%sinte_vb )
     end if
@@ -4687,9 +4205,6 @@ contains
           end do
         end do
         this%EPotCorrRF = this%EPotCorrRF * RFConst / NProcs
-        if (.not. UseIntDegFreed) then
-            this%VirialCorrRF = 3_RK * this%EPotCorrRF
-        endif
 
       else ! Rodgers
         this%Kappa = UnitLength * this%KappaL / Angstroem  ! = 1/sigma* aus Paper
@@ -4726,7 +4241,7 @@ contains
             do j1 = 1, pc%Molecule%NUnit
               this%EPotCorrRFPart = this%EPotCorrRFPart - fac_neutral / 3._RK * pc%Molecule%Unit(j1)%MueSquared * pc%NPart / NProcs
               this%VirialCorrRF   = this%VirialCorrRF - fac_neutral / (4._RK*PI) * this%RefTemperature * &
-&                       (1._RK-1._RK/this%RFEpsilon) / NProcs
+&                       (1._RK-1._RK/this%RFEpsilon) / NProcs 
             end do
           end if
 
@@ -4747,7 +4262,6 @@ contains
 
       if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
         this%EPotCorrRF = this%EPotCorrRF * NProcs
-        this%VirialCorrRF = this%VirialCorrRF * NProcs
       endif
 
       if (LongRange .eq. Rodgers ) then
@@ -4954,16 +4468,14 @@ xloop:do i = 1, NCells1dim(1)
               end do
               pc%Q0(j, :, 1) = pc%Q0(j, :, 1) / sqrt( r )
           else
-              pm(:) = pc%Pm0(j,:)
-              do k = 1, 3
-                dq(k) = rnd( -1._RK, 1._RK )
+            do
+              do k = 1, 4
+                pc%Qm0(j, k) = rnd( -1._RK, 1._RK )
               end do
-              call InitUnit(pc,j,dq)
-              call Unit2Mol( pc, j )
-              do k = 1, pc%Molecule%NUnit
-                pc%P0(j,:,k) = pc%P0(j,:,k) + pm(:) - pc%Pm0(j,:)
-              end do
-              pc%Pm0(j,:) = pm(:)
+              r = sum( pc%Qm0(j, :)**2 )
+              if( r <= 1._RK ) exit
+            end do
+          pc%Qm0(j, :) = pc%Qm0(j, :) / sqrt( r )
           end if
         end do
       else
@@ -5249,7 +4761,7 @@ xloop:do i = 1, NCells1dim(1)
             Reference= 2._RK * (this%RefHamiltonian*this%NPart - this%Epot) / real (this%NDF-this%constrNDF, RK)
         end if
       else if (EnsembleType .eq. EnsembleTypeNPH .and. .not. NVTEquilibration ) then
-        Reference= 2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK)
+        Reference= 2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK) 
       end if
 
       ! Rescale velocities
@@ -5330,6 +4842,7 @@ xloop:do i = 1, NCells1dim(1)
     call InitOrientations( this )
 
     ! Convert unit coordinates to atom positions
+    call Mol2Unit( this )
     call Unit2Atom( this )
 
     if( SimulationType .eq. MolecularDynamics .and. .not. MCOverlapReduction ) then
@@ -5365,12 +4878,12 @@ xloop:do i = 1, NCells1dim(1)
       do i = 1, this%NComponents
         this%Component(i)%Disp(:, :) = 0._RK
       end do
-
+      
       ! Initiate calculation of residence times
-      if (this%ResidenceTime .and. .not. Equilibration) then
+      if (this%ResidenceTime .and. .not. Equilibration) then 
         call ResidencePartners ( this )
       end if
-
+      
     end if
 
     ! Run MD simulation step
@@ -5417,33 +4930,23 @@ loop5:  do nc = 1, this%NComponents
 
     if (UseIntDegFreed) call Force( this )
     call Atom2Unit( this )
-    if (UseIntDegFreed .and. Shake > 0 ) then
-      call QShake(this)
-    end if
     call Correct( this )
 
 #if CONSTR > 0
     call Constraints(this)
 #endif
 
-   if(.not. Equilibration) then
+   if(.not. Equilibration) then 
    end if
 
 #if  TRANS == 1
 
 !TRANSPORT_start
     if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
-      call CalCorrFun( this )
+      call CalCorrFun( this )  
     end if
-
-   !EinsteinCoef call subroutine
-    if(EinsteinCoefCalc) then
-        if (.not. Equilibration .and. (mod((Step-1),this%NStepCorr) .eq. 0)) then !
-          call EinsteinCoefProcedure(this)
-        end if
-    end if
-
 !TRANSPORT_END
+
 #endif
 
     ! Calculation of residence time
@@ -5457,19 +4960,6 @@ loop5:  do nc = 1, this%NComponents
 #if HBOND > 0
     call HBonding(this)
 #endif
-
-  !DC NOTE- proceed only when it is relevatn CC simulation, it is not Equlibration and is the propper timestep for evaluation
-  if ((this%isCCSimulation .eqv. .true.) .and. &
-  &   (this%isStopSimulation .eqv. .false.) .and. &
-  &   (Equilibration .eqv. .false.) .and. & 
-  &   (mod( Step, this%CCFrequency ) .eq. 0) ) then
-
-    !DC DEBUG - validating that the conditions are fulfulled as prescribed
-    ! write (*, '("isCCSim: ", L3, " isStopSim: ",L3, " isEquil: ",L3)') this%isCCSimulation, this%isStopSimulation, Equilibration
-    ! write (*, '("Ensemble: ", I3, " step: ",I3, " freq: ",I4, " step%freq: ",I3)') this%EnsembleNumber, Step, this%CCFrequency, mod(Step, this%CCFrequency)
-
-    call ClustCrit(this)
-  end if
 
   end subroutine TEnsemble_RunMDStep
 
@@ -5534,7 +5024,7 @@ loop2:do nu = 1, this%Component(nc)%Molecule%NUnit
           else
             call Rotate_NVE( this, nc, np, nu )
           end if
-
+            
         else if( EnsembleType .eq. EnsembleTypeNPH .and. .not. NVTEquilibration) then
           ! Move or rotate for NPH ensemble
           if( mod( s - r, 2 ) .eq. 0 ) then
@@ -5542,7 +5032,7 @@ loop2:do nu = 1, this%Component(nc)%Molecule%NUnit
           else
             call Rotate_NPH( this, nc, np, nu )
           end if
-
+      
         else
           ! Move or rotate for constant temperature ensembles
           if( (mod( s - r, ndf ) < 3 .and. .not. UseIntDegFreed) .or. (mod( s - r, 2 ) .eq. 0 .and. UseIntDegFreed)) then
@@ -5605,7 +5095,7 @@ loop3:  do nc = 1, this%NComponents
 
     ! Calculate potential energy and virial
 #if MPI_VER > 0
-    ! in MC simulations we only communicate during common equilibration
+    ! in MC simulations we only communicate during common equilibration 
     if (Equilibration .and. CommonEqui) then
 
       ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
@@ -5643,7 +5133,8 @@ loop3:  do nc = 1, this%NComponents
         this%VirialInter = this%Virial - this%VirialIntra
       endif
 
-    endif
+    endif  
+
 #else
 
     this%EPot = GetEnergy( this )
@@ -5663,7 +5154,6 @@ loop3:  do nc = 1, this%NComponents
     endif
 
 #endif
-
     ! Resize simulation box
     if( ConstantPressure .and. .not. NVTEquilibration ) then
       call Resize( this )
@@ -5987,8 +5477,8 @@ loop5:    do nc = 1, this%NComponents
       ! Dichteprofil für die Bestimmung des chemischen Potentials
       call DensityProfile( this%Component(i) )
 
-      !if(this%Component(i)%Molecule%Charge .ne. 0)then
-      if ( .not. this%Component(i)%permeable ) then
+      !if(this%Component(i)%Molecule%Charge .ne. 0)then 
+      if ( .not. this%Component(i)%permeable ) then   
         this%OsmoticPressure = this%OsmoticPressure + sum(this%Component(i)%FOsmoticPressure(:))
       end if
       do m = 1, NBinsDen
@@ -6010,7 +5500,7 @@ loop5:    do nc = 1, this%NComponents
       this%VirialProfile(:) = this%VirialProfile(:) + this%EVirial/NBinsDen
 #endif
     end if
-
+ 
     !Calculation of the pressure profile (real and ideal part)
     do m = 1, NBinsDen
       this%PressureProfile(m) = this%VirialProfile(m)*NBinsDen/this%Volume0 + TotalDenProfile(m) * this%Temperature
@@ -6022,6 +5512,52 @@ loop5:    do nc = 1, this%NComponents
 #endif
 
   end subroutine TEnsemble_Atom2Unit
+
+
+!==============================================================!
+!  Subroutine TEnsemble_Mol2Unit                               !
+!==============================================================!
+
+  subroutine TEnsemble_Mol2Unit( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer      :: i
+
+    ! Call Mol2Unit for each component
+    do i = 1, this%NComponents
+      call Mol2Unit( this%Component(i), this%Component(i)%NPart, &
+&                      this%Component(i)%Molecule%NUnit )
+    end do
+
+  end subroutine TEnsemble_Mol2Unit
+
+
+!==============================================================!
+!  Subroutine TEnsemble_Unit2Mol                               !
+!==============================================================!
+
+  subroutine TEnsemble_Unit2Mol( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer      :: i
+
+    ! Call Unit2Mol for each component
+    do i = 1, this%NComponents
+      call Mol2Unit( this%Component(i), this%Component(i)%NPart, &
+&                      this%Component(i)%Molecule%NUnit )
+    end do
+
+  end subroutine TEnsemble_Unit2Mol
 
 
 !==============================================================!
@@ -6127,7 +5663,7 @@ loop5:    do nc = 1, this%NComponents
     end if
 
     ! Predict volume of simulation box
-    if( ConstantPressure .and. .not. NVTEquilibration ) then
+    if( ConstantPressure ) then
       if( RootProc ) then
         this%Volume0 = this%Volume0 + this%Volume1 + this%Volume2 + this%Volume3 + this%Volume4 + this%Volume5
 
@@ -6151,7 +5687,6 @@ loop5:    do nc = 1, this%NComponents
 
       if (UseIntDegFreed) then
          DelBoxL = this%BoxLength / BoxLengthOld
-         call ResizeMol(this, DelBoxL)
       end if
     end if
 
@@ -6211,7 +5746,6 @@ loop5:    do nc = 1, this%NComponents
 
       if (UseIntDegFreed) then
           DelBoxL = this%BoxLength / BoxLengthOld
-          call ResizeMol(this, DelBoxL)
       end if
     end if
 
@@ -6656,7 +6190,7 @@ loop5:    do nc = 1, this%NComponents
 #endif
     end do
 
-    ! potential energy correction
+    ! Zero potential
     EPot = this%Density * this%EPotCorrMIE + this%EPotCorrRF
     idfEPot%EPotInter = this%Density * this%EPotCorrMIE + this%EPotCorrRF
     idfEPot%EPotIntra = 0._RK
@@ -6665,13 +6199,13 @@ loop5:    do nc = 1, this%NComponents
     idfEPot%EPotIntra_Dihedral = 0._RK
     idfEPot%EPotIntra_Nonbonded = 0._RK
 
-    ! virial correction
-    Virial = this%Density * this%VirialCorrMIE + Third*this%VirialCorrRF
+    ! Zero virial
+    Virial = this%Density * this%VirialCorrMIE + this%VirialCorrRF*this%Volume0
     VirialInter = Virial
     VirialIntra = 0._RK
 
-    ! d2Epot/dV2 correction
-    d2EpotdV2 = this%Density * this%d2EpotdV2CorrMIE
+    ! Zero d2Epot/dV2
+    d2EpotdV2 = this%Density * this%d2EpotdV2CorrMIE 
 
 !     ! Calculate interactions partners within cutoff sphere
 !     if( CutoffMode .eq. CenterofMass ) then
@@ -6681,7 +6215,7 @@ loop5:    do nc = 1, this%NComponents
 !         end do
 !       end do
 !     end if
-!
+! 
 ! #if MPI_VER > 0
 !     do i = 1, this%NComponents
 !       this%Component(i)%NAdd(:) = .false.
@@ -7060,7 +6594,7 @@ loop1:        do nc = 1, this%NComponents
 
             else if( r <= (ndfmove + ndfbiased) ) then
               r = (r - ndfmove - 1) / ratio + 1
-              nuh = int( (r-1)* this%NGradIns / (ndfbiased/ratio) )
+              nuh = int( (r-1)* this%NGradIns / (ndfbiased/ratio) ) 
 loop2:        do nc = 1, this%NComponents
                 s = s + this%Component(nc)%BiasedPartners
                 if( nuh < s ) exit loop2
@@ -7131,7 +6665,7 @@ loop2:        do nc = 1, this%NComponents
         end if
 
          if( mod( Step, ErrorsUpdateFrequency ) == 0 .or. ( GradInsInitialization))  then
-          ! Here we sum up the NStateWF over all processes
+          ! Here we sum up the NStateWF over all processes 
           ! dealing with a specific component to improve statistics
 #if MPI_VER > 0
           call MPI_Allreduce(pc%NStateWF,tempVec(0:pc%NFluctMax),size(pc%NStateWF),MPI_INTEGER, MPI_SUM, Communicator, ierror)
@@ -7140,7 +6674,7 @@ loop2:        do nc = 1, this%NComponents
           call MPI_Reduce( pc%NFluctUpAttempts(:),tempVec2(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER,  MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
           call MPI_Reduce( pc%NFluctDownSuccesses(:),tempVec3(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
           call MPI_Reduce( pc%NFluctDownAttempts(:),tempVec4(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, MPI_SUM, NRootProc, MPI_COMM_WORLD, ierror )
-
+          
            do j = 1, pc%NFluctMax
             pc%WF(j) = pc%WF(j) * real(pc%NStateWF(0) + 1, RK) / real(pc%NStateWF(j) + 1, RK)
            end do
@@ -7165,8 +6699,8 @@ loop2:        do nc = 1, this%NComponents
           call LogWrite
           call LogWriteBlank
           pc%NStateWF(:) = 0
-
-#else
+          
+#else        
           do j = 1, pc%NFluctMax
             pc%WF(j) = pc%WF(j) * real(pc%NStateWF(0) + 1, RK) / real(pc%NStateWF(j) + 1, RK)
           end do
@@ -7193,12 +6727,12 @@ loop2:        do nc = 1, this%NComponents
           call LogWrite
           call LogWriteBlank
           pc%NStateWF(:) = 0
-#endif
+#endif         
         end if
 
 
       ! Chemical potential by Widom's test particle method
-      ! Just applicable for ReactionField Method.
+      ! Just applicable for ReactionField Method. 
       ! - otherwise you cannot calculate the energy of only 1 particle
       ! Check earlier in ms2_ensemble (right after component construction
 
@@ -7245,7 +6779,7 @@ loop2:        do nc = 1, this%NComponents
        HW_denom_local = 0
        HW_counter_local = 0
 
-       do j=1, pc%NTest
+       do j=1, pc%NTest 
           HW_counter_local = HW_counter_local + ( HW_H_local + this%EPotTest(j) ) * &
 &                            exp( - this%EPotTest(j) / this%RefTemperature )
           HW_denom_local = HW_denom_local + exp( - this%EPotTest(j) / this%RefTemperature )
@@ -7262,7 +6796,7 @@ loop2:        do nc = 1, this%NComponents
           call MPI_Reduce( HW_denom_local, pc%HW_denom, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
           pc%ChemPot = pc%ChemPot/NProcs
           pc%HW_counter = pc%HW_counter/NProcs
-          pc%HW_denom = pc%HW_denom/NProcs
+          pc%HW_denom = pc%HW_denom/NProcs 
         else
           pc%ChemPot = ChemPot
           pc%HW_counter = HW_counter_local
@@ -7275,7 +6809,7 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
 #if OSMOP == 2
-        ! Profile of  the chemical potential
+        ! Profile of  the chemical potential 
         ! Initialize local arrays
         if (SimulationType .eq. MolecularDynamics ) then
           ChemPotProfile(:) = 0._RK
@@ -7283,7 +6817,7 @@ loop2:        do nc = 1, this%NComponents
           do j=1, NBinsDen
 
             NTestBinDen = 0
-
+  
             do m=1, pc%NTest ! Michael Sch.: for IDF: P0Test(.,1,1) is not correct here...should be either Pm0 or unit specific!
               if (this%P0Test(m,1,1) .ge. real(j-1)/NBinsDen) then
                 if (this%P0Test(m,1,1) < real(j)/NBinsDen) then
@@ -7302,7 +6836,7 @@ loop2:        do nc = 1, this%NComponents
 #else
             if ( NTestBinDen > 1) then
               ChemPotProfile(j)= ChemPotProfile(j) / NTestBinDen
-            end if
+            end if 
             pc%ChemPotProfile(j) = ChemPotProfile(j)
 #endif
 
@@ -7383,7 +6917,7 @@ loop2:        do nc = 1, this%NComponents
        HW_denom_local = 0
        HW_counter_local = 0
 
-       do j=1, pc%NTest
+       do j=1, pc%NTest 
           HW_counter_local= HW_counter_local + HW_V_local * ( HW_H_local + factor*this%EPotTest(j) ) * exp( - factor*this%EPotTest(j) / this%RefTemperature )
           HW_denom_local = HW_denom_local + HW_V_local * exp( - factor*this%EPotTest(j) / this%RefTemperature )
        end do
@@ -7604,7 +7138,7 @@ loop2:        do nc = 1, this%NComponents
     ! Calculate new energy
     E = .5_RK * E + this%Density * this%EPotCorrMIE + this%EPotCorrRF + Intra
 
-! Ewald
+! Ewald 
     if (LongRange .eq. Ewald) then
       call EwaldFourierEnergy(this)
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
@@ -7805,7 +7339,7 @@ loop2:        do nc = 1, this%NComponents
     end do
     E = .5_RK * E + this%Density * this%EPotCorrMIE + this%EPotCorrRF + Intra
 
-! Ewald
+! Ewald 
     if (LongRange .eq. Ewald) then
       call EwaldFourierEnergy(this)
       E = E + this%UFourier + this%UIntra + this%USelbstTerm
@@ -7848,11 +7382,7 @@ loop2:        do nc = 1, this%NComponents
     nup1= this%Component(nc)%Molecule%NUnit * (np - 1) + nu
     do i = 1, this%NComponents
       NUnitPart = this%Component(i)%Molecule%NUnit * this%Component(i)%NPart
-      if (UseIntDegFreed) then
-          E = E + sum( this%Interaction(i, nc)%EPot(1:NUnitPart, nup1) )
-      else
-          E = E + sum( this%Interaction(nc, i)%EPot(nup1, 1:NUnitPart) )
-      end if
+      E = E + sum( this%Interaction(i, nc)%EPot(1:NUnitPart, nup1) )
     end do
 
     if ( UseIntDegFreed ) then
@@ -7876,7 +7406,7 @@ loop2:        do nc = 1, this%NComponents
       end do
     end if
 
-! Ewald
+! Ewald 
     if (LongRange .eq. Ewald) then
       E = E + this%UFourier
 #if SPME > 0
@@ -7914,7 +7444,7 @@ loop2:        do nc = 1, this%NComponents
         V = V + sum( this%Interaction(j, i)%Virial(1:this%Component(j)%NPart * this%Component(j)%Molecule%NUnit, 1:n) )
       end do
     end do
-    V = .5_RK * V + this%Density * this%VirialCorrMIE + Third*this%VirialCorrRF
+    V = .5_RK * V + this%Density * this%VirialCorrMIE + this%VirialCorrRF*this%Volume0
 
     if (LongRange .eq. Ewald) then
 !       call EwaldFourierEnergy(this)
@@ -8037,7 +7567,6 @@ loop2:        do nc = 1, this%NComponents
 
     ! Calculate particle energy at trial position
     call Energy( this, nc, np, nu, EPotNew )
-
     ! Apply Metropolis acceptance criterion
 #if MPI_VER > 0
     if ( Equilibration .and. CommonEqui ) then
@@ -8047,7 +7576,7 @@ loop2:        do nc = 1, this%NComponents
           EPotDelta = EPotOld - EPotNew
     endif
 #else
-    EPotDelta = EPotOld - EPotNew
+     EPotDelta = EPotOld - EPotNew
 #endif
 
     accepted = EPotDelta > 0._RK
@@ -8329,9 +7858,9 @@ loop2:        do nc = 1, this%NComponents
      EPotDelta = EPotOld - EPotNew
 #endif
 
-    if( (this%RefHamiltonian*this%NPart - this%Epot+EPotDelta) < 0._RK ) then
+    if( (this%RefHamiltonian*this%NPart - this%Epot+EPotDelta) < 0._RK ) then 
       NewOmega = 0._RK
-    else
+    else 
       NewOmega = 1._RK
     end if
 
@@ -8344,17 +7873,17 @@ loop2:        do nc = 1, this%NComponents
       pc%NMoveSuccesses = pc%NMoveSuccesses + 1
       call UpdateEnergy( this, nc, np, nu )
 #if MPI_VER > 0
-      ! in MC simulations we only communicate during common equilibration
+      ! in MC simulations we only communicate during common equilibration 
       if (.not. UseIntDegFreed .and. Equilibration .and. CommonEqui) then
         call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
       else if (.not. UseIntDegFreed ) then
         this%EPot = this%EPot - EPotDelta
-      endif
+      endif  
 #else
       if (.not. UseIntDegFreed ) then
           this%EPot = this%EPot - EPotDelta
       end if
-#endif
+#endif    
     else
 
       ! Reject move
@@ -8480,9 +8009,9 @@ loop2:        do nc = 1, this%NComponents
     EPotDelta = EPotOld - EPotNew
 #endif
 
-    if( (this%RefHamiltonian*this%NPart - this%Epot+EPotDelta) < 0._RK ) then
+    if( (this%RefHamiltonian*this%NPart - this%Epot+EPotDelta) < 0._RK ) then 
       NewOmega = 0._RK
-    else
+    else 
       NewOmega = 1._RK
     end if
 
@@ -8494,12 +8023,12 @@ loop2:        do nc = 1, this%NComponents
       pc%NRotateSuccesses = pc%NRotateSuccesses + 1
       call UpdateEnergy( this, nc, np, nu )
 #if MPI_VER > 0
-      ! in MC simulations we only communicate during common equilibration
+      ! in MC simulations we only communicate during common equilibration 
       if (.not. UseIntDegFreed .and. Equilibration .and. CommonEqui) then
         call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
       else if (.not. UseIntDegFreed) then
         this%EPot = this%EPot - EPotDelta
-      endif
+      endif  
 #else
       if (.not. UseIntDegFreed) then
           this%EPot = this%EPot - EPotDelta
@@ -8538,7 +8067,7 @@ loop2:        do nc = 1, this%NComponents
     end if
 
   end subroutine TEnsemble_Rotate_NVE
-
+  
 !==============================================================!
 !  Subroutine TEnsemble_Move_NPH                               !
 !==============================================================!
@@ -8650,17 +8179,17 @@ loop2:        do nc = 1, this%NComponents
       pc%NMoveSuccesses = pc%NMoveSuccesses + 1
       call UpdateEnergy( this, nc, np, nu )
 #if MPI_VER > 0
-      ! in MC simulations we only communicate during common equilibration
+      ! in MC simulations we only communicate during common equilibration 
       if (.not. UseIntDegFreed .and. Equilibration .and. CommonEqui) then
         call MPI_Allreduce( GetEnergy( this ), this%EPot, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
       else if (.not. UseIntDegFreed) then
         this%EPot = this%EPot - EPotDelta
-      endif
+      endif  
 #else
       if (.not. UseIntDegFreed) then
           this%EPot = this%EPot - EPotDelta
       end if
-#endif
+#endif    
 
     else
 
@@ -9133,13 +8662,13 @@ loop2:        do nc = 1, this%NComponents
 !==============================================================!
 
   subroutine TEnsemble_PartnersBiased ( this, ncf, npf )
-
+  
     implicit none
 
     ! Declare arguments
     type(TEnsemble)         :: this
     integer, intent(in)     :: ncf, npf
-
+    
     real(RK)            :: BoxLength
     real(RK)            :: dxf, dyf, dzf
     real(RK)            :: dx, dy, dz, dr2
@@ -9147,7 +8676,7 @@ loop2:        do nc = 1, this%NComponents
     integer             :: counter, counter1
     integer             :: i, j
     type(TComponent),pointer :: pc, pcf
-
+    
     BoxLength = this%BoxLength
     counter   = 0
     counter1  = 0
@@ -9157,7 +8686,7 @@ loop2:        do nc = 1, this%NComponents
     dxf = pcf%Pm0(npf,1)
     dyf = pcf%Pm0(npf,2)
     dzf = pcf%Pm0(npf,3)
-
+    
     do i=1, this%NComponents
       pc => this%Component(i)
       counter1=0
@@ -9182,9 +8711,9 @@ loop2:        do nc = 1, this%NComponents
       pc%BiasedPartnersNum = counter1
       NGradIns = NGradIns + counter1*pc%Molecule%NDF
     end do
-
+    
     this%NGradIns = NGradIns
-
+  
   end subroutine TEnsemble_PartnersBiased
 
 
@@ -9324,7 +8853,7 @@ loop2:        do nc = 1, this%NComponents
 
 #if SPME > 0
 ! ----------------------------------------------------------------
-    else if (LongRange .eq. PME) then ! SPME
+    else if (LongRange .eq. PME) then ! SPME 
       EFourier = this%UFourier
       EVirial  = this%EVirial
       call PMESetup(this)
@@ -9449,7 +8978,7 @@ subroutine TEnsemble_ScaleInteractionThermoInt( this, nt , factor)
         !  enddo
         !enddo
       endif
-      if( associated(this%Interaction(nt, i)%PotChargeQuadrupole)) then
+      if( associated(this%Interaction(nt, i)%PotChargeQuadrupole)) then       
         this%Interaction(nt, i)%PotChargeQuadrupole(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeQuadrupole(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon    = this%Interaction(i, nt)%PotQuadrupoleCharge(:, :)%Epsilon * Factor
         !do k=1,this%Interaction(nt,i)%N1Charge
@@ -9635,8 +9164,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       ! Change state of lambda
       LambdaNew=pt%Lambda+2.0_RK*pc%LaStepMax*(rnd(0.0_RK,1.0_RK)-0.5_RK)
 
-      if (LambdaNew>=pc%LaMin .and. ((.not. UseIntDegFreed .and. LambdaNew<pc%LaMax) .or. (UseIntDegFreed .and. LambdaNew<=pc%LaMax) )) then
-
+      if (LambdaNew>=pc%LaMin .and. ((.not. UseIntDegFreed .and. LambdaNew<pc%LaMax) .or. (UseIntDegFreed .and. LambdaNew<=pc%LaMax) )) then 
+        
         currentbin=int((LambdaNew-pc%LaMin)/pc%deltaLa)
         ChempotDelta=ChempotDelta+pc%BinsIntdEndLa(currentbin)
         ! Calculate energy of fluctuating particle
@@ -9804,8 +9333,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
         else
           EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
-        endif
-
+        endif 
+   
         if( rnd( 0._RK, 1._RK ) .lt. ( exp( pc%ChemPot - EPotInsAll / this%Temperature ) * this%Volume0 / np )) then
 #else
           EPotIns = EPotIns + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
@@ -9832,7 +9361,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call EwaldFourierEnergy ( this, nc, np, -1 )
           this%USelbstTerm = USelbst
           this%UIntra  = UIntra
-        end if
+        end if 
 
 #if SPME > 0
       else if (LongRange .eq. PME) then           ! SPME-SUMMATION
@@ -9871,8 +9400,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
         else
           EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
-        endif
-
+        endif 
+    
         if( rnd( 0._RK, 1._RK ) .lt. ( exp( pc%ChemPot - EPotInsAll / this%RefTemperature ) * InvDensityCorr )) then
 
 #else
@@ -9901,7 +9430,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call RemoveParticle( pc, np )
           this%NPart = this%NPart - 1
           this%NUnitTotal = this%NUnitTotal - nu
-        end if
+        end if 
 
       end if
 
@@ -9996,8 +9525,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call MPI_Allreduce( GetEnergy( this, nc, np ), EPotDel, 1,MPI_RK, MPI_SUM, Communicator, ierror )
         else
           EPotDel = GetEnergy( this, nc, np )
-        endif
-
+        endif 
 #else
         EPotDel = GetEnergy( this, nc, np )
 #endif
@@ -10079,8 +9607,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call MPI_Allreduce( GetEnergy( this, nc, np ), EPotDel, 1,MPI_RK, MPI_SUM, Communicator, ierror )
           else
             EPotDel = GetEnergy( this, nc, np )
-          endif
-
+          endif 
 #else
           EPotDel = GetEnergy( this, nc, np )
 #endif
@@ -10348,7 +9875,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
 
     ! Find potential change
-
+    
     ! NPH
     if( EnsembleType .eq. EnsembleTypeNPH ) then
       if( exp(( real (this%NDF, RK) / 2._RK - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) &
@@ -10410,17 +9937,18 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
         end if
 #if MPI_VER > 0
-        ! in MC simulations we only communicate during common equilibration
+        ! in MC simulations we only communicate during common equilibration 
         if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) .and. .not. UseIntDegFreed) then
           call MPI_Allreduce( GetEnergy( this ), this%EPot, 1, MPI_RK, MPI_SUM, Communicator, ierror )
         else if (.not. UseIntDegFreed) then
           this%EPot = GetEnergy( this )
-        endif
+        endif  
 #else
         if (.not. UseIntDegFreed) then
             this%EPot = GetEnergy( this )
         end if
-#endif
+#endif  
+
       else
         ! Reject volume change
         this%Volume0 = VolumeOld
@@ -10495,7 +10023,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
         end if
       end if
-
+    
     else !NPT
       EPotDelta = this%RefPressure * (this%Volume0 - VolumeOld) + this%EPot - EPotOld &
 &     + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 )
@@ -10902,8 +10430,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
        rx = rnd( 0._RK, 1._RK )
        do nc = 1, this%NComponents
           sx = sx + this%Component(nc)%Fraction
-          if( rx <= sx ) exit
-       end do
+          if( rx <= sx ) exit 
+       end do 
        Charge = this%Component(nc)%Molecule%Charge
      end do
 
@@ -11098,7 +10626,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call EwaldFourierEnergy ( this, nc, np, -1 )
         this%USelbstTerm = USelbst
         this%UIntra  = UIntra
-      end if
+      end if 
 
     else                                         ! REACTION FIELD
       ! Calculate particle energy at trial position
@@ -11133,7 +10661,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call RemoveParticle( pc, np )
         this%NPart = this%NPart - 1
         this%NUnitTotal = this%NUnitTotal - pc%Molecule%NUnit
-      end if
+      end if 
 
     end if
 
@@ -11364,20 +10892,20 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     integer  :: i
     integer  :: Numb1, Numb2
     integer  :: counter
-
+    
 !     CriticalLength = (this%ResidLength * this%BoxLength)**2
     CriticalLength = (this%ResidLength)**2
     counter = 0
     do i = 1, this%ResidPairs
       Numb1 = this%CompPair(i,1)
       Numb2 = this%CompPair(i,2)
-
+      
       ! Do not evaluate the pair, since it seperated earlier
       if ( (Numb1 == 0) .or. (Numb2 == 0) ) then
         counter = counter + 1
         cycle
       end if
-
+      
       ! Calculate distance
       R1x = this%Component(this%ResidComp1)%Molecule%SiteMIEnm(this%ResidSite1)%RX(Numb1)
       R1y = this%Component(this%ResidComp1)%Molecule%SiteMIEnm(this%ResidSite1)%RY(Numb1)
@@ -11385,7 +10913,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       R2x = this%Component(this%ResidComp2)%Molecule%SiteMIEnm(this%ResidSite2)%RX(Numb2)
       R2y = this%Component(this%ResidComp2)%Molecule%SiteMIEnm(this%ResidSite2)%RY(Numb2)
       R2z = this%Component(this%ResidComp2)%Molecule%SiteMIEnm(this%ResidSite2)%RZ(Numb2)
-
+      
       drx = (R1x - R2x)
       drx = ( (drx -anint(drx))*this%BoxLength )**2
       dry = (R1y - R2y)
@@ -11404,14 +10932,14 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         this%ResidTimesStart(i) = 0._RK
       end if
     end do
-
+    
     ! Update list, if time is ready
     if (mod(Step,this%ResidPeriod) == 0) then
       call ResidencePartners ( this )
     end if
     ! Count number of pairs per time step
     call Update( this%SumResidencePairs, 1._RK*this%ResidPairs - 1._RK*counter )
-
+    
    end subroutine TEnsemble_Residence
 
 !==============================================================!
@@ -11424,24 +10952,24 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     ! Declare arguments
     type(TEnsemble) :: this
-
+    
     ! Declare local variables
     integer :: i, j
     integer :: ResidPairs
-    integer :: counter
+    integer :: counter 
     type(TComponent),pointer :: pc1, pc2
     real(RK) :: R1x, R1y, R1z
     real(RK) :: R2x, R2y, R2z
     real(RK) :: drx, dry, drz
     real(RK) :: CriticalLength
-
+    
     pc1 => this%Component(this%ResidComp1)
     pc2 => this%Component(this%ResidComp2)
     CriticalLength = (this%ResidLength)**2
     ResidPairs = 0
     this%ResidTimesStart_Old = this%ResidTimesStart
     this%CompPair_Old = this%CompPair
-
+    
 
     do i=1, pc1%NPart
       do j=1, pc2%NPart
@@ -11453,7 +10981,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         R2x = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RX(j)
         R2y = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RY(j)
         R2z = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RZ(j)
-
+        
         drx = (R1x - R2x)
         drx = ( (drx -anint(drx))*this%BoxLength )**2
         dry = (R1y - R2y)
@@ -11465,7 +10993,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           this%CompPair(ResidPairs,1) = i
           this%CompPair(ResidPairs,2) = j
           this%ResidTimesStart(ResidPairs) = Step
-        end if
+        end if 
       end do
     end do
 
@@ -11673,7 +11201,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     integer         :: fields = 0
     integer         :: accumulate_step = 0
     integer         :: headers = 0
-    integer(kind=MPI_OFFSET_KIND) :: offset = 0
+    integer(kind=MPI_OFFSET_KIND) :: offset = 0 
     integer                       :: ierr
 #endif
 
@@ -11691,17 +11219,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: currentHmU, currentHmUm1, currentH
     real(RK)                  :: O10, O01, O20, O11, O02, O30, O21, O12, O40, O31, O22, O00
     real(RK)                  :: S10, S01, S20, S11, S02, S30, S21, S12
-    real(RK)                  :: O00m1, O00m2, O00m3, O012, O20m1, S20m1, S20m2, S20m3
+    real(RK)                  :: O00m1, O00m2, O00m3, O012, O20m1, S20m1, S20m2, S20m3 
     real(RK)                  :: F, invF, funcF, rho, rho2, HmU, HmUm1, HmUm2, HmUm3, HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
     real(RK)                  :: Momentum(3), Momentumd2Mass, Mass
     real(RK)                   :: a1, a3, a4, a5! dummy arguments
     type(idfPotentialEnergies):: a2
-    ! Sampling of Dielectric Constant
-    real(RK)                  :: MX, MY, MZ
-    integer                   :: kIndex, lIndex
-    type(TMolecule), pointer  :: pm
-    type(TSiteCharge), pointer:: pCharge
-    
 #if HBOND > 0
     integer                   :: k, l, m
 #endif
@@ -11759,7 +11281,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               call Reset( this%SumHBond3(i,j,k,l) )
               do m = l, this%NComponents
                 call Reset( this%SumHBond4(i,j,k,l,m) )
-              end do
+              end do 
             end do
           end do
         end do
@@ -11780,7 +11302,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call Reset( this%SumResidenceDuration )
         call Reset( this%SumResidencePairs )
       end if
-
+      
       ! 2.) Combined sums
       call Reset( this%SumEPotSquared )
       call Reset( this%SumEPotV )
@@ -11869,12 +11391,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call Reset( this%Component(i)%SumHW_denom )
         end select
       end do
-      
-      ! 5.) Sampling of Dielectric Constant
-        call Reset( this%SumTotalDipoleMoment )
-        call Reset( this%SumTotalDipoleMomentSquared )
-        call Reset( this%SumDielectricConstant )
-      
+
         do i = 1, this%NRealComponents
           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
             call Reset( this%Component(i)%SumVW )
@@ -11889,9 +11406,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
          headers = headers + 1
          fields = fields + 7
          do i = 1, this%NRealComponents
-           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then
+           if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) then 
              fields = fields + 1
-             if( EnsembleType .eq. EnsembleTypeNPT) then
+             if( EnsembleType .eq. EnsembleTypeNPT) then 
                fields = fields + 1
                if( this%Component(i)%ChemPotMethod .ne. ChemPotMethodNone ) fields = fields + 1
              end if
@@ -11904,7 +11421,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
          if (RootProc) then
            if (CommonEqui) then
-             offset = (accumulate_step/BlockSize+headers-1) * (11 * fields + 1) + headers-1
+             offset = (accumulate_step/BlockSize+headers-1) * (11 * fields + 1) + headers-1 
            else
              offset = (NProcs * (accumulate_step/BlockSize)+headers-1) * (11 * fields + 1) + headers-1
            endif
@@ -11949,24 +11466,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
            if (.not. UseIntDegFreed) write( IOBuffer, '("      ENTLP")' )
            call FileWriteNoAdvance_parallel( this%iounit_result )
            call FileWriteNoAdvance_parallel( this%iounit_runave )
-           
-           ! Dielectric Constant 
-           if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-               write( IOBuffer, '("      EPSILON")' )
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-               
-               ! Dielectric Constant 
-               write( IOBuffer, '("      <M>")' )
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-               
-               ! Dielectric Constant 
-               write( IOBuffer, '("      <M^2>")' )
-               call FileWriteNoAdvance_parallel( this%iounit_result )
-               call FileWriteNoAdvance_parallel( this%iounit_runave )
-           endif
-           
+
           if (printIDF) then
             ! Inter Potential energy
             write( IOBuffer, '("     EP_Inter")' )
@@ -12084,7 +11584,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                call FileWriteNoAdvance_parallel( this%iounit_runave )
              end if
            end do
-#endif
+#endif  
            write( IOBuffer, '(A)' )new_line('a')
            call FileWriteNoAdvance_parallel( this%iounit_result )
            call FileWriteNoAdvance_parallel( this%iounit_runave )
@@ -12133,23 +11633,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
          end if
          call FileWriteNoAdvance( this%iounit_result )
          call FileWriteNoAdvance( this%iounit_runave )
-         
-         ! Dielectric Constant 
-         if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-             write( IOBuffer, '("      EPSILON")' )
-             call FileWriteNoAdvance( this%iounit_result )
-             call FileWriteNoAdvance( this%iounit_runave )
-             
-             ! Dielectric Constant 
-             write( IOBuffer, '("      <M>")' )
-             call FileWriteNoAdvance( this%iounit_result )
-             call FileWriteNoAdvance( this%iounit_runave )
-              
-             ! Dielectric Constant 
-             write( IOBuffer, '("      <M^2>")' )
-             call FileWriteNoAdvance( this%iounit_result )
-             call FileWriteNoAdvance( this%iounit_runave )
-         endif
+
         if (printIDF) then
           ! Inter Potential energy
           write( IOBuffer, '("     EP_Inter")' )
@@ -12263,7 +11747,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
              call FileWriteNoAdvance( this%iounit_runave )
            end if
          end do
-#endif
+#endif  
         call FileWriteBlank( this%iounit_result )
         call FileWriteBlank( this%iounit_runave )
 #endif
@@ -12316,23 +11800,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         if (.not. UseIntDegFreed .and. (.not. EMinimizationIDF)) write( IOBuffer, '("      ENTLP")' )
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
-        
-        ! Dielectric Constant
-        if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-            write( IOBuffer, '("      EPSILON")' )
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-            
-            ! Dielectric Constant 
-            write( IOBuffer, '("      <M>")' )
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-               
-            ! Dielectric Constant 
-            write( IOBuffer, '("      <M^2>")' )
-            call FileWriteNoAdvance( this%iounit_result )
-            call FileWriteNoAdvance( this%iounit_runave )
-        endif
 
         if (printIDF) then
           ! Inter Potential energy
@@ -12501,9 +11968,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         !Density Profile
         do i = 1, this%NComponents
           do j = 1, NBinsDen
-            if (j .le. 9) then
+            if (j .le. 9) then 
               write( IOBuffer, '("   DP", I1, "B00", I1)' ) i, j
-            elseif (j .le. 99) then
+            elseif (j .le. 99) then 
               write( IOBuffer, '("    DP", I1, "B0", I2)' ) i, j
             else
               write( IOBuffer, '("     DP", I1, "B", I3)' ) i, j
@@ -12516,9 +11983,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #if OSMOP == 2
         !Pressure Profile
         do j = 1, NBinsDen
-          if (j .le. 9) then
+          if (j .le. 9) then 
             write( IOBuffer, '(" PPB00", I1)' ) j
-          elseif (j .le. 99) then
+          elseif (j .le. 99) then 
             write( IOBuffer, '(" PPB0", I2)' ) j
           else
             write( IOBuffer, '(" PPB", I3)' ) j
@@ -12531,9 +11998,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         do i = 1, this%NRealComponents
           if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodWidom ) then
             do j = 1, NBinsDen
-              if (j .le. 9) then
+              if (j .le. 9) then 
                 write( IOBuffer, '("     CP", I1, "B00", I1)' ) i, j
-              elseif (j .le. 99) then
+              elseif (j .le. 99) then 
                 write( IOBuffer, '("     CP", I1, "B0", I2)' ) i, j
               else
                 write( IOBuffer, '("     CP", I1, "B", I3)' ) i, j
@@ -12578,7 +12045,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance( this%iounit_runave )
           end if
         end do
-#endif
+#endif   
         call FileWriteBlank( this%iounit_result )
         call FileWriteBlank( this%iounit_runave )
       end if
@@ -12650,19 +12117,23 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call Update( this%SumHBondN(i), real(this%NHBondN(i),RK) )
     end do
 #endif
-
-    if(UseIntDegFreed .and. ConstantPressure ) then  ! MichaelGE: fix Enthalpy
-      call Update( this%SumEnthalpy, this%EPot/real(this%NPart,RK) + this%RefPressure/this%Density)
-    else if (UseIntDegFreed) then
+    if( ConstantPressure ) then
+      call Update( this%SumEnthalpy, this%EPotInter / real( this%NPart, RK ) + this%RefPressure / this%Density - &
+&      (1-this%NUnitTotal/this%Npart)*this%RefTemperature )
+!       call Update( this%SumEnthalpy, this%EPot/real(this%NPart,RK) + this%Pressure/this%Density - this%RefTemperature) - refT to adjust H=U+pv with p_res, u already u_res
+    else
       call Update( this%SumEnthalpy, this%EPot/real(this%NPart,RK) + this%Pressure/this%Density)
     end if
+
+    call Update( this%SumVirialIntra, -3._RK * this%VirialIntra )
+    call Update( this%SumVirialInter, -3._RK * this%VirialInter )
 
     if (.not. UseIntDegFreed) then
         currentdEpotdV   = -this%Density*this%Virial/real( this%NPart, RK )
         currentd2EpotdV2 =  this%Density**2*(2._RK*this%Virial/3._RK + this%d2EpotdV2) / (real( this%NPart, RK ))**2
     else
-        currentdEpotdV   = -this%Virial/this%Volume0
-        currentd2EpotdV2 =  (2._RK*this%Virial/3._RK + this%d2EpotdV2) / this%Volume0**2
+        currentdEpotdV   = -(this%Virial+(this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0
+        currentd2EpotdV2 =  ((2._RK*this%Virial/3._RK + this%d2EpotdV2) + (this%NUnitTotal-this%Npart)*this%RefTemperature)/this%Volume0**2 ! diff to trunk...wrong! GABOR!!!
     end if
     call Update( this%SumdEpotdV,   currentdEpotdV)
     call Update( this%Sumd2EpotdV2, currentd2EpotdV2)
@@ -12677,17 +12148,17 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     end if
 
     ! 2.) Combined sums
-    call Update( this%SumEPotSquared,      ( this%EPot / real( this%NPart, RK ) )**2 )
-    call Update( this%SumEPotCubic,          this%EPot**3 )
+    call Update( this%SumEPotSquared,      ( this%EPotInter / real( this%NPart, RK ) )**2 ) ! diff to trunk all 7 lines
+    call Update( this%SumEPotCubic,          this%EPotInter**3 )
     call Update( this%SumdEpotdVSquared,                    currentdEpotdV**2 )
-    call Update( this%SumEPotdEpotdV,        this%EPot    * currentdEpotdV    )
-    call Update( this%SumEPotSquareddEpotdV, this%EPot**2 * currentdEpotdV    )
-    call Update( this%SumEPotdEpotdVSquared, this%EPot    * currentdEpotdV**2 )
-    call Update( this%SumEPotd2EpotdV2,      this%EPot    * currentd2EpotdV2  )
+    call Update( this%SumEPotdEpotdV,        this%EPotInter    * currentdEpotdV    )             
+    call Update( this%SumEPotSquareddEpotdV, this%EPotInter**2 * currentdEpotdV    )
+    call Update( this%SumEPotdEpotdVSquared, this%EPotInter    * currentdEpotdV**2 )
+    call Update( this%SumEPotd2EpotdV2,      this%EPotInter    * currentd2EpotdV2  )
 
     if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then
       !Following was part was commented, even if J.Chem.Phys.100(4)1994 prescribes it for NVEMom MD, because the results are identical with and without it.
-      !if( SimulationType .eq. MolecularDynamics ) then
+      !if( SimulationType .eq. MolecularDynamics ) then  
       !  Momentum(:) = 0._RK
       !  Mass = 0._RK
       !  do j = 1, this%NComponents
@@ -12716,7 +12187,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call Update( this%SumHmUm3dUdV2,     currentHmUm1**3  * currentdEpotdV**2 )
     endif
 
-    call Update( this%SumEPotV, this%EPot / ( real( this%NPart, RK ) * this%Density ) )
+    call Update( this%SumEPotV, this%EPotInter / this%Volume0  )
 
     call Update( this%SumEPotVirial, -3. * this%Virial * this%EPot / real( this%NPart, RK ) )
 
@@ -12724,15 +12195,15 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
        if (.not. UseIntDegFreed) then
            call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
 &                    this%RefPressure / this%Density - this%RefTemperature )**2 )
-
+   
            call Update( this%SumEnthalpyV, ( this%EPot / real( this%NPart, RK ) + &
 &                    this%RefPressure / this%Density - this%RefTemperature ) / this%Density )
        else
-           call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
-&                    this%RefPressure / this%Density)**2 )
-
-           call Update( this%SumEnthalpyV, ( this%EPot / real( this%NPart, RK ) + &
-&                    this%RefPressure / this%Density ) / this%Density )
+           call Update( this%SumEnthalpySquared, ( this%EPotInter / real( this%NPart, RK ) + &
+&                    this%RefPressure / this%Density - (1-this%NUnitTotal/this%Npart)*this%RefTemperature )**2 )
+   
+           call Update( this%SumEnthalpyV, ( this%EPotInter / real( this%NPart, RK ) + &
+&                    this%RefPressure / this%Density - (1-this%NUnitTotal/this%Npart)*this%RefTemperature ) / this%Density )
         end if
     else
         if (.not. UseIntDegFreed) then
@@ -12758,7 +12229,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 &                * ( this%SumVolumeSquared%Average / this%SumVolume%Average - this%SumVolume%Average ) )
 
       call Update( this%SumdHdP, this%SumVolume%Average - real( this%NPart, RK ) / this%RefTemperature &
-&                * ( this%SumEPotV%Average - this%SumEPot%Average * this%SumVolume%Average + this%RefPressure &
+&                * ( this%SumEPotV%Average - this%SumEPotInter%Average * this%SumVolume%Average + this%RefPressure &
 &                * ( this%SumVolumeSquared%Average - this%SumVolume%Average**2 ) ) )
 
       call Update( this%SumCP, real( this%NPart, RK ) / this%RefTemperature**2 &
@@ -12849,7 +12320,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       rho         = this%Density
       rho2        = rho*rho
       !Following was part was commented, even if J.Chem.Phys.100(4)1994 prescribes it for NVEMom MD, because it deteriorates the results considerably.
-      !if( SimulationType .eq. MolecularDynamics ) then
+      !if( SimulationType .eq. MolecularDynamics ) then 
       ! F = (real(this%NDF, RK)- 3._RK)/2._RK
       !else
        F = real(this%NDF-this%constrNDF, RK)/2._RK
@@ -12998,7 +12469,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end do
 
         if(this%NComponents .gt. 1) then
-          do i = 1, this%NComponents
+          do i = 1, this%NComponents  
            call Update( this%SumSoret(i), this%soret(i), this%Mmess )
           end do
           do i = 1, this%NComponents
@@ -13026,7 +12497,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         select case( pc%ChemPotMethod )
         case( ChemPotMethodGradins )
 #if MPI_VER > 0
-          ! Per Process we calculate GI only for one component
+          ! Per Process we calculate GI only for one component 
           if (mod(NProc,this%NGradInsComp)/=pc%NGradThis) cycle
 !           if (mod(NProc,this%NRealComponents)/=i-1) cycle
 #endif
@@ -13092,11 +12563,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           case( ChemPotMethodGradIns )
 
 #if MPI_VER > 0
-          ! Per Process we calculate GI only for one component
-          if (mod(NProc,this%NGradInsComp)/=pc%NGradThis) cycle
+          ! Per Process we calculate GI only for one component 
+          if (mod(NProc,this%NGradInsComp)/=pc%NGradThis) cycle 
 #endif
           call Update( pc%SumVW, this%NPart * ( this%SumVolume%Average &
 &                    - pc%SumInvChemPot%Average / pc%SumInvChemPotRho%Average ) )
+            call Update( pc%SumHM, 0._RK )
 
           case( ChemPotMethodWidom )
             call Update( pc%SumVW, this%NPart * ( pc%SumChemPotVV%Average / pc%SumChemPotV%Average &
@@ -13116,45 +12588,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if
       end do
 
-    ! 5.) Sampling of Dielectric Constant
-    if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-        MX = 0._RK
-        MY = 0._RK
-        MZ = 0._RK
-        if( LongRange .eq. Rfield ) then
-          do i = 1, this%NComponents
-          pc => this%Component(i)
-        do kIndex = 1, pc%NPart
-            MX=MX+pc%MueX(kIndex, 1)
-            MY=MY+pc%MueY(kIndex, 1)
-            MZ=MZ+pc%MueZ(kIndex, 1)
-        end do
-          end do
-        else ! Ewald
-          do i = 1, this%NComponents
-          pc => this%Component(i)
-        do kIndex = 1, pc%NPart
-        pm => pc%Molecule
-          do lIndex = 1, pm%NCharge
-            pCharge => pm%SiteCharge(lIndex)
-            MX=MX+pCharge%e*(pCharge%RX(kIndex)-pc%P0(kIndex,1, 1))*this%BoxLength
-            MY=MY+pCharge%e*(pCharge%RY(kIndex)-pc%P0(kIndex,2, 1))*this%BoxLength
-            MZ=MZ+pCharge%e*(pCharge%RZ(kIndex)-pc%P0(kIndex,3, 1))*this%BoxLength
-          end do
-        end do
-          end do
-        endif
-        
-        this%TotalDipoleMomentSquared=MX**2+MY**2+MZ**2
-        this%TotalDipoleMoment=sqrt(this%TotalDipoleMomentSquared)
-        
-        call Update( this%SumTotalDipoleMoment, this%TotalDipoleMoment )
-        call Update( this%SumTotalDipoleMomentSquared, this%TotalDipoleMomentSquared )
-        
-        this%DielectricConstant=(4._RK*Pi*this%TotalDipoleMomentSquared)/(3._RK*this%NPart/this%Density*this%Temperature)+1._RK
-        call Update( this%SumDielectricConstant, this%DielectricConstant)
-    endif
-      
     ! Update result files
     if( mod( Step, BlockSize ) == 0 ) then
       if(SimulationType .eq. MonteCarlo) then
@@ -13169,12 +12602,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               write( IOBuffer, '(I11)' ) NProc
               call FileWriteNoAdvance_parallel( this%iounit_result )
               call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+      
               ! Number of steps
               write( IOBuffer, '(I11)' ) Step
               call FileWriteNoAdvance_parallel( this%iounit_result )
               call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+      
               if ( this%OptPressure ) then
                 write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
                 call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13186,13 +12619,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                 write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
                 call FileWriteNoAdvance_parallel( this%iounit_runave )
               end if
-
+      
               ! Density
               write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
               call FileWriteNoAdvance_parallel( this%iounit_result )
               write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
               call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+      
               ! Temperature
               write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
               call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13204,31 +12637,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               call FileWriteNoAdvance_parallel( this%iounit_result )
               write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
               call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+      
               ! Enthalpy
               write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
               call FileWriteNoAdvance_parallel( this%iounit_result )
               write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
               call FileWriteNoAdvance_parallel( this%iounit_runave )
-              
-              ! DielectricConstant
-              write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-              
-              ! DielectricConstant
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-              
-              ! DielectricConstant
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+      
       if (printIDF) then
         ! EPotInter
         write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
@@ -13288,7 +12703,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                     call FileWriteNoAdvance_parallel( this%iounit_runave )
                 end if
               end do
-
+      
             ! Partial molar volume
               do i = 1, this%NRealComponents
                 pc => this%Component(i)
@@ -13296,11 +12711,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                     write( IOBuffer, '(" ",F10.4)' ) 0._RK
                     call FileWriteNoAdvance_parallel( this%iounit_result )
                     call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+      
                 end if
               end do
-
-             ! Partial molar enthalphy
+      
+             ! Partial molar enthalphy 
               do i = 1, this%NRealComponents
                 pc => this%Component(i)
                 if( (pc%ChemPotMethod .eq. ChemPotMethodWidom .or. pc%ChemPotMethod .eq. ChemPotMethodThermoInt) .and. EnsembleType .eq. EnsembleTypeNPT) then
@@ -13316,7 +12731,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                 call FileWriteNoAdvance_parallel( this%iounit_result )
                 write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
                 call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+        
                 ! Mole fraction of each component
                 do i = 1, this%NComponents
                   pc => this%Component(i)
@@ -13326,7 +12741,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                   call FileWriteNoAdvance_parallel( this%iounit_runave )
                 end do
               end if
-
+        
 #if CONSTR == 0
                write( IOBuffer, '()' )
                call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13346,12 +12761,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(I11)' ) NProc
             call FileWriteNoAdvance_parallel( this%iounit_result )
             call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+    
             ! Number of steps
             write( IOBuffer, '(I11)' ) ((Step/BlockSize) - 1) * (BlockSize * NProcs)  + (NProc + 1) * BlockSize
             call FileWriteNoAdvance_parallel( this%iounit_result )
             call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+    
             if ( this%OptPressure ) then
               write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
               call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13363,13 +12778,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
               call FileWriteNoAdvance_parallel( this%iounit_runave )
             end if
-
+    
             ! Density
             write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
             call FileWriteNoAdvance_parallel( this%iounit_result )
             write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
             call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+    
             ! Temperature
             write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
             call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13381,32 +12796,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance_parallel( this%iounit_result )
             write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
             call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+    
             ! Enthalpy
             write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
             call FileWriteNoAdvance_parallel( this%iounit_result )
             write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
             call FileWriteNoAdvance_parallel( this%iounit_runave )
-            
-            ! Dielectric Constant
-            if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-                write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-                call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-                call FileWriteNoAdvance_parallel( this%iounit_runave )
-                
-                ! Dielectric Constant
-                write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%BlockAverage
-                call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%Average
-                call FileWriteNoAdvance_parallel( this%iounit_runave )
-                  
-                ! Dielectric Constant
-                write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-                call FileWriteNoAdvance_parallel( this%iounit_result )
-                write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%Average
-                call FileWriteNoAdvance_parallel( this%iounit_runave )
-            endif
 
       if (printIDF) then
         ! EPotInter
@@ -13457,17 +12852,17 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
         call FileWriteNoAdvance_parallel( this%iounit_runave )
       end if
-
+    
             ! Chemical potential
             do i = 1, this%NRealComponents
               pc => this%Component(i)
-              if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
+              if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then          
                   write( IOBuffer, '(" ",F10.5)' ) 0._RK
                   call FileWriteNoAdvance_parallel( this%iounit_result )
                   call FileWriteNoAdvance_parallel( this%iounit_runave )
                   end if
             end do
-
+    
           ! Partial molar volume
             do i = 1, this%NRealComponents
               pc => this%Component(i)
@@ -13477,7 +12872,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                   call FileWriteNoAdvance_parallel( this%iounit_runave )
               end if
             end do
-
+    
             ! Partial molar enthalphy
             do i = 1, this%NRealComponents
               pc => this%Component(i)
@@ -13494,7 +12889,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               call FileWriteNoAdvance_parallel( this%iounit_result )
               write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
               call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+      
               ! Mole fraction of each component
               do i = 1, this%NComponents
                 pc => this%Component(i)
@@ -13504,7 +12899,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                 call FileWriteNoAdvance_parallel( this%iounit_runave )
               end do
             end if
-
+      
 #if CONSTR == 0
              write( IOBuffer, '()' )
              call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13519,9 +12914,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           accumulate_step = accumulate_step + BlockSize
         else !production starts
           if (CommonEqui) then
-            offset = (NProc  + ((Step/BlockSize)-1) * NProcs + (accumulate_step/BlockSize+headers)) * (11 * fields + 1) + headers
+            offset = (NProc  + ((Step/BlockSize)-1) * NProcs + (accumulate_step/BlockSize+headers)) * (11 * fields + 1) + headers 
           else
-            offset = (NProc  + ((Step/BlockSize)-1) * NProcs + NProcs*(accumulate_step/BlockSize)+headers) * (11 * fields + 1) + headers
+            offset = (NProc  + ((Step/BlockSize)-1) * NProcs + NProcs*(accumulate_step/BlockSize)+headers) * (11 * fields + 1) + headers 
           endif
           call MPI_File_Seek((this%iounit_result), offset, MPI_SEEK_SET, ierr)
           call MPI_File_Seek((this%iounit_runave), offset, MPI_SEEK_SET, ierr)
@@ -13529,12 +12924,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           write( IOBuffer, '(I11)' ) NProc
           call FileWriteNoAdvance_parallel( this%iounit_result )
           call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+  
           ! Number of steps
           write( IOBuffer, '(I11)' ) ((Step/BlockSize) - 1) * (BlockSize * NProcs)  + (NProc + 1) * BlockSize
           call FileWriteNoAdvance_parallel( this%iounit_result )
           call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+  
           if ( this%OptPressure ) then
             write( IOBuffer, '(" ",F10.5)' ) this%SumPressure%BlockAverage
             call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13546,13 +12941,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(" ",F10.5)' ) this%RefPressure
             call FileWriteNoAdvance_parallel( this%iounit_runave )
           end if
-
+  
           ! Density
           write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%BlockAverage
           call FileWriteNoAdvance_parallel( this%iounit_result )
           write( IOBuffer, '(" ",F10.5)' ) this%SumDensity%Average
           call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+  
           ! Temperature
           write( IOBuffer, '(" ",F10.5)' ) this%SumTemperature%BlockAverage
           call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13564,33 +12959,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWriteNoAdvance_parallel( this%iounit_result )
           write( IOBuffer, '(" ",F10.5)' ) this%SumEPot%Average
           call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+  
           ! Enthalpy
           write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%BlockAverage
           call FileWriteNoAdvance_parallel( this%iounit_result )
           write( IOBuffer, '(" ",F10.5)' ) this%SumEnthalpy%Average
           call FileWriteNoAdvance_parallel( this%iounit_runave )
-          
-          ! Dielectric Constant
-          if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-              write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-              
-              ! Dielectric Constant
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-                  
-              ! Dielectric Constant
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-              call FileWriteNoAdvance_parallel( this%iounit_result )
-              write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%Average
-              call FileWriteNoAdvance_parallel( this%iounit_runave )
-          endif
-          
+
       if (printIDF) then
         ! EPotInter
         write( IOBuffer, '(" ",F12.5) ' ) this%SumEPotInter%BlockAverage
@@ -13640,27 +13015,27 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         write( IOBuffer, '(" ",F14.5) ' ) this%SumVirialInter%Average
         call FileWriteNoAdvance_parallel( this%iounit_runave )
       end if
-
-          ! Chemical potential
+  
+          ! Chemical potential 
           do i = 1, this%NRealComponents
             pc => this%Component(i)
             if( pc%ChemPotMethod .ne. ChemPotMethodNone ) then
                 if( pc%NPart > 1 ) then
                   select case( pc%ChemPotMethod )
-
+  
                   case( ChemPotMethodGradIns )
                     if ((.not. UseIntDegFreed) .and. (mod(NProc,this%NGradInsComp)/=pc%NGradThis)) then
                       write( IOBuffer, '(" ",A10)' ) '----------'
                       call FileWriteNoAdvance_parallel( this%iounit_result )
                       write( IOBuffer, '(" ",A10)' ) '----------'
                       call FileWriteNoAdvance_parallel( this%iounit_runave )
-                    else
+                    else      
                       write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
                       call FileWriteNoAdvance_parallel( this%iounit_result )
                       write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
                       call FileWriteNoAdvance_parallel( this%iounit_runave )
                     endif
-
+  
                   case( ChemPotMethodWidom )
                     write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
                     call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13673,23 +13048,23 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                     write( IOBuffer, '(" ",F10.5)' ) pc%SumChemPotV%Average
                     call FileWriteNoAdvance_parallel( this%iounit_runave )
                   end select
-
+  
                 else
                   select case( pc%ChemPotMethod )
-
+  
                   case( ChemPotMethodGradIns )
                     if ((.not. UseIntDegFreed) .and. (mod(NProc,this%NGradInsComp)/=pc%NGradThis)) then
                       write( IOBuffer, '(" ",A10)' ) '----------'
                       call FileWriteNoAdvance_parallel( this%iounit_result )
                       write( IOBuffer, '(" ",A10)' ) '----------'
                       call FileWriteNoAdvance_parallel( this%iounit_runave )
-                    else
+                    else      
                       write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
                       call FileWriteNoAdvance_parallel( this%iounit_result )
                       write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
                       call FileWriteNoAdvance_parallel( this%iounit_runave )
                     endif
-
+  
                   case( ChemPotMethodWidom )
                     write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%BlockAverage )
                     call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13705,7 +13080,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                 end if
             end if
           end do
-
+  
         ! Partial molar volume
           do i = 1, this%NRealComponents
             pc => this%Component(i)
@@ -13716,13 +13091,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                 call FileWriteNoAdvance_parallel( this%iounit_runave )
             end if
           end do
-
+  
           ! Partial molar enthalphy
           do i = 1, this%NRealComponents
             pc => this%Component(i)
             if( pc%ChemPotMethod .ne. ChemPotMethodNone .and. EnsembleType .eq. EnsembleTypeNPT) then
                 write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
-                call FileWriteNoAdvance_parallel( this%iounit_result )
+                call FileWriteNoAdvance_parallel( this%iounit_result )     
                 write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
                 call FileWriteNoAdvance_parallel( this%iounit_runave )
             end if
@@ -13734,7 +13109,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance_parallel( this%iounit_result )
             write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
             call FileWriteNoAdvance_parallel( this%iounit_runave )
-
+    
             ! Mole fraction of each component
             do i = 1, this%NComponents
               pc => this%Component(i)
@@ -13744,7 +13119,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               call FileWriteNoAdvance_parallel( this%iounit_runave )
             end do
           end if
-
+    
 #if CONSTR == 0
            write( IOBuffer, '()' )
            call FileWriteNoAdvance_parallel( this%iounit_result )
@@ -13756,7 +13131,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWriteNoAdvance_parallel( this%iounit_result )
           call FileWriteNoAdvance_parallel( this%iounit_runave )
         endif
-#else
+#else 
 !MPI=0
         ! Number of steps
         write( IOBuffer, '(I9)' ) Step
@@ -13815,26 +13190,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
         end if
         call FileWriteNoAdvance( this%iounit_runave )
-        
-        ! Dielectric Constant
-        if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-            call FileWriteNoAdvance( this%iounit_runave )
-
-            ! Dielectric Constant
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%Average
-            call FileWriteNoAdvance( this%iounit_runave )
-                  
-            ! Dielectric Constant
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%Average
-            call FileWriteNoAdvance( this%iounit_runave )
-        endif
 
       if (printIDF) then
         ! EPotInter
@@ -13972,7 +13327,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               call FileWriteNoAdvance( this%iounit_runave )
             else
               write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
-              call FileWriteNoAdvance( this%iounit_result )
+              call FileWriteNoAdvance( this%iounit_result )     
               write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
               call FileWriteNoAdvance( this%iounit_runave )
             end if
@@ -13985,7 +13340,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWriteNoAdvance( this%iounit_result )
           write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
           call FileWriteNoAdvance( this%iounit_runave )
-
+  
           ! Mole fraction of each component
           do i = 1, this%NComponents
             pc => this%Component(i)
@@ -13995,7 +13350,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance( this%iounit_runave )
           end do
         end if
-
+  
         call FileWriteBlank( this%iounit_result )
 #if CONSTR == 0
         call FileWriteBlank( this%iounit_runave )
@@ -14075,26 +13430,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(" ",F12.5)' ) this%SumEnthalpy%Average
         end if
         call FileWriteNoAdvance( this%iounit_runave )
-        
-        ! Dielectric Constant
-        if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F10.5)' ) this%SumDielectricConstant%Average
-            call FileWriteNoAdvance( this%iounit_runave )
-            
-            ! Dielectric Constant
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMoment%Average
-            call FileWriteNoAdvance( this%iounit_runave )
-                  
-            ! Dielectric Constant
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%BlockAverage
-            call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(" ",F15.5)' ) this%SumTotalDipoleMomentSquared%Average
-            call FileWriteNoAdvance( this%iounit_runave )
-        endif
 
       if (printIDF) then
         ! EPotInter
@@ -14231,7 +13566,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               call FileWriteNoAdvance( this%iounit_runave )
             else
               write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%BlockAverage
-              call FileWriteNoAdvance( this%iounit_result )
+              call FileWriteNoAdvance( this%iounit_result )     
               write( IOBuffer, '(" ",F10.4)' ) pc%SumHM%Average
               call FileWriteNoAdvance( this%iounit_runave )
             end if
@@ -14319,7 +13654,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         do j = 1, NBinsDen
             write( IOBuffer, '(F10.4)' ) this%SumPressureProfile(j)%BlockAverage
             call FileWriteNoAdvance( this%iounit_result )
-            write( IOBuffer, '(F10.4)' ) this%SumPressureProfile(j)%Average
+            write( IOBuffer, '(F10.4)' ) this%SumPressureProfile(j)%Average 
             call FileWriteNoAdvance( this%iounit_runave )
         end do
 
@@ -14354,7 +13689,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWriteNoAdvance( this%iounit_result )
           write( IOBuffer, '(" ",F10.2)' ) this%SumNPart%Average
           call FileWriteNoAdvance( this%iounit_runave )
-
+  
           ! Mole fraction of each component
           do i = 1, this%NComponents
             pc => this%Component(i)
@@ -14364,7 +13699,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteNoAdvance( this%iounit_runave )
           end do
         end if
-
+  
         call FileWriteBlank( this%iounit_result )
 #if CONSTR == 0
         call FileWriteBlank( this%iounit_runave )
@@ -14400,7 +13735,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWriteNoAdvance( this%iounit_rescf )
         end do
       end if
-
+      
       do i = 1, this%NComponents
         if (.not. UseIntDegFreed) then
           write( IOBuffer, '(T10,"D_i",I2)' ) i
@@ -14476,7 +13811,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(T10,"Int LiQ", I1)')i
             call FileWriteNoAdvance( this%iounit_rescf )
           end do
-        end if
+        end if       
  !     end if
 
       if (this%EConductivity) then
@@ -14527,7 +13862,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           if (this%NComponents .gt. 1) then
             do j=1,this%NComponents
               value = this%density*this%density*this%Component(j)%Molecule%Mass/(6._RK*this%NPart)
-              write( IOBuffer, '(T5,F12.5)' ) this%average_cf_soret(j,i)*value/this%Mmess
+              write( IOBuffer, '(T5,F10.5)' ) this%average_cf_soret(j,i)*value
               call FileWriteNoAdvance( this%iounit_rescf )
             end do
           end if
@@ -14567,7 +13902,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         if (this%Bulkviscosity .or. UseIntDegFreed) then
           write( IOBuffer, '(T5, F10.5)' ) this%average_sinte_vb(i)*value !this%sinte_vb(i) / this%sinte_vb(this%NCorr) * this%visco_b * value
           call FileWriteNoAdvance( this%iounit_rescf )
-        end if
+        end if 
 
        ! thermal conductivity
   !      if (this%Conductivity) then
@@ -14609,7 +13944,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #ifdef __INTEL_COMPILER
     if( err .eq. 0 ) then
       call MPI_Bcast(err,1,MPI_INTEGER,NRootProc,Communicator,ierror)
-      err = SetTerminateProgram( 1 )
+      err = SetTerminateProgram( 1 ) 
     end if
 
 #else
@@ -14622,7 +13957,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #else
 ! Single Abortion
 #ifdef __INTEL_COMPILER
-    if( err .eq. 0 ) err = SetTerminateProgram( 1 )
+    if( err .eq. 0 ) err = SetTerminateProgram( 1 ) 
 #else
     if( err .eq. 0 ) call SetTerminateProgram
 #endif
@@ -14649,22 +13984,22 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     ! Declare arguments
     type(TEnsemble) :: this
 
-#if MPI_VER > 0
+#if MPI_VER > 0    
     if (SimulationType .eq. MonteCarlo) then
       ! Close running average result file
       if( .not. SimulationType .eq. SecondVirialCoeff ) call FileClose_parallel( this%iounit_runave )
-
+  
       ! Close result file
       call FileClose_parallel( this%iounit_result )
     else
       if( .not. SimulationType .eq. SecondVirialCoeff ) call FileClose( this%iounit_runave )
-
+  
       ! Close result file
       call FileClose( this%iounit_result )
     endif
 #else
     if( .not. SimulationType .eq. SecondVirialCoeff ) call FileClose( this%iounit_runave )
-
+  
     ! Close result file
     call FileClose( this%iounit_result )
 #endif
@@ -14699,11 +14034,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     real(RK)                  :: x(this%NComponents)
     real(RK)                  :: Inv_x(this%NComponents)
     real(RK)                  :: L(this%NComponents, this%NComponents)
-    real(RK)                  :: delta(this%NComponents-1, this%NComponents-1)
-    real(RK)                  :: err_delta(this%NComponents-1, this%NComponents-1)
+    real(RK)                  :: delta(this%NComponents-1, this%NComponents-1) 
+    real(RK)                  :: err_delta(this%NComponents-1, this%NComponents-1) 
     real(RK)                  :: B(this%NComponents-1, this%NComponents-1)
     real(RK)                  :: err_B(this%NComponents-1, this%NComponents-1)
-    real(RK)                  :: D_12, D_13, D_14, D_23, D_24, D_34
+    real(RK)                  :: D_12, D_13, D_14, D_23, D_24, D_34 
     real(RK)                  :: err_D12, err_D13, err_D14, err_D23, err_D24, err_D34
 #endif
 #if HBOND > 0
@@ -14868,32 +14203,32 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         select case( pc%ChemPotMethod )
         case( ChemPotMethodGradIns )
 
-#if MPI_VER > 0
+#if MPI_VER > 0          
            if (mod(NProc,this%NGradInsComp)==pc%NGradThis) then
             color = i
           else
             color = 100000
-          endif
+          endif 
 
           NProc_W = NProc
           RootProc_W = Rootproc
-          call MPI_COMM_SPLIT(Communicator,color,NProc,Communicator,ierror)
+          call MPI_COMM_SPLIT(Communicator,color,NProc,Communicator,ierror) 
            ! Careful, Nproc and NProcs are now specific for Communicator
           call SetCommunicator( Communicator )
           NBlockSizes = int( sqrt( real( Step*NProcs / BlockSize, RK ) ) )
-          NBlocks = tempVal*NProcs
-          RootProc = NProc_W==(pc%NGradThis)
-          NRootProc_W = (pc%NGradThis)
+          NBlocks = tempVal*NProcs   
+          RootProc = NProc_W==(pc%NGradThis)     
+          NRootProc_W = (pc%NGradThis)     
 
-#endif
-
+#endif          
+          
           call ErrorGI( pc%SumInvChemPotRho )
           call ErrorGI( pc%SumVW )
-
-#if MPI_VER > 0
+            
+#if MPI_VER > 0          
           call SetCommunicator(MPI_COMM_WORLD)
-          RootProc = Rootproc_W
-#endif
+          RootProc = Rootproc_W                          
+#endif 
 
         case( ChemPotMethodWidom )
           call Error( pc%SumChemPotV )
@@ -14915,12 +14250,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       end do
     end if
 
-    ! Sampling of Dielectric Constant
-    if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-        call Error( this%SumTotalDipoleMoment )
-        call Error( this%SumTotalDipoleMomentSquared )
-        call Error( this%SumDielectricConstant )
-    endif
 
 #if MPI_VER >0
     if ( SimulationType .eq. MonteCarlo) then
@@ -14941,7 +14270,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("* G. Rutkai, A. Koester, G. Guevara-Carrion, T. Janzen, M. Schappal,       *")')
+    write( IOBuffer, '("* G. Rutkai, A. Koester, G. Guevara-Carrion, T. Janzen, M. Schappal,       *")') 
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("* C.W. Glass, M. Bernreuther, A. Wafai, S. Stephan, M. Kohns, S. Reiser,   *")')
     call FileWrite( this%iounit_errors )
@@ -14986,11 +14315,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
 
     if ( SimulationType .eq. MonteCarlo .and. (Nproc == NRootProc)) then
-      ! The RootProc receives data from all processes and therefore the # of
+      ! The RootProc receives data from all processes and therefore the # of 
       ! Step is increased accordingly
       write( IOBuffer, '("Number of production steps", T34, ":", I12)' ) Step*NProcs
 
-    else
+    else 
       write( IOBuffer, '("Number of production steps", T36, ":", I10)' ) Step
     end if
     call FileWrite( this%iounit_errors )
@@ -15343,29 +14672,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 &          Variance * UnitEnergy * NAvogadro
     call FileWrite( this%iounit_errors )
     call FileWriteBlank( this%iounit_errors )
-    
-    ! Sampling of Dielectric Constant
-    if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-        Average = this%SumDielectricConstant%Average
-        Variance = this%SumDielectricConstant%Variance
-        write( IOBuffer, '("Dielectric Constant", T29, "SI:", 2F20.9)' ) Average, Variance
-        call FileWrite( this%iounit_errors )
-        call FileWriteBlank( this%iounit_errors )
-        
-        ! Sampling of Dielectric Constant
-        Average = this%SumTotalDipoleMoment%Average
-        Variance = this%SumTotalDipoleMoment%Variance
-        write( IOBuffer, '("<M>", T29, "red:", 2F20.9)' ) Average, Variance
-        call FileWrite( this%iounit_errors )
-        call FileWriteBlank( this%iounit_errors )
-        
-        ! Sampling of Dielectric Constant
-        Average = this%SumTotalDipoleMomentSquared%Average
-        Variance = this%SumTotalDipoleMomentSquared%Variance
-        write( IOBuffer, '("<M^2>", T29, "red:", 2F20.9)' ) Average, Variance
-        call FileWrite( this%iounit_errors )
-        call FileWriteBlank( this%iounit_errors )
-    endif
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       ! Mole fraction
@@ -15491,7 +14797,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 &                trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T28, "in l/mol:", 2F20.9)' ) Average / UnitDensity, Variance / UnitDensity
-          call FileWrite( this%iounit_errors )
+          call FileWrite( this%iounit_errors ) 
         end if
 
           ! Partial molar enthalpy
@@ -15596,30 +14902,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     end if
 
-    if( EnsembleType .eq. EnsembleTypeNVT .and. LongRange .eq. Rfield ) then
-      ! A00
-      if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eqv. .true.) then
-        Average  = 0_RK
-        Variance = 0_RK
-        do i = 1, this%NRealComponents
-          pc => this%Component(i)
-          select case( pc%ChemPotMethod )
-          case( ChemPotMethodWidom )
-            Average  = Average  + pc%Fraction * ( -log(pc%SumChemPotV%Average) )
-            Variance = Variance + ( pc%SumChemPotV%Variance/pc%SumChemPotV%Average )**2
-          case( ChemPotMethodThermoInt )
-            Average  = Average  + (pc%Fraction+1._RK/real( this%NPart, RK ))&
-&                               * ( pc%SumChemPotV%Average - log(pc%Fraction+1._RK/real( this%NPart, RK )) )
-            Variance = Variance + pc%SumChemPotV%Variance**2
-          end select
-        end do
-        Average  = Average - this%SumA01resI%Average - log(this%Density)
-        Variance = sqrt(Variance + this%SumA01resI%Variance**2)
-        write( IOBuffer, '("A00", T29, "Dimensionless, residual:", 2F20.9)' ) Average, Variance
-        call FileWrite( this%iounit_errors )
-        call FileWriteBlank( this%iounit_errors )
-      end if
-
+    if( EnsembleType .eq. EnsembleTypeNVT .and. LongRange .eq. Rfield ) then 
       ! A10
       Average = this%SumA10resI%Average
       Variance = this%SumA10resI%Variance
@@ -15725,30 +15008,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call FileWriteBlank( this%iounit_errors )
     end if
 
-    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then
-      ! A00
-      if( all(this%Component(1:this%NRealComponents)%CalcChemPot) .eqv. .true.) then
-        Average  = 0_RK
-        Variance = 0_RK
-        do i = 1, this%NRealComponents
-          pc => this%Component(i)
-          select case( pc%ChemPotMethod )
-          case( ChemPotMethodWidom )
-            Average  = Average  + pc%Fraction * ( -log(pc%SumChemPotV%Average) )
-            Variance = Variance + ( pc%SumChemPotV%Variance/pc%SumChemPotV%Average )**2
-          case( ChemPotMethodThermoInt )
-            Average  = Average  + (pc%Fraction+1._RK/real( this%NPart, RK ))&
-&                               * ( pc%SumChemPotV%Average - log(pc%Fraction+1._RK/real( this%NPart, RK )) )
-            Variance = Variance + pc%SumChemPotV%Variance**2
-          end select
-        end do
-        Average  = Average - this%SumA01resI%Average - log(this%Density)
-        Variance = sqrt(Variance + this%SumA01resI%Variance**2)
-        write( IOBuffer, '("A00", T29, "Dimensionless, residual:", 2F20.9)' ) Average, Variance
-        call FileWrite( this%iounit_errors )
-        call FileWriteBlank( this%iounit_errors )
-      end if
-
+    if( EnsembleType .eq. EnsembleTypeNVE .and. LongRange .eq. Rfield ) then 
       ! A10I
       Average = this%SumA10resI%Average
       Variance = this%SumA10resI%Variance
@@ -15957,16 +15217,16 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
     end if
-
+    
     ! thermodynamic factors with KBI
-    if( KBIUpdateFrequency > 0 .and. Step >= BlockSizeKBI ) then
-        if (this%NComponents == 2) then
+    if( KBIUpdateFrequency > 0 .and. Step >= BlockSizeKBI ) then 
+        if (this%NComponents == 2) then         
             ! RDF standard
             write( IOBuffer, '("GAMMA11 (RDF)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(1,1), this%dTDF(1,1)
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '("GAMMA11,0 (RDF)", T29, "Dimensionless:", 1F20.9)' ) this%TDF0(1,1)
             call FileWrite( this%iounit_errors )
-            call FileWriteBlank( this%iounit_errors )
+            call FileWriteBlank( this%iounit_errors )                       
             ! RDF vdV correction
             write( IOBuffer, '("GAMMA11 (RDF vdV cor.)", T29, "Dimensionless:", 2F20.9)' ) this%TDF(2,1), this%dTDF(2,1)
             call FileWrite( this%iounit_errors )
@@ -15986,13 +15246,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,1), this%TDF(1,2)
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,3), this%TDF(1,4)
-            call FileWrite( this%iounit_errors )
+            call FileWrite( this%iounit_errors )            
             write( IOBuffer, '("dGAMMA_ij (RDF)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,1), this%dTDF(1,2)
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,3), this%dTDF(1,4)
-            call FileWrite( this%iounit_errors )
+            call FileWrite( this%iounit_errors )            
             write( IOBuffer, '("GAMMA0_ij (RDF)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,1), this%TDF0(1,2)
@@ -16006,13 +15266,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,1), this%TDF(2,2)
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,3), this%TDF(2,4)
-            call FileWrite( this%iounit_errors )
+            call FileWrite( this%iounit_errors )            
             write( IOBuffer, '("dGAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,1), this%dTDF(2,2)
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,3), this%dTDF(2,4)
-            call FileWrite( this%iounit_errors )
+            call FileWrite( this%iounit_errors )            
             write( IOBuffer, '("GAMMA0_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,1), this%TDF0(2,2)
@@ -16026,13 +15286,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,1), this%TDF(3,2)
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,3), this%TDF(3,4)
-            call FileWrite( this%iounit_errors )
+            call FileWrite( this%iounit_errors )            
             write( IOBuffer, '("dGAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,1), this%dTDF(3,2)
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,3), this%dTDF(3,4)
-            call FileWrite( this%iounit_errors )
+            call FileWrite( this%iounit_errors )            
             write( IOBuffer, '("GAMMA0_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,1), this%TDF0(3,2)
@@ -16049,7 +15309,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,4), this%TDF(1,5), this%TDF(1,6)
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(1,7), this%TDF(1,8), this%TDF(1,9)
-            call FileWrite( this%iounit_errors )
+            call FileWrite( this%iounit_errors )            
             write( IOBuffer, '("dGAMMA_ij (RDF)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,1), this%dTDF(1,2), this%dTDF(1,3)
@@ -16057,7 +15317,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,4), this%dTDF(1,5), this%dTDF(1,6)
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(1,7), this%dTDF(1,8), this%dTDF(1,9)
-            call FileWrite( this%iounit_errors )
+            call FileWrite( this%iounit_errors )            
             write( IOBuffer, '("GAMMA0_ij (RDF)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(1,1), this%TDF0(1,2), this%TDF0(1,3)
@@ -16075,7 +15335,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,4), this%TDF(2,5), this%TDF(2,6)
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(2,7), this%TDF(2,8), this%TDF(2,9)
-            call FileWrite( this%iounit_errors )
+            call FileWrite( this%iounit_errors )            
             write( IOBuffer, '("dGAMMA_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,1), this%dTDF(2,2), this%dTDF(2,3)
@@ -16083,7 +15343,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,4), this%dTDF(2,5), this%dTDF(2,6)
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(2,7), this%dTDF(2,8), this%dTDF(2,9)
-            call FileWrite( this%iounit_errors )
+            call FileWrite( this%iounit_errors )            
             write( IOBuffer, '("GAMMA0_ij (RDF vdV cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(2,1), this%TDF0(2,2), this%TDF0(2,3)
@@ -16101,7 +15361,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,4), this%TDF(3,5), this%TDF(3,6)
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF(3,7), this%TDF(3,8), this%TDF(3,9)
-            call FileWrite( this%iounit_errors )
+            call FileWrite( this%iounit_errors )            
             write( IOBuffer, '("dGAMMA_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,1), this%dTDF(3,2), this%dTDF(3,3)
@@ -16109,7 +15369,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,4), this%dTDF(3,5), this%dTDF(3,6)
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%dTDF(3,7), this%dTDF(3,8), this%dTDF(3,9)
-            call FileWrite( this%iounit_errors )
+            call FileWrite( this%iounit_errors )            
             write( IOBuffer, '("GAMMA0_ij (RDF vdV+shf cor.)", T29, "Dimensionless:")' )
             call FileWrite( this%iounit_errors )
             write( IOBuffer, '(T20, 3F20.9)' ) this%TDF0(3,1), this%TDF0(3,2), this%TDF0(3,3)
@@ -16121,8 +15381,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWriteBlank( this%iounit_errors )
         end if
     end if
-
-
+    
+            
     ! Separator
     write( IOBuffer, '(76("="))' )
     call FileWrite( this%iounit_errors )
@@ -16168,7 +15428,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end do
       end do
     end do
-
+     
     do i = 1, this%NComponents
       do  j = 1, this%NComponents
         do k = j, this%NComponents
@@ -16233,7 +15493,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       call FileWrite( this%iounit_errors )
       call FileWriteBlank( this%iounit_errors )
 
-
+        
       if ( this%Mmess > 0 ) then
 
         ! Error update for transport properties
@@ -16244,7 +15504,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               do j = 1, this%NComponents
                 call Error(this%SumOnsager(i,j), .true.)
               end do
-            end do
+            end do 
             do i = 1, this%NComponents
               call Error(this%SumSoret(i), .true.)
             end do
@@ -16270,16 +15530,16 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               write( IOBuffer, '("Onsager-diff. coeff.",2I2,T29, "reduced:", 2F20.9)' ) i,j,Average, Variance
               call FileWrite( this%iounit_errors )
               write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
-              call FileWrite( this%iounit_errors )
+              call FileWrite( this%iounit_errors )     
             end do
-          end do
+          end do 
           call FileWriteBlank( this%iounit_errors )
         end if !this%NComponents
 
         !for multicomponent mixtures
 
         if( this%NComponents >= 2  ) then
-
+ 
            do i = 1, this%NComponents
               x(i) = this%Component(i)%Fraction
               Inv_x(i) = 1._RK/x(i)
@@ -16294,21 +15554,21 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                  end if
               end do
            end do
+            
+        end if          
 
-        end if
-
-
-
-
+        
+        
+        
         !binary diffusion and thermal diffusion
         if( this%NComponents == 2  ) then
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-
+          
           D_12 = L(1,1) * x(2)*Inv_x(1) + L(2,2) * x(1)*Inv_x(2) - L(1,2) - L(2,1)
           err_D12 = this%SumOnsager(1,1)%Variance * x(2)*Inv_x(1) + &
 &                   this%SumOnsager(2,2)%Variance * x(1)* Inv_x(2) + &
 &                   this%SumOnsager(1,2)%Variance + this%SumOnsager(2,1)%Variance
-
+          
           write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", 2F20.9)' ) D_12, err_D12
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
@@ -16338,12 +15598,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           end if  !this%MolarEnthConduct
 
         end if !this components = 2
-
-
+     
+     
         ! Ternary and Quaternary diffusion
         if(( this%NComponents == 3 ) .or. ( this%NComponents == 4 )) then
 
-          !obtain matrix [delta] Equations 48 to 55 from Supplementary material
+          !obtain matrix [delta] Equations 48 to 55 from Supplementary material 
           !Krishna and van Baten, Ind. Eng. Chem. Res., 2005, 44 (17), pp 6939
 
           delta(:,:) = 0._RK
@@ -16371,14 +15631,14 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
              end do
           end do
 
-        end if
+        end if 
 
 
-
+     
         !Ternary diffusion
         if( this%NComponents == 3 ) then
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
-
+  
           ! determinat of matrix [delta]
           det = (delta(1,1)*delta(2,2))-(delta(1,2)*delta(2,1))
           inv_det = 1._RK/det
@@ -16389,9 +15649,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           B(2,1) =  inv_det*(-delta(2,1)) !B3
           B(2,2) =  inv_det* delta(1,1) !B4
 
-          !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion,
+          !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion, 
           !Lefebvre et al.Nucl.Instrm.Meth. A451 (2000) 520-528)
-
+          
            err_B(:,:) = 0._RK
 
            do k = 1, (this%NComponents-1)
@@ -16403,12 +15663,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
                  end do
                end do
            end do
-
+ 
           !Calculate diffusion coefficients
-          D_13 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) )
-          D_12 =  1._RK  / ( (B(1,1)) - ( (x(1) + x(3)) * B(1,2) *Inv_x(1)))
-          D_23 =  1._RK  / ( (B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)))
-
+          D_13 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) )            
+          D_12 =  1._RK  / ( (B(1,1)) - ( (x(1) + x(3)) * B(1,2) *Inv_x(1)))  
+          D_23 =  1._RK  / ( (B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)))         
+ 
           !Obtain error of Diffusion coefficients
           err_D13 = ABS(1._RK/((x(2)*Inv_x(1)*B(1,2)+B(1,1))**2))*err_B(1,1) + &
 &                   ABS(x(2)*Inv_x(1)/((B(1,1)+x(2)*Inv_x(1)*B(1,2))**2))*err_B(1,2)
@@ -16417,24 +15677,24 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           err_D23 = ABS(1._RK/((x(1)*Inv_x(2)*B(2,1)+B(2,2))**2))*err_B(2,2) + &
 &                   ABS(x(1)*Inv_x(2)/((B(2,2)+x(1)*Inv_x(2)*B(2,1))**2))*err_B(2,1)
 
-          write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
+          write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12 
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
+          write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13 
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
           call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
+          call FileWriteBlank( this%iounit_errors )      
           write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
-        end if !this%NComponents == 3
+        end if !this%NComponents == 3 
 
-
+        
         if ( this%NComponents == 4 ) then
 
           value = dsqrt(UnitEnergy/UnitMass)*UnitLength/1E-10_RK
@@ -16454,15 +15714,15 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           B(2,3) =  inv_det* (delta(1,3)*delta(2,1)-delta(1,1)*delta(2,3))
           B(3,1) =  inv_det* (delta(2,1)*delta(3,2)-delta(2,2)*delta(3,1))
           B(3,2) =  inv_det* (delta(1,2)*delta(3,1)-delta(1,1)*delta(3,2))
-          B(3,3) =  inv_det* (delta(1,1)*delta(2,2)-delta(1,2)*delta(2,1))
+          B(3,3) =  inv_det* (delta(1,1)*delta(2,2)-delta(1,2)*delta(2,1)) 
 
-          !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion,
+          !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion, 
           !Lefebvre et al.Nucl.Instrm.Meth. A451 (2000) 520-528)
-
+          
           err_B(:,:) = 0._RK
 
-           do k = 1, (this%NComponents-1)
-              do m = 1, (this%NComponents-1)
+           do k = 1, (this%NComponents-1)  
+              do m = 1, (this%NComponents-1)  
                  do i = 1, (this%NComponents-1)
                     do  j = 1, (this%NComponents-1)
                        err_B(k,m) = err_B(k,m) + ABS(B(k,i)*B(j,m))*err_delta(i,j)
@@ -16473,9 +15733,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
 
           !Calculate diffusion coefficients
-          D_14 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )
-          D_24 =  1._RK  / ( (B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )
-          D_34 =  1._RK  / ( (B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )
+          D_14 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )         
+          D_24 =  1._RK  / ( (B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )        
+          D_34 =  1._RK  / ( (B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )       
           D_12 =  1._RK  / ( (1._RK/D_24) - (B(2,1)*Inv_x(2)))
           D_13 =  1._RK  / ( (1._RK/D_14) - (B(1,3)*Inv_x(1)))
           D_23 =  1._RK  / ( (1._RK/D_24) - (B(2,3)*Inv_x(2)))
@@ -16586,7 +15846,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           Variance = this%SumConduct%Variance
           factor   = 1._RK/(this%Temperature*this%Temperature)
           value    = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
-
+ 
           write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) Average*factor, Variance*factor
           call FileWrite( this%iounit_errors )
           write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value*factor, Variance*value*factor
@@ -16601,7 +15861,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
               call FileWrite( this%iounit_errors )
             end if
           end if
-        else
+        else 
           write( IOBuffer, '("Thermal conductivity only implemented for Reaction field")' )
           call FileWrite( this%iounit_errors )
         end if
@@ -16620,7 +15880,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
-
+ 
          ! Onsager coefficients
         if ( this%NComponents > 1 ) then
           do i = 1, this%NComponents
@@ -16703,10 +15963,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
           !...Calculation of Thermal diff. coeff. does not work yet...
           if (this%MolarEnthConduct) then
-
+            
             write( IOBuffer, '("Thermal diff. coeff.", A, T29, "reduced:", F20.9)' ) trim(this%Component(1)%Molecule%PotModFileName), 0._RK
             call FileWrite( this%iounit_errors )
-            write( IOBuffer, '(T18, "in 1E-12 m^2/(K s):", F20.9)' ) 0._RK
+            write( IOBuffer, '(T18, "in 1E-12 m^2/(K s):", F20.9)' ) 0._RK 
             call FileWrite( this%iounit_errors )
             call FileWriteBlank( this%iounit_errors )
           else
@@ -16714,7 +15974,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             call FileWrite( this%iounit_errors )
             call FileWriteBlank( this%iounit_errors )
           end if
-
+          
         end if !this%NComponents==2
 
          !ternary diffusion coefficient
@@ -16734,7 +15994,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) 0._RK
           call FileWrite( this%iounit_errors )
           call FileWriteBlank( this%iounit_errors )
-        end if
+        end if    
 
         do i = 1, this%NComponents
           write( IOBuffer, '("Self-diff. coeff. ",A ,T29, "reduced:", F20.9)' ) trim( this%Component(i)%Molecule%PotModFileName ), 0._RK
@@ -16783,7 +16043,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           call FileWrite( this%iounit_errors )
         end if
         call FileWriteBlank( this%iounit_errors )
-
+      
 
         if (this%EConductivity) then
           write( IOBuffer, '("Electric conductivity ", T29, "reduced:", F20.9)' )  0._RK
@@ -16794,8 +16054,8 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
-
-
+        
+        
         if ( this%NComponents > 1 ) then
           do i = 1, this%NComponents
             write( IOBuffer, '("Mass coefficient Lii",2I2,T29, "reduced:", 2F20.9)' ) i,i, 0._RK
@@ -16837,304 +16097,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if !This component > 1
 
       end if
-
-
-!EinsteinCoef iounit_errors
-if (this%EinsteinCoefAveCount > 0) then
-
-        if ( this%NComponents > 1 ) then
-            do i = 1, this%NComponents
-            do j = 1, this%NComponents
-                call Error(this%EinsteinOnsagerAcc(i,j), .true.)
-            end do
-            end do
-        end if
-
-        do i = 1, this%NComponents
-            call Error(this%EinsteinDSelfAcc(i), .true.)
-        end do
-
-        call Error(this%EinsteinShearAcc, .true.)
-
-
-      write( IOBuffer, '(T24, "Einstein coefficient theory")' )
-      call FileWrite( this%iounit_errors )
-      call FileWriteBlank( this%iounit_errors )
-
-      value = (dsqrt(UnitEnergy/UnitMass)*UnitLength*1E10_RK)
-
-       ! Onsager coefficients
-        if ( this%NComponents > 1 ) then
-          do i = 1, this%NComponents
-            do j = 1, this%NComponents
-              Average  = this%EinsteinOnsagerAcc(i,j)%Average
-              Variance = this%EinsteinOnsagerAcc(i,j)%Variance
-              write( IOBuffer, '("Onsager-diff. coeff.",2I2,T29, "reduced:", 2F20.9)' ) i,j,Average, Variance
-              call FileWrite( this%iounit_errors )
-              write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
-              call FileWrite( this%iounit_errors )
-            end do
-          end do
-          call FileWriteBlank( this%iounit_errors )
-        end if !this%NComponents
-
-        !for multicomponent mixtures
-
-        if( this%NComponents >= 2  ) then
-
-           do i = 1, this%NComponents
-              x(i) = this%Component(i)%Fraction
-              Inv_x(i) = 1._RK/x(i)
-           end do
-
-           do i = 1, this%NComponents
-              do  j = 1, this%NComponents
-                 if (i ==j) then
-                  L(i,j) = this%EinsteinOnsagerAcc(i,j)%Average
-                 else
-                  L(i,j) = (this%EinsteinOnsagerAcc(i,j)%Average + this%EinsteinOnsagerAcc(j,i)%Average)/2._RK
-                 end if
-              end do
-           end do
-
-        end if
-
-        !binary diffusion and thermal diffusion
-        if( this%NComponents == 2  ) then
-          D_12 = L(1,1) * x(2)*Inv_x(1) + L(2,2) * x(1)*Inv_x(2) - L(1,2) - L(2,1)
-          err_D12 = this%EinsteinOnsagerAcc(1,1)%Variance * x(2)*Inv_x(1) + &
-&                   this%EinsteinOnsagerAcc(2,2)%Variance * x(1)* Inv_x(2) + &
-&                   this%EinsteinOnsagerAcc(1,2)%Variance + this%EinsteinOnsagerAcc(2,1)%Variance
-
-          write( IOBuffer, '("Binary diff. coeff.", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-        end if !this components = 2
-
-
-
-       ! Ternary and Quaternary diffusion
-        if(( this%NComponents == 3 ) .or. ( this%NComponents == 4 )) then
-
-          !obtain matrix [delta] Equations 48 to 55 from Supplementary material
-          !Krishna and van Baten, Ind. Eng. Chem. Res., 2005, 44 (17), pp 6939
-
-          delta(:,:) = 0._RK
-          do i=1, (this%NComponents-1)
-             do j =1, (this%NComponents-1)
-                delta(i,j) = (1._RK-x(i))*(L(i,j)*Inv_x(j)-L(i,this%NComponents)*Inv_x(this%NComponents))
-                do k = 1, this%NComponents
-                   if (k /= i) then
-                    delta(i,j) = delta(i,j) - x(i)* (L(k,j)*Inv_x(j)-L(k,this%NComponents)*Inv_x(this%NComponents))
-                   end if
-                end do
-             end do
-          end do
-
-         !calculate variance by error propagation
-          err_delta(:,:) = 0._RK
-           do i=1, (this%NComponents-1)
-             do j =1, (this%NComponents-1)
-                err_delta(i,j) = (1._RK-x(i))*Inv_x(j)*this%EinsteinOnsagerAcc(i,j)%Variance + (1._RK-x(i))*Inv_x(this%NComponents)*this%EinsteinOnsagerAcc(i,this%NComponents)%Variance
-                do k = 1, this%NComponents
-                   if (k /= i) then
-                    err_delta(i,j) = err_delta(i,j) + x(i)*Inv_x(j)*this%EinsteinOnsagerAcc(k,j)%Variance + x(i)*Inv_x(this%NComponents)*this%EinsteinOnsagerAcc(k,this%NComponents)%Variance
-                   end if
-                end do
-             end do
-          end do
-
-        end if
-
-
-
-        !Ternary diffusion
-        if( this%NComponents == 3 ) then
-
-          ! determinat of matrix [delta]
-          det = (delta(1,1)*delta(2,2))-(delta(1,2)*delta(2,1))
-          inv_det = 1._RK/det
-
-          !obtain matrix [B] so that [B]=[D]-1
-          B(1,1) =  inv_det* delta(2,2) !B1
-          B(1,2) =  inv_det*(-delta(1,2)) !B2
-          B(2,1) =  inv_det*(-delta(2,1)) !B3
-          B(2,2) =  inv_det* delta(1,1) !B4
-
-          !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion,
-          !Lefebvre et al.Nucl.Instrm.Meth. A451 (2000) 520-528)
-
-           err_B(:,:) = 0._RK
-
-           do k = 1, (this%NComponents-1)
-              do m = 1, (this%NComponents-1)
-                 do i = 1, (this%NComponents-1)
-                    do  j = 1, (this%NComponents-1)
-                       err_B(k,m) = err_B(k,m) + ABS(B(k,i)*B(j,m))*err_delta(i,j)
-                    end do
-                 end do
-               end do
-           end do
-
-          !Calculate diffusion coefficients
-          D_13 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) )
-          D_12 =  1._RK  / ( (B(1,1)) - ( (x(1) + x(3)) * B(1,2) *Inv_x(1)))
-          D_23 =  1._RK  / ( (B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)))
-
-          !Obtain error of Diffusion coefficients
-          err_D13 = ABS(1._RK/((x(2)*Inv_x(1)*B(1,2)+B(1,1))**2))*err_B(1,1) + &
-&                   ABS(x(2)*Inv_x(1)/((B(1,1)+x(2)*Inv_x(1)*B(1,2))**2))*err_B(1,2)
-          err_D12 = ABS(1._RK/((B(1,1)-((x(1)+x(3))*Inv_x(1)*B(1,2)))**2))*err_B(1,1) + &
-&                   ABS(((x(1)+x(3))*Inv_x(1))/((B(1,1)-((x(1)+x(3))*Inv_x(1)*B(1,2)))**2))*err_B(1,2)
-          err_D23 = ABS(1._RK/((x(1)*Inv_x(2)*B(2,1)+B(2,2))**2))*err_B(2,2) + &
-&                   ABS(x(1)*Inv_x(2)/((B(2,2)+x(1)*Inv_x(2)*B(2,1))**2))*err_B(2,1)
-
-          write( IOBuffer, '("Ternary diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Ternary diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Ternary diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-        end if !this%NComponents == 3
-
-
-        if ( this%NComponents == 4 ) then
-
-          ! determinat of matrix [delta]
-          det = (delta(1,1)*delta(2,2)*delta(3,3))+(delta(2,1)*delta(3,2)*delta(1,3))+(delta(3,1)*delta(1,2)*delta(2,3))-&
-&               (delta(1,1)*delta(3,2)*delta(2,3))-(delta(3,1)*delta(2,2)*delta(1,3))-(delta(2,1)*delta(1,2)*delta(3,3))
-
-          inv_det = 1._RK/det
-
-          !obtain matrix [B] so that [B]=[D]-1
-          B(1,1) =  inv_det* (delta(2,2)*delta(3,3)-delta(2,3)*delta(3,2)) !B1
-          B(1,2) =  inv_det* (delta(1,3)*delta(3,2)-delta(1,2)*delta(3,3)) !B2
-          B(1,3) =  inv_det* (delta(1,2)*delta(2,3)-delta(1,3)*delta(2,2))
-          B(2,1) =  inv_det* (delta(2,3)*delta(3,1)-delta(2,1)*delta(3,3))
-          B(2,2) =  inv_det* (delta(1,1)*delta(3,3)-delta(1,3)*delta(3,1))
-          B(2,3) =  inv_det* (delta(1,3)*delta(2,1)-delta(1,1)*delta(2,3))
-          B(3,1) =  inv_det* (delta(2,1)*delta(3,2)-delta(2,2)*delta(3,1))
-          B(3,2) =  inv_det* (delta(1,2)*delta(3,1)-delta(1,1)*delta(3,2))
-          B(3,3) =  inv_det* (delta(1,1)*delta(2,2)-delta(1,2)*delta(2,1))
-
-          !Obtain Error matrix B (from Propagation of Errors for Matrix Inversion,
-          !Lefebvre et al.Nucl.Instrm.Meth. A451 (2000) 520-528)
-
-          err_B(:,:) = 0._RK
-
-           do k = 1, (this%NComponents-1)
-              do m = 1, (this%NComponents-1)
-                 do i = 1, (this%NComponents-1)
-                    do  j = 1, (this%NComponents-1)
-                       err_B(k,m) = err_B(k,m) + ABS(B(k,i)*B(j,m))*err_delta(i,j)
-                    end do
-                 end do
-               end do
-           end do
-
-
-          !Calculate diffusion coefficients
-          D_14 =  1._RK  / ( (B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )
-          D_24 =  1._RK  / ( (B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )
-          D_34 =  1._RK  / ( (B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )
-          D_12 =  1._RK  / ( (1._RK/D_24) - (B(2,1)*Inv_x(2)))
-          D_13 =  1._RK  / ( (1._RK/D_14) - (B(1,3)*Inv_x(1)))
-          D_23 =  1._RK  / ( (1._RK/D_24) - (B(2,3)*Inv_x(2)))
-
-
-          !Obtain error of Diffusion coefficients
-          err_D14 = ABS(1._RK/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )**2))*err_B(1,1) + &
-                    ABS(x(2)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )**2))*err_B(1,2) + &
-                    ABS(x(3)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + (x(3) * B(1,3)* Inv_x(1)) )**2))*err_B(1,3)
-
-          err_D24 = ABS(1._RK/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,2) + &
-                    ABS(x(1)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
-                    ABS(x(3)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
-
-          err_D34 = ABS(1._RK/(((B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )**2))*err_B(3,3) + &
-                    ABS(x(1)*Inv_x(3)/(((B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )**2))*err_B(3,1) + &
-                    ABS(x(2)*Inv_x(3)/(((B(3,3)) + ( x(1)* B(3,1) * Inv_x(3)) + (x(2) * B(3,2)* Inv_x(3)) )**2))*err_B(3,2)
-
-          err_D12 = ABS(1._RK/(((B(2,2)) + ( (x(1)-1._RK)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,2) + &
-                    ABS((x(1)-1._RK)*Inv_x(2)/(((B(2,2)) + ( (x(1)-1._RK)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
-                    ABS(x(3)*Inv_x(2)/(((B(2,2)) + ( (x(1)-1._RK)* B(2,1) * Inv_x(2)) + (x(3) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
-
-          err_D13 = ABS(1._RK/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + ((x(3)-1._RK) * B(1,3)* Inv_x(3)) )**2))*err_B(1,1) + &
-                    ABS(x(2)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + ((x(3)-1._RK) * B(1,3)* Inv_x(3)) )**2))*err_B(1,2) + &
-                    ABS((x(3)-1._RK)*Inv_x(1)/(((B(1,1)) + ( x(2)* B(1,2) * Inv_x(1)) + ((x(3)-1._RK) * B(1,3)* Inv_x(3)) )**2))*err_B(1,3)
-
-          err_D23 = ABS(1._RK/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,2) + &
-                    ABS(x(1)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,1) + &
-                    ABS((x(3)-1._RK)*Inv_x(2)/(((B(2,2)) + ( x(1)* B(2,1) * Inv_x(2)) + ((x(3)-1._RK) * B(2,3)* Inv_x(2)) )**2))*err_B(2,3)
-
-
-          write( IOBuffer, '("Quat. diff. coeff. 1 2", T29, "reduced:", 2F20.9)' ) D_12, err_D12
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_12*value, err_D12*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Quat. diff. coeff. 1 3", T29, "reduced:", 2F20.9)' ) D_13, err_D13
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_13*value, err_D13*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Quat. diff. coeff. 1 4", T29, "reduced:", 2F20.9)' ) D_14, err_D14
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_14*value, err_D14*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Quat. diff. coeff. 2 3", T29, "reduced:", 2F20.9)' ) D_23, err_D23
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_23*value, err_D23*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Quat. diff. coeff. 2 4", T29, "reduced:", 2F20.9)' ) D_24, err_D24
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_24*value, err_D24*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-          write( IOBuffer, '("Quat. diff. coeff. 3 4", T29, "reduced:", 2F20.9)' ) D_34, err_D34
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) D_34*value, err_D34*value
-          call FileWrite( this%iounit_errors )
-          call FileWriteBlank( this%iounit_errors )
-
-        end if !this%NComponents == 4
-
-
-        !self-diffusion coefficient
-        do i = 1, this%NComponents
-          Average  = this%EinsteinDSelfAcc(i)%Average
-          Variance = this%EinsteinDSelfAcc(i)%Variance
-          write( IOBuffer, '("Self-diff. coeff. ",A ,T29, "reduced:", 2F20.9)' )  &
-&                trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
-          call FileWrite( this%iounit_errors )
-          write( IOBuffer, '(T22, "in 1E-10 m^2/s:", 2F20.9)' ) Average*value, Variance*value
-          call FileWrite( this%iounit_errors )
-        end do
-        call FileWriteBlank( this%iounit_errors )
-
-        Average  =  this%EinsteinShearAcc%Average
-        Variance =  this%EinsteinShearAcc%Variance
-        value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-        write( IOBuffer, '("Shear viscosity    ", T29, "reduced:", 2F20.9)' ) Average, Variance
-        call FileWrite( this%iounit_errors )
-        write( IOBuffer, '(T24, "in 1E-4 Pa s:", 2F20.9)' ) Average*value, Variance*value
-        call FileWrite( this%iounit_errors )
-        call FileWriteBlank( this%iounit_errors )
-end if
-
 !TRANSPORT_END
       ! Separator
       write( IOBuffer, '(76("="))' )
@@ -17367,7 +16329,7 @@ end if
 #else
         write( IOBuffer, '("Acceptance rate volume changes", T32, "in %:", F20.9)' ) &
 &              100._RK * real( this%NResizeSuccesses, RK ) / real ( this%NResizeAttempts, RK )
-#endif
+#endif         
         call FileWrite( this%iounit_errors )
 #if MPI_VER > 0
         call MPI_Reduce( this%DispVol,tempReal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
@@ -17376,7 +16338,7 @@ end if
         endif
 #else
         write( IOBuffer, '("Maximum displacement volume", T33, "r`d:", F20.9)' ) this%DispVol
-#endif
+#endif  
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
       end if
@@ -17392,7 +16354,7 @@ end if
         call MPI_Reduce( pc%NMoveAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
         if (Nproc == NRootProc) then
           write( IOBuffer, '("Acceptance rate trans.", T32, "in %:", F20.9)' ) &
-&                100._RK * real( tempVal, RK ) / real ( tempVal2, RK )
+&                100._RK * real( tempVal, RK ) / real ( tempVal2, RK ) 
         endif
 #else
         write( IOBuffer, '("Acceptance rate trans.", T32, "in %:", F20.9)' ) &
@@ -17512,8 +16474,8 @@ end if
           if (Nproc == NRootProc) then
             write(IOBuffer, '(2F10.4)') 0._RK, real(tempVec3(pc%NFluctMax), RK) / &
 &                 real(tempVec4(pc%NFluctMax), RK) * 100._RK
-            call FileWrite( this%iounit_errors )
-
+            call FileWrite( this%iounit_errors )           
+           
            do j = pc%NFluctMax -1, 1, -1
              write(IOBuffer, '(2F10.4)') real(tempVec1(j+1), RK) / &
 &                  real(tempVec2(j+1), RK) * 100._RK, real(tempVec3(j), RK) / &
@@ -17573,7 +16535,7 @@ end if
 #else
         write( IOBuffer, '("Acceptance rate deletes", T32, "in %:", F20.9)' ) &
 &              100._RK * real( this%NDeleteSuccesses, RK ) / real ( this%NDeleteAttempts, RK )
-#endif
+#endif 
         call FileWrite( this%iounit_errors )
         call FileWriteBlank( this%iounit_errors )
       end if
@@ -17695,8 +16657,8 @@ end if
       ! Close final result file
       call FileClose( this%iounit_thermoint)
     end if
-
-    if( ALPHA2UpdateFrequency > 0 ) then !write *.a2rav
+    
+    if( ALPHA2UpdateFrequency > 0 ) then !write *.a2rav 
         if (RootProc) then
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileRewrite( this%iounit_a2rav, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ALPHA2ravFileExtension )
@@ -17724,86 +16686,13 @@ end if
             call FileWriteNoAdvance( this%iounit_a2rav )
             call FileWriteBlank( this%iounit_a2rav )
         end do
-        write( IOBuffer, '("Number of records", T36, ":", I10)' ) this%alpha2aveCount
+        write( IOBuffer, '("Number of records", T36, ":", I10)' ) this%alpha2aveCount 
         call FileWriteNoAdvance( this%iounit_a2rav )
         call FileWriteBlank( this%iounit_a2rav )
         call FileClose( this%iounit_a2rav )
         end if
     end if
 
-#if TRANS==1
-    !EinsteinCoef ecoef output
-    if( EinsteinCoefCalc) then
-        if (RootProc) then
-        write( IOBuffer, '(I16)' ) this%EnsembleNumber
-        call FileRewrite( this%iounit_ecoef, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension)
-        write(IOBuffer, '(T8,"t*")')
-        call FileWriteNoAdvance( this%iounit_ecoef )
-        write(IOBuffer, '(T12,"t")')
-        call FileWriteNoAdvance( this%iounit_ecoef )
-        do t=1,this%NComponents
-            write( IOBuffer, '(T4,"Dself_",I1)' ) t
-            call FileWriteNoAdvance( this%iounit_ecoef )
-        end do
-
-        if (this%NComponents > 1) then
-            do t=1,this%NComponents
-            do j=1,this%NComponents
-                write( IOBuffer, '(T4,"Onsager_",2I1)' ) t,j
-                call FileWriteNoAdvance( this%iounit_ecoef )
-            end do
-            end do
-        end if
-
-        write( IOBuffer, '(T4,"ShearV")' )
-        call FileWriteNoAdvance( this%iounit_ecoef )
-
-
-
-        call FileWriteBlank( this%iounit_ecoef )
-
-
-        do i=1,this%NCorr
-            value = (this%BoxLength**2)*(dsqrt(UnitEnergy/UnitMass)*UnitLength*1E10_RK)
-            write(IOBuffer, '(T3,F12.4)') i * this%NStepCorr * TimeStep * UnitTime * 1E12_RK
-            call FileWriteNoAdvance( this%iounit_ecoef )
-            write(IOBuffer, '(T2,F12.4)') i * this%NStepCorr * TimeStep
-            call FileWriteNoAdvance( this%iounit_ecoef )
-
-
-            do t=1,this%NComponents
-                write( IOBuffer, '(T4,F10.4)')  this%DselfEinsteinAve(i,t)*value
-                call FileWriteNoAdvance( this%iounit_ecoef )
-            end do
-
-        if (this%NComponents > 1) then
-            !I know, an extra information is here, it's just for checking
-            do t=1,this%NComponents
-            do j=1,this%NComponents
-                write( IOBuffer, '(T4,F10.4)') this%OnsagerEinsteinAve(i,t,j)*value
-                call FileWriteNoAdvance( this%iounit_ecoef )
-            end do
-            end do
-        end if
-
-            value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-           ! helpvar =  this%Density /(5._RK *this%NPart * this%Temperature)
-            write( IOBuffer, '(T4,F10.4)')  this%EinsteinShearAve(i)*value*0.5/3.0*this%Density /(this%NPart * this%Temperature)
-            call FileWriteNoAdvance( this%iounit_ecoef )
-
-
-            call FileWriteBlank( this%iounit_ecoef )
-        end do
-        write( IOBuffer, '("Number of records", T36, ":", I10)' ) this%EinsteinCoefAveCount
-        call FileWriteNoAdvance( this%iounit_ecoef )
-        call FileWriteBlank( this%iounit_ecoef )
-        write( IOBuffer, '("Coefficients are done in SI units*1E+10")' )
-        call FileWriteNoAdvance( this%iounit_ecoef )
-        call FileWriteBlank( this%iounit_ecoef )
-        call FileClose( this%iounit_ecoef )
-        end if
-    end if
-#endif
   end subroutine TEnsemble_ErrorsUpdate
 
 !==============================================================!
@@ -17829,7 +16718,7 @@ end if
     integer                    :: BinsVisit(0:NBins-1)
 
     pc => this%Component(i)
-    ! Avearge of each MPI process's histogram is saved in the thi file
+    ! Avearge of each MPI process's histogram is saved in the thi file 
 #if MPI_VER > 0
     if (SimulationType .eq. MonteCarlo) then
       call MPI_Reduce( pc%BinsEn(0: NBins-1)       *pc%BinsVisit(0: NBins-1), BinsEn(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
@@ -17841,7 +16730,7 @@ end if
       call MPI_Reduce( pc%BinsIntHW(0: NBins-1)                             , BinsIntHW(0: NBins-1), NBins, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
       call MPI_Reduce( pc%BinsVisit(0: NBins-1)                             , BinsVisit(0: NBins-1), NBins, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
       do j=0,pc%NBins-1
-        if (BinsVisit(j) .eq. 0) then
+        if (BinsVisit(j) .eq. 0) then 
           LocalVisit=1
         else
           LocalVisit=BinsVisit(j)
@@ -18093,7 +16982,7 @@ end if
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
     call FileRewrite( this%iounit_visualHB, &
 &     trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//VisualHBFileExtension )
-    write( IOBuffer, '("!"," Nr", " MH", " MO_1", " MO_2")' )
+    write( IOBuffer, '("!"," Nr", " MH", " MO_1", " MO_2")' ) 
     call FileWrite( this%iounit_visualHB )
     call FileWriteBlank( this%iounit_visualHB )
 #endif
@@ -18147,156 +17036,6 @@ end if
 
   end subroutine TEnsemble_VisualUpdate
 
-!==============================================================!
-!  Subroutine TEnsemble_VisualCCOpen                           !
-!==============================================================!
-
-  subroutine TEnsemble_VisualCCOpen( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer                   :: i, j
-    type(TSiteMIEnm), pointer :: psMIEnm
-
-    if ((this%isCCSimulation .eqv. .true.) .and. (this%isCvim .eqv. .true.)) then
-      !DC NOTE- Open visualization file
-      write( IOBuffer, '(I16)' ) this%EnsembleNumber
-      call FileRewrite( this%iounit_ccpos, trim( OutputNameTag )//'_'//'CC'//'_'//trim( adjustl( IOBuffer ) )//VisualCCFileExtension )
-      !DC NOTE- Create header
-      write( IOBuffer, '("# Cluster criteria position visualization output file generated by D. Celny into ms2")' )
-      call FileWrite( this%iounit_ccpos )
-
-      do i = 1, this%NComponents
-        do j = 1, this%Component(i)%Molecule%NMIEnm
-          psMIEnm => this%Component(i)%Molecule%SiteMIEnm(j)
-          write( IOBuffer, '("#", I3, " ", A, 4F8.4, "  1")' ) i, trim(LJorMIE), psMIEnm%r(:) * UnitLength / Angstroem, &
-  &              psMIEnm%sig  * UnitLength / Angstroem
-          call FileWrite( this%iounit_ccpos )
-        end do
-      end do
-      call FileWriteBlank( this%iounit_ccpos )
-    end if
-
-  end subroutine TEnsemble_VisualCCOpen
-
-!==============================================================!
-!  Subroutine TEnsemble_VisualCCUpdate                         !
-!==============================================================!
-
-  subroutine TEnsemble_VisualCCUpdate( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer  :: i, j
-    real(RK) :: r(3)
-
-    !DC NOTE- Update visualization file
-    !DC BEWARE work only for uniform substance (with same number of atoms per molecule)
-    if ((this%isCCSimulation .eqv. .true.) .and. &
-    &   (this%isCvim .eqv. .true.) .and. &
-    &   (this%isStopSimulation .eqv. .false.) .and. &
-    &   (mod( Step, this%CCFrequency) .eq. 0) ) then
-      
-      write( IOBuffer, '("#", F10.4, "  Step ", I6, " Npart ", I6)' ) this%BoxLength * UnitLength / Angstroem, Step, this%NComponents*this%Component(1)%NPart
-      call FileWrite( this%iounit_ccpos )
-      do i = 1, this%NComponents
-        do j = 1, this%Component(i)%NPart
-          r(:) = this%Component(i)%P0(j, :, 1)
-
-          write( IOBuffer, '(I3, 3F16.10)' ) i, r(:)
-          call FileWrite( this%iounit_ccpos )
-        end do
-      end do
-      call FileWriteBlank( this%iounit_ccpos )
-#if ARCH == 1 || ARCH == 2 || ARCH == 3
-      call flush( this%iounit_ccpos )
-#endif
-    end if
-
-  end subroutine TEnsemble_VisualCCUpdate
-
-!==============================================================!
-!  Subroutine TEnsemble_VisualCCClose                            !
-!==============================================================!
-
-  subroutine TEnsemble_VisualCCClose( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    if ((this%isCCSimulation .eqv. .true.) .and. (this%isCvim .eqv. .true.)) then
-      
-      !DC NOTE- Close visualization file
-      write( IOBuffer, '("##")' )
-      call FileWrite( this%iounit_ccpos )
-      call FileClose( this%iounit_ccpos )
-    end if
-
-  end subroutine TEnsemble_VisualCCClose
-
-!==============================================================!
-!  Subroutine TEnsemble_CCOpen                                 !
-!==============================================================!
-
-  subroutine TEnsemble_CCOpen( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer                   :: i, j
-    type(TSiteMIEnm), pointer :: psMIEnm
-
-    if (this%isCCSimulation .eqv. .true.) then
-      !DC NOTE- Open visualization file
-      write( IOBuffer, '(I16)' ) this%EnsembleNumber
-      call FileRewrite( this%iounit_cc, trim( OutputNameTag )//'_'//'CC'//'_'//trim( adjustl( IOBuffer ) )//CCFileExtension )
-
-      !DC NOTE- Create header      
-      write( IOBuffer, '("# Cluster criteria data output file generated by D. Celny into ms2")' )
-      call FileWrite( this%iounit_cc )
-      do i = 1, this%NComponents
-        do j = 1, this%Component(i)%Molecule%NMIEnm
-          psMIEnm => this%Component(i)%Molecule%SiteMIEnm(j)
-          write( IOBuffer, '("#", I3, " ", A, 4F8.4, "  1")' ) i, trim(LJorMIE), psMIEnm%r(:) * UnitLength / Angstroem, &
-  &              psMIEnm%sig  * UnitLength / Angstroem
-          call FileWrite( this%iounit_cc )
-        end do
-      end do
-      call FileWriteBlank( this%iounit_cc )
-    end if
-
-  end subroutine TEnsemble_CCOpen
-
-!==============================================================!
-!  Subroutine TEnsemble_VisualCCClose                            !
-!==============================================================!
-
-  subroutine TEnsemble_CCClose( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    if (this%isCCSimulation .eqv. .true.) then
-      !DC NOTE- Close visualization file
-      call FileClose( this%iounit_cc )
-    end if
-
-  end subroutine TEnsemble_CCClose
 
 #if HBOND > 0
 !==============================================================!
@@ -18318,11 +17057,11 @@ end if
 
     ! Update visualization file
     write( IOBuffer, '("#", F10.4, "  new Frame")' ) this%BoxLength * UnitLength / Angstroem
-    call FileWrite( this%iounit_visualHB )
+    call FileWrite( this%iounit_visualHB )                                                       
     do i= 1, np
-      write( IOBuffer, '("!", I5, I5, I5, I5)' ) i, MH(i), MO(1,i), MO(2,i)
-      call FileWrite( this%iounit_visualHB )
-    end do
+      write( IOBuffer, '("!", I5, I5, I5, I5)' ) i, MH(i), MO(1,i), MO(2,i) 
+      call FileWrite( this%iounit_visualHB ) 
+    end do 
     call FileWriteBlank( this%iounit_visualHB )
 
   end subroutine TEnsemble_VisualUpdateHB
@@ -18414,14 +17153,14 @@ end if
       if ( pc%ChemPotMethod .eq. ChemPotMethodWidom ) then
         write( IOBuffer, '(" mueAvg_", A, " mueVar_", A)') trim( pc%PotModFileName ), trim( pc%PotModFileName )
         call FileWriteNoAdvance ( this%iounit_dcp )
-      end if
+      end if    
     end do
     write( IOBuffer, '(" PressureAvg PressureVar")')
     call FileWriteNoAdvance ( this%iounit_dcp )
 #else
-    end do
+    end do  
 #endif
-    call FileWriteBlank( this%iounit_dcp )
+    call FileWriteBlank( this%iounit_dcp ) 
 
     ! Update profile file
     do i = 1, NBinsDen
@@ -18437,14 +17176,14 @@ end if
           Average = log( pc%SumDenProfile(i)%Average / pc%SumChemPotProfile(i)%Average )
           write( IOBuffer, '(F10.4, F10.4)') Average, Variance
           call FileWriteNoAdvance ( this%iounit_dcp )
-        end if
+        end if    
       end do
       Average = this%SumPressureProfile(i)%Average * UnitPressure * 1E-6_RK
       Variance = this%SumPressureProfile(i)%Variance * UnitPressure * 1E-6_RK
-      write( IOBuffer, '(F11.4, F10.4)') Average, Variance
+      write( IOBuffer, '(F11.4, F10.4)') Average, Variance 
       call FileWriteNoAdvance( this%iounit_dcp )
 #else
-      end do
+      end do  
 #endif
       call FileWriteBlank( this%iounit_dcp )
     end do
@@ -18473,319 +17212,6 @@ end if
   end subroutine TEnsemble_ProfileClose
 #endif
 
-!==============================================================!
-!  Subroutine TEnsemble_ODFOpen                                !
-!==============================================================!
- subroutine TEnsemble_ODFOpen( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer                   :: i, j
-
-    if( .not. Restart ) then
-        ! initialize ODFSum and Error Sum
-        do i=1, this%NComponents
-          do j=i, this%NComponents
-            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
-&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
-                this%Interaction(i,j)%ODFErrSum = 0
-                this%Interaction(i,j)%ODFSum(:,:,:,:) = 0
-            end if
-          end do
-        end do
-    end if
-
-    ! Open visualization file
-    write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileRewrite( this%iounit_odf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ODFFileExtension )
-    call FileWriteBlank( this%iounit_odf )
-    call FileClose( this%iounit_odf )
-
-  end subroutine TEnsemble_ODFOpen
- 
-!==============================================================!
-!  Subroutine TEnsemble_ODFUpdate                              !
-!==============================================================!
-
-  subroutine TEnsemble_ODFUpdate( this )
-
-    implicit none
-    
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer  :: i, j
-
-    ! Calculate ODFSum with ODFUpdateFrequency 
-    do i= 1, this%NComponents
-      do j= i, this%NComponents
-        if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. &
-&           ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
-            call Get_ODF( this%Interaction(i,j), this%dPhi, this%dGamma, this%dR/this%BoxLength )
-        end if
-      end do
-    end do
-
-    ! Rewrite ODF file with ODFOutputFrequency
-    if ( mod( Step-1, ODFOutputFrequency ) == 0 .and. Step .gt. 1 ) then
-        call ODFUpdateBlock (this)
-    end if
-    
-  end subroutine TEnsemble_ODFUpdate
-
-  
-!==============================================================!
-!  Subroutine TEnsemble_ODFUpdateBlock                         !
-!==============================================================!
-
-  subroutine TEnsemble_ODFUpdateBlock( this )
-
-    implicit none
-    
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer  :: i, j, o, p, q, r, ErrSum_hilf, ErrSum
-    real(RK) :: ODFvalue_hilf, NormValue
-    real(RK) :: ODFNorm_hilf(this%NComponents,this%NComponents,nR)
-
-#if MPI_VER > 0
-    real(RK) :: ODFNorm_out(this%NComponents,this%NComponents,nR)
-    real(RK) :: ODFvalue_norm
-#endif
-    ! write header of *.odf file
-    write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileRewrite( this%iounit_odf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ODFFileExtension )
-    ErrSum_hilf = 0
-    do i= 1, this%NComponents
-        do j= i, this%NComponents
-            ErrSum_hilf = ErrSum_hilf + this%Interaction(i,j)%ODFErrSum
-        end do
-    end do
-#if MPI_VER > 0 
-    call MPI_Reduce( ErrSum_hilf, ErrSum, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
-#else 
-    ErrSum = ErrSum_hilf
-#endif
-    
-    ! calculate average ODF value for normalization of ODF 
-    ODFNorm_hilf(:,:,:) = 0._RK
-    do i= 1, this%NComponents
-        do j= i, this%NComponents
-            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
-&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
-                do o = 1, nPhi
-                    do p = 1, nPhi
-                        do q = 1, nGamma
-                            do r=1, nR
-                                ODFNorm_hilf(i,j,r) = ODFNorm_hilf(i,j,r) &
-&                                 + real(this%Interaction(i,j)%ODFSum(o, p, q, r))
-                            end do
-                        end do
-                    end  do
-                end do
-            end if
-        end do
-    end do
-
-    do i= 1, this%NComponents
-        do j= i, this%NComponents
-            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
-&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
-                do r= 1, nR
-                    ODFNorm_hilf(i,j,r) = ODFNorm_hilf(i,j,r) / ( nPhi * nPhi * nGamma) 
-                end do
-            end if
-        end do
-    end do
-
-#if MPI_VER > 0     
-    ODFNorm_out(:,:,:) = 0._RK
-    do i= 1, this%NComponents
-        do j= i, this%NComponents
-            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
-&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
-                do r= 1, nR
-                    call MPI_Reduce( ODFNorm_hilf(i,j,r), ODFNorm_out(i,j,r), 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
-                end do
-            end if
-        end do
-    end do
-#endif  
-    write(IOBuffer, '("ODF Calculation failed ",I7, " times during simulation")') ErrSum
-    call FileWriteNoAdvance( this%iounit_odf )
-    call FileWriteBlank( this%iounit_odf )
-    write(IOBuffer, '("Normalization values of ODF: ")') 
-    call FileWriteNoAdvance( this%iounit_odf )
-    call FileWriteBlank( this%iounit_odf )
-
-    do i= 1, this%NComponents
-        do j= 1, this%NComponents
-            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. &  
-&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
-                write(IOBuffer, '(I5,I5)') i, j
-                call FileWriteNoAdvance( this%iounit_odf ) 
-            end if  
-        end do
-    end do
-
-    call FileWriteBlank( this%iounit_odf )
-    do r=1, nR
-        write(IOBuffer, '("r = ",F10.6," ")') (r*this%dR-this%dR/2._RK)
-        call FileWriteNoAdvance( this%iounit_odf ) 
-        do i= 1, this%NComponents
-            do j= 1, this%NComponents
-                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. &  
-&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
-#if MPI_VER > 0 
-                    if (i == j) then
-                        NormValue = 2._RK*ODFNorm_out(i,j,r)
-                    else if(i > j) then
-                        NormValue = ODFNorm_out(j,i,r)
-                    else
-                        NormValue = ODFNorm_out(i,j,r) 
-                    end if
-#else
-                    if (i == j) then
-                        NormValue = 2._RK*ODFNorm_hilf(i,j,r)
-                    else if(i > j) then
-                        NormValue = ODFNorm_hilf(j,i,r)
-                    else
-                        NormValue = ODFNorm_hilf(i,j,r) 
-                    end if
-#endif                  
-                    write(IOBuffer, '(" ",F16.6," ")') NormValue
-                    call FileWriteNoAdvance( this%iounit_odf ) 
-                end if  
-            end do
-        end do
-        call FileWriteBlank( this%iounit_odf )
-    end do
-    
-    call FileWriteBlank( this%iounit_odf )
-    write(IOBuffer, '("cos(phi1)    cos(phi2)   gamma12     r   ")')
-    call FileWriteNoAdvance( this%iounit_odf )
-     
-    do i= 1, this%NComponents
-        do j= 1, this%NComponents
-            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. &  
-&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
-                write(IOBuffer, '(I5,I5)') i,j
-                call FileWriteNoAdvance( this%iounit_odf ) 
-            end if  
-        end do
-    end do
-    call FileWriteBlank( this%iounit_odf )
-    
-#if MPI_VER > 0 
-    do o = 1, nPhi
-        do p = 1, nPhi
-            do q = 1, nGamma
-                do r=1, nR
-                    write(IOBuffer, '(4F10.4)') (1._RK - o*this%dPhi+this%dPhi/2._RK), (1._RK - p*this%dPhi+this%dPhi/2._RK), &
-                    & (q*this%dGamma-this%dGamma/2._RK), (r*this%dR-this%dR/2._RK)
-                    call FileWriteNoAdvance( this%iounit_odf )
-                    do i= 1, this%NComponents
-                        do j= 1, this%NComponents
-                            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
-&                               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
-                                if (i == j) then ! for i == j the fact that every pair of molecules is only sampled once needs to be made up for by manually adding the value of the missing interaction. this also enforces perfect symmetry
-                                    ODFvalue_hilf = real(this%Interaction(i,j)%ODFSum(o, p, q, r)) &
-&                                     + real(this%Interaction(i,j)%ODFSum(nPhi + 1 - p, nPhi + 1 - o, q, r))
-                                else if (i > j) then ! ODF_ij for i > j is not sampled explicitly during simulation. Instead the data of ODF_ji is used to generate output for ODF_ij
-                                    ODFvalue_hilf = real(this%Interaction(j,i)%ODFSum(nPhi &
-&                                     + 1 - p, nPhi + 1 - o, q, r)) 
-                                else
-                                    ODFvalue_hilf = real(this%Interaction(i,j)%ODFSum(o, p, q, r)) 
-                                end if
-                                call MPI_Reduce( ODFvalue_hilf, ODFvalue_norm, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror)
-                                if (i == j) then
-                                    this%ODFvalue(o,p,q,r) = ODFvalue_norm / (2._RK*ODFNorm_out(i,j,r)) ! 2*Norm because missing interactions have been added
-                                else if(i > j) then
-                                    this%ODFvalue(o,p,q,r) = ODFvalue_norm / ODFNorm_out(j,i,r)  ! indices i and j are changed here because norm_ij for i > j is not computed but should be identical to norm_ji
-                                else 
-                                    this%ODFvalue(o,p,q,r) = ODFvalue_norm / ODFNorm_out(i,j,r) 
-                                end if
-                                write(IOBuffer, '(F10.4)') this%ODFvalue(o,p,q,r)
-                                call FileWriteNoAdvance( this%iounit_odf )
-                                ODFvalue_norm = 0._RK
-                            end if
-                        end do
-                    end do
-                call FileWriteBlank( this%iounit_odf )
-                end do
-            end do
-        end do
-    enddo
-#else
-    do o = 1, nPhi
-        do p = 1, nPhi
-            do q = 1, nGamma
-                do r=1, nR
-                    write(IOBuffer, '(4F10.4)') (1._RK - o*this%dPhi+this%dPhi/2._RK), (1._RK - p*this%dPhi+this%dPhi/2._RK), &
-                    & (q*this%dGamma-this%dGamma/2._RK), (r*this%dR-this%dR/2._RK)
-                    call FileWriteNoAdvance( this%iounit_odf )
-                    do i= 1, this%NComponents
-                        do j= 1, this%NComponents
-                            if (((this%Component(i)%Molecule%NDipole .GE. 1).or.(this%Component(i)%Molecule%NCharge .GE. 2)).and. &
-&                               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then
-                                if (i == j) then
-                                    this%ODFvalue(o,p,q,r) = (real(this%Interaction(i,j)%ODFSum(o, p, q, r)) &
-&                                     + real(this%Interaction(i,j)%ODFSum(nPhi + 1 - p, nPhi + 1 - o, q, r))) &
-&                                     / (2._RK*ODFNorm_hilf(i,j,r)) 
-                                else if (i > j) then
-                                    this%ODFvalue(o,p,q,r) = real(this%Interaction(j,i)%ODFSum(nPhi + &
-&                                     1 - p, nPhi + 1 - o, q, r))  / ODFNorm_hilf(j,i,r) 
-                                else 
-                                    this%ODFvalue(o,p,q,r) = real(this%Interaction(i,j)%ODFSum(o, p, q, r)) &
-&                                     / ODFNorm_hilf(i,j,r) 
-                                end if
-                                write(IOBuffer, '(F10.4)') this%ODFvalue(o,p,q,r)
-                                call FileWriteNoAdvance( this%iounit_odf )
-                            end if
-                        end do
-                    end do
-                call FileWriteBlank( this%iounit_odf )
-                end do
-            end do
-        end do
-    enddo
-#endif
-    call FileClose( this%iounit_odf )
-    
-
-  end subroutine TEnsemble_ODFUpdateBlock
-  
-
-
-!==============================================================!
-!  Subroutine TEnsemble_ODFClose                               !
-!==============================================================!
-
-  subroutine TEnsemble_ODFClose( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Close visualization file
-    write( IOBuffer, '("##")' )
-    call FileWrite( this%iounit_odf )
-    call FileClose( this%iounit_odf )
-
-  end subroutine TEnsemble_ODFClose
   
 !==============================================================!
 !  Subroutine TEnsemble_RDFOpen                                !
@@ -18830,14 +17256,14 @@ end if
   subroutine TEnsemble_RDFUpdate( this )
 
     implicit none
-
+    
     ! Declare arguments
     type(TEnsemble) :: this
 
     ! Declare local variables
     integer  :: i, j
 
-    ! Calculate RDFSum with RDFUpdateFrequency
+    ! Calculate RDFSum with RDFUpdateFrequency 
     do i= 1, this%NComponents
       do j= i, this%NComponents
         call Get_RDF( this%Interaction(i,j), this%RDFdr/this%BoxLength )
@@ -18848,10 +17274,10 @@ end if
     if ( mod( Step-1, ErrorsUpdateFrequency ) == 0 .and. Step .gt. 1 ) then
         call RDFUpdateBlock (this)
     end if
-
+    
   end subroutine TEnsemble_RDFUpdate
-
-
+  
+  
 !==============================================================!
 !  Subroutine TEnsemble_RDFUpdateBlock                         !
 !==============================================================!
@@ -18859,7 +17285,7 @@ end if
   subroutine TEnsemble_RDFUpdateBlock( this )
 
     implicit none
-
+    
     ! Include MPI header
 #if MPI_VER > 0
     include 'mpif.h'
@@ -18889,7 +17315,7 @@ end if
               write(IOBuffer, '(I5,I5)') i, j
               call FileWriteNoAdvance( this%iounit_rdf )
             end do
-          end do
+          end do            
         end do
     end do
     call FileWriteBlank( this%iounit_rdf )
@@ -18898,18 +17324,18 @@ end if
     do i= 1, this%NComponents
         do j= i, this%NComponents
           do s=1, this%Component(i)%molecule%NMIEnm
-            do t=1, this%Component(j)%molecule%NMIEnm
+            do t=1, this%Component(j)%molecule%NMIEnm 
               write(IOBuffer, '(I5,I5)') s, t
               call FileWriteNoAdvance( this%iounit_rdf )
             end do
           end do
         end do
     end do
-    call FileWriteBlank( this%iounit_rdf )
-
+    call FileWriteBlank( this%iounit_rdf )  
+    
     ! Calculate RDF
 #if MPI_VER > 0
-    if ( SimulationType .eq. MonteCarlo ) then
+    if ( SimulationType .eq. MonteCarlo ) then 
         do o = 1, RDFNumberShells
             write(IOBuffer, '(F10.4)') (o*this%RDFdr*UnitLength/Angstroem)
             call FileWriteNoAdvance( this%iounit_rdf )
@@ -18917,12 +17343,12 @@ end if
                 do j= i, this%NComponents
                     do s=1, this%Component(i)%molecule%NMIEnm
                         do t=1, this%Component(j)%molecule%NMIEnm
-                            RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction
+                            RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
                             if (i == j) then
-                                RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) &
+                                RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
 &                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
                             else
-                                RDFRhoLocal = real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) &
+                                RDFRhoLocal = real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
 &                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
                             end if
                             this%RDFValue(o) = RDFRhoLocal / RDFRho
@@ -18945,14 +17371,14 @@ end if
                 do j= i, this%NComponents
                     do s=1, this%Component(i)%molecule%NMIEnm
                         do t=1, this%Component(j)%molecule%NMIEnm
-                            RDFSum_hilf(o) = this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o)
+                            RDFSum_hilf(o) = this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o) 
                             call MPI_Reduce( RDFSum_hilf(o), RDFSum_out(o), 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
-                            RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction
+                            RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
                             if (i == j) then
-                                RDFRhoLocal = 2.0 * real(RDFSum_out(o),RK) &
+                                RDFRhoLocal = 2.0 * real(RDFSum_out(o),RK) & 
 &                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
                             else
-                                RDFRhoLocal = real(RDFSum_out(o),RK) &
+                                RDFRhoLocal = real(RDFSum_out(o),RK) & 
 &                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
                             end if
                             this%RDFValue(o) = RDFRhoLocal / RDFRho
@@ -18973,12 +17399,12 @@ end if
             do j= i, this%NComponents
                 do s=1, this%Component(i)%molecule%NMIEnm
                     do t=1, this%Component(j)%molecule%NMIEnm
-                        RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction
+                        RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction  
                         if (i == j) then
-                            RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) &
+                            RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
 &                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
                         else
-                            RDFRhoLocal = real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) &
+                            RDFRhoLocal = real(this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o),RK) & 
 &                                       / (this%RDFVSchale(o) * ((Step-1)/RDFUpdateFrequency + 1) * this%Component(i)%NPart)
                         end if
                         this%RDFValue(o) = RDFRhoLocal / RDFRho
@@ -18992,10 +17418,10 @@ end if
     enddo
 #endif
     call FileClose( this%iounit_rdf )
-
+    
 
   end subroutine TEnsemble_RDFUpdateBlock
-
+  
 
 !==============================================================!
 !  Subroutine TEnsemble_RDFClose                               !
@@ -19029,60 +17455,60 @@ end if
 
     ! Declare local variables
     integer                   :: i, j, p !Component indexes (p: combinations)
-
+    
     if( .not. Restart ) then
         ! initialize KBISum
         do i=1, this%NComponents
           do j=i, this%NComponents
-                this%Interaction(i,j)%KBISum(:) = 0
+                this%Interaction(i,j)%KBISum(:) = 0   
           end do
         end do
-
+        
         ! Reset KBI Accumulator for Gij
         do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
             call Reset( this%SumKBIGij1(i) )
             call Reset( this%SumKBIGij2(i) )
             call Reset( this%SumKBIGij3(i) )
         end do
-
+        
         this%KBIBlockCount = 0 !Counter for KBI Blocks to calculate RDF over all blocks for extrapolation of Gij
         do p = 1, this%NComponents*(this%NComponents+1)/2
             this%KBIRDFextra(:,p) = 0
             this%KBIRDFvdVextra(:,p) = 0
             this%KBIRDFvdVshfextra(:,p) = 0
         end do
-
-        ! Open running average KBI RDF file
+        
+        ! Open running KBI RDF file
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileRewrite( this%iounit_kbirdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )
         call FileWriteBlank( this%iounit_kbirdf )
         call FileClose( this%iounit_kbirdf )
-
-        ! Open running average KBI file
+        
+        ! Open running KBI file
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
-        call FileRewrite( this%iounit_kbirav, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIravFileExtension )
+        call FileRewrite( this%iounit_kbirun, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrunFileExtension )   
         write(IOBuffer, '(T5,"last index: 1: RDF; 2: RDFvdV; 3: RDFvdVshf; 0: extrapolated Gij")')
-        call FileWriteNoAdvance( this%iounit_kbirav )
-        call FileWriteBlank( this%iounit_kbirav )
+        call FileWriteNoAdvance( this%iounit_kbirun )
+        call FileWriteBlank( this%iounit_kbirun )
         write(IOBuffer, '(T5,"Step")')
-        call FileWriteNoAdvance( this%iounit_kbirav )
+        call FileWriteNoAdvance( this%iounit_kbirun )
         do p = 1, 3 !Method
             do i= 1, this%NComponents
                 do j= i, this%NComponents
                     write(IOBuffer, '(T6,"G",I1,I1,",",I1)') i, j, p
-                    call FileWriteNoAdvance( this%iounit_kbirav )
+                    call FileWriteNoAdvance( this%iounit_kbirun )   
                     write(IOBuffer, '(T5,"dG",I1,I1,",",I1)') i, j, p
-                    call FileWriteNoAdvance( this%iounit_kbirav )
+                    call FileWriteNoAdvance( this%iounit_kbirun )
                     write(IOBuffer, '(T6,"G",I1,I1,",0,",I1)') i, j, p
-                    call FileWriteNoAdvance( this%iounit_kbirav )
+                    call FileWriteNoAdvance( this%iounit_kbirun )
                 end do
             end do
         end do
-        call FileWriteBlank( this%iounit_kbirav )
-        call FileClose( this%iounit_kbirav )
-
+        call FileWriteBlank( this%iounit_kbirun )
+        call FileClose( this%iounit_kbirun )        
+            
     end if
-
+    
   end subroutine TEnsemble_KBIOpen
 
 
@@ -19101,9 +17527,9 @@ end if
     integer  :: i, j, TempStep
 
     ! Calculate temporary step in the range of KBIResetFrequency
-    TempStep = mod( Step, BlockSizeKBI )
+    TempStep = mod( Step, BlockSizeKBI ) 
     if (TempStep == 0) TempStep = BlockSizeKBI
-
+    
     if ( SimulationType .eq. MonteCarlo ) then !for MD inside the traversing -> see RunMDStep -> Force ...
         ! Calculate partners in shells for RDF
         do i= 1, this%NComponents
@@ -19112,18 +17538,18 @@ end if
             end do
         end do
     end if
-
+    
     !End of Block is reached => Gij accumulator
-    if (TempStep+KBIUpdateFrequency > BlockSizeKBI) then
+    if (TempStep+KBIUpdateFrequency > BlockSizeKBI) then 
         this%KBIBlockCount = this%KBIBlockCount + 1
         call KBIUpdateBlock( this, TempStep )
     end if
-
+    
   end subroutine TEnsemble_KBIUpdate
 
 !==============================================================!
 !  Subroutine TEnsemble_KBIUpdateBlock                         !
-!==============================================================!
+!==============================================================!  
 
   subroutine TEnsemble_KBIUpdateBlock( this, TempStep )
 
@@ -19139,10 +17565,10 @@ end if
     integer, intent(in) :: TempStep
 
     ! Declare local variables
-    integer  :: i, j, k, m, o, p, s, extp
+    integer  :: i, j, k, m, o, p, s, extp  
     real(RK) :: KBIRho, KBIRhoLocal,c2x1, Average, Variance
     real(RK) :: fint1, fint2, fint3, fint4, fint5, fint6, dr
-    real(RK) :: KBIr(0:KBINShellsCubeEdge), KBIx(0:KBINShellsCubeEdge), KBIw(0:KBINShellsCubeEdge), KBIu2(0:KBINShellsCubeEdge)
+    real(RK) :: KBIr(0:KBINShellsCubeEdge), KBIx(0:KBINShellsCubeEdge), KBIw(0:KBINShellsCubeEdge), KBIu2(0:KBINShellsCubeEdge) 
     real(RK) :: KBIRDF(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
     real(RK) :: dN(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2)),Vol,Nj,VrNor
     real(RK) :: RDFvdV(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2)),meanRDF(this%NComponents*(this%NComponents+1)/2)
@@ -19150,9 +17576,9 @@ end if
     real(RK) :: KBIrGij1(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2)), KBIrGij2(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
     real(RK) :: KBIrGij3(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2)), KBIrGij4(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
     real(RK) :: KBIrGij5(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2)), KBIrGij6(0:KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
-    real(RK) :: c1, c2, c3, d12, d13, d23, eta, d120, d130, d230, eta0, dd12, dd13, dd23, deta, helpvar
+    real(RK) :: c1, c2, c3, d12, d13, d23, eta, d120, d130, d230, eta0, dd12, dd13, dd23, deta, helpvar 
     real(RK) :: G11(3), G12(3), G13(3), G22(3), G23(3), G33(3) !TDF calculation for N=2 or 3 without linear algebra
-    real(RK) :: G11E(3), G12E(3), G13E(3), G22E(3), G23E(3), G33E(3)
+    real(RK) :: G11E(3), G12E(3), G13E(3), G22E(3), G23E(3), G33E(3) 
     real(RK) :: G110(3), G120(3), G130(3), G220(3), G230(3), G330(3)
     real(RK) :: G(4,4), dG(4,4), G0(4,4), c(4), D(4,4), F(4,4)!TDF calculation for N=4 components with linear algebra
     real(RK) :: Delta1234, D2(4,4,4), F2(4,4,4), F3(4,4,4,4), DdmudxdG(3,3,4,4), SN, TF(3,9)
@@ -19160,9 +17586,9 @@ end if
     real(RK) :: KBI_hilf(KBINShellsCubeEdge,(this%NComponents*(this%NComponents+1)/2))
     integer(KIND=8)  :: KBISum_hilf(KBINShellsCubeEdge)
 #endif
-
+    
 #if MPI_VER > 0
-    if ( SimulationType .eq. MolecularDynamics ) then
+    if ( SimulationType .eq. MolecularDynamics ) then 
         do i= 1, this%NComponents
             do j= i, this%NComponents
                 do o = 1, KBINShellsCubeEdge
@@ -19173,7 +17599,7 @@ end if
         end do
     end if
 #endif
-
+    
     ! Calculate RDF for center of mass only
     dr=this%KBIdr*UnitLength/Angstroem
     do o = 1, KBINShellsCubeEdge
@@ -19181,22 +17607,22 @@ end if
         KBIr(o)=o*dr
         do i= 1, this%NComponents
             do j= i, this%NComponents
-                KBIRho = this%SumDensity%Average  * this%Component(j)%Fraction
+                KBIRho = this%SumDensity%Average  * this%Component(j)%Fraction  
                 if (i == j) then
-                    KBIRhoLocal = 2.0 * real(this%Interaction(i,j)%KBISum(o),RK) &
+                    KBIRhoLocal = 2.0 * real(this%Interaction(i,j)%KBISum(o),RK) & 
 &                                       / (this%KBIVSchale(o) * ((TempStep-1)/KBIUpdateFrequency + 1) * this%Component(i)%NPart)
                 else
-                    KBIRhoLocal = real(this%Interaction(i,j)%KBISum(o),RK) &
+                    KBIRhoLocal = real(this%Interaction(i,j)%KBISum(o),RK) & 
 &                                 / (this%KBIVSchale(o) * ((TempStep-1)/KBIUpdateFrequency + 1) * this%Component(i)%NPart)
                 end if
                 p=p+1 !e.g. NComp=3 => g11:p=1, g12:p=2, g13:p=3, g22:p=4, g23:p=5, g33:p=6
-                KBIRDF(o,p) = KBIRhoLocal / KBIRho
+                KBIRDF(o,p) = KBIRhoLocal / KBIRho  
             end do
         end do
     end do
-
+    
 #if MPI_VER > 0
-    if ( SimulationType .eq. MonteCarlo ) then
+    if ( SimulationType .eq. MonteCarlo ) then 
         do o = 1, KBINShellsCubeEdge
             do p = 1, this%NComponents*(this%NComponents+1)/2
                 call MPI_Reduce( KBIRDF(o,p), KBI_hilf(o,p), 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
@@ -19204,7 +17630,7 @@ end if
             end do
         end do
     end if
-#endif
+#endif      
 
     ! Calculate RDF correction via van der Vegt + shift
     ! Van der Vegt correction
@@ -19245,7 +17671,7 @@ end if
             end do
         end do
     end do
-
+    
     ! Shift RDFcor so that the mean value from 3*rc/4 to rc is unity
     do p = 1, this%NComponents*(this%NComponents+1)/2
         meanRDF(p)=0.
@@ -19255,51 +17681,50 @@ end if
         meanRDF(p)=meanRDF(p)/(KBINShellsCubeEdge/4+1)
         RDFvdVshf(:,p)=RDFvdV(:,p)/meanRDF(p)
     end do
-
+    
     ! Calculate mean RDF over the blocks for extrapolation of Gij
-    do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+    do p = 1, this%NComponents*(this%NComponents+1)/2
         this%KBIRDFextra(:,p) = (this%KBIRDFextra(:,p)*(this%KBIBlockCount-1)+KBIRDF(:,p))/this%KBIBlockCount
         this%KBIRDFvdVextra(:,p) = (this%KBIRDFvdVextra(:,p)*(this%KBIBlockCount-1)+RDFvdV(:,p))/this%KBIBlockCount
         this%KBIRDFvdVshfextra(:,p) = (this%KBIRDFvdVshfextra(:,p)*(this%KBIBlockCount-1)+RDFvdVshf(:,p))/this%KBIBlockCount
     end do
 
-    !Write running average RDF (center of mass) in *.kbirdf file
+    
+    !Write running RDF (center of mass) in *.kbirdf file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileRewrite( this%iounit_kbirdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )
-    write(IOBuffer, '(T5,"last index: 1: RDF; 2: RDFvdV; 3: RDFvdVshf")')
+    call FileAppend( this%iounit_kbirdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )
+    if ( SimulationType .eq. MonteCarlo ) then
+        write(IOBuffer, '(T5,"Step: ",I8," - ",I8)') NProcs*(Step-TempStep), NProcs*Step
+    else
+        write(IOBuffer, '(T5,"Step: ",I8," - ",I8)') (Step-TempStep), Step
+    end if
     call FileWriteNoAdvance( this%iounit_kbirdf )
     call FileWriteBlank( this%iounit_kbirdf )
-    write(IOBuffer, '(T5,"   r [A]")')
+    write(IOBuffer, '(T5," r [A]")')
     call FileWriteNoAdvance( this%iounit_kbirdf )
-    do p = 1, 3 !Method
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
-                write(IOBuffer, '(I5,I5,","I1)') i, j, p
-                call FileWriteNoAdvance( this%iounit_kbirdf )
-            end do
+    do i= 1, this%NComponents
+        do j= i, this%NComponents
+            write(IOBuffer, '(I5,I5)') i, j
+            call FileWriteNoAdvance( this%iounit_kbirdf )            
         end do
     end do
     call FileWriteBlank( this%iounit_kbirdf )
     do o = 1, KBINShellsCubeEdge
-        write(IOBuffer, '(F12.6)') KBIr(o)
+        p=0 !Number of combinations, e.g. 11 12 22
+        write(IOBuffer, '(F10.4)') KBIr(o)
         call FileWriteNoAdvance( this%iounit_kbirdf )
-        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
-            write(IOBuffer, '(F12.6)') this%KBIRDFextra(o,p) !Standard RDF
-            call FileWriteNoAdvance( this%iounit_kbirdf )
-        end do
-        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
-            write(IOBuffer, '(F12.6)') this%KBIRDFvdVextra(o,p) !RDF vdV corrected
-            call FileWriteNoAdvance( this%iounit_kbirdf )
-        end do
-        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
-            write(IOBuffer, '(F12.6)') this%KBIRDFvdVshfextra(o,p) !RDF vdV+shf corrected
-            call FileWriteNoAdvance( this%iounit_kbirdf )
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                p=p+1 
+                write(IOBuffer, '(F10.4)') KBIRDF(o,p)  
+                call FileWriteNoAdvance( this%iounit_kbirdf )
+            end do
         end do
         call FileWriteBlank( this%iounit_kbirdf )
     end do
-    call FileWriteBlank( this%iounit_kbirdf )
-    call FileClose( this%iounit_kbirdf )
-
+    write( IOBuffer, '(76("-"))' )
+    call FileWrite( this%iounit_kbirdf )
+            
     ! Start of numerical Kirkwood-Buff Integration
     do o = 1, KBINShellsCubeEdge
         do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
@@ -19319,10 +17744,10 @@ end if
     KBIrGij3(0,:)=0.
     KBIrGij4(0,:)=0.
     KBIrGij5(0,:)=0.
-    KBIrGij6(0,:)=0.
+    KBIrGij6(0,:)=0.  
 
     do o = 1, KBINumberShells !KBI until Sphere in Cube only
-        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
+        do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22        
             !Calculation of the KBI with the common formula ( (2) in the PDF file ->Tomislav)
             KBIrGij1(o,p)=0.
             KBIrGij2(o,p)=0.
@@ -19330,17 +17755,17 @@ end if
             KBIrGij4(o,p)=0.
             KBIrGij5(o,p)=0.
             KBIrGij6(o,p)=0.
-
+            
             !Double loop for other two formulae
             do j=1, o
                 !Function x defined in PDF
                 KBIx(j)=KBIr(j)/KBIr(KBINumberShells)
-
+                
                 ! Function w for sphere
                 KBIw(j)=4.*Pi*KBIr(j)**2*(1.-(3.*KBIx(j)/2.)+(KBIx(j)**3)/2.);
                 ! Approximation for extrapolation
                 KBIu2(j)=4.*Pi*KBIr(j)**2*(1.-23.*KBIx(j)**3/8.+3.*KBIx(j)**4/4.+9.*KBIx(j)**5/8.);
-
+                                                
                 !Functions under integrals for trapeze formula
                 fint1=(KBIRDF(j,p)*KBIw(j)+KBIRDF(j-1,p)*KBIw(j-1))/2.
                 fint2=(RDFvdV(j,p)*KBIw(j)+RDFvdV(j-1,p)*KBIw(j-1))/2.
@@ -19350,18 +17775,18 @@ end if
                 fint5=((this%KBIRDFvdVextra(j,p)-1)*KBIu2(j)+(this%KBIRDFvdVextra(j-1,p)-1)*KBIu2(j-1))/2.
                 fint6=((this%KBIRDFvdVshfextra(j,p)-1)*KBIu2(j)+(this%KBIRDFvdVshfextra(j-1,p)-1)*KBIu2(j-1))/2.
 
-                !Numerical integration via trapeze
+                !Numerical integration via trapeze              
                 KBIrGij1(o,p)=KBIrGij1(o,p)+dr*fint1*0.6022 !Note:0.6022=NAvogadro*10^-24cm^3 to convert Gij in the unit [cm3/mol]
                 KBIrGij2(o,p)=KBIrGij2(o,p)+dr*fint2*0.6022
-                KBIrGij3(o,p)=KBIrGij3(o,p)+dr*fint3*0.6022
+                KBIrGij3(o,p)=KBIrGij3(o,p)+dr*fint3*0.6022         
                 KBIrGij4(o,p)=KBIrGij4(o,p)+dr*fint4*0.6022
                 KBIrGij5(o,p)=KBIrGij5(o,p)+dr*fint5*0.6022
                 KBIrGij6(o,p)=KBIrGij6(o,p)+dr*fint6*0.6022
             end do
         end do
-    end do
-
-    ! Update accumulator for Gij and error calculation
+    end do         
+    
+    ! Update accumulator for Gij and error calculation  
     do p = 1, this%NComponents*(this%NComponents+1)/2 !Number of combinations, e.g. 11 12 22
         call Update( this%SumKBIGij1(p), KBIrGij1(KBINumberShells,p), 0, .true. )
         call Update( this%SumKBIGij2(p), KBIrGij2(KBINumberShells,p), 0, .true. )
@@ -19371,37 +17796,39 @@ end if
         call Error( this%SumKBIGij3(p), .false., .true. )
     end do
 
-    !Write running average Gij from Accumulator in *.kbirav file
+    !Write running Gij from Accumulator in *.kbirun file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileAppend( this%iounit_kbirav, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIravFileExtension )
+    call FileAppend( this%iounit_kbirun, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrunFileExtension )
     if ( SimulationType .eq. MonteCarlo ) then
         write(IOBuffer, '(I8)') Step*NProcs
     else
         write(IOBuffer, '(I8)') Step
     end if
-    call FileWriteNoAdvance( this%iounit_kbirav )
+    call FileWriteNoAdvance( this%iounit_kbirun )
     do p = 1, this%NComponents*(this%NComponents+1)/2
         Average = this%SumKBIGij1(p)%Average
         Variance = this%SumKBIGij1(p)%Variance
         write( IOBuffer, '(3F10.4)' ) Average, Variance, KBIrGij4(KBINumberShells,p)
-        call FileWriteNoAdvance( this%iounit_kbirav )
+        call FileWriteNoAdvance( this%iounit_kbirun )
     end do
     do p = 1, this%NComponents*(this%NComponents+1)/2
         Average = this%SumKBIGij2(p)%Average
         Variance = this%SumKBIGij2(p)%Variance
         write( IOBuffer, '(3F10.4)' ) Average, Variance, KBIrGij5(KBINumberShells,p)
-        call FileWriteNoAdvance( this%iounit_kbirav )
+        call FileWriteNoAdvance( this%iounit_kbirun )
     end do
     do p = 1, this%NComponents*(this%NComponents+1)/2
         Average = this%SumKBIGij3(p)%Average
         Variance = this%SumKBIGij3(p)%Variance
         write( IOBuffer, '(3F10.4)' ) Average, Variance, KBIrGij6(KBINumberShells,p)
-        call FileWriteNoAdvance( this%iounit_kbirav )
+        call FileWriteNoAdvance( this%iounit_kbirun )
     end do
-    call FileWriteBlank( this%iounit_kbirav )
+    call FileWriteBlank( this%iounit_kbirun )
 
+    
+    
     if (this%NComponents == 2) then
-       c2x1=this%Component(1)%Fraction*this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3 ->for 2 components
+       c2x1=this%Component(1)%Fraction*this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3 ->for 2 components     
        ! RDF standard
        this%TDF(1,1) = 1.0 / (1.0+c2x1*(this%SumKBIGij1(1)%Average-2.0*this%SumKBIGij1(2)%Average+this%SumKBIGij1(3)%Average))
        this%dTDF(1,1) = (1.0+c2x1*(this%SumKBIGij1(1)%Average-2.0*this%SumKBIGij1(2)%Average+this%SumKBIGij1(3)%Average))**(-2) &
@@ -19417,7 +17844,7 @@ end if
        this%dTDF(3,1) = (1.0+c2x1*(this%SumKBIGij3(1)%Average-2.0*this%SumKBIGij3(2)%Average+this%SumKBIGij3(3)%Average))**(-2) &
 &                       *c2x1*sqrt(this%SumKBIGij3(1)%Variance**2+(2*this%SumKBIGij3(2)%Variance)**2+this%SumKBIGij3(3)%Variance**2)
        this%TDF0(3,1) = 1.0 / (1.0+c2x1*(KBIrGij6(KBINumberShells,1)-2.0*KBIrGij6(KBINumberShells,2)+KBIrGij6(KBINumberShells,3)))
-    else if (this%NComponents == 3) then
+    else if (this%NComponents == 3) then 
        c1 = this%Component(1)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
        c2 = this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
        c3 = this%Component(3)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
@@ -19478,7 +17905,7 @@ end if
        G220(3)=KBIrGij6(KBINumberShells,4)
        G230(3)=KBIrGij6(KBINumberShells,5)
        G330(3)=KBIrGij6(KBINumberShells,6)
-
+       
         do i=1, 3 ! Method loop: 1:RDF, 2:RDFvdV, 3:RDFvdVshf
             d12  = G11(i)-2.*G12(i)+G22(i)
             d13  = G11(i)-2.*G13(i)+G33(i)
@@ -19494,7 +17921,7 @@ end if
             dd23 = sqrt(G22E(i)**2+G33E(i)**2+(2.*G23E(i))**2)
             deta = (c1*c2-0.25_RK*c1*c2*c3*(2.*d12-2.*d13-2.*d23))*dd12 + (c2*c3-0.25_RK*c1*c2*c3*(2.*d23-2.*d13-2.*d12))*dd23 &
 &                  + (c1*c3-0.25_RK*c1*c2*c3*(2.*d13-2.*d23-2.*d12))*dd13
-
+            
             ! GAMMA11
             helpvar        = c2 * ( -c3*G22(i)-1.+2.*c3*G23(i)-c3*G33(i)-(c3/c2) + c1 * (G12(i)-G22(i)-(1./c2)+G23(i)-G13(i)) )
             this%TDF(i,1)  = -(1./eta) * helpvar
@@ -19526,13 +17953,13 @@ end if
             this%TDF0(i,4) = (1./eta0) * c1 * ( c3*G110(i)+1.-2.*c3*G130(i)+c3*G330(i)+(c3/c1) + c2 * (G110(i)-G120(i)-G130(i)&
 &                            +(1./c1)+G230(i)) )
         end do
-    else if (this%NComponents == 4) then
+    else if (this%NComponents == 4) then 
         c(1) = this%Component(1)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
         c(2) = this%Component(2)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
         c(3) = this%Component(3)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
         c(4) = this%Component(4)%Fraction*this%RefDensity*UnitDensity*0.001_RK !mol/cm3
         do s=1, 3 ! Method loop: 1:RDF, 2:RDFvdV, 3:RDFvdVshf
-            if (s==1) then ! RDF standard
+            if (s==1) then ! RDF standard               
                 G(1,1)=this%SumKBIGij1(1)%Average
                 G(1,2)=this%SumKBIGij1(2)%Average
                 G(1,3)=this%SumKBIGij1(3)%Average
@@ -19626,7 +18053,7 @@ end if
                 G0(3,4)=KBIrGij6(KBINumberShells,9)
                 G0(4,4)=KBIrGij6(KBINumberShells,10)
             end if
-
+            
             do extp=1, 2 !Loop for non-extrapolation and extrapolation
                 if (extp==2) G=G0
                 ! make G or G0 symmetric
@@ -19636,13 +18063,13 @@ end if
                 G(3,2)=G(2,3)
                 G(4,2)=G(2,4)
                 G(4,3)=G(3,4)
-
+                
                 ! Calculate auxiliary functions
                 do i=1, 4
                     do j=i, 4
                         D(i,j) = G(i,i)+G(j,j)-2*G(i,j)
                         F(i,j) = G(i,i)*G(j,j)-G(i,j)**2
-
+            
                         do k=j, 4
                             D2(i,j,k) = G(i,i)*G(j,j)+G(i,i)*G(k,k)+G(j,j)*G(k,k)+2*(G(i,j)*G(i,k)+G(i,j)*G(j,k)+G(i,k)*G(j,k))&
 &                                       -G(i,j)**2 -G(i,k)**2 -G(j,k)**2 - 2*(G(i,i)*G(j,k) + G(j,j)*G(i,k) + G(k,k)*G(i,j))
@@ -19667,7 +18094,7 @@ end if
 
                 eta = c(1) + c(2) + c(3) + c(4) + c(1)*c(2)*D(1,2) + c(1)*c(3)*D(1,3) + c(1)*c(4)*D(1,4) + c(2)*c(3)*D(2,3)&
 &                     + c(2)*c(4)*D(2,4) + c(3)*c(4)*D(3,4) + c(1)*c(2)*c(3)*D2(1,2,3) + c(1)*c(2)*c(4)*D2(1,2,4) &
-&                     + c(1)*c(3)*c(4)*D2(1,3,4) + c(2)*c(3)*c(4)*D2(2,3,4) + c(1)*c(2)*c(3)*c(4)*Delta1234
+&                     + c(1)*c(3)*c(4)*D2(1,3,4) + c(2)*c(3)*c(4)*D2(2,3,4) + c(1)*c(2)*c(3)*c(4)*Delta1234 
 
                 ! Thermodynamic factor
                 !GAMMA11
@@ -19675,59 +18102,59 @@ end if
 &                         +c(2)*c(3)*c(4)*D2(2,3,4) + c(1)* c(2)*( G(2,2)-G(1,2)+G(1,4)-G(2,4) )&
 &                         +c(1)* c(3)*( G(3,3)-G(1,3)+G(1,4)-G(3,4) ) &
 &                         +c(1)* c(2)* c(3)*( F(2,3)+G(1,4)*D(2,3)-G(2,2)*(G(1,3)+G(3,4))-G(3,3)*(G(1,2)+G(2,4)) &
-&                         + G(1,2)*(G(2,3)-G(2,4)+G(3,4))+G(1,3)*(G(2,3)+G(2,4)-G(3,4))+G(2,3)*(G(2,4)+G(3,4))))
+&                         + G(1,2)*(G(2,3)-G(2,4)+G(3,4))+G(1,3)*(G(2,3)+G(2,4)-G(3,4))+G(2,3)*(G(2,4)+G(3,4)))) 
                 !GAMMA12
                 TF(s,2) = (c(1)/eta) * (c(2)*( G(2,2)-G(1,2)+G(1,4)-G(2,4) )+c(3)*( G(1,4)-G(3,4)+G(2,3)-G(1,2) )&
 &                         -c(4)*( G(4,4)-G(1,4)+G(1,2)-G(2,4) ) + c(2)* c(3)*( F(2,3)+G(1,4)*D(2,3)-G(2,2)*(G(1,3)+G(3,4))&
 &                         -G(3,3)*(G(1,2)+G(2,4))+G(1,2)*(G(2,3)-G(2,4)+G(3,4))+ G(1,3)*(G(2,3)+G(2,4)-G(3,4))  &
 &                         +G(2,3)*(G(2,4)+G(3,4)) )-c(3)* c(4)*( F(3,4)+G(1,2)*D(3,4)-G(3,3)*(G(1,4)+G(2,4))-G(4,4)*(G(1,3) &
-&                         +G(2,3))+G(2,3)*(G(1,4)-G(1,3)+G(3,4))+G(2,4)*(G(1,3)-G(1,4)+G(3,4))+G(3,4)*(G(1,3)+G(1,4)) ) )
+&                         +G(2,3))+G(2,3)*(G(1,4)-G(1,3)+G(3,4))+G(2,4)*(G(1,3)-G(1,4)+G(3,4))+G(3,4)*(G(1,3)+G(1,4)) ) ) 
                 !GAMMA13
                 TF(s,3) = (c(1)/eta) * (c(2)*( G(1,4)-G(2,4)+G(2,3)-G(1,3) )+ c(3)*( G(3,3)-G(1,3)+G(1,4)-G(3,4) )&
 &                         -c(4)*( G(4,4)-G(1,4)+G(1,3)-G(3,4) )+c(2)* c(3)*( F(2,3)+G(1,4)*D(2,3)-G(2,2)*(G(1,3)+G(3,4)) &
-&                         -G(3,3)*(G(1,2)+G(2,4))+G(1,2)*(G(2,3)-G(2,4)+G(3,4))+ G(1,3)*(G(2,3)+G(2,4)-G(3,4))+G(2,3)*(G(2,4) &
-&                         +G(3,4)) )-c(2)* c(4)*( F(2,4)+G(1,3)*D(2,4)-G(2,2)*(G(1,4)+G(3,4))- G(4,4)*(G(1,2)+G(2,3)) &
-&                         +G(1,2)*(G(3,4)-G(2,3))+G(1,4)*(G(2,3)-G(3,4))+G(2,4)*(G(1,2)+G(1,4)+G(2,3)+G(3,4)) ) )
+&                         -G(3,3)*(G(1,2)+G(2,4))+G(1,2)*(G(2,3)-G(2,4)+G(3,4))+ G(1,3)*(G(2,3)+G(2,4)-G(3,4))+G(2,3)*(G(2,4) & 
+&                         +G(3,4)) )-c(2)* c(4)*( F(2,4)+G(1,3)*D(2,4)-G(2,2)*(G(1,4)+G(3,4))- G(4,4)*(G(1,2)+G(2,3)) & 
+&                         +G(1,2)*(G(3,4)-G(2,3))+G(1,4)*(G(2,3)-G(3,4))+G(2,4)*(G(1,2)+G(1,4)+G(2,3)+G(3,4)) ) ) 
                 !GAMMA21
                 TF(s,4) = (c(2)/eta) * (c(1)*( G(1,1)-G(1,2)+G(2,4)-G(1,4) )+c(3)*( G(2,4)-G(3,4)+G(1,3)-G(1,2) )-c(4)*( G(4,4)&
-&                         -G(1,4)+G(1,2)-G(2,4) ) +c(1)* c(3)*( F(1,3)+G(2,4)*D(1,3)-G(1,1)*(G(2,3)+G(3,4))-G(3,3)*(G(1,2)+G(1,4))&
-&                         +G(1,2)*(G(1,3)-G(1,4)+G(3,4))+ G(1,3)*(G(1,4)+G(2,3)+G(3,4))+G(2,3)*(G(1,4)-G(3,4)) ) &
+&                         -G(1,4)+G(1,2)-G(2,4) ) +c(1)* c(3)*( F(1,3)+G(2,4)*D(1,3)-G(1,1)*(G(2,3)+G(3,4))-G(3,3)*(G(1,2)+G(1,4))&                                        
+&                         +G(1,2)*(G(1,3)-G(1,4)+G(3,4))+ G(1,3)*(G(1,4)+G(2,3)+G(3,4))+G(2,3)*(G(1,4)-G(3,4)) ) & 
 &                         -c(3)* c(4)*( F(3,4)+G(1,2)*D(3,4)-G(3,3)*(G(1,4)+G(2,4))-G(4,4)*(G(1,3)+G(2,3)) &
-&                         + G(2,3)*(G(1,4)-G(1,3)+G(3,4))+G(2,4)*(G(1,3)-G(1,4)+G(3,4))+G(3,4)*(G(1,3)+G(1,4)) ) )
+&                         + G(2,3)*(G(1,4)-G(1,3)+G(3,4))+G(2,4)*(G(1,3)-G(1,4)+G(3,4))+G(3,4)*(G(1,3)+G(1,4)) ) ) 
                 !GAMMA22
-                TF(s,5) = (1/eta)*(c(1)+c(2)+c(3)+c(4)+c(1)*c(3)*D(1,3)+c(1)*c(4)*D(1,4)+c(3)*c(4)*D(3,4)+c(1)*c(3)*c(4)*D2(1,3,4)&
+                TF(s,5) = (1/eta)*(c(1)+c(2)+c(3)+c(4)+c(1)*c(3)*D(1,3)+c(1)*c(4)*D(1,4)+c(3)*c(4)*D(3,4)+c(1)*c(3)*c(4)*D2(1,3,4)&                   
 &                         +c(1)* c(2)*( G(1,1)-G(1,2)+G(2,4)-G(1,4) )+c(2)* c(3)*( G(3,3)-G(2,3)+G(2,4)-G(3,4) ) &
 &                         +c(1)* c(2)* c(3)*( F(1,3)+G(2,4)*D(1,3)-G(1,1)*(G(2,3)+G(3,4))-G(3,3)*(G(1,2)+G(1,4)) &
 &                         +G(1,2)*(G(1,3)-G(1,4)+G(3,4))+G(1,3)*(G(1,4)+G(2,3)+G(3,4))+G(2,3)*(G(1,4)-G(3,4)) ) )
                 !GAMMA23
-                TF(s,6) = (c(2)/eta) * (c(1)*( G(2,4)-G(1,4)+G(1,3)-G(2,3) ) + c(3)*( G(3,3)-G(2,3)+G(2,4)-G(3,4) ) &
-&                         -c(4)*( G(4,4)-G(2,4)+G(2,3)-G(3,4) ) + c(1)* c(3)*( F(1,3)+G(2,4)*D(1,3)-G(1,1)*(G(2,3)+G(3,4))&
-&                         -G(3,3)*(G(1,2)+G(1,4))+G(1,2)*(G(1,3)-G(1,4)+G(3,4))+ G(1,3)*(G(1,4)+G(2,3)+G(3,4))+G(2,3)*(G(1,4)&
+                TF(s,6) = (c(2)/eta) * (c(1)*( G(2,4)-G(1,4)+G(1,3)-G(2,3) ) + c(3)*( G(3,3)-G(2,3)+G(2,4)-G(3,4) ) & 
+&                         -c(4)*( G(4,4)-G(2,4)+G(2,3)-G(3,4) ) + c(1)* c(3)*( F(1,3)+G(2,4)*D(1,3)-G(1,1)*(G(2,3)+G(3,4))& 
+&                         -G(3,3)*(G(1,2)+G(1,4))+G(1,2)*(G(1,3)-G(1,4)+G(3,4))+ G(1,3)*(G(1,4)+G(2,3)+G(3,4))+G(2,3)*(G(1,4)& 
 &                         -G(3,4)) )-c(1)* c(4)*( F(1,4)+G(2,3)*D(1,4)-G(1,1)*(G(2,4)+G(3,4))-G(4,4)*(G(1,2)+G(1,3))&
 &                         + G(1,2)*(G(1,4)-G(1,3)+G(3,4))+G(1,4)*(G(1,3)+G(2,4)+G(3,4))+G(2,4)*(G(1,3)-G(3,4)) ) )
-                !GAMMA31
+                !GAMMA31         
                 TF(s,7) = (c(3)/eta) * (c(1)*( G(1,1)-G(1,3)+G(3,4)-G(1,4) )+ c(2)*( G(3,4)-G(2,4)+G(1,2)-G(1,3) )- c(4)*( G(4,4)&
-&                         -G(1,4)+G(1,3)-G(3,4) )+ c(1)* c(2)*( F(1,2)+G(3,4)*D(1,2)-G(1,1)*(G(2,3)+G(2,4))-G(2,2)*(G(1,3)+G(1,4))&
-&                         +G(1,2)*(G(1,3)+G(2,3)+G(1,4)+G(2,4)) + G(1,3)*(G(2,4)-G(1,4))+G(2,3)*(G(1,4)-G(2,4)) ) &
+&                         -G(1,4)+G(1,3)-G(3,4) )+ c(1)* c(2)*( F(1,2)+G(3,4)*D(1,2)-G(1,1)*(G(2,3)+G(2,4))-G(2,2)*(G(1,3)+G(1,4))&                                      
+&                         +G(1,2)*(G(1,3)+G(2,3)+G(1,4)+G(2,4)) + G(1,3)*(G(2,4)-G(1,4))+G(2,3)*(G(1,4)-G(2,4)) ) & 
 &                         - c(2)* c(4)*( F(2,4)+G(1,3)*D(2,4)-G(2,2)*(G(1,4)+G(3,4))-G(4,4)*(G(1,2)+G(2,3)) &
-&                         +G(1,2)*(G(3,4)-G(2,3))+G(1,4)*(G(2,3)-G(3,4))+G(2,4)*(G(1,2)+G(1,4)+G(2,3)+G(3,4)) ) )
-                !GAMMA32
+&                         +G(1,2)*(G(3,4)-G(2,3))+G(1,4)*(G(2,3)-G(3,4))+G(2,4)*(G(1,2)+G(1,4)+G(2,3)+G(3,4)) ) )               
+                !GAMMA32         
                 TF(s,8) = (c(3)/eta) * (c(1)*( G(3,4)-G(1,4)+G(1,2)-G(2,3) )+ c(2)*( G(2,2)-G(2,3)+G(3,4)-G(2,4) )&
-&                         -c(4)*( G(4,4)-G(2,4)+G(2,3)-G(3,4) ) +c(1)* c(2)*( F(1,2)+G(3,4)*D(1,2)-G(1,1)*(G(2,3)+G(2,4))&
+&                         -c(4)*( G(4,4)-G(2,4)+G(2,3)-G(3,4) ) +c(1)* c(2)*( F(1,2)+G(3,4)*D(1,2)-G(1,1)*(G(2,3)+G(2,4))&                                   
 &                         -G(2,2)*(G(1,3)+G(1,4))+G(1,2)*(G(1,3)+G(2,3)+G(1,4)+G(2,4))+ G(1,3)*(G(2,4)-G(1,4))  &
 &                         +G(2,3)*(G(1,4)-G(2,4)) )-c(1)* c(4)*( F(1,4)+G(2,3)*D(1,4)-G(1,1)*(G(2,4)+G(3,4))-G(4,4)*(G(1,2) &
-&                         +G(1,3))+ G(1,2)*(G(1,4)-G(1,3)+G(3,4))+G(1,4)*(G(1,3)+G(2,4)+G(3,4))+G(2,4)*(G(1,3)-G(3,4)) ) )
-                !GAMMA33
+&                         +G(1,3))+ G(1,2)*(G(1,4)-G(1,3)+G(3,4))+G(1,4)*(G(1,3)+G(2,4)+G(3,4))+G(2,4)*(G(1,3)-G(3,4)) ) )    
+                !GAMMA33         
                 TF(s,9) = (1/eta)*(c(1)+c(2)+c(3)+c(4)+c(1)*c(2)*D(1,2)+c(1)*c(4)*D(1,4)+c(2)*c(4)*D(2,4)+c(1)*c(2)*c(4)*D2(1,2,4)&
 &                         +c(1)* c(3)*( G(1,1)-G(1,3)+G(3,4)-G(1,4) )+c(2)* c(3)*( G(2,2)-G(2,3)+G(3,4)-G(2,4) ) &
 &                         +c(1)* c(2)* c(3)*( F(1,2)+G(3,4)*D(1,2)-G(1,1)*(G(2,3)+G(2,4))-G(2,2)*(G(1,3)+G(1,4)) &
-&                         + G(1,2)*(G(1,3)+G(2,3)+G(1,4)+G(2,4))+G(1,3)*(G(2,4)-G(1,4))+G(2,3)*(G(1,4)-G(2,4)) ) )
+&                         + G(1,2)*(G(1,3)+G(2,3)+G(1,4)+G(2,4))+G(1,3)*(G(2,4)-G(1,4))+G(2,3)*(G(1,4)-G(2,4)) ) ) 
                 if (extp==1) then !non-extrapolated thermodynamic factor
-                    this%TDF(s,:)=TF(s,:)
+                    this%TDF(s,:)=TF(s,:) 
                 else              !extrapolated thermodynamic factor
-                    this%TDF0(s,:)=TF(s,:)
+                    this%TDF0(s,:)=TF(s,:) 
                 end if
-
+            
                 if (extp==1) then ! Non-extrapolation
                     ! Auxiliary function for error propagation
                     SN = c(2)*c(1)*c(3)*c(4)*(c(1)*G(1,1)*c(2)+c(1)*c(4)*G(4,4)+c(1)*c(3)*G(1,1)+c(1)*G(1,1)*c(4)+c(1)*c(3)*G(3,3)&
@@ -19769,7 +18196,7 @@ end if
 &                        *G(1,3)**2*G(2,4)-c(1)*c(2)*c(3)*c(4)*G(2,4)**2*G(1,1)-c(1)*c(2)*c(3)*c(4)*G(1,2)**2*G(4,4)+2*c(1)*c(2)&
 &                        *c(3)*c(4)*G(1,2)**2*G(3,4)-c(1)*c(2)*c(3)*c(4)*G(2,3)**2*G(1,1)-c(1)*c(2)*c(3)*c(4)*G(1,2)**2*G(3,3)&
 &                        -c(1)*c(2)*c(3)*c(4)*G(1,3)**2*G(2,2)+2*c(1)*c(2)*c(3)*c(4)*G(2,3)**2*G(1,4)-c(1)*c(2)*c(3)*c(4)*G(2,2)&
-&                        *G(1,4)**2+c(1)+c(2)+c(3)+c(4)-2*c(1)*c(2)*G(1,2))
+&                        *G(1,4)**2+c(1)+c(2)+c(3)+c(4)-2*c(1)*c(2)*G(1,2)) 
                     ! Error propagation for thermodynamic factor
                     ! Derivative d (dmu_i/dx_j) /  dG_k,m
                     DdmudxdG(1, 1, 1, 1) =  (-(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)&
@@ -19793,7 +18220,7 @@ end if
 &                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2&
 &                                           +2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)&
 &                                           *G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)&
-&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))
+&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4))) 
                     DdmudxdG(1, 1, 1, 2) =  (2*(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)&
 &                                           *G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2&
 &                                           *c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)&
@@ -19853,7 +18280,7 @@ end if
 &                                           *G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)&
 &                                           *G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)&
 &                                           *G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)&
-&                                           *G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))
+&                                           *G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
                     DdmudxdG(1, 1, 1, 4) =  (2*(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)&
 &                                           *G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)*G(3,3)-2&
 &                                           *c(2)*c(3)*c(4)*G(2,4)*G(3,3)+c(2)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(2)*c(3)&
@@ -19876,7 +18303,7 @@ end if
 &                                           *G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)&
 &                                           *G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)&
 &                                           *G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)&
-&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))**2*c(1)**3*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1)
+&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))**2*c(1)**3*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1)  
                     DdmudxdG(1, 1, 2, 2) =  ((c(2)*c(3)*c(4)*G(3,3)+c(2)*c(3)*c(4)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)+c(2)&
 &                                           *c(3)+c(2)*c(4))*c(3)*c(4)*c(2) / SN / 1-(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)&
 &                                           *c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)&
@@ -19908,7 +18335,7 @@ end if
 &                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)&
 &                                           *G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)&
 &                                           *c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
-&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
                     DdmudxdG(1, 1, 2, 3) =  ((-2*c(2)*c(3)*c(4)*G(4,4)-2*c(2)*c(3)*c(4)*G(2,3)+2*c(2)*c(3)*c(4)*G(3,4)+2&
 &                                           *c(2)*c(3)*c(4)*G(2,4)-2*c(2)*c(3))*c(3)*c(4)*c(2) / SN / 1+2*(c(2)*c(3)*c(4)&
 &                                           *G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)&
@@ -19940,7 +18367,7 @@ end if
 &                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
 &                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
 &                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
-&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
                     DdmudxdG(1, 1, 2, 4) =  ((-2*c(2)*c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,4)+2*c(2)*c(3)*c(4)*G(3,4)+2&
 &                                           *c(2)*c(3)*c(4)*G(2,3)-2*c(2)*c(4))*c(3)*c(4)*c(2) / SN / 1-2*(c(2)*c(3)*c(4)&
 &                                           *G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)&
@@ -19972,7 +18399,7 @@ end if
 &                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
 &                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
 &                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
-&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))  
                     DdmudxdG(1, 1, 3, 3) =  ((c(2)*c(3)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(4,4)-2*c(2)*c(3)*c(4)*G(2,4)+c(2)&
 &                                           *c(3)+c(3)*c(4))*c(3)*c(4)*c(2) / SN / 1-(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)&
 &                                           *c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)&
@@ -20004,7 +18431,7 @@ end if
 &                                           *c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)&
 &                                           *G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)&
 &                                           *G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)&
-&                                           *G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))
+&                                           *G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))  
                     DdmudxdG(1, 1, 3, 4) =  ((-2*c(2)*c(3)*c(4)*G(2,2)-2*c(2)*c(3)*c(4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)+2&
 &                                           *c(2)*c(3)*c(4)*G(2,4)-2*c(3)*c(4))*c(3)*c(4)*c(2) / SN / 1+2*(c(2)*c(3)*c(4)&
 &                                           *G(3,3)*G(2,2)+c(2)*c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)&
@@ -20036,7 +18463,7 @@ end if
 &                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
 &                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
 &                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
-&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))  
                     DdmudxdG(1, 1, 4, 4) =  ((c(2)*c(3)*c(4)*G(2,2)+c(2)*c(3)*c(4)*G(3,3)-2*c(2)*c(3)*c(4)*G(2,3)+c(2)&
 &                                           *c(4)+c(3)*c(4))*c(3)*c(4)*c(2) / SN / 1-(c(2)*c(3)*c(4)*G(3,3)*G(2,2)+c(2)&
 &                                           *c(3)*c(4)*G(2,2)*G(4,4)-2*c(2)*c(3)*c(4)*G(3,4)*G(2,2)+c(2)*G(2,2)*c(3)+c(2)&
@@ -20067,7 +18494,7 @@ end if
 &                                           *G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)&
 &                                           *G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)&
 &                                           *c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)&
-&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))
+&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
                     DdmudxdG(1, 2, 1, 1) =  ((1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)&
 &                                           *G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)&
 &                                           *G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)&
@@ -20096,7 +18523,7 @@ end if
 &                                           *c(4)*G(4,4)*G(2,3)+c(2)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)&
 &                                           *G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)&
 &                                           *G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)&
-&                                           *c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))
+&                                           *c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
                     DdmudxdG(1, 2, 1, 2) =  (-(c(3)+c(4)+c(3)*c(4)*G(3,3)-2*c(3)*c(4)*G(3,4)+c(3)*c(4)*G(4,4))*c(1)*c(2)&
 &                                           *c(3)*c(4) / SN / 1-2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)&
 &                                           *G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)&
@@ -20121,7 +18548,7 @@ end if
 &                                           *c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)&
 &                                           *G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
 &                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
-&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
                     DdmudxdG(1, 2, 1, 3) =  (-(-c(3)-c(3)*c(4)*G(4,4)-c(4)*c(3)*G(2,3)+c(3)*c(4)*G(2,4)+c(3)*c(4)*G(3,4))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
 &                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
@@ -20153,7 +18580,7 @@ end if
 &                                           *G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)&
 &                                           *G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)&
 &                                           *G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)&
-&                                           *G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))
+&                                           *G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
                     DdmudxdG(1, 2, 1, 4) =  (-(-c(4)+c(4)*c(3)*G(2,3)+c(3)*c(4)*G(3,4)-c(3)*c(4)*G(2,4)-c(3)*c(4)*G(3,3))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
 &                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
@@ -20178,7 +18605,7 @@ end if
 &                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
 &                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
 &                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)&
-&                                           *G(2,3))**2*c(1)**3*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1)
+&                                           *G(2,3))**2*c(1)**3*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1)  
                     DdmudxdG(1, 2, 2, 2) =  ((1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)&
 &                                           *G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)&
 &                                           *G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)&
@@ -20209,7 +18636,7 @@ end if
 &                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)&
 &                                           *G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)&
 &                                           *c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
-&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
                     DdmudxdG(1, 2, 2, 3) =  (-(-c(3)-c(3)*c(4)*G(4,4)-c(4)*G(1,3)*c(3)+c(3)*c(4)*G(1,4)+c(3)*c(4)*G(3,4))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
 &                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
@@ -20241,7 +18668,7 @@ end if
 &                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
 &                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
 &                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
-&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
                     DdmudxdG(1, 2, 2, 4) =  (-(-c(4)-c(3)*c(4)*G(3,3)+c(4)*G(1,3)*c(3)+c(3)*c(4)*G(3,4)-c(3)*c(4)*G(1,4))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
 &                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
@@ -20273,7 +18700,7 @@ end if
 &                                           *c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)&
 &                                           *G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)*G(1,2)&
 &                                           *G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)*G(1,2)&
-&                                           *G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))
+&                                           *G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))  
                     DdmudxdG(1, 2, 3, 3) =  (-(G(1,2)*c(4)*c(3)-c(3)*c(4)*G(2,4)+c(3)*c(4)*G(4,4)+c(3)-c(3)*c(4)*G(1,4))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
 &                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
@@ -20305,7 +18732,7 @@ end if
 &                                           *c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)&
 &                                           *G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)&
 &                                           *G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)&
-&                                           *G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))
+&                                           *G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))  
                     DdmudxdG(1, 2, 3, 4) =  (-(-2*c(3)*c(4)*G(3,4)-2*G(1,2)*c(4)*c(3)+c(3)*c(4)*G(2,4)+c(4)*G(1,3)&
 &                                           *c(3)+c(4)*c(3)*G(2,3)+c(3)*c(4)*G(1,4))*c(1)*c(2)*c(3)*c(4) / SN / 1-2*(1+c(3)&
 &                                           *G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)&
@@ -20337,7 +18764,7 @@ end if
 &                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
 &                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
 &                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
-&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))  
                     DdmudxdG(1, 2, 4, 4) =  (-(-c(4)*c(3)*G(2,3)+c(3)*c(4)*G(3,3)+c(4)-c(4)*G(1,3)*c(3)+G(1,2)*c(4)*c(3))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
 &                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
@@ -20367,7 +18794,7 @@ end if
 &                                           *G(2,2)*c(3)-2*c(1)*c(2)*c(3)*G(1,2)*G(3,3)+c(1)*G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2&
 &                                           *c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)&
 &                                           *G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)&
-&                                           *G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))
+&                                           *G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
                     DdmudxdG(1, 3, 1, 1) =  (-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)&
 &                                           *G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)&
 &                                           *G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)&
@@ -20396,7 +18823,7 @@ end if
 &                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2&
 &                                           +2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)&
 &                                           *G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)&
-&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))
+&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
                     DdmudxdG(1, 3, 1, 2) =  ((c(2)+c(2)*c(4)*G(4,4)-c(2)*c(4)*G(2,4)-c(2)*c(4)*G(3,4)+c(4)*c(2)*G(2,3))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
 &                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
@@ -20427,7 +18854,7 @@ end if
 &                                           *G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)&
 &                                           *G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)&
 &                                           *G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)*G(3,4)+c(3)*c(4)*G(3,4)&
-&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))
+&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
                     DdmudxdG(1, 3, 1, 3) =  ((-c(2)-c(2)*c(4)*G(4,4)-c(2)*c(4)*G(2,2)-c(4)+2*c(2)*c(4)*G(2,4))*c(1)*c(2)&
 &                                           *c(3)*c(4) / SN / 1-2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)&
 &                                           *G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
@@ -20452,7 +18879,7 @@ end if
 &                                           *G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)&
 &                                           *G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)&
 &                                           *G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)&
-&                                           *G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))
+&                                           *G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
                     DdmudxdG(1, 3, 1, 4) =  ((c(4)-c(4)*c(2)*G(2,3)-c(2)*c(4)*G(2,4)+c(2)*c(4)*G(3,4)+c(2)*c(4)*G(2,2))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
 &                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
@@ -20476,7 +18903,7 @@ end if
 &                                           *G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)&
 &                                           *G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)&
 &                                           *G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)&
-&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))**2*c(1)**3*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1)
+&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3))**2*c(1)**3*c(2)**2*c(3)**2*c(4)**3 / SN**2 / 1)  
                     DdmudxdG(1, 3, 2, 2) =  ((-c(2)*c(4)*G(4,4)-c(2)+c(2)*c(4)*G(3,4)-c(4)*G(1,3)*c(2)+c(2)*c(4)*G(1,4))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
 &                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
@@ -20508,7 +18935,7 @@ end if
 &                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)&
 &                                           *G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)&
 &                                           *c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
-&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
                     DdmudxdG(1, 3, 2, 3) =  ((c(2)-c(2)*c(4)*G(1,4)-c(2)*c(4)*G(2,4)+c(4)*c(2)*G(1,2)+c(2)*c(4)*G(4,4))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
 &                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
@@ -20540,7 +18967,7 @@ end if
 &                                           *c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)&
 &                                           *G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)&
 &                                           *G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)&
-&                                           *G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))
+&                                           *G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
                     DdmudxdG(1, 3, 2, 4) =  ((2*c(2)*c(4)*G(2,4)-c(4)*c(2)*G(1,2)-c(2)*c(4)*G(3,4)-c(4)*c(2)*G(2,3)-c(2)&
 &                                           *c(4)*G(1,4)+2*c(4)*G(1,3)*c(2))*c(1)*c(2)*c(3)*c(4) / SN / 1-2*(-1+c(4)&
 &                                           *G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)&
@@ -20572,7 +18999,7 @@ end if
 &                                           *G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)&
 &                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
 &                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
-&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))
+&                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))  
                     DdmudxdG(1, 3, 3, 3) =  (-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)&
 &                                           *G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)&
 &                                           *G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)&
@@ -20602,7 +19029,7 @@ end if
 &                                           *c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)&
 &                                           *G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)&
 &                                           *G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)&
-&                                           *G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))
+&                                           *G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))  
                     DdmudxdG(1, 3, 3, 4) =  ((c(4)+c(2)*c(4)*G(2,2)-c(2)*c(4)*G(2,4)-c(4)*c(2)*G(1,2)+c(2)*c(4)*G(1,4))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
 &                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
@@ -20633,7 +19060,7 @@ end if
 &                                           *c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)&
 &                                           *G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)&
 &                                           *G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)&
-&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))
+&                                           *G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))  
                     DdmudxdG(1, 3, 4, 4) =  ((-c(2)*c(4)*G(2,2)-c(4)-c(4)*G(1,3)*c(2)+c(4)*c(2)*G(1,2)+c(4)*c(2)*G(2,3))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
 &                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
@@ -20663,7 +19090,7 @@ end if
 &                                           *c(3)*G(1,2)*G(3,3)+c(1)*G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)&
 &                                           *G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)&
 &                                           *c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)&
-&                                           *G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))
+&                                           *G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
 
                     DdmudxdG(2, 1, 1, 1) =  ((1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)&
 &                                           *G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)&
@@ -20695,7 +19122,7 @@ end if
 &                                           *c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)&
 &                                           *G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)&
 &                                           *c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)&
-&                                           *G(3,4)+c(3)+c(4)))
+&                                           *G(3,4)+c(3)+c(4)))  
                     DdmudxdG(2, 1, 1, 2) =  (-(c(3)+c(4)+c(3)*c(4)*G(3,3)-2*c(3)*c(4)*G(3,4)+c(3)*c(4)*G(4,4))*c(1)*c(2)&
 &                                           *c(3)*c(4) / SN / 1-2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)&
 &                                           *G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)&
@@ -20720,7 +19147,7 @@ end if
 &                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
 &                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
 &                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
-&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
                     DdmudxdG(2, 1, 1, 3) =  (-(-c(3)-c(3)*c(4)*G(4,4)-c(4)*c(3)*G(2,3)+c(3)*c(4)*G(2,4)+c(3)*c(4)*G(3,4))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
 &                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
@@ -20752,7 +19179,7 @@ end if
 &                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
 &                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
 &                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)&
-&                                           *G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))
+&                                           *G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
                     DdmudxdG(2, 1, 1, 4) =  (-(-c(4)+c(4)*c(3)*G(2,3)+c(3)*c(4)*G(3,4)-c(3)*c(4)*G(2,4)-c(3)*c(4)*G(3,3))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
 &                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
@@ -20783,7 +19210,7 @@ end if
 &                                           *G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
 &                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
 &                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
-&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))  
                     DdmudxdG(2, 1, 2, 2) =  ((1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)&
 &                                           *G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)*G(4,4)-c(4)*G(2,4)*c(3)&
 &                                           *G(3,3)-c(3)*c(4)*G(3,4)**2+c(3)*c(4)*G(4,4)*G(3,3)+G(3,3)*c(3)+c(4)&
@@ -20812,7 +19239,7 @@ end if
 &                                           *c(4)*G(1,3)*G(4,4)+c(1)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)&
 &                                           *G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)&
 &                                           *G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)&
-&                                           *c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))
+&                                           *c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
                     DdmudxdG(2, 1, 2, 3) =  (-(-c(3)-c(3)*c(4)*G(4,4)-c(4)*G(1,3)*c(3)+c(3)*c(4)*G(1,4)+c(3)*c(4)*G(3,4))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
 &                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
@@ -20843,7 +19270,7 @@ end if
 &                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
 &                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
 &                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
-&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
                     DdmudxdG(2, 1, 2, 4) =  (-(-c(4)-c(3)*c(4)*G(3,3)+c(4)*G(1,3)*c(3)+c(3)*c(4)*G(3,4)-c(3)*c(4)*G(1,4))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
 &                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
@@ -20868,7 +19295,7 @@ end if
 &                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
 &                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
 &                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))**2*c(2)**3*c(3)**2&
-&                                           *c(4)**3*c(1)**2 / SN**2 / 1)
+&                                           *c(4)**3*c(1)**2 / SN**2 / 1)  
                     DdmudxdG(2, 1, 3, 3) =  (-(G(1,2)*c(4)*c(3)-c(3)*c(4)*G(2,4)+c(3)*c(4)*G(4,4)+c(3)-c(3)*c(4)*G(1,4))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
 &                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
@@ -20900,7 +19327,7 @@ end if
 &                                           *c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)&
 &                                           *c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)&
 &                                           *c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)&
-&                                           *G(2,4)+c(2)+c(4)))
+&                                           *G(2,4)+c(2)+c(4)))  
                     DdmudxdG(2, 1, 3, 4) =  (-(-2*c(3)*c(4)*G(3,4)-2*G(1,2)*c(4)*c(3)+c(3)*c(4)*G(2,4)+c(4)*G(1,3)&
 &                                           *c(3)+c(4)*c(3)*G(2,3)+c(3)*c(4)*G(1,4))*c(1)*c(2)*c(3)*c(4) / SN / 1-2*(1+c(3)&
 &                                           *G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)*G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)&
@@ -20931,7 +19358,7 @@ end if
 &                                           *c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)&
 &                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
 &                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
-&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))
+&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))  
                     DdmudxdG(2, 1, 4, 4) =  (-(-c(4)*c(3)*G(2,3)+c(3)*c(4)*G(3,3)+c(4)-c(4)*G(1,3)*c(3)+G(1,2)*c(4)*c(3))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+(1+c(3)*G(1,2)-c(4)*G(1,4)+c(4)*G(1,2)-c(3)&
 &                                           *G(1,3)-c(3)*G(2,3)-c(4)*G(2,4)+c(4)*G(1,2)*c(3)*G(3,3)-c(3)*G(2,3)*c(4)&
@@ -20961,7 +19388,7 @@ end if
 &                                           *G(2,2)*c(3)-2*c(1)*c(2)*c(3)*G(1,2)*G(3,3)+c(1)*G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2&
 &                                           *c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)&
 &                                           *G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)&
-&                                           *G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))
+&                                           *G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
                     DdmudxdG(2, 2, 1, 1) =  ((c(1)*c(3)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(4,4)-2*c(1)*c(3)*c(4)*G(3,4)+c(1)&
 &                                           *c(3)+c(1)*c(4))*c(1)*c(3)*c(4) / SN / 1-(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)&
 &                                           *c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)&
@@ -20993,7 +19420,7 @@ end if
 &                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2&
 &                                           +2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)&
 &                                           *G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)&
-&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))
+&                                           *G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
                     DdmudxdG(2, 2, 1, 2) =  (2*(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)&
 &                                           *G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2&
 &                                           *c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)&
@@ -21023,7 +19450,7 @@ end if
 &                                           *G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)&
 &                                           *G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)&
 &                                           *G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)*G(3,4)+c(3)*c(4)*G(3,4)&
-&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))
+&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
                     DdmudxdG(2, 2, 1, 3) =  ((-2*c(1)*c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(1,4)-2*c(1)*c(4)*G(1,3)*c(3)+2&
 &                                           *c(1)*c(3)*c(4)*G(3,4)-2*c(1)*c(3))*c(1)*c(3)*c(4) / SN / 1-2*(c(1)*c(3)*G(1,1)&
 &                                           *G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)&
@@ -21055,7 +19482,7 @@ end if
 &                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
 &                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
 &                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)&
-&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))
+&                                           *G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
                     DdmudxdG(2, 2, 1, 4) =  ((-2*c(1)*c(3)*G(3,3)*c(4)+2*c(1)*c(3)*c(4)*G(3,4)+2*c(1)*c(4)*G(1,3)*c(3)-2&
 &                                           *c(1)*c(3)*c(4)*G(1,4)-2*c(1)*c(4))*c(1)*c(3)*c(4) / SN / 1+2*(c(1)*c(3)*G(1,1)&
 &                                           *G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)&
@@ -21087,7 +19514,7 @@ end if
 &                                           *G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)&
 &                                           *G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)&
 &                                           *G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)&
-&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))
+&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))  
                     DdmudxdG(2, 2, 2, 2) =  (-(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)&
 &                                           *G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2&
 &                                           *c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)&
@@ -21109,7 +19536,7 @@ end if
 &                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)&
 &                                           *G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)&
 &                                           *c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
-&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
                     DdmudxdG(2, 2, 2, 3) =  (2*(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)&
 &                                           *G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2&
 &                                           *c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)&
@@ -21139,7 +19566,7 @@ end if
 &                                           *c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)&
 &                                           *G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)&
 &                                           *G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)&
-&                                           *G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))
+&                                           *G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
                     DdmudxdG(2, 2, 2, 4) =  (-2*(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)&
 &                                           *G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)*G(1,1)*c(4)+c(1)*c(3)*c(4)*G(4,4)*G(3,3)-2&
 &                                           *c(1)*c(3)*c(4)*G(1,4)*G(3,3)+c(1)*G(3,3)*c(3)+c(3)*c(4)*G(3,3)-2*c(1)*c(3)&
@@ -21162,7 +19589,7 @@ end if
 &                                           *c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)&
 &                                           *c(1)*G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
 &                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)&
-&                                           *G(1,1))**2*c(2)**3*c(3)**2*c(4)**3*c(1)**2 / SN**2 / 1)
+&                                           *G(1,1))**2*c(2)**3*c(3)**2*c(4)**3*c(1)**2 / SN**2 / 1)  
                     DdmudxdG(2, 2, 3, 3) =  ((c(1)*c(3)*c(4)*G(1,1)+c(1)*c(3)*c(4)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,4)+c(1)&
 &                                           *c(3)+c(3)*c(4))*c(1)*c(3)*c(4) / SN / 1-(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)&
 &                                           *c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)&
@@ -21194,7 +19621,7 @@ end if
 &                                           *c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)&
 &                                           *G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)&
 &                                           *G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)&
-&                                           *G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))
+&                                           *G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))  
                     DdmudxdG(2, 2, 3, 4) =  ((-2*c(1)*c(3)*c(4)*G(1,1)+2*c(1)*c(3)*c(4)*G(1,4)-2*c(1)*c(3)*c(4)*G(3,4)+2&
 &                                           *c(1)*c(4)*G(1,3)*c(3)-2*c(3)*c(4))*c(1)*c(3)*c(4) / SN / 1+2*(c(1)*c(3)*G(1,1)&
 &                                           *G(3,3)*c(4)+c(1)*c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)&
@@ -21225,7 +19652,7 @@ end if
 &                                           *c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)&
 &                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
 &                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
-&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))
+&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))  
                     DdmudxdG(2, 2, 4, 4) =  ((c(1)*c(3)*c(4)*G(1,1)+c(1)*c(3)*G(3,3)*c(4)-2*c(1)*c(4)*G(1,3)*c(3)+c(1)&
 &                                           *c(4)+c(3)*c(4))*c(1)*c(3)*c(4) / SN / 1-(c(1)*c(3)*G(1,1)*G(3,3)*c(4)+c(1)&
 &                                           *c(3)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(3)*c(4)*G(1,1)*G(3,4)+c(1)*G(1,1)*c(3)+c(1)&
@@ -21256,7 +19683,7 @@ end if
 &                                           *G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)&
 &                                           *G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)&
 &                                           *c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)&
-&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))
+&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
                     DdmudxdG(2, 3, 1, 1) =  (-(c(1)*c(4)*G(4,4)+c(1)+c(4)*G(2,3)*c(1)-c(4)*G(3,4)*c(1)-c(4)*G(2,4)*c(1))&
 &                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
 &                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
@@ -21288,7 +19715,7 @@ end if
 &                                           *c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)&
 &                                           *G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)&
 &                                           *c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)&
-&                                           *G(3,4)+c(3)+c(4)))
+&                                           *G(3,4)+c(3)+c(4)))  
                     DdmudxdG(2, 3, 1, 2) =  (-(-c(4)*c(1)*G(1,3)+c(4)*G(3,4)*c(1)+c(1)*c(4)*G(1,4)-c(1)-c(1)*c(4)*G(4,4))&
 &                                           *c(2)*c(3)*c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
 &                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
@@ -21319,7 +19746,7 @@ end if
 &                                           *G(4,4)-c(3)*G(1,3)*c(4)*G(4,4)-c(4)*c(3)*G(1,3)*G(2,3)-2*c(3)*c(4)*G(1,2)&
 &                                           *G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)*G(2,4)+c(4)*c(3)*G(1,3)&
 &                                           *G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)*G(3,4)+c(3)*c(4)*G(3,4)&
-&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))
+&                                           *G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)*G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
                     DdmudxdG(2, 3, 1, 3) =  (-(-c(1)*c(4)*G(4,4)-c(4)*c(1)*G(1,2)+c(4)*G(2,4)*c(1)+c(1)*c(4)*G(1,4)-c(1))&
 &                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
 &                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
@@ -21351,7 +19778,7 @@ end if
 &                                           *G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)&
 &                                           *G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)&
 &                                           *G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)&
-&                                           *G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))
+&                                           *G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
                     DdmudxdG(2, 3, 1, 4) =  (-(c(4)*G(2,4)*c(1)-2*c(1)*c(4)*G(1,4)+c(4)*c(1)*G(1,2)+c(4)*c(1)*G(1,3)-2*c(4)&
 &                                           *G(2,3)*c(1)+c(4)*G(3,4)*c(1))*c(2)*c(3)*c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)&
 &                                           *G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)&
@@ -21382,7 +19809,7 @@ end if
 &                                           *G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
 &                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
 &                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
-&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))  
                     DdmudxdG(2, 3, 2, 2) =  ((1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)&
 &                                           *G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)&
 &                                           *G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)&
@@ -21411,7 +19838,7 @@ end if
 &                                           *c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)&
 &                                           *G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)&
 &                                           *c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)&
-&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))
+&                                           *G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
                     DdmudxdG(2, 3, 2, 3) =  (-(c(1)*c(4)*G(4,4)+c(1)*G(1,1)*c(4)+c(4)+c(1)-2*c(1)*c(4)*G(1,4))*c(2)*c(3)&
 &                                           *c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)&
 &                                           *G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)&
@@ -21435,7 +19862,7 @@ end if
 &                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
 &                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
 &                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
-&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
                     DdmudxdG(2, 3, 2, 4) =  (-(c(1)*c(4)*G(1,4)-c(4)+c(4)*c(1)*G(1,3)-c(4)*G(3,4)*c(1)-c(1)*G(1,1)*c(4))&
 &                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
 &                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
@@ -21460,7 +19887,7 @@ end if
 &                                           *G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)&
 &                                           *G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)&
 &                                           *G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1))**2*c(2)**3&
-&                                           *c(3)**2*c(4)**3*c(1)**2 / SN**2 / 1)
+&                                           *c(3)**2*c(4)**3*c(1)**2 / SN**2 / 1)  
                     DdmudxdG(2, 3, 3, 3) =  ((1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)&
 &                                           *G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)&
 &                                           *G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)&
@@ -21490,7 +19917,7 @@ end if
 &                                           *c(4)*G(2,2)-2*c(1)*c(2)*c(4)*G(4,4)*G(1,2)+c(1)*c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2&
 &                                           *c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2&
 &                                           *c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)*c(2)*G(1,4)&
-&                                           *G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))
+&                                           *G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))  
                     DdmudxdG(2, 3, 3, 4) =  (-(c(4)*c(1)*G(1,2)-c(4)-c(4)*G(2,4)*c(1)-c(1)*G(1,1)*c(4)+c(1)*c(4)*G(1,4))&
 &                                           *c(2)*c(3)*c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
 &                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
@@ -21521,7 +19948,7 @@ end if
 &                                           *c(1)-c(2)*G(2,3)+c(2)*c(1)*G(1,2)*G(1,4)-c(1)*G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)&
 &                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
 &                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
-&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))
+&                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1)))  
                     DdmudxdG(2, 3, 4, 4) =  (-(-c(4)*c(1)*G(1,3)+c(4)*G(2,3)*c(1)+c(1)*G(1,1)*c(4)+c(4)-c(4)*c(1)*G(1,2))&
 &                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
 &                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
@@ -21551,7 +19978,7 @@ end if
 &                                           *c(3)*G(1,2)*G(3,3)+c(1)*G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)&
 &                                           *G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)&
 &                                           *c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)&
-&                                           *G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))
+&                                           *G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
 
                     DdmudxdG(3, 1, 1, 1) =  (-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)&
 &                                           *G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)&
@@ -21582,7 +20009,7 @@ end if
 &                                           *c(3)*c(4)*G(4,4)*G(2,3)+c(2)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)-c(2)*c(3)*c(4)&
 &                                           *G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)*G(3,4)*G(2,3)-c(2)*c(3)&
 &                                           *c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)*c(3)*c(4)*G(2,3)*G(2,4)-2&
-&                                           *c(2)*c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))
+&                                           *c(2)*c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
                     DdmudxdG(3, 1, 1, 2) =  ((c(2)+c(2)*c(4)*G(4,4)-c(2)*c(4)*G(2,4)-c(2)*c(4)*G(3,4)+c(4)*c(2)*G(2,3))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
 &                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
@@ -21614,7 +20041,7 @@ end if
 &                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
 &                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
 &                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
-&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
                     DdmudxdG(3, 1, 1, 3) =  ((-c(2)-c(2)*c(4)*G(4,4)-c(2)*c(4)*G(2,2)-c(4)+2*c(2)*c(4)*G(2,4))*c(1)*c(2)&
 &                                           *c(3)*c(4) / SN / 1-2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)&
 &                                           *G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
@@ -21638,7 +20065,7 @@ end if
 &                                           *G(2,3)-c(4)*c(2)*G(1,2)*G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)&
 &                                           *G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)&
 &                                           *G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)&
-&                                           *G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))
+&                                           *G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
                     DdmudxdG(3, 1, 1, 4) =  ((c(4)-c(4)*c(2)*G(2,3)-c(2)*c(4)*G(2,4)+c(2)*c(4)*G(3,4)+c(2)*c(4)*G(2,2))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
 &                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
@@ -21669,7 +20096,7 @@ end if
 &                                           *G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)&
 &                                           *G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)&
 &                                           *G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)&
-&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))
+&                                           *G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))  
                     DdmudxdG(3, 1, 2, 2) =  ((-c(2)*c(4)*G(4,4)-c(2)+c(2)*c(4)*G(3,4)-c(4)*G(1,3)*c(2)+c(2)*c(4)*G(1,4))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
 &                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
@@ -21701,7 +20128,7 @@ end if
 &                                           *c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)&
 &                                           *c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)&
 &                                           *G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2&
-&                                           *c(3)*c(4)*G(3,4)+c(3)+c(4)))
+&                                           *c(3)*c(4)*G(3,4)+c(3)+c(4)))  
                     DdmudxdG(3, 1, 2, 3) =  ((c(2)-c(2)*c(4)*G(1,4)-c(2)*c(4)*G(2,4)+c(4)*c(2)*G(1,2)+c(2)*c(4)*G(4,4))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
 &                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
@@ -21732,7 +20159,7 @@ end if
 &                                           *c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)&
 &                                           *G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)&
 &                                           *G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)&
-&                                           *G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))
+&                                           *G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
                     DdmudxdG(3, 1, 2, 4) =  ((2*c(2)*c(4)*G(2,4)-c(4)*c(2)*G(1,2)-c(2)*c(4)*G(3,4)-c(4)*c(2)*G(2,3)-c(2)&
 &                                           *c(4)*G(1,4)+2*c(4)*G(1,3)*c(2))*c(1)*c(2)*c(3)*c(4) / SN / 1-2*(-1+c(4)&
 &                                           *G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)&
@@ -21764,7 +20191,7 @@ end if
 &                                           *c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)*c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)&
 &                                           *G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)*c(1)*G(1,1)-c(1)*c(3)*G(1,2)&
 &                                           *G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)*G(2,3)-c(3)*c(1)*G(1,2)&
-&                                           *G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))
+&                                           *G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))  
                     DdmudxdG(3, 1, 3, 3) =  (-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)*G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)&
 &                                           *G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)*G(1,3)-c(2)*G(1,3)*c(4)&
 &                                           *G(4,4)+c(2)*G(1,2)*c(4)*G(4,4)-c(2)*c(4)*G(1,4)*G(2,3)-c(4)*c(2)*G(1,2)&
@@ -21793,7 +20220,7 @@ end if
 &                                           *c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)&
 &                                           *c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)&
 &                                           *c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)&
-&                                           *G(2,4)+c(2)+c(4)))
+&                                           *G(2,4)+c(2)+c(4)))  
                     DdmudxdG(3, 1, 3, 4) =  ((c(4)+c(2)*c(4)*G(2,2)-c(2)*c(4)*G(2,4)-c(4)*c(2)*G(1,2)+c(2)*c(4)*G(1,4))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1+2*(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
 &                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
@@ -21817,7 +20244,7 @@ end if
 &                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
 &                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
 &                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
-&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))**2*c(2)**2*c(3)**3*c(4)**3*c(1)**2/SN**2/1)
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))**2*c(2)**2*c(3)**3*c(4)**3*c(1)**2/SN**2/1)  
                     DdmudxdG(3, 1, 4, 4) =  ((-c(2)*c(4)*G(2,2)-c(4)-c(4)*G(1,3)*c(2)+c(4)*c(2)*G(1,2)+c(4)*c(2)*G(2,3))&
 &                                           *c(1)*c(2)*c(3)*c(4) / SN / 1-(-1+c(4)*G(1,4)+c(2)*c(4)*G(2,4)**2-c(2)*c(4)&
 &                                           *G(2,2)*G(4,4)-G(2,2)*c(2)-c(4)*G(4,4)+c(2)*G(2,3)+c(4)*G(3,4)+c(2)*G(1,2)-c(2)&
@@ -21847,7 +20274,7 @@ end if
 &                                           *G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)&
 &                                           *G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)&
 &                                           *c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)&
-&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))
+&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
                     DdmudxdG(3, 2, 1, 1) =  (-(c(1)*c(4)*G(4,4)+c(1)+c(4)*G(2,3)*c(1)-c(4)*G(3,4)*c(1)-c(4)*G(2,4)*c(1))&
 &                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
 &                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
@@ -21879,7 +20306,7 @@ end if
 &                                           *c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)&
 &                                           *G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)&
 &                                           *c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)&
-&                                           *G(3,4)+c(3)+c(4)))
+&                                           *G(3,4)+c(3)+c(4)))  
                     DdmudxdG(3, 2, 1, 2) =  (-(-c(4)*c(1)*G(1,3)+c(4)*G(3,4)*c(1)+c(1)*c(4)*G(1,4)-c(1)-c(1)*c(4)*G(4,4))&
 &                                           *c(2)*c(3)*c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
 &                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
@@ -21911,7 +20338,7 @@ end if
 &                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
 &                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
 &                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
-&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
                     DdmudxdG(3, 2, 1, 3) =  (-(-c(1)*c(4)*G(4,4)-c(4)*c(1)*G(1,2)+c(4)*G(2,4)*c(1)+c(1)*c(4)*G(1,4)-c(1))&
 &                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
 &                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
@@ -21942,7 +20369,7 @@ end if
 &                                           *G(2,4)+c(4)*G(3,4)*c(2)*G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)&
 &                                           *G(3,4)-c(4)*G(1,3)-c(4)*c(2)*G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)&
 &                                           *G(1,3)*G(2,4)-c(2)*c(4)*G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)&
-&                                           *G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))
+&                                           *G(4,4)+c(2)*c(4)*G(1,4)*G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
                     DdmudxdG(3, 2, 1, 4) =  (-(c(4)*G(2,4)*c(1)-2*c(1)*c(4)*G(1,4)+c(4)*c(1)*G(1,2)+c(4)*c(1)*G(1,3)-2*c(4)&
 &                                           *G(2,3)*c(1)+c(4)*G(3,4)*c(1))*c(2)*c(3)*c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)&
 &                                           *G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)&
@@ -21973,7 +20400,7 @@ end if
 &                                           *G(2,3)*G(3,4)-c(2)*c(3)*G(1,3)*G(3,4)-c(3)*c(2)*G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)&
 &                                           *G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)*G(2,4)+c(3)*G(1,4)*c(2)&
 &                                           *G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)*G(3,3)-c(3)*G(3,4)*c(2)&
-&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))
+&                                           *G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)*G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))  
                     DdmudxdG(3, 2, 2, 2) =  ((1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)&
 &                                           *G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)&
 &                                           *G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)&
@@ -22003,7 +20430,7 @@ end if
 &                                           *c(3)*c(4)*G(1,3)*G(4,4)+c(1)*c(4)*G(4,4)+c(3)*c(4)*G(4,4)+2*c(1)*c(3)*c(4)&
 &                                           *G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)*c(3)*c(4)*G(3,4)**2-c(1)&
 &                                           *c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)*G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2&
-&                                           *c(1)*c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))
+&                                           *c(1)*c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(3)*c(4)*G(3,4)+c(3)+c(4)))  
                     DdmudxdG(3, 2, 2, 3) =  (-(c(1)*c(4)*G(4,4)+c(1)*G(1,1)*c(4)+c(4)+c(1)-2*c(1)*c(4)*G(1,4))*c(2)*c(3)&
 &                                           *c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)&
 &                                           *G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)&
@@ -22027,7 +20454,7 @@ end if
 &                                           *c(1)-c(4)*G(3,4)+c(1)*c(4)*G(1,3)*G(2,4)+c(4)*c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)&
 &                                           *c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)*G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)&
 &                                           *G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)*G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)&
-&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))
+&                                           *G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)*G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
                     DdmudxdG(3, 2, 2, 4) =  (-(c(1)*c(4)*G(1,4)-c(4)+c(4)*c(1)*G(1,3)-c(4)*G(3,4)*c(1)-c(1)*G(1,1)*c(4))&
 &                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
 &                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
@@ -22058,7 +20485,7 @@ end if
 &                                           *G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)&
 &                                           *c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)&
 &                                           *c(1)*G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
-&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))  
                     DdmudxdG(3, 2, 3, 3) =  ((1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)*G(4,4)+c(1)*G(2,3)*c(4)&
 &                                           *G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)*G(1,2)*G(3,4)-c(1)*c(4)&
 &                                           *G(1,4)**2+c(1)*c(4)*G(1,1)*G(4,4)+c(4)*G(4,4)+G(1,1)*c(1)-c(4)*G(3,4)+c(1)&
@@ -22087,7 +20514,7 @@ end if
 &                                           *c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)*G(1,2)*G(1,4)-c(1)&
 &                                           *c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)*G(1,4)**2+2*c(1)&
 &                                           *c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)*G(1,4)+c(1)-2*c(2)*c(4)&
-&                                           *G(2,4)+c(2)+c(4)))
+&                                           *G(2,4)+c(2)+c(4)))  
                     DdmudxdG(3, 2, 3, 4) =  (-(c(4)*c(1)*G(1,2)-c(4)-c(4)*G(2,4)*c(1)-c(1)*G(1,1)*c(4)+c(1)*c(4)*G(1,4))&
 &                                           *c(2)*c(3)*c(4)*c(1) / SN / 1-2*(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
 &                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
@@ -22111,7 +20538,7 @@ end if
 &                                           *G(1,3)-c(1)*G(1,4)+c(2)*G(3,4)*c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)&
 &                                           *G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)*G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)&
 &                                           *G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)*G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)&
-&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))**2*c(2)**2*c(3)**3*c(4)**3*c(1)**2/SN**2/1)
+&                                           *c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)*G(1,1))**2*c(2)**2*c(3)**3*c(4)**3*c(1)**2/SN**2/1)  
                     DdmudxdG(3, 2, 4, 4) =  (-(-c(4)*c(1)*G(1,3)+c(4)*G(2,3)*c(1)+c(1)*G(1,1)*c(4)+c(4)-c(4)*c(1)*G(1,2))&
 &                                           *c(2)*c(3)*c(4)*c(1) / SN / 1+(1+c(1)*c(4)*G(1,4)*G(2,4)-c(1)*G(1,3)*c(4)&
 &                                           *G(4,4)+c(1)*G(2,3)*c(4)*G(4,4)-c(4)*c(1)*G(1,3)*G(1,2)-c(4)*G(2,4)+c(1)*c(4)&
@@ -22141,7 +20568,7 @@ end if
 &                                           *G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)*G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)&
 &                                           *G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)&
 &                                           *c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2-2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)&
-&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))
+&                                           *G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))  
                     DdmudxdG(3, 3, 1, 1) =  ((c(1)*c(2)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(4,4)-2*c(4)*c(2)*G(2,4)*c(1)+c(2)&
 &                                           *c(1)+c(1)*c(4))*c(2)*c(4)*c(1) / SN / 1-(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)&
 &                                           *c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)&
@@ -22173,7 +20600,7 @@ end if
 &                                           *c(4)*G(4,4)-c(2)*c(3)*c(4)*G(2,3)**2-c(2)*c(3)*c(4)*G(3,4)**2+2*c(2)*c(3)*c(4)&
 &                                           *G(3,4)*G(2,3)-c(2)*c(3)*c(4)*G(2,4)**2+2*c(2)*c(3)*c(4)*G(2,4)*G(3,4)+2*c(2)&
 &                                           *c(3)*c(4)*G(2,3)*G(2,4)-2*c(2)*c(3)*G(2,3)-2*c(2)*c(4)*G(2,4)+c(2)-2*c(3)*c(4)&
-&                                           *G(3,4)+c(3)+c(4)))
+&                                           *G(3,4)+c(3)+c(4)))  
                     DdmudxdG(3, 3, 1, 2) =  ((-2*c(1)*c(2)*c(4)*G(4,4)+2*c(4)*c(2)*G(2,4)*c(1)+2*c(1)*c(2)*c(4)*G(1,4)-2&
 &                                           *c(1)*c(2)*c(4)*G(1,2)-2*c(2)*c(1))*c(2)*c(4)*c(1) / SN / 1+2*(c(1)*c(2)*G(1,1)&
 &                                           *G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)&
@@ -22206,7 +20633,7 @@ end if
 &                                           *G(2,3)-2*c(3)*c(4)*G(1,2)*G(3,4)+c(3)*c(4)*G(1,3)*G(2,4)+c(3)*c(4)*G(3,4)&
 &                                           *G(2,4)+c(4)*c(3)*G(1,3)*G(3,4)+c(3)*c(4)*G(1,4)*G(2,3)+c(4)*c(3)*G(2,3)&
 &                                           *G(3,4)+c(3)*c(4)*G(3,4)*G(1,4)-c(3)*c(4)*G(1,4)*G(2,4)+c(3)*G(1,2)*c(4)&
-&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))
+&                                           *G(4,4)-c(4)*G(1,4)*c(3)*G(3,3)))  
                     DdmudxdG(3, 3, 1, 3) =  (-2*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)&
 &                                           *G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2&
 &                                           *c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)&
@@ -22236,7 +20663,7 @@ end if
 &                                           *G(2,2)-c(4)*G(1,3)*c(2)*G(2,2)-c(2)*c(4)*G(2,4)*G(3,4)-c(4)*G(1,3)-c(4)*c(2)&
 &                                           *G(2,3)*G(2,4)-c(2)*c(4)*G(2,4)*G(1,4)+2*c(2)*c(4)*G(1,3)*G(2,4)-c(2)*c(4)&
 &                                           *G(1,2)*G(3,4)+c(4)*c(2)*G(1,2)*G(2,3)+c(2)*G(2,3)*c(4)*G(4,4)+c(2)*c(4)*G(1,4)&
-&                                           *G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))
+&                                           *G(3,4)+c(2)*c(4)*G(1,4)*G(2,2)))  
                     DdmudxdG(3, 3, 1, 4) =  ((-2*c(1)*c(2)*G(2,2)*c(4)+2*c(1)*c(2)*c(4)*G(1,2)-2*c(1)*c(2)*c(4)*G(1,4)+2&
 &                                           *c(4)*c(2)*G(2,4)*c(1)-2*c(1)*c(4))*c(2)*c(4)*c(1) / SN / 1+2*(c(1)*c(2)*G(1,1)&
 &                                           *G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)&
@@ -22268,7 +20695,7 @@ end if
 &                                           *G(1,2)*G(2,4)+c(2)*c(3)*G(1,2)*G(3,4)+c(2)*c(3)*G(2,3)*G(1,3)+c(2)*c(3)*G(1,3)&
 &                                           *G(2,4)+c(3)*G(1,4)*c(2)*G(2,2)+c(3)*c(2)*G(1,2)*G(2,3)-c(2)*G(2,4)*c(3)&
 &                                           *G(3,3)-c(3)*G(3,4)*c(2)*G(2,2)+G(1,4)*c(2)*c(3)*G(3,3)-2*c(2)*c(3)*G(1,4)&
-&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))
+&                                           *G(2,3)+c(3)*c(2)*G(2,4)*G(2,3)))  
                     DdmudxdG(3, 3, 2, 2) =  ((c(1)*c(2)*c(4)*G(1,1)+c(1)*c(2)*c(4)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,4)+c(2)&
 &                                           *c(1)+c(2)*c(4))*c(2)*c(4)*c(1) / SN / 1-(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)&
 &                                           *c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)&
@@ -22300,7 +20727,7 @@ end if
 &                                           *c(4)*G(4,4)+2*c(1)*c(3)*c(4)*G(3,4)*G(1,4)+2*c(1)*c(3)*c(4)*G(1,3)*G(1,4)-c(1)&
 &                                           *c(3)*c(4)*G(3,4)**2-c(1)*c(3)*G(1,3)**2*c(4)+2*c(1)*c(3)*c(4)*G(1,3)&
 &                                           *G(3,4)-c(1)*c(3)*c(4)*G(1,4)**2-2*c(1)*c(3)*G(1,3)-2*c(1)*c(4)*G(1,4)+c(1)-2&
-&                                           *c(3)*c(4)*G(3,4)+c(3)+c(4)))
+&                                           *c(3)*c(4)*G(3,4)+c(3)+c(4)))  
                     DdmudxdG(3, 3, 2, 3) =  (2*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)&
 &                                           *G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2&
 &                                           *c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)&
@@ -22330,7 +20757,7 @@ end if
 &                                           *c(1)*G(1,2)*G(1,4)+c(4)*G(2,3)*c(1)*G(1,1)+c(4)*c(1)*G(1,3)*G(1,4)-c(1)*c(4)&
 &                                           *G(2,4)*G(3,4)+c(4)*G(2,3)-c(1)*G(1,2)+c(1)*G(2,3)-c(1)*G(1,3)-2*c(1)*c(4)&
 &                                           *G(1,4)*G(2,3)-c(1)*G(1,2)*c(4)*G(4,4)-c(4)*G(3,4)*c(1)*G(1,1)+c(1)*c(4)*G(1,4)&
-&                                           *G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))
+&                                           *G(3,4)-c(4)*G(2,4)*c(1)*G(1,1)))  
                     DdmudxdG(3, 3, 2, 4) =  ((-2*c(1)*c(2)*c(4)*G(1,1)+2*c(1)*c(2)*c(4)*G(1,2)-2*c(4)*c(2)*G(2,4)*c(1)+2&
 &                                           *c(1)*c(2)*c(4)*G(1,4)-2*c(2)*c(4))*c(2)*c(4)*c(1) / SN / 1-2*(c(1)*c(2)*G(1,1)&
 &                                           *G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)&
@@ -22361,7 +20788,7 @@ end if
 &                                           *G(1,3)**2-c(1)*c(3)*G(1,1)*G(3,3)-G(3,3)*c(3)-G(1,1)*c(1)+c(1)*G(1,2)-G(2,4)&
 &                                           *c(1)-c(3)*G(2,4)+c(1)*G(1,4)+c(3)*G(3,4)+c(1)*c(3)*G(1,2)*G(3,3)+c(3)*G(2,3)&
 &                                           *c(1)*G(1,1)-c(1)*c(3)*G(1,2)*G(3,4)+2*c(1)*c(3)*G(1,3)*G(2,4)-c(1)*c(3)*G(1,3)&
-&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))
+&                                           *G(2,3)-c(3)*c(1)*G(1,2)*G(1,3)-G(2,4)*c(1)*c(3)*G(3,3)-c(3)*G(2,4)*c(1)*G(1,1)))  
                     DdmudxdG(3, 3, 3, 3) =  (-(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)&
 &                                           *G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2&
 &                                           *c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)&
@@ -22383,7 +20810,7 @@ end if
 &                                           *c(4)*G(4,4)+c(2)*c(4)*G(4,4)+2*c(1)*c(2)*c(4)*G(2,4)*G(1,2)+2*c(1)*c(2)*c(4)&
 &                                           *G(1,2)*G(1,4)-c(1)*c(2)*G(1,2)**2*c(4)-c(1)*c(2)*c(4)*G(2,4)**2-c(1)*c(2)*c(4)&
 &                                           *G(1,4)**2+2*c(1)*c(2)*G(1,4)*G(2,4)*c(4)-2*c(1)*c(2)*G(1,2)-2*c(1)*c(4)&
-&                                           *G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))
+&                                           *G(1,4)+c(1)-2*c(2)*c(4)*G(2,4)+c(2)+c(4)))  
                     DdmudxdG(3, 3, 3, 4) =  (2*(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)*c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)&
 &                                           *G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)*G(1,1)*c(4)+c(1)*c(2)*c(4)*G(2,2)*G(4,4)-2&
 &                                           *c(1)*c(2)*c(4)*G(2,2)*G(1,4)+c(2)*G(2,2)*c(1)+c(2)*c(4)*G(2,2)-2*c(1)*c(2)&
@@ -22406,7 +20833,7 @@ end if
 &                                           *c(1)*G(1,1)-c(1)*c(2)*G(2,4)*G(2,3)-c(2)*c(1)*G(1,4)*G(1,3)+c(1)*c(2)*G(1,2)&
 &                                           *G(2,4)+c(1)*c(2)*G(2,3)*G(1,4)+c(2)*c(1)*G(1,3)*G(1,2)-c(2)*G(2,4)-2*c(1)*c(2)&
 &                                           *G(3,4)*G(1,2)+c(1)*c(2)*G(1,3)*G(2,4)+G(3,4)*c(1)+c(2)*G(3,4)-c(1)*c(2)*G(2,3)&
-&                                           *G(1,1))**2*c(2)**2*c(3)**3*c(4)**3*c(1)**2 / SN**2 / 1)
+&                                           *G(1,1))**2*c(2)**2*c(3)**3*c(4)**3*c(1)**2 / SN**2 / 1)  
                     DdmudxdG(3, 3, 4, 4) =  ((c(1)*c(2)*c(4)*G(1,1)+c(1)*c(2)*G(2,2)*c(4)-2*c(1)*c(2)*c(4)*G(1,2)+c(1)&
 &                                           *c(4)+c(2)*c(4))*c(2)*c(4)*c(1) / SN / 1-(c(1)*c(2)*G(1,1)*G(2,2)*c(4)+c(1)&
 &                                           *c(2)*c(4)*G(1,1)*G(4,4)-2*c(1)*c(2)*c(4)*G(1,1)*G(2,4)+c(1)*G(1,1)*c(2)+c(1)&
@@ -22436,7 +20863,7 @@ end if
 &                                           *c(2)*c(3)*G(1,2)*G(3,3)+c(1)*G(3,3)*c(3)+c(2)*G(3,3)*c(3)+2*c(1)*c(2)*c(3)&
 &                                           *G(2,3)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)*G(1,3)+2*c(1)*c(2)*c(3)*G(1,2)&
 &                                           *G(2,3)-c(1)*c(2)*c(3)*G(1,2)**2-c(1)*c(2)*c(3)*G(2,3)**2-c(1)*c(2)*c(3)*G(1,3)**2&
-&                                           -2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3)))
+&                                           -2*c(1)*c(2)*G(1,2)-2*c(1)*c(3)*G(1,3)+c(1)-2*c(2)*c(3)*G(2,3)+c(2)+c(3))) 
 
 
                     !Gaussian error propagation for TDFij
@@ -22453,22 +20880,22 @@ end if
                             this%dTDF(s,p)=c(i)*sqrt(helpvar);
                         end do
                     end do
-
+                
                 end if
-
+                
             end do
         end do
-
+       
     end if
-
+    
 
     ! initialize KBISum for new Block of KBIResetFrequency
     do i=1, this%NComponents
         do j=i, this%NComponents
-            this%Interaction(i,j)%KBISum(:) = 0
+            this%Interaction(i,j)%KBISum(:) = 0   
         end do
     end do
-
+    
   end subroutine TEnsemble_KBIUpdateBlock
 
 !==============================================================!
@@ -22484,10 +20911,10 @@ end if
 
     ! Close KBI file
     call FileClose( this%iounit_kbirdf )
-    call FileClose( this%iounit_kbirav )
+    call FileClose( this%iounit_kbirun )
 
   end subroutine TEnsemble_KBIClose
-
+  
 !==============================================================!
 !  Subroutine TEnsemble_ALPHA2Update                           !
 !==============================================================!
@@ -22502,13 +20929,13 @@ end if
     ! Declare local variables
     integer  :: i, j, k, l, m
     real(RK) :: dr2, dr4, sum_dr2, sum_dr4, sum_dr2inv
-
+    
     ! calculate memory position of ri0(t0)
     j=mod(INT((Step-1)/ALPHA2Shift),ALPHA2Length/ALPHA2Shift)
     l=j
     if (Step .GT. ALPHA2Length) l=INT(ALPHA2Length/ALPHA2Shift)-1
-
-    do k=0,l
+       
+    do k=0,l    
         if (this%alpha2tempstep(k) /= 0) then !only calculate alpha2 for t>t0
             sum_dr2    = 0._RK
             sum_dr4    = 0._RK
@@ -22518,218 +20945,38 @@ end if
                     dr2 = (this%Component(i)%Disp(m, 1)-this%Component(i)%ri0_x(m,k))**2&
 &                       + (this%Component(i)%Disp(m, 2)-this%Component(i)%ri0_y(m,k))**2&
 &                       + (this%Component(i)%Disp(m, 3)-this%Component(i)%ri0_z(m,k))**2
-                    dr4        = dr2**2
+                    dr4        = dr2**2                    
                     sum_dr2    = sum_dr2 + dr2
                     sum_dr4    = sum_dr4 + dr4
                     sum_dr2inv = sum_dr2inv + 1_RK/dr2
                 end do
-            end do
+            end do                  
             this%dispR2    (this%alpha2tempstep(k),k) = sum_dr2/this%NPart
             this%dispR4    (this%alpha2tempstep(k),k) = sum_dr4/this%NPart
-            this%dispR2inv (this%alpha2tempstep(k),k) = this%NPart/sum_dr2inv
-        end if
-        this%alpha2tempstep(k) = this%alpha2tempstep(k)+1
+            this%dispR2inv (this%alpha2tempstep(k),k) = this%NPart/sum_dr2inv       
+        end if      
+        this%alpha2tempstep(k) = this%alpha2tempstep(k)+1   
     end do
-
-    if (mod( Step-1, ALPHA2Shift) == 0) then !save ri0(t0) at the beginning/end of new block
+        
+    if (mod( Step-1, ALPHA2Shift) == 0) then !save ri0(t0) at the beginning/end of new block            
         if (Step .GT. ALPHA2Length) then  ! calculate alpha2 average at the block end
             this%alpha2aveCount = this%alpha2aveCount+1 !count number of alpha2 calculations for alpha2average
-            !average calculation
+            !average calculation            
             this%dispR2Ave   (:) = ( this%dispR2Ave   (:)*(this%alpha2aveCount-1)+this%dispR2   (:,j) )/this%alpha2aveCount
             this%dispR4Ave   (:) = ( this%dispR4Ave   (:)*(this%alpha2aveCount-1)+this%dispR4   (:,j) )/this%alpha2aveCount
-            this%dispR2invAve(:) = ( this%dispR2invAve(:)*(this%alpha2aveCount-1)+this%dispR2inv(:,j) )/this%alpha2aveCount
-            this%alpha2tempstep(j)=1
-            ! writing of *.a2rav is done with *.res file writing
-        end if
+            this%dispR2invAve(:) = ( this%dispR2invAve(:)*(this%alpha2aveCount-1)+this%dispR2inv(:,j) )/this%alpha2aveCount            
+            this%alpha2tempstep(j)=1        
+            ! writing of *.a2rav is done with *.res file writing                
+        end if       
         do i = 1, this%NComponents !save ri0(t0)
             this%Component(i)%ri0_x(:,j) = this%Component(i)%Disp(:,1)
             this%Component(i)%ri0_y(:,j) = this%Component(i)%Disp(:,2)
             this%Component(i)%ri0_z(:,j) = this%Component(i)%Disp(:,3)
         end do
     end if
-
+      
   end subroutine TEnsemble_ALPHA2Update
-
-
-#if TRANS==1
-
-!EinsteinCoef Subroutine
-!==============================================================!
-!  Subroutine TEnsemble_EinsteinCoef                           !
-!==============================================================!
-
-  subroutine TEnsemble_EinsteinCoefProcedure( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer  :: i, j, k, l, m, q
-    real(RK) :: dr2, sum_dr2, value, tau
-    real(RK) :: dr, sum_dr, helpvar
-    real(RK) :: sumX(this%NComponents), sumY(this%NComponents), sumZ(this%NComponents)
-    integer :: CorrLength, CorrShift, CorrNumber
-    integer  :: CFindex, Mindex, StepCorr, nmess, s
-
-    if (RootProc) then
-    tau = TimeStep*this%NStepCorr
-    CorrLength = this%NCorr*this%NStepCorr
-    CorrShift = this%NSpanCF*this%NStepCorr
-    CorrNumber = CorrLength/CorrShift
-
-
-    ! calculate memory position of ri0(t0)
-    j=mod(INT((Step-1)/CorrShift),CorrNumber)
-    l=j
-    if (Step .GT. CorrLength) l=INT(CorrNumber)-1
-    do k=0,l
-        if (this%EinsteinCoefTimeStep(k) /= 0) then !only calculate for t>t0
-            !Self diffusion
-            do i = 1, this%NComponents
-                sum_dr2    = 0._RK
-                do m = 1, this%Component(i)%NPart
-                    dr2 = (this%Component(i)%Disp(m, 1)-this%Component(i)%ri0_E_x(m,k))**2&
-&                       + (this%Component(i)%Disp(m, 2)-this%Component(i)%ri0_E_y(m,k))**2&
-&                       + (this%Component(i)%Disp(m, 3)-this%Component(i)%ri0_E_z(m,k))**2
-                    sum_dr2 = sum_dr2 + dr2
-                end do
-                this%DselfEinstein    (this%EinsteinCoefTimeStep(k),k, i) = sum_dr2/(this%Component(i)%NPart*6.0d0*(this%EinsteinCoefTimeStep(k)*tau))
-            end do
-
-            if (this%NComponents > 1) then
-                !Onsager coefficients
-                sumX = 0._RK
-                sumY = 0._RK
-                sumZ = 0._RK
-                do i = 1, this%NComponents
-                        sum_dr =  0._RK
-                        do m = 1, this%Component(i)%NPart
-                            sumX(i) = sumX(i) + (this%Component(i)%Disp(m, 1)-this%Component(i)%ri0_E_x(m,k))
-                            sumY(i) = sumY(i) + (this%Component(i)%Disp(m, 2)-this%Component(i)%ri0_E_y(m,k))
-                            sumZ(i) = sumZ(i) + (this%Component(i)%Disp(m, 3)-this%Component(i)%ri0_E_z(m,k))
-                        end do
-                end do
-
-                do i = 1, this%NComponents
-                    do q = 1, this%NComponents
-                        this%OnsagerEinstein  (this%EinsteinCoefTimeStep(k),k, i, q) = (sumX(i)*sumX(q)+sumY(i)*sumY(q)+sumZ(i)*sumZ(q))/ &
-                                                            (this%NPart*6.0d0*(this%EinsteinCoefTimeStep(k)*tau))
-                    end do
-                end do
-            end if
-        end if
-        this%EinsteinCoefTimeStep(k) = this%EinsteinCoefTimeStep(k)+1
-    end do !end  do k=0,l
-
-    do i=1, this%NComponents
-        this%DselfEinsteinCurrent(i) = this%DselfEinstein    (this%EinsteinCoefTimeStep(j)-1,j, i)
-    end do
-    if (this%NComponents > 1) then
-        do i = 1, this%NComponents
-            do q = 1, this%NComponents
-                this%OnsagerEinsteinCurrent(i,q) = this%OnsagerEinstein (this%EinsteinCoefTimeStep(j)-1, j, i, q)
-            end do
-        end do
-    end if
-
-    if (mod( Step-1, CorrShift) == 0) then  
-        if (Step .GT. CorrLength) then !Average
-            this%EinsteinCoefAveCount = this%EinsteinCoefAveCount+1
-            this%DselfEinsteinAve(:,:) = ( this%DselfEinsteinAve(:,:)*(this%EinsteinCoefAveCount-1) + this%DselfEinstein(:,j,:) )/this%EinsteinCoefAveCount !(:,:) assign to (:,j,:) is it correct?
-            if (this%NComponents > 1) then
-                this%OnsagerEinsteinAve(:,:,:) = ( this%OnsagerEinsteinAve(:,:,:)*(this%EinsteinCoefAveCount-1) + this%OnsagerEinstein(:,j,:,:) )/this%EinsteinCoefAveCount
-            end if
-            this%EinsteinCoefTimeStep(j)=1
-
-
-
-            !Shear viscosity
-            StepCorr = (Step + this%NStepCorr -1) / this%NStepCorr
-            !Calculate matrix indexes
-            Mindex = mod(StepCorr, this%NCorr )
-
-            if (Mindex .eq. 0) Mindex = this%NCorr
-            CFindex = Mindex + 1
-            if (Mindex .eq. this%NCorr) CFindex = 1
-
-            do nmess = 1, this%NCorr
-                s=CFindex+nmess-1 
-                if (s > this%NCorr) s = s-this%NCorr
-                this%EinsteinShear(nmess) = (this%vsk(s,1) + this%vsk(s,2) + this%vsk(s,3) + this%vsp(s,1) + this%vsp(s,2) + this%vsp(s,3))
-            end do
-
-            this%EinsteinShearInt = simpson2(this%EinsteinShear, tau , this%NCorr)  !it is raised to the power of 2
-            this%EinsteinShearAve(:) = ( this%EinsteinShearAve(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinShearInt(:) )/this%EinsteinCoefAveCount
-
-            helpvar =  0.5/3.0* this%Density /( this%NPart * this%Temperature)
-            this%ShearEinsteinCurrent = this%EinsteinShearInt(this%NCorr)*helpvar
-
-            !Update
-            do i=1, this%NComponents
-                 call Update( this%EinsteinDSelfAcc(i), this%DselfEinsteinCurrent(i)*(this%BoxLength**2),  this%EinsteinCoefAveCount  )
-            end do
-
-            if (this%NComponents > 1) then
-                do i = 1, this%NComponents
-                    do q = 1, this%NComponents
-                        call Update(this%EinsteinOnsagerAcc(i,q),this%OnsagerEinsteinCurrent(i,q)*(this%BoxLength**2),this%EinsteinCoefAveCount)
-                    end do
-                end do
-            end if
-
-            call Update (this%EinsteinShearAcc, this%ShearEinsteinCurrent, this%EinsteinCoefAveCount)
-        end if ! end Average
-
-        do i = 1, this%NComponents !save ri0_E(t0)
-            this%Component(i)%ri0_E_x(:,j) = this%Component(i)%Disp(:,1)
-            this%Component(i)%ri0_E_y(:,j) = this%Component(i)%Disp(:,2)
-            this%Component(i)%ri0_E_z(:,j) = this%Component(i)%Disp(:,3)
-        end do
-    end if !end of corr
-
-    endif !RootProc
-
-
- contains
-    function simpson2(values, step, n) result(integral)
-
-      ! Declare arguments
-      real(RK), intent(in) :: values(:), step
-      integer, intent(in)  :: n
-      real(RK) :: deriv(n)
-      ! Declare result
-      real(RK) :: integral(n)
-
-      ! Declare local variables
-      integer :: i
-
-      ! Return if no values to integrate
-      if( n < 1 ) return
-
-      ! Initialize result
-      integral = 0._RK
-
-      ! Calculate integral via Simpson's rule
-      do i = 3, n, 2
-        integral(i) = integral(i-2) + values(i) + 4._RK * values(i-1) + values(i-2)
-        integral(i-1) = .5_RK * (integral(i) + integral(i-2))
-      end do
-
-      if( mod(n, 2) == 0 .and. n > 2 ) integral(n) = integral(n-1) + .5_RK * values(n) + 2._RK * values(n-1) + .5_RK * values(n-2)
-      integral = integral * step / 3._RK
-
-      !integral = integral*integral
-
-     do i = 2, n
-       integral(i) = integral(i)*integral(i)/(step*(i-1))
-      end do
-    end function
-
-  end subroutine
-#endif
-
+  
 !==============================================================!
 !  Subroutine TEnsemble_RestartSave                            !
 !==============================================================!
@@ -22748,17 +20995,15 @@ end if
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i,j,r,s,t,o
+    integer                   :: i,j,s,t,o
 #if TRANS ==1
     integer                   :: k, Mindex, StepCorr
 #endif
-#if MPI_VER > 0
+#if MPI_VER > 0 
     integer(KIND=8)           :: KBISum_hilf(KBINShellsCubeEdge*NProcs)
     integer                   :: RDFSum_hilf(RDFNumberShells*NProcs)
-    integer                   :: ODFSum_hilf(nPhi*NProcs)
-    integer                   :: ODFErrSum_hilf(NProcs)
 #endif
-
+    
 
     if( RootProc ) then
         ! Save contents to restart file
@@ -22774,12 +21019,12 @@ end if
             write( iounit_restart, '(ES20.12E3)' ) this%Volume4
             write( iounit_restart, '(ES20.12E3)' ) this%Volume5
           end if
-
+          
           if(.not. printIDF .and. ALPHA2UpdateFrequency > 0 ) then
             write( iounit_restart, '(I10)' ) this%alpha2aveCount
             do j = 0, ALPHA2Length/ALPHA2Shift-1
               write( iounit_restart, '(I10)' ) this%alpha2tempstep(j)
-            end do
+            end do            
             do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
               do j = 0, ALPHA2Length/ALPHA2Shift-1
                 write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%dispR2(i,j),this%dispR4(i,j),this%dispR2inv(i,j)
@@ -22787,101 +21032,8 @@ end if
             end do
             do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
               write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%dispR2Ave(i),this%dispR4Ave(i),this%dispR2invAve(i)
-            end do
+            end do  
           end if
-
-#if TRANS==1
-          !EinsteinCoef rest write
-    if( EinsteinCoefCalc ) then
-
-
-
-            write( iounit_restart, '(I10)' ) this%EinsteinCoefAveCount
-
-            do j = 0, this%NCorr/this%NSpanCF-1
-              write( iounit_restart, '(I10)' ) this%EinsteinCoefTimeStep(j)
-            end do
-
-            do s = 1, this%NComponents
-                do i = 1, this%NCorr
-                  do j = 0, this%NCorr/this%NSpanCF-1
-                    !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
-                    write( iounit_restart, '((ES20.12E3))' ) this%DselfEinstein(i,j,s)
-                  end do
-                end do
-            end do
-            if(this%NComponents > 1) then
-                do s = 1, this%NComponents
-                do t = 1, this%NComponents
-                    do i = 1, this%NCorr
-                      do j = 0, this%NCorr/this%NSpanCF-1
-                        !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
-                        write( iounit_restart, '((ES20.12E3))' ) this%OnsagerEinstein(i,j,s,t)
-                      end do
-                    end do
-                end do
-                end do
-            end if
-            do s = 1, this%NComponents
-                do i = 1, this%NCorr
-                    !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
-                    write( iounit_restart, '((ES20.12E3))' ) this%DselfEinsteinAve(i,s)  !memory access is probably stupid
-                end do
-            end do
-            if(this%NComponents > 1) then
-                do s = 1, this%NComponents
-                do t = 1, this%NComponents
-                    do i = 1, this%NCorr
-                        !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
-                        write( iounit_restart, '((ES20.12E3))' ) this%OnsagerEinsteinAve(i,s,t)
-                    end do
-                end do
-                end do
-            end if
-
-
-
-        do s = 1, this%NComponents
-            write(iounit_restart,'(ES20.12E3)') this%DselfEinsteinCurrent(s)
-        end do
-
-
-        if(this%NComponents > 1) then
-            do s = 1, this%NComponents
-                do t = 1, this%NComponents
-                    write(iounit_restart,'(ES20.12E3)') this%OnsagerEinsteinCurrent(s,t)
-                end do
-            end do
-        endif
-
-
-        do s = 1, this%NComponents
-            call RestartSave( this%EinsteinDSelfAcc(s), .true. )
-        end do
-
-        if(this%NComponents > 1) then
-          do s = 1, this%NComponents
-             do t = 1, this%NComponents
-               call RestartSave( this%EinsteinOnsagerAcc(s,t), .true. )
-             end do
-          end do
-        end if
-
-
-        do i = 1, this%NCorr
-            write( iounit_restart, '((ES20.12E3))' )  this%EinsteinShear(i)
-        end do
-
-        do i = 1, this%NCorr
-            write( iounit_restart, '((ES20.12E3))' )  this%EinsteinShearAve(i)
-        end do
-
-        call RestartSave( this%EinsteinShearAcc, .true.)
-    end if
-        !Einstein end rest
-#endif
-
-
 
         else
           write( iounit_restart, '(ES20.12E3)' ) this%DispVol
@@ -23024,95 +21176,37 @@ end if
            call RestartSave( pc%SumHM )
           end if
         end do
-        
-        ! 5.) Sampling of Dielectric Constant
-        if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-            call RestartSave( this%SumTotalDipoleMoment )
-            call RestartSave( this%SumTotalDipoleMomentSquared )
-            call RestartSave( this%SumDielectricConstant )
-        endif
-        
     end if
-
-    if (ODFUpdateFrequency > 0) then
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
-                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
-&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
-#if MPI_VER > 0
-                    call MPI_Gather( this%Interaction(i,j)%ODFErrSum, 1, MPI_INTEGER, &
-&                       ODFErrSum_hilf(1:NProcs), 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-                    if( RootProc ) then
-                        do o = 1, NProcs
-                            write(iounit_restart, '(I10)' ) ODFErrSum_hilf(o)
-                        end do
-                    end if
-#else   
-                    write(iounit_restart, '(I10)' ) this%Interaction(i,j)%ODFErrSum
-#endif
-                end if
-            end do
-        end do
-    
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
-                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
-&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
-                    do r = 1, nR
-                        do s = 1, nGamma
-                            do t = 1, nPhi
-#if MPI_VER > 0
-                                call MPI_Gather( this%Interaction(i,j)%ODFSum(1:nPhi,t,s,r), nPhi, MPI_INTEGER, &
-&                                   ODFSum_hilf(1:nPhi*NProcs), nPhi, MPI_INTEGER, NRootProc, Communicator, ierror )
-                                if( RootProc ) then
-                                    do o = 1, nPhi*NProcs
-                                        write(iounit_restart, '(I10)' ) ODFSum_hilf(o)
-                                    end do
-                                end if
-#else
-                                do o = 1, nPhi
-                                    write(iounit_restart, '(I10)' ) this%Interaction(i,j)%ODFSum(o,t,s,r)
-                                end do
-#endif
-                            end do
-                        end do
-                    end do
-                end if
-            end do
-        end do
-    end if
-        
     
     if (RDFUpdateFrequency > 0) then
         do i= 1, this%NComponents
             do j= i, this%NComponents
                 do s=1, this%Component(i)%molecule%NMIEnm
                     do t=1, this%Component(j)%molecule%NMIEnm
-#if MPI_VER > 0
-                        call MPI_Gather( this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), &
-&                           RDFNumberShells, MPI_INTEGER, &
+#if MPI_VER > 0     
+                        call MPI_Gather( this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), RDFNumberShells, MPI_INTEGER, &
 &                           RDFSum_hilf(1:RDFNumberShells*NProcs), RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )
                         if( RootProc ) then
                             do o = 1, RDFNumberShells*NProcs
                                 write(iounit_restart, '(I10)' ) RDFSum_hilf(o)
                             end do
                         end if
-#else
+#else 
                         do o = 1, RDFNumberShells
                             write(iounit_restart, '(I10)' ) this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o)
                         end do
-#endif
+#endif                
                     end do
                 end do
             end do
         end do
     end if
 
-
-    if (KBIUpdateFrequency > 0) then
+        
+    if (KBIUpdateFrequency > 0) then            
         do i= 1, this%NComponents
             do j= i, this%NComponents
-#if MPI_VER > 0
+#if MPI_VER > 0     
                 call MPI_Gather( this%Interaction(i,j)%KBISum(1:KBINShellsCubeEdge), KBINShellsCubeEdge, MPI_INTEGER8, &
 &                   KBISum_hilf(1:KBINShellsCubeEdge*NProcs), KBINShellsCubeEdge, MPI_INTEGER8, NRootProc, Communicator, ierror )
                 if( RootProc ) then
@@ -23120,14 +21214,14 @@ end if
                         write(iounit_restart, '(I10)' ) KBISum_hilf(o)
                     end do
                 end if
-#else
+#else 
                 do o = 1, KBINShellsCubeEdge
                     write(iounit_restart, '(I10)' ) this%Interaction(i,j)%KBISum(o)
                 end do
-#endif
+#endif              
             end do
         end do
-        if( RootProc ) then    ! Save mean RDF over all blocks for Gij extrapolation
+        if( RootProc ) then    ! Save mean RDF over all blocks for Gij extrapolation 
             do i = 1, this%NComponents*(this%NComponents+1)/2
                 do o = 1, KBINShellsCubeEdge
                     write(iounit_restart, '(ES20.12E3)' ) this%KBIRDFextra(o,i)
@@ -23136,14 +21230,14 @@ end if
                 end do
             end do
             write(iounit_restart, '(I10)' ) this%KBIBlockCount
-        end if
+        end if          
         do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
             call RestartSave( this%SumKBIGij1(i), .false., .true. )
             call RestartSave( this%SumKBIGij2(i), .false., .true. )
             call RestartSave( this%SumKBIGij3(i), .false., .true. )
         end do
     end if
-
+    
 #if TRANS ==1
 if( RootProc .and. this%CorrfunMode ) then
 
@@ -23246,11 +21340,11 @@ if( RootProc .and. this%CorrfunMode ) then
       end do
       do i = 1, this%NComponents
          call RestartSave( this%SumSoret(i), .true. )
-      end do
+      end do   
     end if
+ 
 
-
-
+    
 
     call RestartSave( this%SumVisco_s, .true. )
     call RestartSave( this%SumVisco_b, .true. )
@@ -23290,15 +21384,13 @@ endif
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i,j,r,s,t,o,stat,counter,k,Mindex,StepCorr
+    integer                   :: i,j,s,t,o,stat,counter,k,Mindex,StepCorr
     real(RK)                  :: dummy, Factor
-#if MPI_VER > 0
+#if MPI_VER > 0 
     integer(KIND=8)           :: KBISum_hilf(KBINShellsCubeEdge*NProcs)
     integer                   :: RDFSum_hilf(RDFNumberShells*NProcs)
-    integer                   :: ODFSum_hilf(nPhi*NProcs)
-    integer                   :: ODFErrSum_hilf(NProcs)
 #endif
-
+    
     if( RootProc ) then
 
       ! Read contents from restart file
@@ -23314,12 +21406,12 @@ endif
           read( iounit_restart, '(ES20.12E3)' ) this%Volume4
           read( iounit_restart, '(ES20.12E3)' ) this%Volume5
         end if
-
+        
         if(.not. printIDF .and. ALPHA2UpdateFrequency > 0 ) then
             read( iounit_restart, '(I10)' ) this%alpha2aveCount
             do j = 0, ALPHA2Length/ALPHA2Shift-1
               read( iounit_restart, '(I10)' ) this%alpha2tempstep(j)
-            end do
+            end do            
             do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
               do j = 0, ALPHA2Length/ALPHA2Shift-1
                 read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%dispR2(i,j),this%dispR4(i,j),this%dispR2inv(i,j)
@@ -23327,7 +21419,7 @@ endif
             end do
             do i = 1, ALPHA2Length/ALPHA2UpdateFrequency
               read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%dispR2Ave(i),this%dispR4Ave(i),this%dispR2invAve(i)
-            end do
+            end do  
         end if
 
       else
@@ -23502,109 +21594,51 @@ endif
       end if
     end do
     
-    ! 5.) Sampling of Dielectric Constant
-    if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-        call RestartRead( this%SumTotalDipoleMoment )
-        call RestartRead( this%SumTotalDipoleMomentSquared )
-        call RestartRead( this%SumDielectricConstant )
-    endif
-
-    if (ODFUpdateFrequency > 0) then
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
-                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
-&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
-#if MPI_VER > 0
-                    if( RootProc ) then
-                        do o = 1, NProcs
-                            read( iounit_restart, '(I10)' ) ODFErrSum_hilf(o)
-                        end do
-                    end if      
-                    call MPI_Scatter( ODFErrSum_hilf(1:NProcs), 1, MPI_INTEGER, &
-&                       this%Interaction(i,j)%ODFErrSum, &
-&                       1, MPI_INTEGER, NRootProc, Communicator, ierror )
-#else                       
-                    read( iounit_restart, '(I10)' ) this%Interaction(i,j)%ODFErrSum
-#endif
-                end if
-            end do
-        end do
-
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
-                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
-&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
-                    do r = 1, nR
-                        do s = 1, nGamma
-                            do t = 1, nPhi
-#if MPI_VER > 0
-                                if( RootProc ) then
-                                    do o = 1, nPhi*NProcs
-                                        read( iounit_restart, '(I10)' ) ODFSum_hilf(o)
-                                    end do
-                                end if
-                                call MPI_Scatter( ODFSum_hilf(1:nPhi*NProcs), nPhi, MPI_INTEGER, &
-&                                    this%Interaction(i,j)%ODFSum(1:nPhi,t,s,r), &
-&                                    nPhi, MPI_INTEGER, NRootProc, Communicator, ierror )
-#else                               
-                                do o = 1, nPhi
-                                    read( iounit_restart, '(I10)' ) this%Interaction(i,j)%ODFSum(o,t,s,r)
-                                end do
-#endif
-                            end do
-                        end do
-                    end do
-                end if
-            end do
-        end do  
-    end if      
-
 
     if (RDFUpdateFrequency > 0) then
         do i= 1, this%NComponents
             do j= i, this%NComponents
                 do s=1, this%Component(i)%molecule%NMIEnm
                     do t=1, this%Component(j)%molecule%NMIEnm
-#if MPI_VER > 0
+#if MPI_VER > 0     
                         if( RootProc ) then
                             do o = 1, RDFNumberShells*NProcs
                                 read( iounit_restart, '(I10)' ) RDFSum_hilf(o)
                             end do
                         end if
                         call MPI_Scatter( RDFSum_hilf(1:RDFNumberShells*NProcs), RDFNumberShells, MPI_INTEGER, &
-&                           this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), &
-&                           RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )   
-#else
+&                           this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )         
+#else 
                         do o = 1, RDFNumberShells
                             read( iounit_restart, '(I10)' ) this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o)
                         end do
-#endif
+#endif  
                     end do
                 end do
             end do
         end do
     end if
-
+    
     ! RestartRead of RDF for KBI
-    if (KBIUpdateFrequency > 0) then
+    if (KBIUpdateFrequency > 0) then            
         do i= 1, this%NComponents
             do j= i, this%NComponents
-#if MPI_VER > 0
+#if MPI_VER > 0     
                 if( RootProc ) then
                     do o = 1, KBINShellsCubeEdge*NProcs
                         read( iounit_restart, '(I10)' ) KBISum_hilf(o)
                     end do
                 end if
                 call MPI_Scatter( KBISum_hilf(1:KBINShellsCubeEdge*NProcs), KBINShellsCubeEdge, MPI_INTEGER8, &
-&                   this%Interaction(i,j)%KBISum(1:KBINShellsCubeEdge), KBINShellsCubeEdge, MPI_INTEGER8, NRootProc, Communicator, ierror )
-#else
+&                   this%Interaction(i,j)%KBISum(1:KBINShellsCubeEdge), KBINShellsCubeEdge, MPI_INTEGER8, NRootProc, Communicator, ierror )            
+#else 
                 do o = 1, KBINShellsCubeEdge
                     read( iounit_restart, '(I10)' ) this%Interaction(i,j)%KBISum(o)
                 end do
-#endif
+#endif              
             end do
         end do
-        if( RootProc ) then    ! Read mean RDF over all blocks for Gij extrapolation
+        if( RootProc ) then    ! Read mean RDF over all blocks for Gij extrapolation 
             do i = 1, this%NComponents*(this%NComponents+1)/2
                 do o = 1, KBINShellsCubeEdge
                     read( iounit_restart, '(ES20.12E3)' ) this%KBIRDFextra(o,i)
@@ -23613,14 +21647,14 @@ endif
                 end do
             end do
             read( iounit_restart, '(I10)' ) this%KBIBlockCount
-        end if
+        end if  
         do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
             call RestartRead( this%SumKBIGij1(i), .true. )
             call RestartRead( this%SumKBIGij2(i), .true. )
             call RestartRead( this%SumKBIGij3(i), .true. )
         end do
     end if
-
+ 
 
 #if TRANS ==1
     if( this%CorrfunMode ) then
@@ -23847,7 +21881,7 @@ endif
           end do
           end if
           t = t+1
-        end if
+        end if 
       end do
       if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
         call FileClose( this%iounit_thermoint )
@@ -23859,7 +21893,7 @@ endif
       do i=1,this%NRealComponents
         pc => this%Component(i)
         if (pc%ChemPotMethod .eq. ChemPotMethodThermoInt) then
-          !call MPI_Bcast( this%Component(t)%lambda, 1, MPI_RK, NRootProc, Communicator, ierror ) //done during the preceding call FileReadParameter
+          !call MPI_Bcast( this%Component(t)%lambda, 1, MPI_RK, NRootProc, Communicator, ierror ) //done during the preceding call FileReadParameter 
           !The Broadcast of the following properties would not have been necessary for MD runs during the implementation of ThermoInt (they may be however important for future use)
           call MPI_Bcast( pc%BinsEn(0:pc%NBins-1), size( pc%BinsEn ), MPI_RK, NRootProc, Communicator, ierror )
           call MPI_Bcast( pc%BinsdEndLa(0:pc%NBins-1), size( pc%BinsdEndLa ), MPI_RK, NRootProc, Communicator, ierror )
@@ -24131,7 +22165,7 @@ endif
    real(RK),pointer, contiguous:: VBx(:),VBy(:),VBz(:)
    real(RK)        :: multiplicator
    real(RK)        :: Contrib
-
+  
 #endif
 
    type(TMolecule), pointer               :: mol
@@ -24153,7 +22187,7 @@ endif
    qcosfac(1:m)=0
 
    ! Virial
-   this%Vec2 = this%Ewald_Vec(1,:)**2 + this%Ewald_Vec(2,:)**2 + this%Ewald_Vec(3,:)**2
+   this%Vec2 = this%Ewald_Vec(1,:)**2 + this%Ewald_Vec(2,:)**2 + this%Ewald_Vec(3,:)**2 
    VirIntraLocal = 0._RK
 
    this%SSin=0._RK
@@ -24241,7 +22275,7 @@ endif
          HFacX(1:molec) = Facx*HFac(1:molec)
          HFacy(1:molec) = Facy*HFac(1:molec)
          HFacZ(1:molec) = Facz*HFac(1:molec)
-
+         
          FX = FX + HFacX(1:molec)
          FY = FY + HFacY(1:molec)
          FZ = FZ + HFacZ(1:molec)
@@ -24258,7 +22292,7 @@ endif
          VBx  => mol%SiteCharge(l)%vbCx
          VBy  => mol%SiteCharge(l)%vbCy
          VBz  => mol%SiteCharge(l)%vbCz
-
+       
           ! Intramolecular Forces
          VSx  = VSx  - HFacX(1:molec)*disty(1:molec)
          VSy  = VSy  - HFacX(1:molec)*distz(1:molec)
@@ -24266,7 +22300,7 @@ endif
          VBx  = VBx  - HFacX(1:molec)*distx(1:molec)
          VBy  = VBy  - HFacY(1:molec)*disty(1:molec)
          VBz  = VBz  - HFacZ(1:molec)*distz(1:molec)
-
+       
 #endif
 
          ChargeNumber = ChargeNumber + molec
@@ -24277,7 +22311,7 @@ endif
 #if  TRANS == 1
      ! Force contribution due to the intermolecular long-range forces
      ! Since these properties are specific for the entire solution and not valid for individual
-     ! components, these quantities are calculated once and added onto the contribution of
+     ! components, these quantities are calculated once and added onto the contribution of 
      ! the last component in the system
      multiplicator = (1._RK/this%Vec2(i) + 0.25_RK/this%KappaL**2)
      Contrib = -2._RK * multiplicator * this%Ewald_Prefac(i) * (SSinSum*SSinSum + SCosSum*SCosSum) / this%Volume0
@@ -24565,7 +22599,7 @@ endif
 ! Energy
    this%U_fourierLocal = this%Ewald_Prefac * (this%SSin*this%SSin + this%SCos*this%SCos)
 ! Virial
-   this%Vec2 = this%Ewald_Vec(1,:)**2 + this%Ewald_Vec(2,:)**2 + this%Ewald_Vec(3,:)**2
+   this%Vec2 = this%Ewald_Vec(1,:)**2 + this%Ewald_Vec(2,:)**2 + this%Ewald_Vec(3,:)**2 
 
 #if MPI_VER > 0
    if (Equilibration .and. CommonEqui) then
@@ -24692,7 +22726,7 @@ endif
 ! Energy
    this%U_fourierLocal = this%Ewald_Prefac * (this%SSin*this%SSin + this%SCos*this%SCos)
 ! Virial
-   this%Vec2 = this%Ewald_Vec(1,:)**2 + this%Ewald_Vec(2,:)**2 + this%Ewald_Vec(3,:)**2
+   this%Vec2 = this%Ewald_Vec(1,:)**2 + this%Ewald_Vec(2,:)**2 + this%Ewald_Vec(3,:)**2 
 
 #if MPI_VER > 0
    if ( Equilibration .and. CommonEqui ) then
@@ -24904,7 +22938,7 @@ endif
 ! Energy
    this%U_fourierLocal = this%Ewald_Prefac * (this%SSin*this%SSin + this%SCos*this%SCos)
 ! Virial
-   this%Vec2 = this%Ewald_Vec(1,:)**2 + this%Ewald_Vec(2,:)**2 + this%Ewald_Vec(3,:)**2
+   this%Vec2 = this%Ewald_Vec(1,:)**2 + this%Ewald_Vec(2,:)**2 + this%Ewald_Vec(3,:)**2 
 
 #if MPI_VER > 0
    if ( Equilibration .and. CommonEqui ) then
@@ -25061,7 +23095,7 @@ endif
    real(RK):: qr,qi,struc
    real(RK):: energ
    real(RK),pointer:: FX, FY, FZ
-
+   
    real(RK):: FXi, FYi, FZi
    real(RK):: FXcum, FYcum, FZcum
    real(RK):: q
@@ -25113,7 +23147,7 @@ endif
    real(RK) :: mult(this%gridx*this%gridx*this%gridx+3)
    real(RK) :: mult2(this%gridx*this%gridx*this%gridx+3)
    real(RK),pointer, contiguous :: qgrid(:,:)
-
+   
 #endif
 
 ! Dimensions of charge
@@ -25225,7 +23259,7 @@ endif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!! Calculation of the forces!!!!
-!    counter = 1
+!    counter = 1 
    VirLoc = 0._RK
    FXcum = 0._RK
    FYcum = 0._RK
@@ -26627,7 +24661,7 @@ contains
 
     !Reduced correlation steps
     StepCorr = (Step + this%NStepCorr -1) / this%NStepCorr
-
+ 
 
     !Calculate matrix indexes
     Mindex = mod(StepCorr, this%NCorr )
@@ -26667,7 +24701,7 @@ contains
       pFS => this%Component(i)%FS(:,:)
 #endif
 
-
+   
         pFTC => this%Component(i)%FTC(:,:)
         pFRC => this%Component(i)%FRC(:,:)
 
@@ -26683,20 +24717,20 @@ contains
         this%vsp(Mindex, k)  = this%vsp(Mindex, k) + sum(pFS (:, k)) ! potential part off-diagonal elements of pressure tensor
         this%vbp(Mindex, k)  = this%vbp(Mindex, k) + sum(pFB (:, k)) ! potential part diagonal elements of the pressure tensor
         this%vbk(Mindex, k)  = this%vbk(Mindex, k) + pc%KinETranTotal(k)!kinetic part diagonal elements of the pressure tensor
-
+        
         if (Bulkviscosity) then
           this%sc(k) = this%sc(k) + pc%KinETranTotal(k)
           this%sp(k) = this%sp(k) + sum(pFB(:, k))
         end if
-
-
+          
+                  
  !      if (Conductivity) then
           this%vcpr(Mindex, k) = this%vcpr(Mindex, k) + sum(pFRC(:, k))  !Thermal conductivity for mixtures
           this%vcpt(Mindex, k) = this%vcpt(Mindex, k) + sum(pFTC(:, k))
           this%vckt(Mindex, k) = this%vckt(Mindex, k) + sum( pc%P1(:, k, 1)*pc%KinEPart(:) )*0.5_RK*BoxLength_dt
           if (MolarEnthConduct) then
             this%vcmt(Mindex, k) = this%vcmt(Mindex, k) + pc%PartialMolarEnthalpy*sum(pc%P1(:, k, 1))* BoxLength_dt
-          end if
+          end if 
           if ( pc%Molecule%IsElongated ) then
             this%vckr(Mindex, k)= this%vckr(Mindex, k) + sum( pc%P1(:, k, 1) * KinERot(:) ) *BoxLength_dt
           end if
@@ -26726,7 +24760,7 @@ contains
       virf(:)   = this%sp(:)/StepCorr
     end if
 
-
+   
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Calculate Auto Correlation Functions      !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -26751,8 +24785,8 @@ contains
         this%cf_c(:)  = 0._RK
         this%cf_vb(:) = 0._RK
         this%cf_ec(:) = 0._RK
-
-        if (this%NComponents .gt. 1) then
+ 
+        if (this%NComponents .gt. 1) then 
           do k = 1, ncomp2
              this%lamda(k,:) = 0._RK
           end do
@@ -26774,11 +24808,11 @@ contains
 
         do i = 1, this%NComponents
           Sindex(i,1)=SXindex(i)*BoxLength_dt  !mass flux for thermal diffusion
-          Sindex(i,2)=SYindex(i)*BoxLength_dt
+          Sindex(i,2)=SYindex(i)*BoxLength_dt 
           Sindex(i,3)=SZindex(i)*BoxLength_dt
-        end do
+        end do 
 
-      ! Calculation of all transport properties
+      ! Calculation of all transport properties 
       ! s .. matrix index of the corresponding values
 !mn      s = CFindex    Has to be set inside of the loop for OMP parallelisation
       CFtmp=CFindex
@@ -26790,9 +24824,9 @@ contains
 !$OMP&            BoxLength_dt,Sindex,Bulkviscosity)           &
 !$OMP&   private (sx,sy,sz,ss)
 
-
+      
       do nmess= 1, this%NCorr
-         ! Loop over particles
+         ! Loop over particles      
         s=CFtmp+nmess-1
         if (s > this%NCorr) s = s-this%NCorr
         j0 = 0
@@ -26814,10 +24848,10 @@ contains
         end do
 
         do i = 1, this%NComponents
-          ss(i,1) = sx(i)* BoxLength_dt
-          ss(i,2) = sy(i)* BoxLength_dt
+          ss(i,1) = sx(i)* BoxLength_dt 
+          ss(i,2) = sy(i)* BoxLength_dt 
           ss(i,3) = sz(i)* BoxLength_dt
-        end do
+        end do  
 
         ! Just loops over components!
         if (this%NComponents .gt. 1) then
@@ -26843,7 +24877,7 @@ contains
 
           ! bulk viscosity
           if (Bulkviscosity) then
-            do j = 1, 3
+            do j = 1, 3 
               this%cf_vb(nmess) =   this%cf_vb(nmess) + &
 &                               ( this%vbk(CFindex, j)-tempf(j))*(this%vbk(s, k)-tempf(k)) + &
 &                               ( this%vbp(CFindex, j)-virf(j)) *(this%vbp(s, k)-virf(k) ) + &
@@ -26877,7 +24911,7 @@ contains
 &                                                  this%vcmt(CFindex, k)*this%vcpt(s, k) - &
 &                                                  this%vcmt(CFindex, k)*this%vckr(s, k) - &
 &                                                  this%vcmt(CFindex, k)*this%vcpr(s, k) + &
-&                                                  this%vcmt(CFindex, k)*this%vcmt(s, k)
+&                                                  this%vcmt(CFindex, k)*this%vcmt(s, k) 
 
         end do !k = 1, 3
 
@@ -26906,7 +24940,7 @@ contains
 &                                                                   Sindex(j,k)*this%vckr(s, k) + &
 &                                                                   Sindex(j,k)*this%vcpt(s, k) + &
 &                                                                   Sindex(j,k)*this%vcpr(s, k) - &
-&                                                                   Sindex(j,k)*this%vcmt(s, k)
+&                                                                   Sindex(j,k)*this%vcmt(s, k) 
              end do
            end do
          end if
@@ -26928,14 +24962,14 @@ contains
                            do j = 1, np2
                               this%cf_ec(nmess) = this%cf_ec(nmess) + qi * qj * this%a(j1+i, CFindex) * this%a(j2+j, s)
                               this%cf_ec(nmess) = this%cf_ec(nmess) + qi * qj * this%a(j1+NPart+i, CFindex) * this%a(j2+NPart+j, s)
-                              this%cf_ec(nmess) = this%cf_ec(nmess) + qi * qj * this%a(j1+NPart2+i, CFindex) * this%a(j2+NPart2+j, s)
+                              this%cf_ec(nmess) = this%cf_ec(nmess) + qi * qj * this%a(j1+NPart2+i, CFindex) * this%a(j2+NPart2+j, s)          
                            end do
                        endif
                        j2 = j2 + np2
                     end do
-                 end do
-              endif
-              j1 = j1 + np1
+                 end do  
+              endif 
+              j1 = j1 + np1    
            end do
         end if !if(EConductivity)
 
@@ -26957,13 +24991,13 @@ contains
       if (this%NComponents .gt. 1) then
         do k = 1, this%NComponents
           this%average_cf_soret(k,:)= (this%average_cf_soret(k,:) + this%cf_soret(k,:))
-        end do
+        end do 
         do k = 1, ncomp2
           this%average_lamda(k,:) = (this%average_lamda(k,:) + this%lamda(k,:))
         end do
       end if
 
-
+      
       ! Call integration for ACF
       call IntCorrFun ( this )
 
@@ -27006,11 +25040,11 @@ contains
     !w1 = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction/MM
     !w2 = this%Component(2)%Molecule%Mass*this%Component(2)%Fraction/MM
 
-
+    
 
     do i  = 1, this%NComponents
       helpvar =  1._RK /(3._RK *this%Component(i)%NPart) * BoxLength_dt2
-      if (abs(this%cf_d(i, 1)) .gt. 1e-15) then
+      if (abs(this%cf_d(i, 1)) .gt. 1e-15) then 
          this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), this%TimeStepCorr, this%NCorr )
          this%average_sinte_i(i,:) = simpson( this%average_cf_d(i,:)/this%average_cf_d(i, 1),this%TimeStepCorr, this%NCorr )
          this%average_sinte_i(i,:) = this%average_sinte_i(i,:)*this%average_cf_d(i, 1)*helpvar/this%Mmess
@@ -27022,20 +25056,20 @@ contains
     if ( this%NComponents .gt. 1) then
       helpvar =  Third /(this%NPart) * BoxLength_dt2
       do k = 1, ncomp2
-        if (abs(this%lamda(k, 1)) .gt. 1e-15) then
+        if (abs(this%lamda(k, 1)) .gt. 1e-15) then 
            this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1),this%TimeStepCorr, this%NCorr)
            this%average_sinte_lamda(k,:) = simpson(this%average_lamda(k,:)/this%average_lamda(k,1),this%TimeStepCorr, this%NCorr)
            this%average_sinte_lamda(k,:) = this%average_sinte_lamda(k,:)* this%average_lamda(k,1)*helpvar/this%Mmess
         end if
       end do
-
+      
       k = 1
        do i = 1, this%NComponents
          do j = 1, this%NComponents
              this%Onsager(i,j) = this%sinte_lamda(k,this%NCorr)*this%lamda(k,1)*helpvar
              k = k +1
          end do
-      end do
+      end do   
 
     end if
 
@@ -27076,7 +25110,7 @@ contains
  !     end if
     end if
 
-     helpvar = this%Density*Third /(this%NPart * this%Temperature)
+     helpvar = this%Density*Third /(this%NPart * this%Temperature)  
     if (this%EConductivity) then
       this%sinte_ec = simpson( this%cf_ec(:)/this%cf_ec(1), this%TimeStepCorr, this%NCorr )
       this%average_sinte_ec = simpson( this%average_cf_ec(:)/this%average_cf_ec(1),this%TimeStepCorr, this%NCorr)
@@ -27105,7 +25139,7 @@ contains
       ! Initialize result
       integral = 0._RK
 
-
+      
       ! Calculate integral via trapezoid method
       do i = 2, n
         integral(i) = integral(i-1) + values(i) + values(i-1)
@@ -27139,10 +25173,10 @@ contains
         integral(i) = integral(i-2) + values(i) + 4._RK * values(i-1) + values(i-2)
         integral(i-1) = .5_RK * (integral(i) + integral(i-2))
       end do
-
+      
       if( mod(n, 2) == 0 .and. n > 2 ) integral(n) = integral(n-1) + .5_RK * values(n) + 2._RK * values(n-1) + .5_RK * values(n-2)
       integral = integral * step / 3._RK
-
+      
 
     end function
 
@@ -27212,6 +25246,7 @@ contains
         pmixdon => this%Component(this%DonComp(h))%Molecule%SiteCharge(this%DonDonSite(h))
         MixTerm = .false.
       end if
+ 
 
       i0 = 1
       i1 = pacc%NPart
@@ -27231,7 +25266,7 @@ contains
           !PYij = pacc%P0(i, 2) - pdon%P0(j, 2)
           !PZij = pacc%P0(i, 3) - pdon%P0(j, 3)
 
-          !Calculation of the distance vector Acc of AccComp and Acc of DonComp
+          !Calculation of the distance vector Acc of AccComp and Acc of DonComp 
           drAA(1)=(paccacc%RX(i)-pdonacc%RX(j)) !- anint( PXij )
           drAA(2)=(paccacc%RY(i)-pdonacc%RY(j)) !- anint( PYij )
           drAA(3)=(paccacc%RZ(i)-pdonacc%RZ(j)) !- anint( PZij )
@@ -27239,7 +25274,7 @@ contains
           drAA(2)=drAA(2) - anint(drAA(2))
           drAA(3)=drAA(3) - anint(drAA(3))
           LAA = SQRT( DOT_PRODUCT(drAA,drAA) )
-
+  
           if (LAA .le. DistCrit1)then
             !Calculation of the distance vector Don of one Comp and  Acc of the other Comp
             if (MixTerm) then
@@ -27258,7 +25293,7 @@ contains
             LAD = SQRT( DOT_PRODUCT(drAD,drAD) )
 
             if (LAD .le. DistCrit2) then
-              !Calculation of the angle between donor and acceptors
+              !Calculation of the angle between dono and acceptors
               if (MixTerm) then
                 drintraAD(1)=pmixdon%RX(i)-paccacc%RX(i)
                 drintraAD(2)=pmixdon%RY(i)-paccacc%RY(i)
@@ -27448,7 +25483,7 @@ contains
             do n = l, this%NComponents
               call MPI_Reduce( this%NHBond4(:,j,k,l,n), NHBAll(:), this%NComponents, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
               if (RootProc) this%NHBond4(:,j,k,l,n) = NHBAll(:)
-            end do
+            end do 
           end do
         end do
       end do
@@ -27459,507 +25494,13 @@ contains
     !this%NHBondN(1)=this%NPart-this%NHBond0(1)-this%NHBond1(1,1)-this%NHBond2(1,1,1)-this%NHBond3(1,1,1,1)-this%NHBond4(1,1,1,1,1)
 
 !      !Output of the H-bonded Molecules
-!      if( (StepTotal > 1) .and. (mod( StepTotal - 1, VisualUpdateFrequency ) == 0) ) then
+!      if( (StepTotal > 1) .and. (mod( StepTotal - 1, VisualUpdateFrequency ) == 0) ) then  
 !        call VisualUpdate( this, np, MH(:), MO(:,:) )
 !      endif
 
   end subroutine TEnsemble_HBonding
 #endif
 
-!==============================================================!
-!  Subroutine clust crit helpers                               !
-!==============================================================!
-
-  subroutine TEnsemble_count_direct_atom3(this, NeighborCounter, pcur, DistCrit)
-    ! this is a helper function that supply the regular counting method
-    ! counting is performed from grid to each atom
-    ! BEWARE the NEW_YORK metric is used as distance check
-    
-    implicit none
-    ! Declare arguments
-    type(TEnsemble), intent(in) :: this
-    integer                     :: NeighborCounter(:) !DC NOTE- could be made global to save reallocation
-    type(TComponent), pointer   :: pcur
-    real(RK), intent(in)        :: DistCrit !DC NOTE- calculated critical distance for neighbour memebrship
-    ! Declare local variables    
-    integer                     :: i, i_x, i_y, i_z, j  !DC NOTE- loop counters
-    integer                     :: x_edge, y_edge, z_edge !DC NOTE- indicators if element is in edge of particular direction
-    integer                     :: x_ind, y_ind, z_ind !DC NOTE- the idexes of cell the atom is inside
-    integer                     :: xyz_ind !DC NOTE- the index into flattened NeihbourCounter array  
-    real(RK)                    :: grid_center, rim_radius
-    integer                     :: x_min,x_max,y_min,y_max,z_min,z_max
-
-    grid_center = (this%NGridPoints-1)*DistCrit/2.0 - 0.5 !DC NOTE- convert to -0.5,0.5 coords
-    rim_radius = 0.5 - DistCrit - grid_center !DC NOTE- rim radius distance is box_length - DistCrit - grid_center in 0,1 coords
-
-    !DC NOTE- Loop over all grid points in the considered parallel context    
-    do i = 1, this%NGridPoints1
-      NeighborCounter(i) = 0 !DC NOTE- re/initialisation of the Neighbor counter
-    end do
-
-    do j = 1, pcur%NPart                 
-      x_edge = int((pcur%P0(j, 1, 1) - grid_center)/rim_radius)
-      y_edge = int((pcur%P0(j, 2, 1) - grid_center)/rim_radius)
-      z_edge = int((pcur%P0(j, 3, 1) - grid_center)/rim_radius)
-
-      x_ind = floor( (0.5_RK + pcur%P0(j, 1, 1))/DistCrit )
-      y_ind = floor( (0.5_RK + pcur%P0(j, 2, 1))/DistCrit )
-      z_ind = floor( (0.5_RK + pcur%P0(j, 3, 1))/DistCrit )
-      
-      !DC DEBUG- message below help with bug hunt in counitng method
-      ! write( IOBuffer, '("DEBUG da3:",I4," edge:",3I3," ind:",3I3)')j, x_edge,y_edge,z_edge, x_ind,y_ind,z_ind
-      ! call LogWrite
-      
-      if (x_ind < x_ind+x_edge) then 
-        x_min = x_ind        
-        x_max = x_ind+(this%NGridPoints-x_ind)
-      else
-        x_min = x_ind+x_edge
-        x_max = x_ind+1 
-      end if
-      
-      if (y_ind < y_ind+y_edge) then 
-        y_min = y_ind
-        y_max = y_ind+(this%NGridPoints-y_ind)        
-      else
-        y_min = y_ind+y_edge
-        y_max = y_ind+1
-      end if
-      
-      if (z_ind < z_ind+z_edge) then 
-        z_min = z_ind
-        z_max = z_ind+(this%NGridPoints-z_ind) 
-      else
-        z_min = z_ind+z_edge
-        z_max = z_ind+1
-      end if
-      
-      !DC DEBUG- message below help with bug hunt in counitng method
-      ! write( IOBuffer, '("x",2I3," y",2I3," z",2I3)') x_min, x_max, y_min, y_max, z_min, z_max
-      ! call LogWrite
-
-      do i_x = x_min, x_max
-        do i_y = y_min, y_max
-          do i_z = z_min, z_max
-            xyz_ind = 1 + mod(i_x + this%NGridPoints,this%NGridPoints) &
-                    &   + mod(i_y + this%NGridPoints,this%NGridPoints) *this%NGridPoints &
-                    &   + mod(i_z + this%NGridPoints,this%NGridPoints) *this%NGridPoints*this%NGridPoints          
-#if MPI_VER > 0
-            if (xyz_ind .ge. this%NGridPoints0 .and. xyz_ind .le. this%NGridPoints2) then
-              xyz_ind = xyz_ind - this%NGridPoints0 + 1
-            else 
-              cycle
-            end if
-#endif
-            NeighborCounter(xyz_ind) = NeighborCounter(xyz_ind) + 1  
-          end do          
-        end do        
-      end do       
-
-    end do       
-  end subroutine TEnsemble_count_direct_atom3
-  
-  subroutine TEnsemble_ClustNeighbors_print(this, ClusterCounter, print_array )
-  ! facilitates printing out array information to the file
-  ! integrated into parallel version: TEnsemble_ClustNeighbors_gather_print
-  ! BEWARE the cc (*.clust) file is used for output
-  ! BEWARE is intended as single threaded nonparallel version
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble)     :: this
-    integer, intent(in) :: ClusterCounter 
-    ! Declare local variables
-    integer             :: i
-    integer, intent(in) :: print_array(:)
-
-    !DC NOTE- only root PU output the header
-    if( .not. RootProc ) return
-
-    write( IOBuffer, '("# timestep: ", I8, " | edge ", I6, " | MolperCluster", I6, " | Clusters", I6 )' ) Step,  this%NGridPoints, this%Ccount, ClusterCounter
-    call FileWrite (this%iounit_cc)
-
-    do i= 1, this%NGridPointsAll - 1
-      write( IOBuffer, '(I4,", ")' ) print_array(i)
-      call FileWriteNoAdvance (this%iounit_cc)
-    end do
-
-    write( IOBuffer, '(I4)' )  print_array(this%NGridPointsAll)
-    call FileWrite (this%iounit_cc)
-
-  end subroutine TEnsemble_ClustNeighbors_print
-
-  subroutine TEnsemble_ClustNeighbors_hprint(this, ClusterCounter)
-  ! facilitates printing only the header without the neighbor list for methods that do not use neighbor list
-  ! NOTE it is overloaded variant with only two parameters
-  ! BEWARE the cc (*.clust) file is used for output
-  ! BEWARE is intended as single threaded nonparallel version
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TEnsemble)     :: this
-    integer, intent(in) :: ClusterCounter 
-
-    !DC NOTE- only root PU output the header
-    if( .not. RootProc ) return
-
-    write( IOBuffer, '("# timestep: ", I8, " | edge ", I6, " | MolperCluster", I6, " | Clusters", I6 )' ) Step,  this%NGridPoints, this%Ccount, ClusterCounter
-    call FileWrite (this%iounit_cc)
-    
-  end subroutine TEnsemble_ClustNeighbors_hprint
-
-  subroutine TEnsemble_ClustNeighbors_gather_print(this, ClusterCounter, NeighborCounter)
-  ! provides the printing out array information to the file
-  ! while enveloping the gathering of the neighbour data from other processors
-  ! BEWARE the cc (*.clust) file is used for output
-  ! BEWARE the size of the grid is not homogeneous accross processors
-  !        the last PU has different # of grid points -> gatherv is needed
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TEnsemble)      :: this
-    integer, intent(in)  :: ClusterCounter 
-    integer, intent(in)  :: NeighborCounter(:)
-    ! Declare local variables
-    integer              :: stat
-    integer              :: i
-    integer              :: stride
-    integer, allocatable :: GPCounter_all(:)
-    integer, allocatable :: GPStrides_all(:)
-    integer, allocatable :: NeighborCounter_all(:)
-
-  if (RootProc) then !DC OPTIM- wasting space and allocation on nonroor PU
-    allocate(GPCounter_all(NProcs), STAT = stat )
-    call AllocationError( stat, 'ccrit GP counts root counter all', Nproc )
-    allocate(GPStrides_all(NProcs), STAT = stat )
-    call AllocationError( stat, 'ccrit GP strides root counter all', Nproc )
-    allocate(NeighborCounter_all(this%NGridPointsAll), STAT = stat )
-    call AllocationError( stat, 'ccrit Neighbor root counter all', Nproc )
-  else
-    allocate(GPCounter_all(1), STAT = stat )
-    call AllocationError( stat, 'ccrit GP counts rest counter all', Nproc )
-    allocate(GPStrides_all(1), STAT = stat )
-    call AllocationError( stat, 'ccrit GP strides rest counter all', Nproc )
-    allocate(NeighborCounter_all(1), STAT = stat )
-    call AllocationError( stat, 'ccrit Neighbor rest counter all', Nproc )
-  end if
-
-#if MPI_VER > 0
-  !DC NOTE- gather the allocated grid sizes
-  call MPI_Gather(this%NGridPoints1 , 1 , MPI_INT, GPCounter_all,  1, MPI_INT, NRootProc, Communicator, ierror ) ! BEWARE if every processor sends same length
-
-  !DC NOTE- gather the strides for the gatherv call
-  if (RootProc) then 
-    stride = 0
-    do i=1,NProcs
-      GPStrides_all(i) = stride
-      stride = stride + GPCounter_all(i)
-    end do
-  end if
-
-  !DC HELP- on gatherv:
-  !    MPI_GATHERV(SENDBUF         , SENDCOUNT         , SENDTYPE, RECVBUF           , RECVCOUNTS   ,DISPLS        , RECVTYPE, ROOT    , COMM        , IERROR)
-  call MPI_Gatherv(NeighborCounter , this%NGridPoints1 , MPI_INT, NeighborCounter_all, GPCounter_all, GPStrides_all, MPI_INT, NRootProc, Communicator, ierror )
-
-  !DC NOTE- print of the collected information 
-  if (RootProc) then
-    write( IOBuffer, '("# timestep: ", I8, " | edge ", I6, " | MolperCluster", I6, " | Clusters", I6 )' ) Step,  this%NGridPoints, this%Ccount, ClusterCounter
-    call FileWrite (this%iounit_cc)
-    do i= 1, this%NGridPointsAll - 1
-      write( IOBuffer, '(I4,", ")' ) NeighborCounter_all(i)
-      call FileWriteNoAdvance (this%iounit_cc)
-    end do
-    write( IOBuffer, '(I4)' )  NeighborCounter_all(this%NGridPointsAll)
-    call FileWrite (this%iounit_cc)
-  end if
-
-#else
-  !DC NOTE- single thread variant 
-  write( IOBuffer, '("# timestep: ", I8, " | edge ", I6, " | MolperCluster", I6, " | Clusters", I6 )' ) Step,  this%NGridPoints, this%Ccount, ClusterCounter
-  call FileWrite (this%iounit_cc)
-  do i= 1, this%NGridPointsAll - 1
-    write( IOBuffer, '(I4,", ")' ) NeighborCounter(i)
-    call FileWriteNoAdvance (this%iounit_cc)
-  end do
-  write( IOBuffer, '(I4)' )  NeighborCounter(this%NGridPoints1)
-  call FileWrite (this%iounit_cc)
-
-#endif
-  end subroutine TEnsemble_ClustNeighbors_gather_print
-
-!==============================================================!
-!  Subroutine TEnsemble_ClustCrit                              !
-!==============================================================!
-
-  function TEnsemble_ClustCrit_naive( this, DistCrit ) result(ClusterCounter)
-  ! this function perform simple distance check for each entity
-  ! NOTE impemented in parallel over first molecule loop
-  ! BEWARE works only for vapor type detection 
-  ! BEWARE does not allow multiensemble and multicomponent checking
-  ! -> calculation method
-  !   |- for each i molecule iterater over j molecule
-  !   |- check for i==j and skip
-  !   |- calculate distance, account PCB
-  !   |- decide if it is neighbor and increment counter in positive case
-  !   |- check if neighbor counter is above user specified threshold in positive case increment cluster counter
-  ! -> print information header into .clust file
-  ! -> return the ClusterCounter that represent number of suspected clusters found
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-    ! Declare arguments
-    type(TEnsemble)           :: this    
-    real(RK)                  :: DistCrit
-    ! Declare result
-    integer                   :: ClusterCounter
-    ! Declare local variables
-    type(TComponent), pointer :: pcur, pcom
-    integer             :: i, i0, i1, j
-    real(RK)            :: Distij    
-    real(RK)            :: dxyz_ij(3)    
-    integer             :: NeighborCounter !DC NOTE- local counter reused for each molecule
-    
-    !DC NOTE- Initialize values and arrays
-    ClusterCounter = 0 
-   
-    !DC TODO- account for the multicomponent system
-    pcur => this%Component(1) 
-
-    !DC NOTE- sequetntial distribution of work
-    i0 = 1
-    i1 = pcur%NPart
-#if MPI_VER > 0
-    !DC NOTE- parallel split of outer loop over i accross CPUs
-    if (SimulationType .eq. MolecularDynamics) then
-      i0 = pcur%NPart0
-      i1 = pcur%NPart2
-    end if
-#endif
-    !DC NOTE- Loop over all particles    
-    do i = i0, i1      
-      NeighborCounter = 0 !DC NOTE- re/initialisation of the Neighbor counter
-      do j = 1,pcur%NPart
-        if (i .eq. j) then 
-          cycle !DC NOTE- safeguard that the very molecule is not counted as its neighbour
-        end if 
-        
-        dxyz_ij(1) = pcur%P0(i, 1, 1) - pcur%P0(j, 1, 1)
-        dxyz_ij(2) = pcur%P0(i, 2, 1) - pcur%P0(j, 2, 1)
-        dxyz_ij(3) = pcur%P0(i, 3, 1) - pcur%P0(j, 3, 1)
-        
-        dxyz_ij(1)= dxyz_ij(1) - anint( dxyz_ij(1) )
-        dxyz_ij(2)= dxyz_ij(2) - anint( dxyz_ij(2) )
-        dxyz_ij(3)= dxyz_ij(3) - anint( dxyz_ij(3) )
-
-        Distij = SQRT( DOT_PRODUCT(dxyz_ij,dxyz_ij) )
-
-        if (Distij .le. DistCrit) then
-          !DC NOTE- increment is done only for i molecule to prevent doubling and requirement for intercomunication
-          ! that means it has to be also checked in same way
-          ! variant with least space usage -> all is kept as local incrementers
-          NeighborCounter = NeighborCounter + 1 !DC NOTE- increment of temporarry counter for i entity
-        end if
-      end do
-      !DC NOTE- i entity can be checked if fulfulls given criteria and then forgotten
-      if (NeighborCounter .ge. this%Ccount) then
-        ClusterCounter = ClusterCounter + 1
-      end if
-    end do
-
-#if MPI_VER > 0
-    call MPI_Allreduce( MPI_IN_PLACE, ClusterCounter, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )            
-#endif    
-    call TEnsemble_ClustNeighbors_hprint(this, ClusterCounter)
-
-  end function TEnsemble_ClustCrit_naive
-
-  function TEnsemble_ClustCrit_vapgrid( this, DistCrit ) result(ClusterCounter)
-  ! this fucntion calculate neighbour entities on the regular grid and check if the grid 
-  ! points have GRATER (.gt.) tham specified number of elements
-  ! -> implementation of the Neighbor counting within grid points
-  !   |- the Check distance is given parameter
-  !   |- NeighborCounter array is allocated to the size of NGridPoints1
-  !   |- expect that the grid distance is known in advance but does not require grid points positions
-  !   |- calulate the grid point occupancies
-  !   |- accumulate the cluster count suspected grid points
-  ! -> print information header and neighbors array into .clust file
-  ! -> return the ClusterCounter that represent number of suspected clusters found
-
-    implicit none
-
-  ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-    type(TEnsemble)           :: this    
-    real(RK)                  :: DistCrit
-    ! Declare result
-    integer                   :: ClusterCounter
-    ! Declare local variables
-    integer                   :: stat
-    integer, allocatable      :: NeighborCounter_da3(:)
-    type(TComponent), pointer :: pcur
-    integer                   :: i
-    
-    allocate(NeighborCounter_da3(this%NGridPoints1), STAT = stat )
-    call AllocationError( stat, 'Neighbor counter allocation in TEnsemble_ClustCrit', Nprocs )
-
-    ClusterCounter = 0
-    
-    !DC TODO- calculate components in parallel -based on assumption that components form independent clusters
-    pcur => this%Component(1) 
-
-    call TEnsemble_count_direct_atom3(this, NeighborCounter_da3, pcur, DistCrit) 
- 
-    do i = 1,this%NGridPoints1
-      !DC NOTE- this is the decision part of the criteria where potential clusters are counted
-      if (NeighborCounter_da3(i) .ge. this%Ccount) then 
-        ClusterCounter = ClusterCounter + 1
-      end if
-    end do 
-
-#if MPI_VER > 0    
-    call MPI_Allreduce( MPI_IN_PLACE, ClusterCounter, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )            
-    call TEnsemble_ClustNeighbors_gather_print(this, ClusterCounter,NeighborCounter_da3)    
-#else
-    call TEnsemble_ClustNeighbors_print(this, ClusterCounter, NeighborCounter_da3)
-#endif
-
-  end function TEnsemble_ClustCrit_vapgrid
-
-  function TEnsemble_ClustCrit_liqgrid( this, DistCrit ) result(ClusterCounter)
-  ! this fucntion calculate neighbour entities on the regular grid and check if the grid 
-  ! points have LOWER (.lt.) tham specified number of elements
-  ! -> implementation of the Neighbor counting within grid points
-  !   |- the Check distance is given parameter
-  !   |- NeighborCounter array is allocated to the size of NGridPoints1
-  !   |- expect that the grid distance is known in advance but does not require grid points positions
-  !   |- calulate the grid point occupancies
-  !   |- accumulate the cluster count suspected grid points
-  ! -> print information header and neighbors array into .clust file
-  ! -> return the ClusterCounter that represent number of suspected clusters found
-  
-    implicit none
-
-  ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-    ! Declare arguments
-    type(TEnsemble)           :: this
-    real(RK)                  :: DistCrit
-    ! Declare result
-    integer                   :: ClusterCounter
-    ! Declare local variables
-    integer                   :: stat
-    integer, pointer          :: NeighborCounter_da3(:)
-    type(TComponent), pointer :: pcur
-    integer                   :: i
-    
-    allocate(NeighborCounter_da3(this%NGridPoints1), STAT = stat )
-    call AllocationError( stat, 'Neighbor counter allocation in TEnsemble_ClustCrit', Nprocs )
-
-    ClusterCounter = 0
-    
-    !DC TODO- calculate components in parallel -based on assumption that components form independent clusters
-    pcur => this%Component(1) 
-
-    call TEnsemble_count_direct_atom3(this, NeighborCounter_da3, pcur, DistCrit) 
- 
-    do i = 1,this%NGridPoints1
-      !DC NOTE- this is the decision part of the criteria where potential clusters are counted
-      if (NeighborCounter_da3(i) .le. this%Ccount) then
-        ClusterCounter = ClusterCounter + 1
-      end if
-    end do 
-
-#if MPI_VER > 0    
-    call MPI_Allreduce( MPI_IN_PLACE, ClusterCounter, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )            
-    call TEnsemble_ClustNeighbors_gather_print(this, ClusterCounter, NeighborCounter_da3)    
-#else
-    call TEnsemble_ClustNeighbors_print(this, ClusterCounter, NeighborCounter_da3)
-#endif
-
-  end function TEnsemble_ClustCrit_liqgrid
-
-  subroutine TEnsemble_ClustCrit( this )
-  ! this subroutine calls the cluster criteria variants and terminates the simulation if necesarry
-  ! NOTE - this metod is effective only in VisualCCUpdate frequency specified by user 
-  ! BEWARE - this should not be called during equilibration procedures
-  !   - higher level check should be implemented
-  ! -> should enable switching for the CC method employed
-  ! -> contain exit flag set up for simulation termination
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this    
-    ! Declare local variables    
-    real(RK)                  :: DistCrit
-    integer                   :: ClusterCounter
-
-    !DC NOTE- skip execution if it is not valid anymore (not valid simulation .or. already stopped due to the error or CC)
-    !DC NOTE- this is handled by the TSimulation_RunMDStep to save initialization of functions
-       
-    !DC NOTE- skip execution if it is equilibration or not time to update
-    !DC NOTE- this is handled by the TEnsemble_RunMDStep to save this function launch
-
-    !DC NOTE- calculate the scaled critical cluster check distance    
-    DistCrit = this%Ccritdist*(1._RK / this%BoxLength)
-
-    select case( this%Ccrittype )
-      case( CCritTypeVapor )
-        ClusterCounter = TEnsemble_ClustCrit_naive(this, DistCrit)
-        if (ClusterCounter .gt. this%Cmax) then
-          this%isStopSimulation = .true.
-          write( IOBuffer, '("!Cluster count limit ", I6, " exceeded with: ", I6, " clusters. ")' ) int(this%Cmax), ClusterCounter
-          call FileWrite (this%iounit_cc)
-        end if               
-      case( CCritTypeGridvap )
-        ClusterCounter = TEnsemble_ClustCrit_vapgrid(this, DistCrit)
-        if (ClusterCounter .gt. this%Cmax) then
-          this%isStopSimulation = .true.
-          write( IOBuffer, '("!Cluster count limit ", I6, " exceeded with: ", I6, " clusters. ~ ", E10.2, " % of grid")' ) int(this%Cmax), ClusterCounter, (100.0*ClusterCounter)/this%NGridPointsAll
-          call FileWrite (this%iounit_cc)
-        end if
-      case( CCritTypeGridliq )
-        ClusterCounter = TEnsemble_ClustCrit_liqgrid(this, DistCrit)
-        if (ClusterCounter .gt. this%Cmax) then
-          this%isStopSimulation = .true.
-          write( IOBuffer, '("!Void count limit ", I6, " exceeded with: ", I6, " clusters. ~ ", E10.2, " % of grid")' ) int(this%Cmax), ClusterCounter, (100.0*ClusterCounter)/this%NGridPointsAll
-          call FileWrite (this%iounit_cc)
-        end if
-    end select
-    
-    !DC DEBUG- message below for proper multiensemble case stopping validation
-    ! write (*, '("Step:",I4,"Ensemble:",I4,"Ncluster:", I4, "isStopSimulation:", L2)') Step, this%EnsembleNumber, ClusterCounter, this%isStopSimulation    
-    
-    if (this%isStopSimulation .eqv. .true.)  then              
-      write( IOBuffer, '("!Calculation is stopped by criteria id: ", I2," at ensemble: ", I2)' ) this%Ccrittype, this%EnsembleNumber
-      call FileWrite (this%iounit_cc)
-      call LogWriteBlank
-      write( IOBuffer, '("Calculation is stopped by criteria id: ", I2," at ensemble: ", I2)' ) this%Ccrittype, this%EnsembleNumber
-      call LogWrite
-      
-      !DC NOTE- prevent future calculation and update of this simulation and prevent the repeated writing of previous message      
-      this%isCCSimulation = .false.
-    end if
-
-  end subroutine TEnsemble_ClustCrit
 
 
 !==============================================================!
