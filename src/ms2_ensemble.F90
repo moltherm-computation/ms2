@@ -69,12 +69,19 @@ module ms2_ensemble
     ! I/O unit for RDF file
     integer :: iounit_rdf
     
+    ! I/O unit for ODF file
+    integer :: iounit_odf
+
     ! I/O unit for KBI file
+    integer :: iounit_kbirav
     integer :: iounit_kbirun
     integer :: iounit_kbirdf
     
     ! I/O unit for alpha2 file
     integer :: iounit_a2rav
+
+    ! I/0 Unit for EinsteinCoef data
+    integer :: iounit_ecoef !EinsteinCoef
 
     ! I/O unit for ThermoInt File
     integer :: iounit_thermoint
@@ -87,6 +94,14 @@ module ms2_ensemble
 
     ! I/O unit for Profile file
     integer :: iounit_dcp
+
+    !DC NOTE- I/O unit for cluster crit files 
+    integer :: iounit_ccpos
+    !DC NOTE- I/O unit for cluster crit files 
+    integer :: iounit_cc
+    !DC NOTE- I/O unit for cluster crit files 
+    integer :: iounit_ccgrid
+
 
 #if  TRANS == 1
     !logical :: Conductivity   !TRANSPORT_thisline
@@ -167,6 +182,10 @@ module ms2_ensemble
     ! Virial
     real(RK) :: Virial
 
+    ! Sampling of Dielectric Constant
+    real(RK) :: DielectricConstant
+    real(RK) :: TotalDipoleMoment,TotalDipoleMomentSquared
+
     ! Inter und Intra(Bond) Virial
     real(RK) :: VirialInter
     real(RK) :: VirialIntra
@@ -186,6 +205,12 @@ module ms2_ensemble
     real(RK), pointer, contiguous :: RDFVSchale(:)
     real(RK), pointer, contiguous :: RDFValue(:)
     
+    !ODF Hilfsvariable
+    real(RK) :: dPhi
+    real(RK) :: dGamma
+    real(RK) :: dR
+    real(RK), pointer, contiguous :: ODFvalue(:,:,:,:)
+
     !KBI Hilfsvariable
     real(RK) :: KBIdr
     real(RK), pointer, contiguous :: KBIVSchale(:)
@@ -207,6 +232,27 @@ module ms2_ensemble
     integer,  pointer, contiguous :: alpha2tempstep(:)
     integer                       :: alpha2aveCount
     
+#if TRANS==1
+    !EinsteinCoef definition
+    real(RK), pointer, contiguous :: DselfEinstein(:,:,:) !some current sample of Dself coefficients, index 1 - length, 2 - number of samples, 3 - number of component
+    real(RK), pointer, contiguous :: DselfEinsteinAve(:,:) !final averaged result for Dself coefficients, index 1 - length, 2 - number of component
+    real(RK), pointer, contiguous :: OnsagerEinstein(:,:,:,:) !yep, 4 dim. array seems not very good, but let's try, index 1 - length, 2 - number of samples, 3,4 - elements of Onsager matrix
+    real(RK), pointer, contiguous :: OnsagerEinsteinAve(:,:,:) !a little bit better than 4 dim. array, index 1 - length, 2,3 - elements of Onsager matrix
+    integer,  pointer, contiguous :: EinsteinCoefTimeStep(:) !index 1 - length
+    integer                       :: EinsteinCoefAveCount
+
+    real(RK), pointer, contiguous :: DselfEinsteinCurrent(:)
+    real(RK), pointer, contiguous :: OnsagerEinsteinCurrent(:,:)
+    real(RK)                      :: ShearEinsteinCurrent
+
+    real(RK), pointer, contiguous :: EinsteinShearAve(:)
+    real(RK), pointer, contiguous :: EinsteinShear(:)
+    real(RK), pointer, contiguous :: EinsteinShearInt(:)
+
+    type(TAccumulator),pointer, contiguous :: EinsteinDSelfAcc(:)
+    type(TAccumulator),pointer, contiguous :: EinsteinOnsagerAcc(:,:)
+    type(TAccumulator)                     :: EinsteinShearAcc
+#endif
 
     ! Characteristic dielectric constant for reaction field method
     real(RK) :: RFEpsilon
@@ -447,6 +493,11 @@ module ms2_ensemble
 !TRANSPORT_END
 #endif
 
+    ! 5.) Sampling of Dielectric Constant
+    type(TAccumulator) :: SumTotalDipoleMoment
+    type(TAccumulator) :: SumTotalDipoleMomentSquared
+    type(TAccumulator) :: SumDielectricConstant
+
 #if CONSTR > 0
    integer         :: NCons
    integer,pointer, contiguous :: Cons1Comp(:)
@@ -474,6 +525,21 @@ module ms2_ensemble
    type(TAccumulator),pointer, contiguous :: SumHBond4(:,:,:,:,:)
    type(TAccumulator),pointer, contiguous :: SumHBondN(:)
 #endif
+   logical  :: isCCSimulation   !DC NOTE- enable/disable the CC functionality
+   logical  :: isStopSimulation !DC NOTE- enable pausing of the ensamble calculation
+   logical  :: isCvim           !DC NOTE- enable cvim output file creation and print
+   
+   integer  :: CCFrequency      !DC NOTE- the frequency of CC calculation and visualization 
+   integer  :: Ccrittype        !DC NOTE- type specifier (integer values for easier handling)
+   real(RK) :: Ccritdist        !DC NOTE- distance criteria
+   integer  :: Ccount           !DC NOTE- molecules per cluster count
+   real(RK) :: Cmax             !DC NOTE- maximal allowed number of clusters
+
+   integer  :: NGridPoints    !DC NOTE- number of grid points in one dimension
+   integer  :: NGridPointsAll !DC NOTE- number of all grid points = NGridPoints**3
+   integer  :: NGridPoints0   !DC NOTE- starting index of grid points - usefull for parallel
+   integer  :: NGridPoints1   !DC NOTE- size of grid points atributed to MPI unit - usefull for parallel
+   integer  :: NGridPoints2   !DC NOTE- finish index of grid points - usefull for parallel
 
   end type TEnsemble
 
@@ -863,6 +929,22 @@ module ms2_ensemble
     module procedure TEnsemble_ResultClose
   end interface
 
+  interface ODFOpen
+    module procedure TEnsemble_ODFOpen
+  end interface
+  
+  interface ODFUpdate
+    module procedure TEnsemble_ODFUpdate
+  end interface
+  
+  interface ODFUpdateBlock
+    module procedure TEnsemble_ODFUpdateBlock
+  end interface
+  
+  interface ODFClose
+    module procedure TEnsemble_ODFClose
+  end interface
+  
   interface RDFOpen
     module procedure TEnsemble_RDFOpen
   end interface
@@ -924,6 +1006,26 @@ module ms2_ensemble
 
   interface VisualClose
     module procedure TEnsemble_VisualClose
+  end interface
+
+  interface VisualCCOpen
+    module procedure TEnsemble_VisualCCOpen
+  end interface
+
+  interface VisualCCUpdate
+    module procedure TEnsemble_VisualCCUpdate
+  end interface
+
+  interface VisualCCClose
+    module procedure TEnsemble_VisualCCClose
+  end interface
+
+  interface CCOpen
+    module procedure TEnsemble_CCOpen
+  end interface
+
+  interface CCClose
+    module procedure TEnsemble_CCClose
   end interface
 
 #if OSMOP > 0
@@ -1042,7 +1144,10 @@ contains
     integer :: i, j
     integer :: stat
     character( IOBufferLength ) :: str
-    
+
+    integer :: counter  
+    real(RK), pointer, contiguous :: GP0(:,:) ! positions of the gridpoints
+
     !Declare variable for walltime solution in ms2_global
     integer :: time_limit
 
@@ -1259,7 +1364,7 @@ contains
 
       if ( .not. ConstantPressure .and. .not. this%OptPressure) then
           this%OptPressure = .true.
-          write( IOBuffer, '("Pressure Calculation in NVT, NVE and GE necessary: Logical OptPressure is set to yes")' )
+          write( IOBuffer, '("Pressure Calculation in NVT, NVE and GE necessary: Logical CalcPressure is set to yes")' )
           call LogWrite
       end if
     end if
@@ -1347,6 +1452,89 @@ contains
 
     if( this%NComponents > 999 ) call Error( 'Cannot work with more than 999 components on '//Hardware )
 
+    !DC NOTE- Enasemble reading of parameters if not CC valid skip the reading
+    this%isStopSimulation = .false.
+    if (this%isCCSimulation .eqv. .true.) then
+    !DC NOTE- if the visualization frequency is nonsense skip it is not valid CC case
+      call FileReadParameter( this%CCFrequency, iounit_params , IdCCUpdateFrequency, .false., -10 )
+      if( this%CCFrequency .gt. 0 ) then              
+        write( IOBuffer, '("Calculate Cluster Criteria and update each", I7, " time steps")' ) this%CCFrequency
+      else
+        this%isCCSimulation = .false.
+        write( IOBuffer, '("Simulation does not have valid calculation frequency -> taken as normal ensemble ")' )        
+      end if
+      call LogWrite     
+
+      if (this%isCCSimulation .eqv. .true.) then
+        !DC NOTE- parse the criteria type
+        call FileReadParameter( str, iounit_params , IdCcrittype, .false., 'None' )     
+        select case( str )
+          case( 'VAP', 'vap', 'Vap', 'Vapor', 'Vapour', 'VAPOR', 'VAPOUR')
+            this%Ccrittype = CCritTypeVapor
+            str = 'Vapor'
+
+          case( 'GRIDVAP', 'VAPGRID', 'gridvap', 'vapgrid', 'Gridvap', 'Vapgrid' )
+            this%Ccrittype = CCritTypeGridvap
+            str = 'Grid vapor'
+
+          case( 'GRIDLIQ', 'LIQGRID', 'gridliq', 'liqgrid', 'Gridliq', 'Liqgrid' )
+            this%Ccrittype = CCritTypeGridliq
+            str = 'Grid liquid'
+
+          case default
+            call Error( 'Invalid cluster criteria type argument: '//trim( str )//NEW_LINE('A')//'       should be one of vap, gridvap, gridliq' )
+
+        end select
+
+        call LogWriteBlank
+        write( IOBuffer, '("Cluster Criteria options for enasemble:",T49, I3)' ) this%EnsembleNumber
+        call LogWrite
+        
+        write( IOBuffer, '("Cluster criteria type: ",T51, A)' ) trim( str )
+        call LogWrite
+
+        call FileReadParameter( this%Ccritdist, iounit_params , IdCcritdist, .false., -1.0_RK )
+        if (this%Ccritdist .le. 0.0_RK) then
+          call Error('Invalid or missing '//trim(IdCcritdist)//NEW_LINE('A')//'       control option')
+        else
+          write( IOBuffer, '("Reading Cluster criteria dist: ",T45, F16.8)' ) this%Ccritdist
+          call LogWrite
+        end if
+
+        call FileReadParameter( this%Ccount, iounit_params , IdCcount, .false. , -1 )
+        if (this%Ccount .lt. 0) then
+          call Error('Invalid or missing '//trim(IdCcount)//NEW_LINE('A')//'       control option should be >= 0')
+        else
+          write( IOBuffer, '("Reading molecule count for cluster",T46, I6)' ) this%Ccount
+          call LogWrite
+        end if
+
+        call FileReadParameter( this%Cmax , iounit_params , IdCmax, .false., -1.0_RK )
+        if (this%Cmax .lt. 0.0_RK .or. this%Cmax .gt. 100.0_RK) then
+          call Error('Invalid or missing '//trim(IdCcritdist)//NEW_LINE('A')//'       control option should be within <0.0, 100.0> range')
+        else
+          write( IOBuffer, '("Reading maximal allowed cluster count",T47, E14.4, " %")' ) this%Cmax
+          call LogWrite
+        end if
+
+        call FileReadParameter( str , iounit_params , IDisCvim, .false. , 'no' )
+        select case( str )
+          case( 'yes', 'Yes', 'YES' , 'ok', 'OK', 'True', 'true', 'ja' )
+            this%isCvim = .true.
+            write( IOBuffer, '("Criteria position visualization:                  .true.")' ) 
+            call LogWrite
+
+          case( 'no', 'No', 'NO', 'False', 'false' ,'nein')
+            this%isCvim = .false.
+            write( IOBuffer, '("Criteria position visualization:                  .false.")' ) 
+            call LogWrite
+
+          case default
+            call Error('Unknown position visualization control option :   '//trim(str))
+        end select
+      end if      
+    end if
+    
 #if  TRANS == 1
 !TRANSPORT_start
     call LogWriteBlank
@@ -1774,7 +1962,11 @@ contains
 
     call LogWrite
 
+    if ( SimulationType .eq. MonteCarlo .and. (.not. CommonEqui))  then
     write( IOBuffer, '("- pressure from reaction field:",T44, F12.8)' ) this%VirialCorrRF / this%NPart
+    else
+       write( IOBuffer, '("- pressure from reaction field:",T44, F12.8)' ) this%VirialCorrRF * NProcs / this%NPart
+    endif
     call LogWrite
 
     do i = 1, this%NRealComponents
@@ -1947,6 +2139,10 @@ contains
     this%iounit_kbirun    = iounit_kbirun    + i
     this%iounit_kbirdf    = iounit_kbirdf    + i
     this%iounit_a2rav     = iounit_a2rav     + i
+    this%iounit_ecoef     = iounit_ecoef     + i  !EinsteinCoef
+    this%iounit_ccpos     = iounit_ccpos     + i !DC edit
+    this%iounit_cc        = iounit_cc        + i !DC edit
+    this%iounit_ccgrid    = iounit_ccgrid    + i !DC edit
 
     ! Calculate RDF VSchale 
     this%RDFdr = this%RCutoffMIEnmMIEnm / RDFNumberShells
@@ -1954,6 +2150,11 @@ contains
       this%RDFVSchale(i) = 4./3.*pi* this%RDFdr**3 *(i**3 - (i-1)**3)
     end do
 
+    ! Calculate bin sizes for ODF
+    this%dR = this%RCutoffDipoleDipole / nR
+    this%dPhi = 2._RK / nPhi
+    this%dGamma = pi / nGamma
+    
     ! Calculate KBI VSchale
     this%KBIdr = (0.5*(this%NPart / (NAvogadro*this%RefDensity*UnitDensity*1000))**(1._RK/3._RK)/UnitLength) &
 &                / KBINumberShells
@@ -1969,6 +2170,66 @@ contains
     call LogWrite
     write( IOBuffer, '(72(1H-))')
     call LogWrite
+
+  if (this%isCCSimulation .eqv. .true.) then
+    !DC NOTE- prepare the gird neighbours if it is needed
+    !DC BEWARE this relies on the box lenght to calculate the grid    
+    if (this%Ccrittype .eq. CCritTypeGridliq .or. this%Ccrittype .eq. CCritTypeGridvap ) then
+    
+      this%NGridPoints = 1+ int(this%BoxLength/this%Ccritdist)
+      this%NGridPointsAll = this%NGridPoints**3
+      !DC OPTIM- at this moment 21.08.2019 the cmax is used only by root so this is wasting on the rest of PU
+      this%Cmax = int(this%NGridPointsAll * (this%Cmax/100.0)) 
+  
+      this%NGridPoints1 = ProcRange( this%NGridPointsAll, this%NGridPoints0, this%NGridPoints2 )
+  
+      !DC NOTE- allocate the holding arrays only what is required
+      allocate(GP0(this%NGridPoints1, 3), STAT = stat )
+      call AllocationError( stat, 'ccrit Grid position Grid Point array error allocation', Nproc )
+      
+      !DC NOTE- assign the grid points
+      counter = 0
+      do i = this%NGridPoints0 - 1 , this%NGridPoints2 - 1
+        !DC BEWARE- correction for i indexation in loop -> C/FORTRAN counting so the modulo operation work as expected
+        counter = counter + 1
+        !DC BEWARE- shift into the <-0.5,0.5) coordinate interval
+        GP0(counter, 1) = -0.5_RK + (this%Ccritdist/this%BoxLength) * MOD(i, this%NGridPoints) ! X coordinate is point within the coresponding line of the corresponding plane
+        GP0(counter, 2) = -0.5_RK + (this%Ccritdist/this%BoxLength) * (MOD(i, this%NGridPoints**2)/ this%NGridPoints) ! Y coordinate is within the plane of corresponding line
+        GP0(counter, 3) = -0.5_RK + (this%Ccritdist/this%BoxLength) * (i / this%NGridPoints**2 ) ! Z coordinate is simply the corresponding plane  
+      end do
+       
+      if (NProc .eq. NRootProc) then
+        !DC NOTE- OPEN section for .grid file
+        write( IOBuffer, '(I16)' ) this%EnsembleNumber
+        call FileRewrite( this%iounit_ccgrid, trim( OutputNameTag )//'_'//'CC'//'_'//trim( adjustl( IOBuffer ) )//GridFileExtension )
+
+        write( IOBuffer, '("# Cluster criteria grid output file generated by D. Celny into ms2")' )
+        call FileWrite( this%iounit_ccgrid )
+        call FileWriteBlank( this%iounit_ccgrid )
+
+        !DC NOTE- UPDATE section for .grid file
+        write( IOBuffer, '("# Edge:", I6," NGridPoints:", I6," New Cmax criteria number:", I6)' ) this%NGridPoints, this%NGridPointsAll, int(this%Cmax)
+        call FileWrite( this%iounit_ccgrid )
+        write( IOBuffer, '("# Debug boxsize: ", F16.10," griddistance: ", F16.10)' ) this%BoxLength, (this%Ccritdist/this%BoxLength)
+        call FileWrite( this%iounit_ccgrid )        
+        write( IOBuffer, '("# position    X,        Y,        Z    [reduced box_size] ")' )
+        call FileWrite( this%iounit_ccgrid )
+
+        !DC NOTE- the grid is recalculated again as it is done on root processor preventing mixed writeous of the grid
+        do i = 0 , this%NGridPointsAll - 1
+          write( IOBuffer, '( F16.10, F16.10, F16.10)' ) -0.5_RK + (this%Ccritdist/this%BoxLength) * MOD(i, this%NGridPoints),&
+          &                                              -0.5_RK + (this%Ccritdist/this%BoxLength) * (MOD(i, this%NGridPoints**2)/ this%NGridPoints),&
+          &                                              -0.5_RK + (this%Ccritdist/this%BoxLength) * (i / this%NGridPoints**2 )
+          call FileWrite( this%iounit_ccgrid )
+        end do
+        call FileWriteBlank( this%iounit_ccgrid )
+        
+        !DC NOTE- CLOSE section for .grid file
+        call FileClose( this%iounit_ccgrid )
+
+      end if
+    end if    
+  end if
 
 #if MPI_VER > 0
 ! Abortion of simulation run due to wall-time Constraints
@@ -17036,6 +17297,156 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
   end subroutine TEnsemble_VisualUpdate
 
+!==============================================================!
+!  Subroutine TEnsemble_VisualCCOpen                           !
+!==============================================================!
+
+  subroutine TEnsemble_VisualCCOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer                   :: i, j
+    type(TSiteMIEnm), pointer :: psMIEnm
+
+    if ((this%isCCSimulation .eqv. .true.) .and. (this%isCvim .eqv. .true.)) then
+      !DC NOTE- Open visualization file
+      write( IOBuffer, '(I16)' ) this%EnsembleNumber
+      call FileRewrite( this%iounit_ccpos, trim( OutputNameTag )//'_'//'CC'//'_'//trim( adjustl( IOBuffer ) )//VisualCCFileExtension )
+      !DC NOTE- Create header
+      write( IOBuffer, '("# Cluster criteria position visualization output file generated by D. Celny into ms2")' )
+      call FileWrite( this%iounit_ccpos )
+
+      do i = 1, this%NComponents
+        do j = 1, this%Component(i)%Molecule%NMIEnm
+          psMIEnm => this%Component(i)%Molecule%SiteMIEnm(j)
+          write( IOBuffer, '("#", I3, " ", A, 4F8.4, "  1")' ) i, trim(LJorMIE), psMIEnm%r(:) * UnitLength / Angstroem, &
+  &              psMIEnm%sig  * UnitLength / Angstroem
+          call FileWrite( this%iounit_ccpos )
+        end do
+      end do
+      call FileWriteBlank( this%iounit_ccpos )
+    end if
+
+  end subroutine TEnsemble_VisualCCOpen
+
+!==============================================================!
+!  Subroutine TEnsemble_VisualCCUpdate                         !
+!==============================================================!
+
+  subroutine TEnsemble_VisualCCUpdate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer  :: i, j
+    real(RK) :: r(3)
+
+    !DC NOTE- Update visualization file
+    !DC BEWARE work only for uniform substance (with same number of atoms per molecule)
+    if ((this%isCCSimulation .eqv. .true.) .and. &
+    &   (this%isCvim .eqv. .true.) .and. &
+    &   (this%isStopSimulation .eqv. .false.) .and. &
+    &   (mod( Step, this%CCFrequency) .eq. 0) ) then
+      
+      write( IOBuffer, '("#", F10.4, "  Step ", I6, " Npart ", I6)' ) this%BoxLength * UnitLength / Angstroem, Step, this%NComponents*this%Component(1)%NPart
+      call FileWrite( this%iounit_ccpos )
+      do i = 1, this%NComponents
+        do j = 1, this%Component(i)%NPart
+          r(:) = this%Component(i)%P0(j, :, 1)
+
+          write( IOBuffer, '(I3, 3F16.10)' ) i, r(:)
+          call FileWrite( this%iounit_ccpos )
+        end do
+      end do
+      call FileWriteBlank( this%iounit_ccpos )
+#if ARCH == 1 || ARCH == 2 || ARCH == 3
+      call flush( this%iounit_ccpos )
+#endif
+    end if
+
+  end subroutine TEnsemble_VisualCCUpdate
+
+!==============================================================!
+!  Subroutine TEnsemble_VisualCCClose                            !
+!==============================================================!
+
+  subroutine TEnsemble_VisualCCClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    if ((this%isCCSimulation .eqv. .true.) .and. (this%isCvim .eqv. .true.)) then
+      
+      !DC NOTE- Close visualization file
+      write( IOBuffer, '("##")' )
+      call FileWrite( this%iounit_ccpos )
+      call FileClose( this%iounit_ccpos )
+    end if
+
+  end subroutine TEnsemble_VisualCCClose
+
+!==============================================================!
+!  Subroutine TEnsemble_CCOpen                                 !
+!==============================================================!
+
+  subroutine TEnsemble_CCOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer                   :: i, j
+    type(TSiteMIEnm), pointer :: psMIEnm
+
+    if (this%isCCSimulation .eqv. .true.) then
+      !DC NOTE- Open visualization file
+      write( IOBuffer, '(I16)' ) this%EnsembleNumber
+      call FileRewrite( this%iounit_cc, trim( OutputNameTag )//'_'//'CC'//'_'//trim( adjustl( IOBuffer ) )//CCFileExtension )
+
+      !DC NOTE- Create header      
+      write( IOBuffer, '("# Cluster criteria data output file generated by D. Celny into ms2")' )
+      call FileWrite( this%iounit_cc )
+      do i = 1, this%NComponents
+        do j = 1, this%Component(i)%Molecule%NMIEnm
+          psMIEnm => this%Component(i)%Molecule%SiteMIEnm(j)
+          write( IOBuffer, '("#", I3, " ", A, 4F8.4, "  1")' ) i, trim(LJorMIE), psMIEnm%r(:) * UnitLength / Angstroem, &
+  &              psMIEnm%sig  * UnitLength / Angstroem
+          call FileWrite( this%iounit_cc )
+        end do
+      end do
+      call FileWriteBlank( this%iounit_cc )
+    end if
+
+  end subroutine TEnsemble_CCOpen
+
+!==============================================================!
+!  Subroutine TEnsemble_VisualCCClose                            !
+!==============================================================!
+
+  subroutine TEnsemble_CCClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    if (this%isCCSimulation .eqv. .true.) then
+      !DC NOTE- Close visualization file
+      call FileClose( this%iounit_cc )
+    end if
+
+  end subroutine TEnsemble_CCClose
 
 #if HBOND > 0
 !==============================================================!
@@ -17212,6 +17623,319 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
   end subroutine TEnsemble_ProfileClose
 #endif
 
+!==============================================================!
+!  Subroutine TEnsemble_ODFOpen                                !
+!==============================================================!
+ subroutine TEnsemble_ODFOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer                   :: i, j
+
+    if( .not. Restart ) then
+        ! initialize ODFSum and Error Sum
+        do i=1, this%NComponents
+          do j=i, this%NComponents
+            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                this%Interaction(i,j)%ODFErrSum = 0
+                this%Interaction(i,j)%ODFSum(:,:,:,:) = 0
+            end if
+          end do
+        end do
+    end if
+
+    ! Open visualization file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileRewrite( this%iounit_odf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ODFFileExtension )
+    call FileWriteBlank( this%iounit_odf )
+    call FileClose( this%iounit_odf )
+
+  end subroutine TEnsemble_ODFOpen
+ 
+!==============================================================!
+!  Subroutine TEnsemble_ODFUpdate                              !
+!==============================================================!
+  
+  subroutine TEnsemble_ODFUpdate( this )
+
+    implicit none
+    
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer  :: i, j
+
+    ! Calculate ODFSum with ODFUpdateFrequency 
+    do i= 1, this%NComponents
+      do j= i, this%NComponents
+        if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. &
+&           ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+            call Get_ODF( this%Interaction(i,j), this%dPhi, this%dGamma, this%dR/this%BoxLength )
+        end if
+      end do
+    end do
+
+    ! Rewrite ODF file with ODFOutputFrequency
+    if ( mod( Step-1, ODFOutputFrequency ) == 0 .and. Step .gt. 1 ) then
+        call ODFUpdateBlock (this)
+    end if
+    
+  end subroutine TEnsemble_ODFUpdate
+
+  
+!==============================================================!
+!  Subroutine TEnsemble_ODFUpdateBlock                         !
+!==============================================================!
+
+  subroutine TEnsemble_ODFUpdateBlock( this )
+
+    implicit none
+    
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Declare local variables
+    integer  :: i, j, o, p, q, r, ErrSum_hilf, ErrSum
+    real(RK) :: ODFvalue_hilf, NormValue
+    real(RK) :: ODFNorm_hilf(this%NComponents,this%NComponents,nR)
+
+#if MPI_VER > 0
+    real(RK) :: ODFNorm_out(this%NComponents,this%NComponents,nR)
+    real(RK) :: ODFvalue_norm
+#endif
+    ! write header of *.odf file
+    write( IOBuffer, '(I16)' ) this%EnsembleNumber
+    call FileRewrite( this%iounit_odf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ODFFileExtension )
+    ErrSum_hilf = 0
+    do i= 1, this%NComponents
+        do j= i, this%NComponents
+            ErrSum_hilf = ErrSum_hilf + this%Interaction(i,j)%ODFErrSum
+        end do
+    end do
+#if MPI_VER > 0 
+    call MPI_Reduce( ErrSum_hilf, ErrSum, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
+#else 
+    ErrSum = ErrSum_hilf
+#endif
+    
+    ! calculate average ODF value for normalization of ODF 
+    ODFNorm_hilf(:,:,:) = 0._RK
+    do i= 1, this%NComponents
+        do j= i, this%NComponents
+            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                do o = 1, nPhi
+                    do p = 1, nPhi
+                        do q = 1, nGamma
+                            do r=1, nR
+                                ODFNorm_hilf(i,j,r) = ODFNorm_hilf(i,j,r) &
+&                                 + real(this%Interaction(i,j)%ODFSum(o, p, q, r))
+                            end do
+                        end do
+                    end  do
+                end do
+            end if
+        end do
+    end do
+
+    do i= 1, this%NComponents
+        do j= i, this%NComponents
+            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                do r= 1, nR
+                    ODFNorm_hilf(i,j,r) = ODFNorm_hilf(i,j,r) / ( nPhi * nPhi * nGamma) 
+                end do
+            end if
+        end do
+    end do
+
+#if MPI_VER > 0     
+    ODFNorm_out(:,:,:) = 0._RK
+    do i= 1, this%NComponents
+        do j= i, this%NComponents
+            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                do r= 1, nR
+                    call MPI_Reduce( ODFNorm_hilf(i,j,r), ODFNorm_out(i,j,r), 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
+                end do
+            end if
+        end do
+    end do
+#endif  
+    write(IOBuffer, '("ODF Calculation failed ",I7, " times during simulation")') ErrSum
+    call FileWriteNoAdvance( this%iounit_odf )
+    call FileWriteBlank( this%iounit_odf )
+    write(IOBuffer, '("Normalization values of ODF: ")') 
+    call FileWriteNoAdvance( this%iounit_odf )
+    call FileWriteBlank( this%iounit_odf )
+
+    do i= 1, this%NComponents
+        do j= 1, this%NComponents
+            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. &  
+&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                write(IOBuffer, '(I5,I5)') i, j
+                call FileWriteNoAdvance( this%iounit_odf ) 
+            end if  
+        end do
+    end do
+
+    call FileWriteBlank( this%iounit_odf )
+    do r=1, nR
+        write(IOBuffer, '("r = ",F10.6," ")') (r*this%dR-this%dR/2._RK)
+        call FileWriteNoAdvance( this%iounit_odf ) 
+        do i= 1, this%NComponents
+            do j= 1, this%NComponents
+                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. &  
+&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+#if MPI_VER > 0 
+                    if (i == j) then
+                        NormValue = 2._RK*ODFNorm_out(i,j,r)
+                    else if(i > j) then
+                        NormValue = ODFNorm_out(j,i,r)
+                    else
+                        NormValue = ODFNorm_out(i,j,r) 
+                    end if
+#else
+                    if (i == j) then
+                        NormValue = 2._RK*ODFNorm_hilf(i,j,r)
+                    else if(i > j) then
+                        NormValue = ODFNorm_hilf(j,i,r)
+                    else
+                        NormValue = ODFNorm_hilf(i,j,r) 
+                    end if
+#endif                  
+                    write(IOBuffer, '(" ",F16.6," ")') NormValue
+                    call FileWriteNoAdvance( this%iounit_odf ) 
+                end if  
+            end do
+        end do
+        call FileWriteBlank( this%iounit_odf )
+    end do
+    
+    call FileWriteBlank( this%iounit_odf )
+    write(IOBuffer, '("cos(phi1)    cos(phi2)   gamma12     r   ")')
+    call FileWriteNoAdvance( this%iounit_odf )
+     
+    do i= 1, this%NComponents
+        do j= 1, this%NComponents
+            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. &  
+&               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                write(IOBuffer, '(I5,I5)') i,j
+                call FileWriteNoAdvance( this%iounit_odf ) 
+            end if  
+        end do
+    end do
+    call FileWriteBlank( this%iounit_odf )
+    
+#if MPI_VER > 0 
+    do o = 1, nPhi
+        do p = 1, nPhi
+            do q = 1, nGamma
+                do r=1, nR
+                    write(IOBuffer, '(4F10.4)') (1._RK - o*this%dPhi+this%dPhi/2._RK), (1._RK - p*this%dPhi+this%dPhi/2._RK), &
+                    & (q*this%dGamma-this%dGamma/2._RK), (r*this%dR-this%dR/2._RK)
+                    call FileWriteNoAdvance( this%iounit_odf )
+                    do i= 1, this%NComponents
+                        do j= 1, this%NComponents
+                            if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&                               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                                if (i == j) then ! for i == j the fact that every pair of molecules is only sampled once needs to be made up for by manually adding the value of the missing interaction. this also enforces perfect symmetry
+                                    ODFvalue_hilf = real(this%Interaction(i,j)%ODFSum(o, p, q, r)) &
+&                                     + real(this%Interaction(i,j)%ODFSum(nPhi + 1 - p, nPhi + 1 - o, q, r))
+                                else if (i > j) then ! ODF_ij for i > j is not sampled explicitly during simulation. Instead the data of ODF_ji is used to generate output for ODF_ij
+                                    ODFvalue_hilf = real(this%Interaction(j,i)%ODFSum(nPhi &
+&                                     + 1 - p, nPhi + 1 - o, q, r)) 
+                                else
+                                    ODFvalue_hilf = real(this%Interaction(i,j)%ODFSum(o, p, q, r)) 
+                                end if
+                                call MPI_Reduce( ODFvalue_hilf, ODFvalue_norm, 1, MPI_RK, MPI_SUM, NRootProc, Communicator, ierror)
+                                if (i == j) then
+                                    this%ODFvalue(o,p,q,r) = ODFvalue_norm / (2._RK*ODFNorm_out(i,j,r)) ! 2*Norm because missing interactions have been added
+                                else if(i > j) then
+                                    this%ODFvalue(o,p,q,r) = ODFvalue_norm / ODFNorm_out(j,i,r)  ! indices i and j are changed here because norm_ij for i > j is not computed but should be identical to norm_ji
+                                else 
+                                    this%ODFvalue(o,p,q,r) = ODFvalue_norm / ODFNorm_out(i,j,r) 
+                                end if
+                                write(IOBuffer, '(F10.4)') this%ODFvalue(o,p,q,r)
+                                call FileWriteNoAdvance( this%iounit_odf )
+                                ODFvalue_norm = 0._RK
+                            end if
+                        end do
+                    end do
+                call FileWriteBlank( this%iounit_odf )
+                end do
+            end do
+        end do
+    enddo
+#else
+    do o = 1, nPhi
+        do p = 1, nPhi
+            do q = 1, nGamma
+                do r=1, nR
+                    write(IOBuffer, '(4F10.4)') (1._RK - o*this%dPhi+this%dPhi/2._RK), (1._RK - p*this%dPhi+this%dPhi/2._RK), &
+                    & (q*this%dGamma-this%dGamma/2._RK), (r*this%dR-this%dR/2._RK)
+                    call FileWriteNoAdvance( this%iounit_odf )
+                    do i= 1, this%NComponents
+                        do j= 1, this%NComponents
+                            if (((this%Component(i)%Molecule%NDipole .GE. 1).or.(this%Component(i)%Molecule%NCharge .GE. 2)).and. &
+&                               ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then
+                                if (i == j) then
+                                    this%ODFvalue(o,p,q,r) = (real(this%Interaction(i,j)%ODFSum(o, p, q, r)) &
+&                                     + real(this%Interaction(i,j)%ODFSum(nPhi + 1 - p, nPhi + 1 - o, q, r))) &
+&                                     / (2._RK*ODFNorm_hilf(i,j,r)) 
+                                else if (i > j) then
+                                    this%ODFvalue(o,p,q,r) = real(this%Interaction(j,i)%ODFSum(nPhi + &
+&                                     1 - p, nPhi + 1 - o, q, r))  / ODFNorm_hilf(j,i,r) 
+                                else 
+                                    this%ODFvalue(o,p,q,r) = real(this%Interaction(i,j)%ODFSum(o, p, q, r)) &
+&                                     / ODFNorm_hilf(i,j,r) 
+                                end if
+                                write(IOBuffer, '(F10.4)') this%ODFvalue(o,p,q,r)
+                                call FileWriteNoAdvance( this%iounit_odf )
+                            end if
+                        end do
+                    end do
+                call FileWriteBlank( this%iounit_odf )
+                end do
+            end do
+        end do
+    enddo
+#endif
+    call FileClose( this%iounit_odf )
+    
+
+  end subroutine TEnsemble_ODFUpdateBlock
+  
+
+
+!==============================================================!
+!  Subroutine TEnsemble_ODFClose                               !
+!==============================================================!
+
+  subroutine TEnsemble_ODFClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this
+
+    ! Close visualization file
+    write( IOBuffer, '("##")' )
+    call FileWrite( this%iounit_odf )
+    call FileClose( this%iounit_odf )
+
+  end subroutine TEnsemble_ODFClose
   
 !==============================================================!
 !  Subroutine TEnsemble_RDFOpen                                !
@@ -17478,13 +18202,13 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
             this%KBIRDFvdVshfextra(:,p) = 0
         end do
         
-        ! Open running KBI RDF file
+        ! Open running average KBI RDF file
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileRewrite( this%iounit_kbirdf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )
         call FileWriteBlank( this%iounit_kbirdf )
         call FileClose( this%iounit_kbirdf )
         
-        ! Open running KBI file
+        ! Open running average KBI file
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileRewrite( this%iounit_kbirun, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrunFileExtension )   
         write(IOBuffer, '(T5,"last index: 1: RDF; 2: RDFvdV; 3: RDFvdVshf; 0: extrapolated Gij")')
@@ -21384,11 +22108,13 @@ endif
 
     ! Declare local variables
     type(TComponent), pointer :: pc
-    integer                   :: i,j,s,t,o,stat,counter,k,Mindex,StepCorr
+    integer                   :: i,j,r,s,t,o,stat,counter,k,Mindex,StepCorr
     real(RK)                  :: dummy, Factor
 #if MPI_VER > 0 
     integer(KIND=8)           :: KBISum_hilf(KBINShellsCubeEdge*NProcs)
     integer                   :: RDFSum_hilf(RDFNumberShells*NProcs)
+    integer                   :: ODFSum_hilf(nPhi*NProcs)
+    integer                   :: ODFErrSum_hilf(NProcs)
 #endif
     
     if( RootProc ) then
@@ -21594,6 +22320,63 @@ endif
       end if
     end do
     
+    ! 5.) Sampling of Dielectric Constant
+    if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+        call RestartRead( this%SumTotalDipoleMoment )
+        call RestartRead( this%SumTotalDipoleMomentSquared )
+        call RestartRead( this%SumDielectricConstant )
+    endif
+
+    if (ODFUpdateFrequency > 0) then
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+#if MPI_VER > 0
+                    if( RootProc ) then
+                        do o = 1, NProcs
+                            read( iounit_restart, '(I10)' ) ODFErrSum_hilf(o)
+                        end do
+                    end if      
+                    call MPI_Scatter( ODFErrSum_hilf(1:NProcs), 1, MPI_INTEGER, &
+&                       this%Interaction(i,j)%ODFErrSum, &
+&                       1, MPI_INTEGER, NRootProc, Communicator, ierror )
+#else                       
+                    read( iounit_restart, '(I10)' ) this%Interaction(i,j)%ODFErrSum
+#endif
+                end if
+            end do
+        end do
+
+        do i= 1, this%NComponents
+            do j= i, this%NComponents
+                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
+&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                    do r = 1, nR
+                        do s = 1, nGamma
+                            do t = 1, nPhi
+#if MPI_VER > 0
+                                if( RootProc ) then
+                                    do o = 1, nPhi*NProcs
+                                        read( iounit_restart, '(I10)' ) ODFSum_hilf(o)
+                                    end do
+                                end if
+                                call MPI_Scatter( ODFSum_hilf(1:nPhi*NProcs), nPhi, MPI_INTEGER, &
+&                                    this%Interaction(i,j)%ODFSum(1:nPhi,t,s,r), &
+&                                    nPhi, MPI_INTEGER, NRootProc, Communicator, ierror )
+#else                               
+                                do o = 1, nPhi
+                                    read( iounit_restart, '(I10)' ) this%Interaction(i,j)%ODFSum(o,t,s,r)
+                                end do
+#endif
+                            end do
+                        end do
+                    end do
+                end if
+            end do
+        end do  
+    end if      
+
 
     if (RDFUpdateFrequency > 0) then
         do i= 1, this%NComponents
@@ -21607,7 +22390,8 @@ endif
                             end do
                         end if
                         call MPI_Scatter( RDFSum_hilf(1:RDFNumberShells*NProcs), RDFNumberShells, MPI_INTEGER, &
-&                           this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )         
+&                           this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), &
+&                           RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )   
 #else 
                         do o = 1, RDFNumberShells
                             read( iounit_restart, '(I10)' ) this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o)
@@ -25293,7 +26077,7 @@ contains
             LAD = SQRT( DOT_PRODUCT(drAD,drAD) )
 
             if (LAD .le. DistCrit2) then
-              !Calculation of the angle between dono and acceptors
+              !Calculation of the angle between donor and acceptors
               if (MixTerm) then
                 drintraAD(1)=pmixdon%RX(i)-paccacc%RX(i)
                 drintraAD(2)=pmixdon%RY(i)-paccacc%RY(i)
@@ -25501,6 +26285,500 @@ contains
   end subroutine TEnsemble_HBonding
 #endif
 
+!==============================================================!
+!  Subroutine clust crit helpers                               !
+!==============================================================!
+
+  subroutine TEnsemble_count_direct_atom3(this, NeighborCounter, pcur, DistCrit)
+    ! this is a helper function that supply the regular counting method
+    ! counting is performed from grid to each atom
+    ! BEWARE the NEW_YORK metric is used as distance check
+    
+    implicit none
+    ! Declare arguments
+    type(TEnsemble), intent(in) :: this
+    integer                     :: NeighborCounter(:) !DC NOTE- could be made global to save reallocation
+    type(TComponent), pointer   :: pcur
+    real(RK), intent(in)        :: DistCrit !DC NOTE- calculated critical distance for neighbour memebrship
+    ! Declare local variables    
+    integer                     :: i, i_x, i_y, i_z, j  !DC NOTE- loop counters
+    integer                     :: x_edge, y_edge, z_edge !DC NOTE- indicators if element is in edge of particular direction
+    integer                     :: x_ind, y_ind, z_ind !DC NOTE- the idexes of cell the atom is inside
+    integer                     :: xyz_ind !DC NOTE- the index into flattened NeihbourCounter array  
+    real(RK)                    :: grid_center, rim_radius
+    integer                     :: x_min,x_max,y_min,y_max,z_min,z_max
+
+    grid_center = (this%NGridPoints-1)*DistCrit/2.0 - 0.5 !DC NOTE- convert to -0.5,0.5 coords
+    rim_radius = 0.5 - DistCrit - grid_center !DC NOTE- rim radius distance is box_length - DistCrit - grid_center in 0,1 coords
+
+    !DC NOTE- Loop over all grid points in the considered parallel context    
+    do i = 1, this%NGridPoints1
+      NeighborCounter(i) = 0 !DC NOTE- re/initialisation of the Neighbor counter
+    end do
+
+    do j = 1, pcur%NPart                 
+      x_edge = int((pcur%P0(j, 1, 1) - grid_center)/rim_radius)
+      y_edge = int((pcur%P0(j, 2, 1) - grid_center)/rim_radius)
+      z_edge = int((pcur%P0(j, 3, 1) - grid_center)/rim_radius)
+
+      x_ind = floor( (0.5_RK + pcur%P0(j, 1, 1))/DistCrit )
+      y_ind = floor( (0.5_RK + pcur%P0(j, 2, 1))/DistCrit )
+      z_ind = floor( (0.5_RK + pcur%P0(j, 3, 1))/DistCrit )
+      
+      !DC DEBUG- message below help with bug hunt in counitng method
+      ! write( IOBuffer, '("DEBUG da3:",I4," edge:",3I3," ind:",3I3)')j, x_edge,y_edge,z_edge, x_ind,y_ind,z_ind
+      ! call LogWrite
+      
+      if (x_ind < x_ind+x_edge) then 
+        x_min = x_ind        
+        x_max = x_ind+(this%NGridPoints-x_ind)
+      else
+        x_min = x_ind+x_edge
+        x_max = x_ind+1 
+      end if
+      
+      if (y_ind < y_ind+y_edge) then 
+        y_min = y_ind
+        y_max = y_ind+(this%NGridPoints-y_ind)        
+      else
+        y_min = y_ind+y_edge
+        y_max = y_ind+1
+      end if
+      
+      if (z_ind < z_ind+z_edge) then 
+        z_min = z_ind
+        z_max = z_ind+(this%NGridPoints-z_ind) 
+      else
+        z_min = z_ind+z_edge
+        z_max = z_ind+1
+      end if
+      
+      !DC DEBUG- message below help with bug hunt in counitng method
+      ! write( IOBuffer, '("x",2I3," y",2I3," z",2I3)') x_min, x_max, y_min, y_max, z_min, z_max
+      ! call LogWrite
+
+      do i_x = x_min, x_max
+        do i_y = y_min, y_max
+          do i_z = z_min, z_max
+            xyz_ind = 1 + mod(i_x + this%NGridPoints,this%NGridPoints) &
+                    &   + mod(i_y + this%NGridPoints,this%NGridPoints) *this%NGridPoints &
+                    &   + mod(i_z + this%NGridPoints,this%NGridPoints) *this%NGridPoints*this%NGridPoints          
+#if MPI_VER > 0
+            if (xyz_ind .ge. this%NGridPoints0 .and. xyz_ind .le. this%NGridPoints2) then
+              xyz_ind = xyz_ind - this%NGridPoints0 + 1
+            else 
+              cycle
+            end if
+#endif
+            NeighborCounter(xyz_ind) = NeighborCounter(xyz_ind) + 1  
+          end do          
+        end do        
+      end do       
+
+    end do       
+  end subroutine TEnsemble_count_direct_atom3
+  
+  subroutine TEnsemble_ClustNeighbors_print(this, ClusterCounter, print_array )
+  ! facilitates printing out array information to the file
+  ! integrated into parallel version: TEnsemble_ClustNeighbors_gather_print
+  ! BEWARE the cc (*.clust) file is used for output
+  ! BEWARE is intended as single threaded nonparallel version
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: ClusterCounter 
+    ! Declare local variables
+    integer             :: i
+    integer, intent(in) :: print_array(:)
+
+    !DC NOTE- only root PU output the header
+    if( .not. RootProc ) return
+
+    write( IOBuffer, '("# timestep: ", I8, " | edge ", I6, " | MolperCluster", I6, " | Clusters", I6 )' ) Step,  this%NGridPoints, this%Ccount, ClusterCounter
+    call FileWrite (this%iounit_cc)
+
+    do i= 1, this%NGridPointsAll - 1
+      write( IOBuffer, '(I4,", ")' ) print_array(i)
+      call FileWriteNoAdvance (this%iounit_cc)
+    end do
+
+    write( IOBuffer, '(I4)' )  print_array(this%NGridPointsAll)
+    call FileWrite (this%iounit_cc)
+
+  end subroutine TEnsemble_ClustNeighbors_print
+
+  subroutine TEnsemble_ClustNeighbors_hprint(this, ClusterCounter)
+  ! facilitates printing only the header without the neighbor list for methods that do not use neighbor list
+  ! NOTE it is overloaded variant with only two parameters
+  ! BEWARE the cc (*.clust) file is used for output
+  ! BEWARE is intended as single threaded nonparallel version
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble)     :: this
+    integer, intent(in) :: ClusterCounter 
+
+    !DC NOTE- only root PU output the header
+    if( .not. RootProc ) return
+
+    write( IOBuffer, '("# timestep: ", I8, " | edge ", I6, " | MolperCluster", I6, " | Clusters", I6 )' ) Step,  this%NGridPoints, this%Ccount, ClusterCounter
+    call FileWrite (this%iounit_cc)
+    
+  end subroutine TEnsemble_ClustNeighbors_hprint
+
+  subroutine TEnsemble_ClustNeighbors_gather_print(this, ClusterCounter, NeighborCounter)
+  ! provides the printing out array information to the file
+  ! while enveloping the gathering of the neighbour data from other processors
+  ! BEWARE the cc (*.clust) file is used for output
+  ! BEWARE the size of the grid is not homogeneous accross processors
+  !        the last PU has different # of grid points -> gatherv is needed
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TEnsemble)      :: this
+    integer, intent(in)  :: ClusterCounter 
+    integer, intent(in)  :: NeighborCounter(:)
+    ! Declare local variables
+    integer              :: stat
+    integer              :: i
+    integer              :: stride
+    integer, allocatable :: GPCounter_all(:)
+    integer, allocatable :: GPStrides_all(:)
+    integer, allocatable :: NeighborCounter_all(:)
+
+  if (RootProc) then !DC OPTIM- wasting space and allocation on nonroor PU
+    allocate(GPCounter_all(NProcs), STAT = stat )
+    call AllocationError( stat, 'ccrit GP counts root counter all', Nproc )
+    allocate(GPStrides_all(NProcs), STAT = stat )
+    call AllocationError( stat, 'ccrit GP strides root counter all', Nproc )
+    allocate(NeighborCounter_all(this%NGridPointsAll), STAT = stat )
+    call AllocationError( stat, 'ccrit Neighbor root counter all', Nproc )
+  else
+    allocate(GPCounter_all(1), STAT = stat )
+    call AllocationError( stat, 'ccrit GP counts rest counter all', Nproc )
+    allocate(GPStrides_all(1), STAT = stat )
+    call AllocationError( stat, 'ccrit GP strides rest counter all', Nproc )
+    allocate(NeighborCounter_all(1), STAT = stat )
+    call AllocationError( stat, 'ccrit Neighbor rest counter all', Nproc )
+  end if
+
+#if MPI_VER > 0
+  !DC NOTE- gather the allocated grid sizes
+  call MPI_Gather(this%NGridPoints1 , 1 , MPI_INT, GPCounter_all,  1, MPI_INT, NRootProc, Communicator, ierror ) ! BEWARE if every processor sends same length
+
+  !DC NOTE- gather the strides for the gatherv call
+  if (RootProc) then 
+    stride = 0
+    do i=1,NProcs
+      GPStrides_all(i) = stride
+      stride = stride + GPCounter_all(i)
+    end do
+  end if
+
+  !DC HELP- on gatherv:
+  !    MPI_GATHERV(SENDBUF         , SENDCOUNT         , SENDTYPE, RECVBUF           , RECVCOUNTS   ,DISPLS        , RECVTYPE, ROOT    , COMM        , IERROR)
+  call MPI_Gatherv(NeighborCounter , this%NGridPoints1 , MPI_INT, NeighborCounter_all, GPCounter_all, GPStrides_all, MPI_INT, NRootProc, Communicator, ierror )
+
+  !DC NOTE- print of the collected information 
+  if (RootProc) then
+    write( IOBuffer, '("# timestep: ", I8, " | edge ", I6, " | MolperCluster", I6, " | Clusters", I6 )' ) Step,  this%NGridPoints, this%Ccount, ClusterCounter
+    call FileWrite (this%iounit_cc)
+    do i= 1, this%NGridPointsAll - 1
+      write( IOBuffer, '(I4,", ")' ) NeighborCounter_all(i)
+      call FileWriteNoAdvance (this%iounit_cc)
+    end do
+    write( IOBuffer, '(I4)' )  NeighborCounter_all(this%NGridPointsAll)
+    call FileWrite (this%iounit_cc)
+  end if
+
+#else
+  !DC NOTE- single thread variant 
+  write( IOBuffer, '("# timestep: ", I8, " | edge ", I6, " | MolperCluster", I6, " | Clusters", I6 )' ) Step,  this%NGridPoints, this%Ccount, ClusterCounter
+  call FileWrite (this%iounit_cc)
+  do i= 1, this%NGridPointsAll - 1
+    write( IOBuffer, '(I4,", ")' ) NeighborCounter(i)
+    call FileWriteNoAdvance (this%iounit_cc)
+  end do
+  write( IOBuffer, '(I4)' )  NeighborCounter(this%NGridPoints1)
+  call FileWrite (this%iounit_cc)
+
+#endif
+  end subroutine TEnsemble_ClustNeighbors_gather_print
+
+!==============================================================!
+!  Subroutine TEnsemble_ClustCrit                              !
+!==============================================================!
+
+  function TEnsemble_ClustCrit_naive( this, DistCrit ) result(ClusterCounter)
+  ! this function perform simple distance check for each entity
+  ! NOTE impemented in parallel over first molecule loop
+  ! BEWARE works only for vapor type detection 
+  ! BEWARE does not allow multiensemble and multicomponent checking
+  ! -> calculation method
+  !   |- for each i molecule iterater over j molecule
+  !   |- check for i==j and skip
+  !   |- calculate distance, account PCB
+  !   |- decide if it is neighbor and increment counter in positive case
+  !   |- check if neighbor counter is above user specified threshold in positive case increment cluster counter
+  ! -> print information header into .clust file
+  ! -> return the ClusterCounter that represent number of suspected clusters found
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+    ! Declare arguments
+    type(TEnsemble)           :: this    
+    real(RK)                  :: DistCrit
+    ! Declare result
+    integer                   :: ClusterCounter
+    ! Declare local variables
+    type(TComponent), pointer :: pcur, pcom
+    integer             :: i, i0, i1, j
+    real(RK)            :: Distij    
+    real(RK)            :: dxyz_ij(3)    
+    integer             :: NeighborCounter !DC NOTE- local counter reused for each molecule
+    
+    !DC NOTE- Initialize values and arrays
+    ClusterCounter = 0 
+   
+    !DC TODO- account for the multicomponent system
+    pcur => this%Component(1) 
+
+    !DC NOTE- sequetntial distribution of work
+    i0 = 1
+    i1 = pcur%NPart
+#if MPI_VER > 0
+    !DC NOTE- parallel split of outer loop over i accross CPUs
+    if (SimulationType .eq. MolecularDynamics) then
+      i0 = pcur%NPart0
+      i1 = pcur%NPart2
+    end if
+#endif
+    !DC NOTE- Loop over all particles    
+    do i = i0, i1      
+      NeighborCounter = 0 !DC NOTE- re/initialisation of the Neighbor counter
+      do j = 1,pcur%NPart
+        if (i .eq. j) then 
+          cycle !DC NOTE- safeguard that the very molecule is not counted as its neighbour
+        end if 
+        
+        dxyz_ij(1) = pcur%P0(i, 1, 1) - pcur%P0(j, 1, 1)
+        dxyz_ij(2) = pcur%P0(i, 2, 1) - pcur%P0(j, 2, 1)
+        dxyz_ij(3) = pcur%P0(i, 3, 1) - pcur%P0(j, 3, 1)
+        
+        dxyz_ij(1)= dxyz_ij(1) - anint( dxyz_ij(1) )
+        dxyz_ij(2)= dxyz_ij(2) - anint( dxyz_ij(2) )
+        dxyz_ij(3)= dxyz_ij(3) - anint( dxyz_ij(3) )
+
+        Distij = SQRT( DOT_PRODUCT(dxyz_ij,dxyz_ij) )
+
+        if (Distij .le. DistCrit) then
+          !DC NOTE- increment is done only for i molecule to prevent doubling and requirement for intercomunication
+          ! that means it has to be also checked in same way
+          ! variant with least space usage -> all is kept as local incrementers
+          NeighborCounter = NeighborCounter + 1 !DC NOTE- increment of temporarry counter for i entity
+        end if
+      end do
+      !DC NOTE- i entity can be checked if fulfulls given criteria and then forgotten
+      if (NeighborCounter .ge. this%Ccount) then
+        ClusterCounter = ClusterCounter + 1
+      end if
+    end do
+
+#if MPI_VER > 0
+    call MPI_Allreduce( MPI_IN_PLACE, ClusterCounter, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )            
+#endif    
+    call TEnsemble_ClustNeighbors_hprint(this, ClusterCounter)
+
+  end function TEnsemble_ClustCrit_naive
+
+  function TEnsemble_ClustCrit_vapgrid( this, DistCrit ) result(ClusterCounter)
+  ! this fucntion calculate neighbour entities on the regular grid and check if the grid 
+  ! points have GRATER (.gt.) tham specified number of elements
+  ! -> implementation of the Neighbor counting within grid points
+  !   |- the Check distance is given parameter
+  !   |- NeighborCounter array is allocated to the size of NGridPoints1
+  !   |- expect that the grid distance is known in advance but does not require grid points positions
+  !   |- calulate the grid point occupancies
+  !   |- accumulate the cluster count suspected grid points
+  ! -> print information header and neighbors array into .clust file
+  ! -> return the ClusterCounter that represent number of suspected clusters found
+
+    implicit none
+
+  ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+    type(TEnsemble)           :: this    
+    real(RK)                  :: DistCrit
+    ! Declare result
+    integer                   :: ClusterCounter
+    ! Declare local variables
+    integer                   :: stat
+    integer, allocatable      :: NeighborCounter_da3(:)
+    type(TComponent), pointer :: pcur
+    integer                   :: i
+    
+    allocate(NeighborCounter_da3(this%NGridPoints1), STAT = stat )
+    call AllocationError( stat, 'Neighbor counter allocation in TEnsemble_ClustCrit', Nprocs )
+
+    ClusterCounter = 0
+    
+    !DC TODO- calculate components in parallel -based on assumption that components form independent clusters
+    pcur => this%Component(1) 
+
+    call TEnsemble_count_direct_atom3(this, NeighborCounter_da3, pcur, DistCrit) 
+ 
+    do i = 1,this%NGridPoints1
+      !DC NOTE- this is the decision part of the criteria where potential clusters are counted
+      if (NeighborCounter_da3(i) .ge. this%Ccount) then 
+        ClusterCounter = ClusterCounter + 1
+      end if
+    end do 
+
+#if MPI_VER > 0    
+    call MPI_Allreduce( MPI_IN_PLACE, ClusterCounter, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )            
+    call TEnsemble_ClustNeighbors_gather_print(this, ClusterCounter,NeighborCounter_da3)    
+#else
+    call TEnsemble_ClustNeighbors_print(this, ClusterCounter, NeighborCounter_da3)
+#endif
+
+  end function TEnsemble_ClustCrit_vapgrid
+
+  function TEnsemble_ClustCrit_liqgrid( this, DistCrit ) result(ClusterCounter)
+  ! this fucntion calculate neighbour entities on the regular grid and check if the grid 
+  ! points have LOWER (.lt.) tham specified number of elements
+  ! -> implementation of the Neighbor counting within grid points
+  !   |- the Check distance is given parameter
+  !   |- NeighborCounter array is allocated to the size of NGridPoints1
+  !   |- expect that the grid distance is known in advance but does not require grid points positions
+  !   |- calulate the grid point occupancies
+  !   |- accumulate the cluster count suspected grid points
+  ! -> print information header and neighbors array into .clust file
+  ! -> return the ClusterCounter that represent number of suspected clusters found
+  
+    implicit none
+
+  ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+    ! Declare arguments
+    type(TEnsemble)           :: this
+    real(RK)                  :: DistCrit
+    ! Declare result
+    integer                   :: ClusterCounter
+    ! Declare local variables
+    integer                   :: stat
+    integer, pointer          :: NeighborCounter_da3(:)
+    type(TComponent), pointer :: pcur
+    integer                   :: i
+    
+    allocate(NeighborCounter_da3(this%NGridPoints1), STAT = stat )
+    call AllocationError( stat, 'Neighbor counter allocation in TEnsemble_ClustCrit', Nprocs )
+
+    ClusterCounter = 0
+    
+    !DC TODO- calculate components in parallel -based on assumption that components form independent clusters
+    pcur => this%Component(1) 
+
+    call TEnsemble_count_direct_atom3(this, NeighborCounter_da3, pcur, DistCrit) 
+ 
+    do i = 1,this%NGridPoints1
+      !DC NOTE- this is the decision part of the criteria where potential clusters are counted
+      if (NeighborCounter_da3(i) .le. this%Ccount) then
+        ClusterCounter = ClusterCounter + 1
+      end if
+    end do 
+
+#if MPI_VER > 0    
+    call MPI_Allreduce( MPI_IN_PLACE, ClusterCounter, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )            
+    call TEnsemble_ClustNeighbors_gather_print(this, ClusterCounter, NeighborCounter_da3)    
+#else
+    call TEnsemble_ClustNeighbors_print(this, ClusterCounter, NeighborCounter_da3)
+#endif
+
+  end function TEnsemble_ClustCrit_liqgrid
+
+  subroutine TEnsemble_ClustCrit( this )
+  ! this subroutine calls the cluster criteria variants and terminates the simulation if necesarry
+  ! NOTE - this metod is effective only in VisualCCUpdate frequency specified by user 
+  ! BEWARE - this should not be called during equilibration procedures
+  !   - higher level check should be implemented
+  ! -> should enable switching for the CC method employed
+  ! -> contain exit flag set up for simulation termination
+
+    implicit none
+
+    ! Declare arguments
+    type(TEnsemble) :: this    
+    ! Declare local variables    
+    real(RK)                  :: DistCrit
+    integer                   :: ClusterCounter
+
+    !DC NOTE- skip execution if it is not valid anymore (not valid simulation .or. already stopped due to the error or CC)
+    !DC NOTE- this is handled by the TSimulation_RunMDStep to save initialization of functions
+       
+    !DC NOTE- skip execution if it is equilibration or not time to update
+    !DC NOTE- this is handled by the TEnsemble_RunMDStep to save this function launch
+
+    !DC NOTE- calculate the scaled critical cluster check distance    
+    DistCrit = this%Ccritdist*(1._RK / this%BoxLength)
+
+    select case( this%Ccrittype )
+      case( CCritTypeVapor )
+        ClusterCounter = TEnsemble_ClustCrit_naive(this, DistCrit)
+        if (ClusterCounter .gt. this%Cmax) then
+          this%isStopSimulation = .true.
+          write( IOBuffer, '("!Cluster count limit ", I6, " exceeded with: ", I6, " clusters. ")' ) int(this%Cmax), ClusterCounter
+          call FileWrite (this%iounit_cc)
+        end if               
+      case( CCritTypeGridvap )
+        ClusterCounter = TEnsemble_ClustCrit_vapgrid(this, DistCrit)
+        if (ClusterCounter .gt. this%Cmax) then
+          this%isStopSimulation = .true.
+          write( IOBuffer, '("!Cluster count limit ", I6, " exceeded with: ", I6, " clusters. ~ ", E10.2, " % of grid")' ) int(this%Cmax), ClusterCounter, (100.0*ClusterCounter)/this%NGridPointsAll
+          call FileWrite (this%iounit_cc)
+        end if
+      case( CCritTypeGridliq )
+        ClusterCounter = TEnsemble_ClustCrit_liqgrid(this, DistCrit)
+        if (ClusterCounter .gt. this%Cmax) then
+          this%isStopSimulation = .true.
+          write( IOBuffer, '("!Void count limit ", I6, " exceeded with: ", I6, " clusters. ~ ", E10.2, " % of grid")' ) int(this%Cmax), ClusterCounter, (100.0*ClusterCounter)/this%NGridPointsAll
+          call FileWrite (this%iounit_cc)
+        end if
+    end select
+    
+    !DC DEBUG- message below for proper multiensemble case stopping validation
+    ! write (*, '("Step:",I4,"Ensemble:",I4,"Ncluster:", I4, "isStopSimulation:", L2)') Step, this%EnsembleNumber, ClusterCounter, this%isStopSimulation    
+    
+    if (this%isStopSimulation .eqv. .true.)  then              
+      write( IOBuffer, '("!Calculation is stopped by criteria id: ", I2," at ensemble: ", I2)' ) this%Ccrittype, this%EnsembleNumber
+      call FileWrite (this%iounit_cc)
+      call LogWriteBlank
+      write( IOBuffer, '("Calculation is stopped by criteria id: ", I2," at ensemble: ", I2)' ) this%Ccrittype, this%EnsembleNumber
+      call LogWrite
+      
+      !DC NOTE- prevent future calculation and update of this simulation and prevent the repeated writing of previous message      
+      this%isCCSimulation = .false.
+    end if
+
+  end subroutine TEnsemble_ClustCrit
 
 
 !==============================================================!

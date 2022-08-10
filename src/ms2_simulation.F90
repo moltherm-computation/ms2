@@ -51,6 +51,13 @@ module ms2_simulation
     integer :: firstEnsembleIdx, lastEnsembleIdx
     ! Number of MPI ensemble groups (only relevant for MPI version, set to 0 otherwise)
     integer :: mpiEnsembleGroups
+    !
+#if MPI_VER > 0
+    logical :: doneBcastTerm=.false., doneMsgTerm=.false.
+    integer :: numMsgTerm_send=0, numMsgTerm_recv=0
+    integer :: mpireqbcastTerm, mpireqmsgTerm
+#endif
+    !
 
     ! Ensembles
     type(TEnsemble), pointer, contiguous :: Ensemble(:)
@@ -63,6 +70,8 @@ module ms2_simulation
 
     ! I/O unit for final result file
     integer :: iounit_errors
+
+    integer :: terminate_cc_multiensemble !DC NOTE- the counter that signifies if the simulation is to be terminated in multiensemble case
 
 #if  TRANS == 1
 !TRANSPORT_start
@@ -154,6 +163,26 @@ end type TSimulation
     module procedure TSimulation_VisualClose
   end interface
 
+  interface VisualCCOpen
+    module procedure TSimulation_VisualCCOpen
+  end interface
+
+  interface VisualCCUpdate
+    module procedure TSimulation_VisualCCUpdate
+  end interface
+
+  interface VisualCCClose
+    module procedure TSimulation_VisualCCClose
+  end interface
+
+  interface CCOpen
+    module procedure TSimulation_CCOpen
+  end interface
+
+  interface CCClose
+    module procedure TSimulation_CCClose
+  end interface
+
 #if OSMOP > 0
   interface ProfileOpen
     module procedure TSimulation_ProfileOpen
@@ -178,6 +207,18 @@ end type TSimulation
 
   interface RDFClose
     module procedure TSimulation_RDFClose
+  end interface
+  
+  interface ODFOpen
+    module procedure TSimulation_ODFOpen
+  end interface
+
+  interface ODFUpdate
+    module procedure TSimulation_ODFUpdate
+  end interface
+
+  interface ODFClose
+    module procedure TSimulation_ODFClose
   end interface
   
   interface KBIOpen
@@ -442,7 +483,9 @@ contains
       BlockSize = 0
       ErrorsUpdateFrequency = NSteps
       VisualUpdateFrequency = 0
+      VisualCCUpdateFrequency = 0 !DC NOTE- initialize the visual CC update frequency
       RDFUpdateFrequency = 0
+      ODFUpdateFrequency = 0
       KBIUpdateFrequency = 0
       BlockSizeKBI = 0
       ALPHA2UpdateFrequency = 0
@@ -772,6 +815,30 @@ contains
       end if
       call LogWriteBlank
       
+      call FileReadParameter( ODFUpdateFrequency, iounit_params , IdODFUpdateFrequency, .true., 0 )
+      if( ODFUpdateFrequency > 0 ) then
+        write( IOBuffer, '("ODF files will be updated each", T40, I7, " time steps")' ) ODFUpdateFrequency
+      else
+        write( IOBuffer, '("ODF files will not be created")' )
+      end if
+      call LogWrite
+      
+      if( ODFUpdateFrequency > 0 ) then
+        call FileReadParameter( nR, iounit_params , IdnR, .true., 3 )
+        write( IOBuffer, '("ODF will operate with", I7, " shells")' ) nR
+        call LogWrite
+        call FileReadParameter( nPhi, iounit_params , IdnPhi, .true., 40 )
+        write( IOBuffer, '("ODF will operate with", I7, " angular increments in phi-direction")' ) nPhi
+        call LogWrite
+        call FileReadParameter( nGamma, iounit_params , IdnGamma, .true., 36 )
+        write( IOBuffer, '("ODF will operate with", I7, " angular increments in gamma-direction")' ) nGamma
+        call LogWrite
+        call FileReadParameter( ODFOutputFrequency, iounit_params , IdODFOutputFrequency, .true., 1000000 )
+        write( IOBuffer, '("ODF output will be generated every", I7, " steps")' ) ODFOutputFrequency
+        call LogWrite
+      end if
+      call LogWriteBlank
+      
       ! Read frequency of updating KBI file
       call FileReadParameter( KBIUpdateFrequency, iounit_params , IdKBIUpdateFrequency, .true., 0 )
       if( KBIUpdateFrequency > 0 ) then
@@ -891,8 +958,8 @@ contains
             call FileReadParameter( nmax_h, iounit_params , IdNMax, .true. )
             write( IOBuffer, '("Ewald: NMax:",T20, I7)' ) nmax_h
             call LogWrite
-
-!         case( 'PME', 'pme', 'SPME', 'spme')
+#if SPME > 0
+        case( 'PME', 'pme', 'SPME', 'spme')
             LongRange = PME
             LongRangeString = 'Smooth Particle Mesh Ewald Summation'
             write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
@@ -908,7 +975,7 @@ contains
 
             call FileReadParameter( spline_h, iounit_params , IdSpline, .true. )
             write( IOBuffer, '("order of SPME Spline:", I7)' ) spline_h
-
+#endif
         case( 'ReactionField', 'RF', 'reactionfield', 'rf' )
             LongRange = RField
             LongRangeString = 'Reaction Field'
@@ -1101,6 +1168,19 @@ contains
       write( IOBuffer, '("Transport properties:",T26, A)' ) trim(str)
       call LogWrite
     endif
+
+
+     !EinsteinCoef procedure switching
+     call FileReadParameter( str, iounit_params, IdEinsteinCoefCalc, .true., 'no' )
+     if (str == 'yes') then
+        EinsteinCoefCalc = .true.
+        write( IOBuffer, '("Einstein formalism procedure is switched on")')
+        call LogWrite
+     else
+        EinsteinCoefCalc = .false.
+        write( IOBuffer, '("Einstein formalism procedure is switched off")')
+        call LogWrite
+     endif
 !TRANSPORT_END
 #endif
 
@@ -1202,7 +1282,10 @@ contains
     call LogWrite
     call ResultOpen( this )
     call VisualOpen( this )
+    call VisualCCOpen( this )
+    call CCOpen( this )
     call RDFOpen( this )
+    call ODFOpen( this )
     call KBIOpen( this )
 #if OSMOP > 0
     if ( SimulationType .ne. MonteCarlo ) call ProfileOpen(this )
@@ -1238,6 +1321,8 @@ contains
     call LogWriteBlank
     call ResultClose( this )
     call VisualClose( this )
+    call VisualCCClose( this )
+    call CCClose( this )
     call KBIClose( this )
     !call RDFClose( this ) ! file is closed after updating
 #if OSMOP > 0
@@ -1528,7 +1613,7 @@ contains
          call UpdateEnergy( this%Ensemble(j) )
 
       end do
-    endif
+    endif   ! SimulationType .eq. MonteCarlo
 #endif
 
     ! Run MC overlap reduction
@@ -1564,7 +1649,7 @@ contains
       end if
       call LogWriteTime
       StepStart = 1
-    end if
+    end if  ! MCOverlapReduction
 
 eqloop: do
       ! Run energy minimization
@@ -2092,7 +2177,10 @@ eqloop: do
     integer, intent(in) :: StepStart, StepEnd
 
     ! Declare local variables
+    integer :: err !DC NOTE- for termination broadcast purposes
+
 #if MPI_VER > 0
+    integer :: stop_cc_simulation !DC NOTE- local variable for mpi reduce output
     integer :: mpistatus(MPI_STATUS_SIZE)
     integer :: TerminateStatus
     integer :: mpireqbcastTerm, mpireqmsgTerm
@@ -2126,7 +2214,7 @@ eqloop: do
 #endif
 
     ! Run simulation steps
-    do Step = StepStart, StepEnd
+    do Step = StepStart, StepEnd    !-----------------------------------------------------------
 
       ! Update total number of steps
       StepTotal = StepTotal + 1
@@ -2166,7 +2254,9 @@ eqloop: do
         NBlockSizesKBI = int( sqrt( real( Step / BlockSizeKBI, RK ) ) )
       end if
       
-
+      if (mod(Step,1000)==0) then
+    print*, Step
+end if
       ! Run simulation step
       select case( SimulationType )
       case( MolecularDynamics )
@@ -2183,7 +2273,9 @@ eqloop: do
       ! Update result and visualisation files
       call ResultUpdate( this )
       call VisualUpdate( this )
+      call VisualCCUpdate( this )
       call RDFUpdate ( this )
+      call ODFUpdate ( this )
       call KBIUpdate ( this )
 
       ! Update log and result files
@@ -2257,7 +2349,7 @@ eqloop: do
         call MPI_Bcast(TerminateStatus, 1, MPI_INTEGER, NRootProc, Communicator, ierror)
         if (TerminateStatus > 0) TerminateProgram=.true.
         if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.
-      else
+      else  ! NCommunicators .eq. 1
         !                                                                            Communicator
         call MPI_Allreduce( MPI_IN_PLACE, TerminateProgram, 1, MPI_LOGICAL, MPI_LOR, MPI_COMM_WORLD, ierror )
         call MPI_Allreduce( MPI_IN_PLACE, tooManyParticles, 1, MPI_LOGICAL, MPI_LOR, MPI_COMM_WORLD, ierror )
@@ -2354,11 +2446,16 @@ eqloop: do
 
     implicit none
 
+  ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
     ! Declare arguments
     type(TSimulation) :: this
 
     ! Declare local variables
     integer :: i
+    integer :: terminate_counter
 
     ! Run MD simulation step
     do i = this%firstEnsembleIdx, this%lastEnsembleIdx
@@ -2783,6 +2880,141 @@ eqloop: do
 
   end subroutine TSimulation_VisualClose
 
+!==============================================================!
+!  Subroutine TSimulation_VisualCCOpen                         !
+!==============================================================!
+
+  subroutine TSimulation_VisualCCOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    !DC NOTE- Check for root process
+    if( .not. RootProc ) return    
+
+    !DC NOTE- Open ensemble visualisation files
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call VisualCCOpen( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_VisualCCOpen
+
+
+!==============================================================!
+!  Subroutine TSimulation_VisualCCUpdate                       !
+!==============================================================!
+
+  subroutine TSimulation_VisualCCUpdate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    !DC NOTE- Check for root process
+    if( .not. RootProc ) return
+
+    !DC NOTE- Return if equilibration
+    if( Equilibration ) return
+
+    !DC NOTE- Update ensemble visualisation files    
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx        
+      call VisualCCUpdate( this%Ensemble(i))        
+    end do
+    
+
+  end subroutine TSimulation_VisualCCUpdate
+
+
+!==============================================================!
+!  Subroutine TSimulation_VisualCCClose                        !
+!==============================================================!
+
+  subroutine TSimulation_VisualCCClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    !DC NOTE- Check for root process
+    if( .not. RootProc ) return
+
+    !DC NOTE- Close ensemble visualisation files
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call VisualCCClose( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_VisualCCClose
+
+!==============================================================!
+!  Subroutine TSimulation_CCOpen                               !
+!==============================================================!
+
+  subroutine TSimulation_CCOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    !DC NOTE- Check for root process
+    if( .not. RootProc ) return
+
+    !DC NOTE- Open ensemble visualisation files
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call CCOpen( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_CCOpen
+
+
+!==============================================================!
+!  Subroutine TSimulation_VisualCCUpdate                       !
+!==============================================================!
+
+!DC NOTE- the update routine does not reflect the nonuniform
+! nature of Cluster criteria loggin -> is implemented near execution
+! the next issue is the need to hold the data to be printed in ensemble
+
+!==============================================================!
+!  Subroutine TSimulation_VisualCCClose                        !
+!==============================================================!
+
+  subroutine TSimulation_CCClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    !DC NOTE- Check for root process
+    if( .not. RootProc ) return
+    
+    !DC NOTE- Close ensemble visualisation files
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call CCClose( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_CCClose
+
 
 #if OSMOP > 0
 !==============================================================!
@@ -2944,6 +3176,82 @@ eqloop: do
 
   end subroutine TSimulation_RDFClose
 
+!==============================================================!
+!  Subroutine TSimulation_ODFOpen                              !
+!==============================================================!
+
+  subroutine TSimulation_ODFOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Return if no output
+    if( ODFUpdateFrequency < 1 ) return
+
+    ! Open ensemble visualisation files
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call ODFOpen( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_ODFOpen
+
+!==============================================================!
+!  Subroutine TSimulation_ODFUpdate                            !
+!==============================================================!
+
+  subroutine TSimulation_ODFUpdate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Return if no output
+    if( ODFUpdateFrequency < 1 ) return
+
+    ! Return if equilibration
+    if( Equilibration ) return
+
+    ! Update ensemble visualisation files
+    if( mod( Step - 1, ODFUpdateFrequency ) == 0 ) then
+      do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+        call ODFUpdate( this%Ensemble(i) )
+      end do
+    end if
+
+  end subroutine TSimulation_ODFUpdate
+
+
+!==============================================================!
+!  Subroutine TSimulation_ODFClose                             !
+!==============================================================!
+
+  subroutine TSimulation_ODFClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    ! Return if no output
+    if( ODFUpdateFrequency < 1 ) return
+
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call ODFClose( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_ODFClose
 
 !==============================================================!
 !  Subroutine TSimulation_KBIOpen                              !
