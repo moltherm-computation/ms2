@@ -9,8 +9,8 @@
 !==============================================================!
 
 !****************************************************************
-!* Updates and auxiliary routines are available from            *   
-!* http://www.ms-2.de                                           *   
+!* Updates and auxiliary routines are available from            *
+!* http://www.ms-2.de                                           *
 !****************************************************************
 
 #ifndef ARCH
@@ -79,7 +79,6 @@ module ms2_simulation
     integer :: iounit_rescf
 !TRANSPORT_END
 #endif
-
 
 end type TSimulation
 
@@ -208,7 +207,7 @@ end type TSimulation
   interface RDFClose
     module procedure TSimulation_RDFClose
   end interface
-  
+
   interface ODFOpen
     module procedure TSimulation_ODFOpen
   end interface
@@ -232,7 +231,7 @@ end type TSimulation
   interface KBIClose
     module procedure TSimulation_KBIClose
   end interface
-  
+
   interface ALPHA2Update
     module procedure TSimulation_ALPHA2Update
   end interface
