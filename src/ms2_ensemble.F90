@@ -13178,6 +13178,45 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         end if
       end do
 
+    ! 5.) Sampling of Dielectric Constant
+    if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
+        MX = 0._RK
+        MY = 0._RK
+        MZ = 0._RK
+        if( LongRange .eq. Rfield ) then
+          do i = 1, this%NComponents
+          pc => this%Component(i)
+        do kIndex = 1, pc%NPart
+            MX=MX+pc%MueX(kIndex, 1)
+            MY=MY+pc%MueY(kIndex, 1)
+            MZ=MZ+pc%MueZ(kIndex, 1)
+        end do
+          end do
+        else ! Ewald
+          do i = 1, this%NComponents
+          pc => this%Component(i)
+        do kIndex = 1, pc%NPart
+        pm => pc%Molecule
+          do lIndex = 1, pm%NCharge
+            pCharge => pm%SiteCharge(lIndex)
+            MX=MX+pCharge%e*(pCharge%RX(kIndex)-pc%P0(kIndex,1, 1))*this%BoxLength
+            MY=MY+pCharge%e*(pCharge%RY(kIndex)-pc%P0(kIndex,2, 1))*this%BoxLength
+            MZ=MZ+pCharge%e*(pCharge%RZ(kIndex)-pc%P0(kIndex,3, 1))*this%BoxLength
+          end do
+        end do
+          end do
+        endif
+        
+        this%TotalDipoleMomentSquared=MX**2+MY**2+MZ**2
+        this%TotalDipoleMoment=sqrt(this%TotalDipoleMomentSquared)
+        
+        call Update( this%SumTotalDipoleMoment, this%TotalDipoleMoment )
+        call Update( this%SumTotalDipoleMomentSquared, this%TotalDipoleMomentSquared )
+        
+        this%DielectricConstant=(4._RK*Pi*this%TotalDipoleMomentSquared)/(3._RK*this%NPart/this%Density*this%Temperature)+1._RK
+        call Update( this%SumDielectricConstant, this%DielectricConstant)
+    endif
+      
     ! Update result files
     if( mod( Step, BlockSize ) == 0 ) then
       if(SimulationType .eq. MonteCarlo) then
