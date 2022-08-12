@@ -1383,7 +1383,6 @@ contains
     nullify( this%NState )
     nullify( this%NStateWF )
 #if  TRANS == 1
-!  Transport  !TRANSPORT_start
     nullify(this%KinETran)
     nullify(this%KinEPart)
     nullify( this%FS )

@@ -5504,20 +5504,17 @@ loop5:  do nc = 1, this%NComponents
    end if
 
 #if  TRANS == 1
-
-!TRANSPORT_start
+    !Calculation of Correlation Functions
     if(.not. Equilibration .and. (mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0)) then
       call CalCorrFun( this )
     end if
 
    !EinsteinCoef call subroutine
-    if(EinsteinCoefCalc) then
-        if (.not. Equilibration .and. (mod((Step-1),this%NStepCorr) .eq. 0)) then !
-          call EinsteinCoefProcedure(this)
-        end if
+    if((TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
+      if (.not. Equilibration .and. (mod((Step-1),this%NStepCorr) .eq. 0)) then !
+        call EinsteinCoefProcedure(this)
+      end if
     end if
-
-!TRANSPORT_END
 #endif
 
     ! Calculation of residence time
@@ -5535,7 +5532,7 @@ loop5:  do nc = 1, this%NComponents
   !DC NOTE- proceed only when it is relevatn CC simulation, it is not Equlibration and is the propper timestep for evaluation
   if ((this%isCCSimulation .eqv. .true.) .and. &
   &   (this%isStopSimulation .eqv. .false.) .and. &
-  &   (Equilibration .eqv. .false.) .and. & 
+  &   (Equilibration .eqv. .false.) .and. &
   &   (mod( Step, this%CCFrequency ) .eq. 0) ) then
 
     !DC DEBUG - validating that the conditions are fulfulled as prescribed
@@ -6073,9 +6070,16 @@ loop5:    do nc = 1, this%NComponents
 
 #if OSMOP == 2
     !Correct virial profile
-    do m = 1, NBinsDen
-       this%VirialProfile(m) = this%VirialProfile(m) + (TotalDenProfile(m) * this%VirialCorrMIE * NProcs)/NBinsDen
-    end do
+    if( this%NMIEnmMax > 0 ) then
+      do m = 1, NBinsDen
+         this%VirialProfile(m) = this%VirialProfile(m) + (TotalDenProfile(m) * this%VirialCorrMIE * NProcs)/NBinsDen
+      end do
+    end if
+    if( this%NTT68Max > 0 ) then
+      do m = 1, NBinsDen
+         this%VirialProfile(m) = this%VirialProfile(m) + (TotalDenProfile(m) * this%VirialCorrTT68 * NProcs)/NBinsDen
+      end do
+    end if
 
     if (LongRange .eq. Ewald) then
       this%VirialProfile(:) = this%VirialProfile(:) + this%EVirial/NBinsDen
@@ -6572,8 +6576,8 @@ loop5:    do nc = 1, this%NComponents
         pc%Molecule%SiteMIEnm(j)%FX(1:pc%NPart) = 0._RK
         pc%Molecule%SiteMIEnm(j)%FY(1:pc%NPart) = 0._RK
         pc%Molecule%SiteMIEnm(j)%FZ(1:pc%NPart) = 0._RK
+
 #if  TRANS == 1
-        !TRANSPORT_start
         if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
           pc%Molecule%SiteMIEnm(j)%vsMIEx(1:pc%NPart) = 0._RK
           pc%Molecule%SiteMIEnm(j)%vsMIEy(1:pc%NPart) = 0._RK
@@ -6599,7 +6603,38 @@ loop5:    do nc = 1, this%NComponents
             pc%Molecule%SiteMIEnm(j)%tdMIEz(1:pc%NPart) = 0._RK
    !       end if
         end if
-        !TRANSPORT_END
+#endif
+      end do
+      do j = 1, this%Component(i)%Molecule%NTT68
+        pc%Molecule%SiteTT68(j)%FX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteTT68(j)%FY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteTT68(j)%FZ(1:pc%NPart) = 0._RK
+#if  TRANS == 1
+        if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
+          pc%Molecule%SiteTT68(j)%vsTTx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT68(j)%vsTTy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT68(j)%vsTTz(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT68(j)%vbTTx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT68(j)%vbTTy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT68(j)%vbTTz(1:pc%NPart) = 0._RK
+    !        if ( this%Conductivity ) then
+            pc%Molecule%SiteTT68(j)%vsuTTx(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteTT68(j)%vsuTTy(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteTT68(j)%vsuTTz(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteTT68(j)%cTTx(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteTT68(j)%cTTy(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteTT68(j)%cTTz(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteTT68(j)%tuTTx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT68(j)%tuTTy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT68(j)%tuTTz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT68(j)%tlTTx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT68(j)%tlTTy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT68(j)%tlTTz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT68(j)%tdTTx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT68(j)%tdTTy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT68(j)%tdTTz(1:pc%NPart) = 0._RK
+    !       end if
+        end if
 #endif
       end do
       do j = 1, this%Component(i)%Molecule%NCharge
@@ -6607,7 +6642,6 @@ loop5:    do nc = 1, this%NComponents
         pc%Molecule%SiteCharge(j)%FY(1:pc%NPart) = 0._RK
         pc%Molecule%SiteCharge(j)%FZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
-        !TRANSPORT_start
         if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
           pc%Molecule%SiteCharge(j)%vsCx(1:pc%NPart) = 0._RK
           pc%Molecule%SiteCharge(j)%vsCy(1:pc%NPart) = 0._RK
@@ -6633,7 +6667,6 @@ loop5:    do nc = 1, this%NComponents
             pc%Molecule%SiteCharge(j)%tdCz(1:pc%NPart) = 0._RK
      !     end if
         end if
-        !TRANSPORT_END
 #endif
       end do
       do j = 1, this%Component(i)%Molecule%NDipole
@@ -6644,7 +6677,6 @@ loop5:    do nc = 1, this%NComponents
         pc%Molecule%SiteDipole(j)%TY(1:pc%NPart) = 0._RK
         pc%Molecule%SiteDipole(j)%TZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
-        !TRANSPORT_start
         if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
           pc%Molecule%SiteDipole(j)%vsDx(1:pc%NPart) = 0._RK
           pc%Molecule%SiteDipole(j)%vsDy(1:pc%NPart) = 0._RK
@@ -6670,7 +6702,6 @@ loop5:    do nc = 1, this%NComponents
             pc%Molecule%SiteDipole(j)%tdDz(1:pc%NPart) = 0._RK
        !   end if
         end if
-        !TRANSPORT_END
 #endif
       end do
       do j = 1, this%Component(i)%Molecule%NQuadrupole
@@ -6681,7 +6712,6 @@ loop5:    do nc = 1, this%NComponents
         pc%Molecule%SiteQuadrupole(j)%TY(1:pc%NPart) = 0._RK
         pc%Molecule%SiteQuadrupole(j)%TZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
-        !TRANSPORT_start
         if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
           pc%Molecule%SiteQuadrupole(j)%vsQx(1:pc%NPart) = 0._RK
           pc%Molecule%SiteQuadrupole(j)%vsQy(1:pc%NPart) = 0._RK
@@ -6707,7 +6737,6 @@ loop5:    do nc = 1, this%NComponents
             pc%Molecule%SiteQuadrupole(j)%tdQz(1:pc%NPart) = 0._RK
          ! end if
         end if
-        !TRANSPORT_END
 #endif
       end do
 
@@ -6751,7 +6780,6 @@ loop5:    do nc = 1, this%NComponents
         pc%tRFZ(:, :) = 0._RK
       end if
 #if  TRANS == 1
-      !TRANSPORT_start
       if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
         do j = 1, this%Component(i)%NPart
           this%Component(i)%FS(j, 1)    = 0._RK
@@ -6770,26 +6798,38 @@ loop5:    do nc = 1, this%NComponents
      !     end if
         end do
       end if
-      !TRANSPORT_END
 #endif
     end do
 
-    ! potential energy correction
-    EPot = this%Density * this%EPotCorrMIE + this%EPotCorrRF
-    idfEPot%EPotInter = this%Density * this%EPotCorrMIE + this%EPotCorrRF
-    idfEPot%EPotIntra = 0._RK
-    idfEPot%EPotIntra_Bond = 0._RK
-    idfEPot%EPotIntra_Angle = 0._RK
-    idfEPot%EPotIntra_Dihedral = 0._RK
-    idfEPot%EPotIntra_Nonbonded = 0._RK
+    if( this%NMIEnmMax > 0 ) then
+      ! potential energy correction
+      EPot = this%Density * this%EPotCorrMIE + this%EPotCorrRF
 
-    ! virial correction
-    Virial = this%Density * this%VirialCorrMIE + this%VirialCorrRF*this%Volume0
-    VirialInter = Virial
-    VirialIntra = 0._RK
+      idfEPot%EPotInter = this%Density * this%EPotCorrMIE + this%EPotCorrRF
+      idfEPot%EPotIntra = 0._RK
+      idfEPot%EPotIntra_Bond = 0._RK
+      idfEPot%EPotIntra_Angle = 0._RK
+      idfEPot%EPotIntra_Dihedral = 0._RK
+      idfEPot%EPotIntra_Nonbonded = 0._RK
 
-    ! d2Epot/dV2 correction
-    d2EpotdV2 = this%Density * this%d2EpotdV2CorrMIE
+      ! virial correction
+      Virial = this%Density * this%VirialCorrMIE + this%VirialCorrRF*this%Volume0
+      VirialInter = Virial
+      VirialIntra = 0._RK
+
+      ! d2Epot/dV2 correction
+      d2EpotdV2 = this%Density * this%d2EpotdV2CorrMIE
+    endif
+    if( this%NTT68Max > 0 ) then
+     ! potential energy correction
+      EPot = this%Density * this%EPotCorrTT68 + this%EPotCorrRF
+
+      ! virial correction
+      Virial = this%Density * this%VirialCorrTT68 + Third*this%VirialCorrRF
+
+      ! d2Epot/dV2 correction
+      d2EpotdV2 = this%Density * this%d2EpotdV2CorrTT68
+    endif
 
 !     ! Calculate interactions partners within cutoff sphere
 !     if( CutoffMode .eq. CenterofMass ) then
@@ -7329,10 +7369,21 @@ loop2:        do nc = 1, this%NComponents
           this%EPotTest(:) = 0._RK
           this%EPotTest(pc%NTest0:pc%NTest2) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         else
-          this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
+          if( this%NMIEnmMax > 0 ) then
+            this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
+          endif
+          if( this%NTT68Max > 0 ) then
+            this%EPotTest(:) = this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+          endif
         end if
 #else
-        this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
+        if( this%NMIEnmMax > 0 ) then
+          this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
+        endif
+        if( this%NTT68Max > 0 ) then
+          this%EPotTest(:) = this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+        endif
+
 #endif
         if (UseIntDegFreed) then
             this%EPotTest(1:pc%NTest) = this%EPotTest(1:pc%NTest) + pc%EPotTestIntra(1:pc%NTest) ! EPotTest can be longer than Intra-Array
@@ -7480,7 +7531,14 @@ loop2:        do nc = 1, this%NComponents
           this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         end if
 #else
-        this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
+
+        if( this%NMIEnmMax > 0 ) then
+          this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
+        endif
+        if( this%NTT68Max > 0 ) then
+          this%EPotTest(:) = this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+        endif
+
 #endif
         if (UseIntDegFreed) this%EPotTest(1:pc%NTest) = this%EPotTest(1:pc%NTest) + pc%EPotTestIntra(1:pc%NTest) ! EPotTest can be longer than Intra-Array
         do j = 1, this%NComponents
@@ -7720,8 +7778,12 @@ loop2:        do nc = 1, this%NComponents
     end do
 
     ! Calculate new energy
-    E = .5_RK * E + this%Density * this%EPotCorrMIE + this%EPotCorrRF + Intra
-
+    if( this%NMIEnmMax > 0 ) then
+      E = .5_RK * E + this%Density * this%EPotCorrMIE + this%EPotCorrRF + Intra
+    endif
+    if( this%NTT68Max > 0 ) then
+      E = .5_RK * E + this%Density * this%EPotCorrTT68 + this%EPotCorrRF
+    endif
 ! Ewald
     if (LongRange .eq. Ewald) then
       call EwaldFourierEnergy(this)
@@ -7921,7 +7983,12 @@ loop2:        do nc = 1, this%NComponents
       Intra = Intra + sum(this%Interaction(i,i)%EPotAngle(:)) + &
 &                   sum(this%Interaction(i,i)%EPotTo(:))
     end do
-    E = .5_RK * E + this%Density * this%EPotCorrMIE + this%EPotCorrRF + Intra
+    if( this%NMIEnmMax > 0 ) then
+      E = .5_RK * E + this%Density * this%EPotCorrMIE + this%EPotCorrRF
+    endif
+    if( this%NTT68Max > 0 ) then
+      E = .5_RK * E + this%Density * this%EPotCorrTT68 + this%EPotCorrRF
+    endif
 
 ! Ewald
     if (LongRange .eq. Ewald) then
@@ -8032,7 +8099,12 @@ loop2:        do nc = 1, this%NComponents
         V = V + sum( this%Interaction(j, i)%Virial(1:this%Component(j)%NPart * this%Component(j)%Molecule%NUnit, 1:n) )
       end do
     end do
-    V = .5_RK * V + this%Density * this%VirialCorrMIE + this%VirialCorrRF*this%Volume0
+    if( this%NMIEnmMax > 0 ) then
+      V = .5_RK * V + this%Density * this%VirialCorrMIE + this%VirialCorrRF*this%Volume0
+    endif
+    if( this%NTT68Max > 0 ) then
+      V = .5_RK * V + this%Density * this%VirialCorrTT68 + Third*this%VirialCorrRF
+    endif
 
     if (LongRange .eq. Ewald) then
 !       call EwaldFourierEnergy(this)
@@ -8072,7 +8144,12 @@ loop2:        do nc = 1, this%NComponents
 &         d2EpotdV2(1:this%Component(j)%NPart * this%Component(j)%Molecule%NUnit, 1:n) )
       end do
     end do
-    V = .5_RK * V + this%Density * this%d2EpotdV2CorrMIE
+    if( this%NMIEnmMax > 0 ) then
+      V = .5_RK * V + this%Density * this%d2EpotdV2CorrMIE
+    endif
+    if( this%NTT68Max > 0 ) then
+      V = .5_RK * V + this%Density * this%d2EpotdV2CorrTT68
+    endif
 
   end function TEnsemble_Getd2EpotdV2
 
@@ -9530,12 +9607,20 @@ subroutine TEnsemble_ScaleInteractionThermoInt( this, nt , factor)
       if (nt == i) cycle
 
       if( associated(this%Interaction(nt, i)%PotMIEnmMIEnm)) then
-        this%Interaction(nt, i)%PotMIEnmMIEnm(:, :)%Epsilon      = this%Interaction(nt, i)%PotMIEnmMIEnm(:, :)%Epsilon * Factor
+        this%Interaction(nt, i)%PotMIEnmMIEnm(:, :)%Epsilon          = this%Interaction(nt, i)%PotMIEnmMIEnm(:, :)%Epsilon * Factor
         this%Interaction(nt, i)%PotMIEnmMIEnm(:, :)%EpsilonMie_a     = this%Interaction(nt, i)%PotMIEnmMIEnm(:, :)%EpsilonMie_a * Factor
         this%Interaction(nt, i)%PotMIEnmMIEnm(:, :)%EpsilonMie_aF    = this%Interaction(nt, i)%PotMIEnmMIEnm(:, :)%EpsilonMie_aF * Factor
-        this%Interaction(i, nt)%PotMIEnmMIEnm(:, :)%Epsilon      = this%Interaction(i, nt)%PotMIEnmMIEnm(:, :)%Epsilon * Factor
+        this%Interaction(i, nt)%PotMIEnmMIEnm(:, :)%Epsilon          = this%Interaction(i, nt)%PotMIEnmMIEnm(:, :)%Epsilon * Factor
         this%Interaction(i, nt)%PotMIEnmMIEnm(:, :)%EpsilonMie_a     = this%Interaction(i, nt)%PotMIEnmMIEnm(:, :)%EpsilonMie_a * Factor
         this%Interaction(i, nt)%PotMIEnmMIEnm(:, :)%EpsilonMie_aF    = this%Interaction(i, nt)%PotMIEnmMIEnm(:, :)%EpsilonMie_aF * Factor
+      endif
+      if( associated(this%Interaction(nt, i)%PotTT68TT68)) then
+        this%Interaction(nt, i)%PotTT68TT68(:, :)%TT_A  = this%Interaction(nt, i)%PotTT68TT68(:, :)%TT_A * Factor
+        this%Interaction(nt, i)%PotTT68TT68(:, :)%C6    = this%Interaction(nt, i)%PotTT68TT68(:, :)%C6 * Factor
+        this%Interaction(nt, i)%PotTT68TT68(:, :)%C8    = this%Interaction(nt, i)%PotTT68TT68(:, :)%C8 * Factor
+        this%Interaction(i, nt)%PotTT68TT68(:, :)%TT_A  = this%Interaction(i, nt)%PotTT68TT68(:, :)%TT_A * Factor
+        this%Interaction(i, nt)%PotTT68TT68(:, :)%C6    = this%Interaction(i, nt)%PotTT68TT68(:, :)%C6 * Factor
+        this%Interaction(i, nt)%PotTT68TT68(:, :)%C8    = this%Interaction(i, nt)%PotTT68TT68(:, :)%C8 * Factor
       endif
       if( associated(this%Interaction(nt, i)%PotChargeCharge)) then
         this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon * Factor
@@ -9691,7 +9776,7 @@ subroutine TEnsemble_ScaleInteractionThermoInt( this, nt , factor)
       !this%Component(nt)%Molecule%MueZ(:) = this%Component(nt)%Molecule%MueZ(:) * Factor
     endif
 
-end subroutine TEnsemble_ScaleInteractionThermoInt
+  end subroutine TEnsemble_ScaleInteractionThermoInt
 
 
 !==============================================================!
@@ -9732,7 +9817,12 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         pc%changeLaPart = pc%changeLaPart + pc%changeLaPart
         call ChangeFluct( this, nt, nc )
       end if
-      EPotOld = (this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF)*pt%Lambda**pc%LambdaExponent
+      if( this%NMIEnmMax > 0 ) then
+       EPotOld = (this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF)*pt%Lambda**pc%LambdaExponent
+      endif
+      if( this%NTT68Max > 0 ) then
+       EPotOld = (this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF)*pt%Lambda**pc%LambdaExponent
+      endif
       EPotOld = EPotOld + GetEnergy( this, nt, 1 )
       currentbin=int((pt%Lambda-pc%LaMin)/pc%deltaLa)
       ChempotDelta=-pc%BinsIntdEndLa(currentbin)
@@ -9797,7 +9887,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         else
              LambdaNew=pt%Lambda+pc%LaStepMax
         end if
-        ! should be 1/10 of MC-stepwidth for equl distribution (estimation by Gabor and Michael)
+        ! should be 1/10 of MC-stepwidth for equal distribution (estimation by Gabor and Michael)
         if (.not. UseIntDegFreed) then
             if (LambdaNew<pc%LaMin) then
               LambdaNew = pc%LaMin
@@ -9918,16 +10008,30 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         if ( Equilibration .and. CommonEqui ) then
           ! use MPI_RK (cmp. ms2_global.F90) instead of MPI_RK
           call MPI_Allreduce( EPotIns, EPotInsAll, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-          EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+          if( this%NMIEnmMax > 0 ) then
+            EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+          endif
+          if( this%NTT68Max > 0 ) then
+            EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrTT68 + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+          endif
 
         else
-          EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+          if( this%NMIEnmMax > 0 ) then
+            EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+          endif
+          if( this%NTT68Max > 0 ) then
+            EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrTT68 + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+          endif
         endif
 
         if( rnd( 0._RK, 1._RK ) .lt. ( exp( pc%ChemPot - EPotInsAll / this%Temperature ) * this%Volume0 / np )) then
 #else
+        if( this%NMIEnmMax > 0 ) then
           EPotIns = EPotIns + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
-
+        endif
+        if( this%NTT68Max > 0 ) then
+          EPotIns = EPotIns + this%Density * pc%EPotTestCorrTT68 + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+        endif
         ! Apply acceptance criterion - SINGLE
         if( rnd( 0._RK, 1._RK ) .lt. ( exp( pc%ChemPot - EPotIns / this%Temperature ) * this%Volume0 / np )) then
 #endif
@@ -23167,7 +23271,6 @@ end if
 #if TRANS ==1
 if( RootProc .and. this%CorrfunMode ) then
 
-    !Aenderungen Koester, ASpan_CF Matrix wurde beim Restart nicht uebergeben
     !Reduced correlation steps
     StepCorr = (Step + this%NStepCorr -1) / this%NStepCorr
 
@@ -23177,18 +23280,21 @@ if( RootProc .and. this%CorrfunMode ) then
       Mindex = this%NCorr
     end if
 
-    k=mod(Mindex,this%NSpanCF)
-    this%a(:,Mindex + 1 - k:Mindex ) = this%A_SpanCF(:,1:k)
-    !Aenderungen Koester
+    if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+      k=mod(Mindex,this%NSpanCF)
+      this%a(:,Mindex + 1 - k:Mindex ) = this%A_SpanCF(:,1:k)
+    end if
 
     write( iounit_restart, '(I10)' ) this%NCorr
     write( iounit_restart, '(I10)' ) this%Mmess
 
-    do i = 1, 3*this%NPart
+    if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+      do i = 1, 3*this%NPart
         do j = 1, this%NCorr
             write( iounit_restart, '(ES20.12E3)' )  this%a( i, j)
         end do
-    end do
+      end do
+    end if  
 
     do i = 1, this%NCorr
         write( iounit_restart, '(3(ES20.12E3, :, ";"))' ) this%vsk(i,:)
@@ -23223,9 +23329,13 @@ if( RootProc .and. this%CorrfunMode ) then
     do i = 1, this%NCorr
         write( iounit_restart, '(ES20.12E3)' )  this%average_cf_vb(i)
     end do
-    do i = 1, this%NCorr
+
+    if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+      do i = 1, this%NCorr
         write( iounit_restart, '(ES20.12E3)' )  this%average_cf_vs(i)
-    end do
+      end do
+    end if
+
     do i = 1, this%NCorr
         write( iounit_restart, '(ES20.12E3)' ) this%average_cf_ec(i)
     end do
@@ -23238,41 +23348,66 @@ if( RootProc .and. this%CorrfunMode ) then
       end do
     end if
 
-    do i = 1, this%NComponents
-      do j = 1, this%NCorr
-        write( iounit_restart, '(ES20.12E3)' )  this%average_cf_d(i , j)
-      end do
-    end do
+      if (TransMethod .eq. Einstein) then
+        do i = 1, this%NComponents
+          do j = 1, this%NCorr
+            write( iounit_restart, '(ES20.12E3)' ) this%velcompX(i,j)
+          end do
+        end do
+        do i = 1, this%NComponents
+          do j = 1, this%NCorr
+            write( iounit_restart, '(ES20.12E3)' ) this%velcompY(i,j)
+          end do
+        end do
+        do i = 1, this%NComponents
+          do j = 1, this%NCorr
+            write( iounit_restart, '(ES20.12E3)' ) this%velcompZ(i,j)
+          end do
+        end do
+      end if
+    end if
 
-    if (this%NComponents > 1) then
-      do i = 1, this%NComponents*this%NComponents
+    if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+      do i = 1, this%NComponents
         do j = 1, this%NCorr
-          write( iounit_restart, '(ES20.12E3)' ) this%average_lamda(i , j)
+          write( iounit_restart, '(ES20.12E3)' )  this%average_cf_d(i , j)
         end do
       end do
+
+      if (this%NComponents > 1) then
+        do i = 1, this%NComponents*this%NComponents
+          do j = 1, this%NCorr
+            write( iounit_restart, '(ES20.12E3)' ) this%average_lamda(i , j)
+          end do
+        end do
+      end if
     end if
 
     write( iounit_restart, '(I10)' ) NBlocksMaxCF
 
-    do i = 1, this%NComponents
-      call RestartSave( this%Sumself_i(i), .true. )
-    end do
+    if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+      do i = 1, this%NComponents
+       call RestartSave( this%Sumself_i(i), .true. )
+      end do
+    end if  
 
     if(this%NComponents > 1) then
-      do i = 1, this%NComponents
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then     
+        do i = 1, this%NComponents
          do j = 1, this%NComponents
            call RestartSave( this%SumOnsager(i,j), .true. )
          end do
-      end do
+        end do
+      end if 
       do i = 1, this%NComponents
          call RestartSave( this%SumSoret(i), .true. )
       end do
     end if
 
+     if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+       call RestartSave( this%SumVisco_s, .true. )
+    end if
 
-
-
-    call RestartSave( this%SumVisco_s, .true. )
     call RestartSave( this%SumVisco_b, .true. )
     call RestartSave( this%SumConduct, .true. )
     call RestartSave( this%SumEConduct,.true. )
@@ -23285,7 +23420,85 @@ if( RootProc .and. this%CorrfunMode ) then
       write( iounit_restart, '(ES20.12E3)' )  this%sc(i)
     end do
 
-endif
+    if( (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein) ) then
+       write( iounit_restart, '(I10)' ) this%EinsteinCoefAveCount
+       do j = 0, this%NCorr/this%NSpanCF-1
+          write( iounit_restart, '(I10)' ) this%EinsteinCoefTimeStep(j)
+       end do
+
+       do s = 1, this%NComponents
+         do i = 1, this%NCorr
+            do j = 0, this%NCorr/this%NSpanCF-1
+               write( iounit_restart, '((ES20.12E3))' ) this%DselfEinstein(i,j,s)
+            end do
+         end do
+       end do
+
+       if(this%NComponents > 1) then
+         do s = 1, this%NComponents
+           do t = 1, this%NComponents
+              do i = 1, this%NCorr
+                do j = 0, this%NCorr/this%NSpanCF-1
+                   write( iounit_restart, '((ES20.12E3))' ) this%OnsagerEinstein(i,j,s,t)
+                end do
+              end do
+           end do
+         end do
+       end if
+
+       do s = 1, this%NComponents
+          do i = 1, this%NCorr
+             write( iounit_restart, '((ES20.12E3))' ) this%DselfEinsteinAve(i,s)  !memory access is probably stupid
+          end do
+       end do
+
+       if(this%NComponents > 1) then
+          do s = 1, this%NComponents
+             do t = 1, this%NComponents
+                do i = 1, this%NCorr
+                   write( iounit_restart, '((ES20.12E3))' ) this%OnsagerEinsteinAve(i,s,t)
+                end do
+             end do
+          end do
+       end if
+
+       do s = 1, this%NComponents
+         write(iounit_restart,'(ES20.12E3)') this%DselfEinsteinCurrent(s)
+       end do
+
+
+       if(this%NComponents > 1) then
+          do s = 1, this%NComponents
+            do t = 1, this%NComponents
+               write(iounit_restart,'(ES20.12E3)') this%OnsagerEinsteinCurrent(s,t)
+            end do
+         end do
+       endif
+
+       do s = 1, this%NComponents
+          call RestartSave( this%EinsteinDSelfAcc(s), .true. )
+       end do
+     
+       if(this%NComponents > 1) then
+          do s = 1, this%NComponents
+             do t = 1, this%NComponents
+               call RestartSave( this%EinsteinOnsagerAcc(s,t), .true. )
+             end do
+          end do
+        end if
+
+
+        do i = 1, this%NCorr
+          write( iounit_restart, '((ES20.12E3))' )  this%EinsteinShear(i)
+        end do
+
+        do i = 1, this%NCorr
+          write( iounit_restart, '((ES20.12E3))' )  this%EinsteinShearAve(i)
+        end do
+
+        call RestartSave( this%EinsteinShearAcc, .true.)
+    end if
+ endif
 #endif
 
   end subroutine TEnsemble_RestartSave
@@ -23317,6 +23530,9 @@ endif
     integer                   :: RDFSum_hilf(RDFNumberShells*NProcs)
     integer                   :: ODFSum_hilf(nPhi*NProcs)
     integer                   :: ODFErrSum_hilf(NProcs)
+#endif
+#if HBOND > 0
+    integer                   :: l, m
 #endif
 
     if( RootProc ) then
@@ -23396,7 +23612,7 @@ endif
     call RestartRead( this%SumEnthalpy )
     call RestartRead( this%SumConfEnthalpy )
     call RestartRead( this%SumVolume )
-    call RestartRead( this%SumVirial )
+    call RestartRead( this%SumVirial )  
     if (printIDF) then
         call RestartRead( this%SumEPotInter )
         call RestartRead( this%SumEPotIntra )
@@ -23422,6 +23638,7 @@ endif
     call RestartRead( this%SumEPotSquared )
     call RestartRead( this%SumEPotV )
     call RestartRead( this%SumEPotVirial )
+    call RestartRead( this%SumEPotDeltaVirialDelta )
     call RestartRead( this%SumEnthalpySquared )
     call RestartRead( this%SumEnthalpyV )
     call RestartRead( this%SumVolumeSquared )
@@ -23455,6 +23672,7 @@ endif
     else
       call RestartRead( this%SumdUdV )
       call RestartRead( this%SumCV )
+      call RestartRead( this%SumCorCoefR )
     endif
     if( LongRange .eq. Rfield) then
       if ( EnsembleType .eq. EnsembleTypeNVT ) then
@@ -23521,7 +23739,7 @@ endif
         call RestartRead( pc%SumHM )
       end if
     end do
-    
+
     ! 5.) Sampling of Dielectric Constant
     if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
         call RestartRead( this%SumTotalDipoleMoment )
@@ -23529,21 +23747,41 @@ endif
         call RestartRead( this%SumDielectricConstant )
     endif
 
+    ! 6.) HBOND
+#if HBOND > 0
+    do i = 1, this%NComponents
+      call RestartRead( this%SumHBond0(i) )
+      do j = 1, this%NComponents
+        call RestartRead( this%SumHBond1(i,j) )
+        do k = j, this%NComponents
+          call RestartRead( this%SumHBond2(i,j,k) )
+          do l = k, this%NComponents
+            call RestartRead( this%SumHBond3(i,j,k,l) )
+            do m = l, this%NComponents
+              call RestartRead( this%SumHBond4(i,j,k,l,m) )
+            end do
+          end do
+        end do
+      end do
+      call RestartRead( this%SumHBondN(i) )
+    end do
+#endif
+
     if (ODFUpdateFrequency > 0) then
         do i= 1, this%NComponents
             do j= i, this%NComponents
-                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
-&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. &
+&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then
 #if MPI_VER > 0
                     if( RootProc ) then
                         do o = 1, NProcs
                             read( iounit_restart, '(I10)' ) ODFErrSum_hilf(o)
                         end do
-                    end if      
+                    end if
                     call MPI_Scatter( ODFErrSum_hilf(1:NProcs), 1, MPI_INTEGER, &
 &                       this%Interaction(i,j)%ODFErrSum, &
 &                       1, MPI_INTEGER, NRootProc, Communicator, ierror )
-#else                       
+#else
                     read( iounit_restart, '(I10)' ) this%Interaction(i,j)%ODFErrSum
 #endif
                 end if
@@ -23552,8 +23790,8 @@ endif
 
         do i= 1, this%NComponents
             do j= i, this%NComponents
-                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. & 
-&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then 
+                if (((this%Component(i)%Molecule%NDipole .GE. 1) .or. (this%Component(i)%Molecule%NCharge .GE. 2)) .and. &
+&                   ((this%Component(j)%Molecule%NDipole .GE. 1) .or. (this%Component(j)%Molecule%NCharge .GE. 2)))then
                     do r = 1, nR
                         do s = 1, nGamma
                             do t = 1, nPhi
@@ -23566,7 +23804,7 @@ endif
                                 call MPI_Scatter( ODFSum_hilf(1:nPhi*NProcs), nPhi, MPI_INTEGER, &
 &                                    this%Interaction(i,j)%ODFSum(1:nPhi,t,s,r), &
 &                                    nPhi, MPI_INTEGER, NRootProc, Communicator, ierror )
-#else                               
+#else
                                 do o = 1, nPhi
                                     read( iounit_restart, '(I10)' ) this%Interaction(i,j)%ODFSum(o,t,s,r)
                                 end do
@@ -23576,39 +23814,59 @@ endif
                     end do
                 end if
             end do
-        end do  
-    end if      
+        end do
+    end if
 
 
     if (RDFUpdateFrequency > 0) then
         do i= 1, this%NComponents
             do j= i, this%NComponents
-                do s=1, this%Component(i)%molecule%NMIEnm
-                    do t=1, this%Component(j)%molecule%NMIEnm
+               if( this%NMIEnmMax > 0 ) then
+                  do s=1, this%Component(i)%molecule%NMIEnm
+                      do t=1, this%Component(j)%molecule%NMIEnm
 #if MPI_VER > 0
-                        if( RootProc ) then
-                            do o = 1, RDFNumberShells*NProcs
-                                read( iounit_restart, '(I10)' ) RDFSum_hilf(o)
-                            end do
-                        end if
-                        call MPI_Scatter( RDFSum_hilf(1:RDFNumberShells*NProcs), RDFNumberShells, MPI_INTEGER, &
-&                           this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), &
-&                           RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )   
+                          if( RootProc ) then
+                              do o = 1, RDFNumberShells*NProcs
+                                  read( iounit_restart, '(I10)' ) RDFSum_hilf(o)
+                              end do
+                          end if
+                          call MPI_Scatter( RDFSum_hilf(1:RDFNumberShells*NProcs), RDFNumberShells, MPI_INTEGER, &
+&                           this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(1:RDFNumberShells), RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )
 #else
-                        do o = 1, RDFNumberShells
-                            read( iounit_restart, '(I10)' ) this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o)
-                        end do
+                          do o = 1, RDFNumberShells
+                              read( iounit_restart, '(I10)' ) this%Interaction(i,j)%PotMIEnmMIEnm(s,t)%RDFSum(o)
+                          end do
 #endif
-                    end do
-                end do
+                      end do
+                  end do
+               end if
+               if( this%NTT68Max > 0 ) then
+                  do s=1, this%Component(i)%molecule%NTT68
+                      do t=1, this%Component(j)%molecule%NTT68
+#if MPI_VER > 0
+                          if( RootProc ) then
+                              do o = 1, RDFNumberShells*NProcs
+                                  read( iounit_restart, '(I10)' ) RDFSum_hilf(o)
+                              end do
+                          end if
+                          call MPI_Scatter( RDFSum_hilf(1:RDFNumberShells*NProcs), RDFNumberShells, MPI_INTEGER, &
+&                           this%Interaction(i,j)%PotTT68TT68(s,t)%RDFSum(1:RDFNumberShells), RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )
+#else
+                          do o = 1, RDFNumberShells
+                              read( iounit_restart, '(I10)' ) this%Interaction(i,j)%PotTT68TT68(s,t)%RDFSum(o)
+                          end do
+#endif
+                      end do
+                  end do
+               end if
             end do
         end do
     end if
 
     ! RestartRead of RDF for KBI
     if (KBIUpdateFrequency > 0) then
-        do i= 1, this%NComponents
-            do j= i, this%NComponents
+        do i= 1, this%NRealComponents
+            do j= i, this%NRealComponents
 #if MPI_VER > 0
                 if( RootProc ) then
                     do o = 1, KBINShellsCubeEdge*NProcs
@@ -23625,7 +23883,7 @@ endif
             end do
         end do
         if( RootProc ) then    ! Read mean RDF over all blocks for Gij extrapolation
-            do i = 1, this%NComponents*(this%NComponents+1)/2
+            do i = 1, this%NRealComponents*(this%NRealComponents+1)/2
                 do o = 1, KBINShellsCubeEdge
                     read( iounit_restart, '(ES20.12E3)' ) this%KBIRDFextra(o,i)
                     read( iounit_restart, '(ES20.12E3)' ) this%KBIRDFvdVextra(o,i)
@@ -23634,7 +23892,7 @@ endif
             end do
             read( iounit_restart, '(I10)' ) this%KBIBlockCount
         end if
-        do i= 1, this%NComponents*(this%NComponents+1)/2!Number of comb., e.g. 11 12 22
+        do i= 1, this%NRealComponents*(this%NRealComponents+1)/2!Number of comb., e.g. 11 12 22
             call RestartRead( this%SumKBIGij1(i), .true. )
             call RestartRead( this%SumKBIGij2(i), .true. )
             call RestartRead( this%SumKBIGij3(i), .true. )
@@ -23657,7 +23915,6 @@ endif
 
     if ( RootProc ) then
 
-      !Aenderungen Koester, ASpan_CF Matrix wurde beim Restart nicht uebergeben
       !Reduced correlation steps
       StepCorr = (Step + this%NStepCorr -1) / this%NStepCorr
 
@@ -23668,17 +23925,16 @@ endif
       end if
 
       k=mod(Mindex,this%NSpanCF)
-      !Aenderungen Koester
 
-      do i = 1, 3*this%NPart
-        do j = 1, this%NCorr
-          read( iounit_restart, '(ES20.12E3)' )  this%a( i, j)
-        end do
-      end do
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        do i = 1, 3*this%NPart
+          do j = 1, this%NCorr
+            read( iounit_restart, '(ES20.12E3)' )  this%a( i, j)
+          end do
+        end do  
 
-      !Aenderungen Koester
-      this%A_SpanCF(:,1:k) =  this%a(:,Mindex + 1 - k:Mindex )
-      !Aenderungen Koester
+        this%A_SpanCF(:,1:k) =  this%a(:,Mindex + 1 - k:Mindex )
+      end if
 
       do i = 1, this%NCorr
         read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%vsk(i,:)
@@ -23713,9 +23969,13 @@ endif
       do i = 1, this%NCorr
         read( iounit_restart, '(ES20.12E3)' )  this%average_cf_vb(i)
       end do
-      do i = 1, this%NCorr
-        read( iounit_restart, '(ES20.12E3)' )  this%average_cf_vs(i)
-      end do
+
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        do i = 1, this%NCorr
+          read( iounit_restart, '(ES20.12E3)' )  this%average_cf_vs(i)
+        end do
+      end if
+
       do i = 1, this%NCorr
         read( iounit_restart, '(ES20.12E3)' )  this%average_cf_ec(i)
       end do
@@ -23726,39 +23986,65 @@ endif
              read( iounit_restart, '(ES20.12E3)' ) this%average_cf_soret(i,j)
           end do
         end do
+
+        if (TransMethod .eq. Einstein) then
+          do i = 1, this%NComponents
+            do j = 1, this%NCorr
+              read( iounit_restart, '(ES20.12E3)' ) this%velcompX(i,j)
+            end do
+          end do
+          do i = 1, this%NComponents
+            do j = 1, this%NCorr
+              read( iounit_restart, '(ES20.12E3)' ) this%velcompY(i,j)
+            end do
+          end do
+          do i = 1, this%NComponents
+            do j = 1, this%NCorr
+              read( iounit_restart, '(ES20.12E3)' ) this%velcompZ(i,j)
+            end do
+          end do
+        end if
       end if
 
-      do i = 1, this%NComponents
-        do j = 1, this%NCorr
-          read( iounit_restart, '(ES20.12E3)' )  this%average_cf_d(i , j)
-        end do
-      end do
-      if (this%Ncomponents>1) then
-        do i = 1, this%NComponents*this%NComponents
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        do i = 1, this%NComponents
           do j = 1, this%NCorr
-            read( iounit_restart, '(ES20.12E3)' )  this%average_lamda(i , j)
+            read( iounit_restart, '(ES20.12E3)' )  this%average_cf_d(i , j)
           end do
         end do
+        if (this%Ncomponents>1) then
+          do i = 1, this%NComponents*this%NComponents
+            do j = 1, this%NCorr
+              read( iounit_restart, '(ES20.12E3)' )  this%average_lamda(i , j)
+            end do
+          end do
+        end if
       end if
 
       read( iounit_restart, '(I10)' ) NBlocksMaxCF
 
-      do i = 1, this%NComponents
-        call RestartRead( this%Sumself_i(i) )
-      end do
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        do i = 1, this%NComponents
+          call RestartRead( this%Sumself_i(i) )
+        end do
+      end if  
 
-      if(this%NComponents >= 2) then
-        do i = 1, this%NComponents
-           do j = 1, this%NComponents
-             call RestartRead( this%SumOnsager(i,j) )
+      if(this%NComponents > 1) then
+         if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then     
+           do i = 1, this%NComponents
+             do j = 1, this%NComponents
+               call RestartRead( this%SumOnsager(i,j) )
+             end do
            end do
-        end do
-        do i = 1, this%NComponents
+         end if  
+         do i = 1, this%NComponents
           call RestartRead( this%SumSoret(i) )
-        end do
+         end do
       end if
 
-      call RestartRead( this%SumVisco_s )
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        call RestartRead( this%SumVisco_s )
+      end if  
       call RestartRead( this%SumVisco_b )
       call RestartRead( this%SumConduct )
       call RestartRead( this%SumEConduct)
@@ -23771,6 +24057,82 @@ endif
         read( iounit_restart, '(ES20.12E3)' )  this%sc(i)
       end do
 
+       if( (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein) ) then
+            read( iounit_restart, '(I10)' ) this%EinsteinCoefAveCount
+            do j = 0, this%NCorr/this%NSpanCF-1
+              read( iounit_restart, '(I10)' ) this%EinsteinCoefTimeStep(j)
+            end do
+
+            do s = 1, this%NComponents
+                do i = 1, this%NCorr
+                  do j = 0, this%NCorr/this%NSpanCF-1
+                    !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
+                    read( iounit_restart, '((ES20.12E3))' ) this%DselfEinstein(i,j,s)
+                  end do
+                end do
+            end do
+            if(this%NComponents > 1) then
+                do s = 1, this%NComponents
+                do t = 1, this%NComponents
+                    do i = 1, this%NCorr
+                      do j = 0, this%NCorr/this%NSpanCF-1
+                        !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
+                        read( iounit_restart, '((ES20.12E3))' ) this%OnsagerEinstein(i,j,s,t)
+                      end do
+                    end do
+                end do
+                end do
+            end if
+            do s = 1, this%NComponents
+                do i = 1, this%NCorr
+                    !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
+                    read( iounit_restart, '((ES20.12E3))' ) this%DselfEinsteinAve(i,s)  !memory access is probably stupid
+                end do
+            end do
+            if(this%NComponents > 1) then
+                do s = 1, this%NComponents
+                do t = 1, this%NComponents
+                    do i = 1, this%NCorr
+                        !write( iounit_restart, '((ES20.12E3, :, ";"))' ) this%DselfEinstein(i,j,s)
+                        read( iounit_restart, '((ES20.12E3))' ) this%OnsagerEinsteinAve(i,s,t)
+                    end do
+                end do
+                end do
+            end if
+            do s = 1, this%NComponents
+               read(iounit_restart,'(ES20.12E3)') this%DselfEinsteinCurrent(s)
+            end do
+
+
+        if(this%NComponents > 1) then
+            do s = 1, this%NComponents
+                do t = 1, this%NComponents
+                    read(iounit_restart,'(ES20.12E3)') this%OnsagerEinsteinCurrent(s,t)
+                end do
+            end do
+        endif
+         do s = 1, this%NComponents
+            call RestartRead( this%EinsteinDSelfAcc(s), .true. )
+        end do
+
+        if(this%NComponents > 1) then
+          do s = 1, this%NComponents
+             do t = 1, this%NComponents
+               call RestartRead( this%EinsteinOnsagerAcc(s,t), .true. )
+             end do
+          end do
+        end if
+
+        do i = 1, this%NCorr
+            read( iounit_restart, '((ES20.12E3))' )  this%EinsteinShear(i)
+        end do
+
+        do i = 1, this%NCorr
+            read( iounit_restart, '((ES20.12E3))' )  this%EinsteinShearAve(i)
+        end do
+
+        call RestartRead( this%EinsteinShearAcc, .true.)
+      end if
     end if
 #endif
 
@@ -26723,20 +27085,28 @@ contains
         !end if
       end do !k =1, 3
 
-      ! kinetic part
-      !Diffusion matrix a
-      k=mod(Mindex,this%NSpanCF)
-      if (k==0) k=this%NSpanCF
-      ! Multiplikation mit BoxLength_dt erst nach der Integration
-      this%A_SpanCF(j0+1:j0+np              , k) = pc%P1(1:np,1,1)   ! P1 only works for 1unit per molecule, not defined for COM
-      this%A_SpanCF(j0+NPart+1 :j0+NPart +np, k) = pc%P1(1:np,2,1)
-      this%A_SpanCF(j0+NPart2+1:j0+NPart2+np, k) = pc%P1(1:np,3,1)
+      
+      !Diffusion matrix a (velocity matrix)
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+         k=mod(Mindex,this%NSpanCF)
+         if (k==0) k=this%NSpanCF
+         ! Multiplikation mit BoxLength_dt erst nach der Integration
+         this%A_SpanCF(j0+1:j0+np              , k) = pc%P1(1:np,1, 1)
+         this%A_SpanCF(j0+NPart+1 :j0+NPart +np, k) = pc%P1(1:np,2, 1)
+         this%A_SpanCF(j0+NPart2+1:j0+NPart2+np, k) = pc%P1(1:np,3, 1)
+      end if
 
-      !parts of the stress and energy tensors
+      !kinetic parts of the stress and energy tensors
       ! shear off diagonal terms
       this%vsk(Mindex, 1) = this%vsk(Mindex,1) + sum( pc%P1(:,1,1) * pc%P1(:,2,1) ) * Mass*BoxLength_dt2  ! P1 only works for 1unit per molecule, not defined for COM
       this%vsk(Mindex, 2) = this%vsk(Mindex,2) + sum( pc%P1(:,1,1) * pc%P1(:,3,1) ) * Mass*BoxLength_dt2
       this%vsk(Mindex, 3) = this%vsk(Mindex,3) + sum( pc%P1(:,2,1) * pc%P1(:,3,1) ) * Mass*BoxLength_dt2
+
+      if (TransMethod .eq. Einstein) then
+         this%velcompX(i, Mindex) = sum (pc%P1(:,1, 1))*BoxLength_dt
+         this%velcompY(i, Mindex) = sum (pc%P1(:,2, 1))*BoxLength_dt
+         this%velcompZ(i, Mindex) = sum (pc%p1(:,3, 1))*BoxLength_dt
+      end if
 
       j0 = j0 + np
     end do    ! Component
@@ -26756,52 +27126,72 @@ contains
       if (StepCorr .gt. this%NCorr) then
 
        CFindex = Mindex +1
-       this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
+       
+       if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+         this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
+       end if
 
        if (Mindex .eq. this%NCorr) then
          CFindex = 1                       !index of t = t0
        end if
 
      ! nullify the autocorrelation functions
-       do i = 1, this%NComponents
-         this%cf_d(i, :) = 0._RK
-       end do
+       if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+         do i = 1, this%NComponents
+           this%cf_d(i, :) = 0._RK
+         end do
+         this%cf_vs(:) = 0._RK
+       end if  
 
-        this%cf_vs(:) = 0._RK
-        this%cf_c(:)  = 0._RK
-        this%cf_vb(:) = 0._RK
-        this%cf_ec(:) = 0._RK
+       this%cf_c(:)  = 0._RK
+       this%cf_vb(:) = 0._RK
+       this%cf_ec(:) = 0._RK
 
-        if (this%NComponents .gt. 1) then
-          do k = 1, ncomp2
+       if (this%NComponents .gt. 1) then
+         if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then      
+           do k = 1, ncomp2
              this%lamda(k,:) = 0._RK
-          end do
-          do k = 1, this%NComponents
-             this%cf_soret(k,:) = 0._RK
-          end do
-        end if
+           end do
+         end if  
+         do k = 1, this%NComponents
+            this%cf_soret(k,:) = 0._RK
+         end do
+       end if
 
 
        ! Preparation of the Autocorrelation function - safe the Startpoints
         j0 = 0
-        do i = 1, this%NComponents
-          np = this%Component(i)%NPart
-          SXindex(i)  = sum(this%a(j0       +1:j0+np        , CFindex))
-          SYindex(i)  = sum(this%a(j0+NPart +1:j0+NPart +np , CFindex))
-          SZindex(i)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , CFindex))
-          j0 = j0 + np
-        end do
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          do i = 1, this%NComponents
+            np = this%Component(i)%NPart
+            SXindex(i)  = sum(this%a(j0       +1:j0+np        , CFindex))
+            SYindex(i)  = sum(this%a(j0+NPart +1:j0+NPart +np , CFindex))
+            SZindex(i)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , CFindex))
+            j0 = j0 + np
+          end do
 
-        do i = 1, this%NComponents
-          Sindex(i,1)=SXindex(i)*BoxLength_dt  !mass flux for thermal diffusion
-          Sindex(i,2)=SYindex(i)*BoxLength_dt
-          Sindex(i,3)=SZindex(i)*BoxLength_dt
-        end do
+          do i = 1, this%NComponents
+            Sindex(i,1)=SXindex(i)*BoxLength_dt  !mass flux for thermal diffusion
+            Sindex(i,2)=SYindex(i)*BoxLength_dt
+            Sindex(i,3)=SZindex(i)*BoxLength_dt
+          end do
+        end if
 
-      ! Calculation of all transport properties
-      ! s .. matrix index of the corresponding values
-!mn      s = CFindex    Has to be set inside of the loop for OMP parallelisation
-      CFtmp=CFindex
+         if (TransMethod .eq. Einstein) then
+           do i = 1, this%NComponents
+             Sindex(i,1)=this%velcompX(i,CFindex)  !mass flux for thermal diffusion
+             Sindex(i,2)=this%velcompY(i,CFindex)
+             Sindex(i,3)=this%velcompZ(i,CFindex)
+           end do
+        end if
+  
+
+        ! Calculation of all transport properties
+        ! s .. matrix index of the corresponding values
+        ! s = CFindex    Has to be set inside of the loop for OMP parallelisation
+
+        CFtmp=CFindex
+
 ! Directive inserted by Cray Reveal.  May be incomplete.
 !$OMP  parallel do default(none)                                         &
 !$OMP&   private (i,j,j0,j1,j2,k,l,nc,nmess,np,np1,np2,qi,qj,s)          &
@@ -26815,51 +27205,66 @@ contains
          ! Loop over particles
         s=CFtmp+nmess-1
         if (s > this%NCorr) s = s-this%NCorr
-        j0 = 0
-        do i = 1, this%NComponents
-          np = this%Component(i)%NPart
-          this%cf_d(i, nmess) = this%cf_d(i, nmess) + DOT_PRODUCT( this%a(j0+1 : j0+np,CFindex) , &
-&                                                     this%a(j0+1: j0+np,s) ) &
-&                             + DOT_PRODUCT( this%a(j0+NPart +1 : j0+NPart +np,CFindex) , &
-&                                                     this%a(j0+NPart +1 : j0+NPart +np,s) ) &
-&                             + DOT_PRODUCT( this%a(j0+NPart2+1 : j0+NPart2+np,CFindex) , &
-&                                                     this%a(j0+NPart2+1 : j0+NPart2+np,s) )
 
-          if ( this%NComponents .gt. 1 ) then
-            sx(i)  = sum(this%a(j0       +1:j0+np        , s))
-            sy(i)  = sum(this%a(j0+NPart +1:j0+NPart +np , s))
-            sz(i)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , s))
-          end if
-          j0 = j0 + np
-        end do
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          j0 = 0
+          do i = 1, this%NComponents
+            np = this%Component(i)%NPart
+            this%cf_d(i, nmess) = this%cf_d(i, nmess) + DOT_PRODUCT( this%a(j0+1 : j0+np,CFindex) , &
+&                                                       this%a(j0+1: j0+np,s) ) &
+&                               + DOT_PRODUCT( this%a(j0+NPart +1 : j0+NPart +np,CFindex) , &
+&                                                       this%a(j0+NPart +1 : j0+NPart +np,s) ) &
+&                               + DOT_PRODUCT( this%a(j0+NPart2+1 : j0+NPart2+np,CFindex) , &
+&                                                       this%a(j0+NPart2+1 : j0+NPart2+np,s) )
 
-        do i = 1, this%NComponents
-          ss(i,1) = sx(i)* BoxLength_dt
-          ss(i,2) = sy(i)* BoxLength_dt
-          ss(i,3) = sz(i)* BoxLength_dt
-        end do
+            if ( this%NComponents .gt. 1 ) then
+              sx(i)  = sum(this%a(j0       +1:j0+np        , s))
+              sy(i)  = sum(this%a(j0+NPart +1:j0+NPart +np , s))
+              sz(i)  = sum(this%a(j0+NPart2+1:j0+NPart2+np , s))
+            end if
+            j0 = j0 + np
+          end do
 
-        ! Just loops over components!
-        if (this%NComponents .gt. 1) then
-          nc = this%NComponents
-          k = 1
-          do i = 1, nc
-            do j = 1,nc
-              this%lamda(k, nmess) = this%lamda(k, nmess) + SXindex(i)*sx(j) &
-&                                                         + SYindex(i)*sy(j) &
-&                                                         + SZindex(i)*sz(j)
-              k = k + 1
-            end do
+          do i = 1, this%NComponents
+            ss(i,1) = sx(i)* BoxLength_dt
+            ss(i,2) = sy(i)* BoxLength_dt
+            ss(i,3) = sz(i)* BoxLength_dt
+          end do
+        end if 
+
+         if (TransMethod .eq. Einstein) then
+           do i = 1, this%NComponents
+             ss(i,1) = this%velcompX(i,s)
+             ss(i,2) = this%velcompY(i,s)
+             ss(i,3) = this%velcompZ(i,s)
           end do
         end if
+         
+        ! Just loops over components!
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          if (this%NComponents .gt. 1) then
+            nc = this%NComponents
+            k = 1
+            do i = 1, nc
+              do j = 1,nc
+                this%lamda(k, nmess) = this%lamda(k, nmess) + SXindex(i)*sx(j) &
+&                                                           + SYindex(i)*sy(j) &
+&                                                           + SZindex(i)*sz(j)
+                k = k + 1
+              end do
+            end do
+          end if
+        end if  
 
         ! Calculated in general
         do k = 1, 3
           ! shear viscosity (off-diagonal elements)
-          this%cf_vs(nmess) = this%cf_vs(nmess) + this%vsk(CFindex, k)*this%vsk(s, k) + &
-&                                                 this%vsp(CFindex, k)*this%vsp(s, k) + &
-&                                                 this%vsk(CFindex, k)*this%vsp(s, k) + &
-&                                                 this%vsp(CFindex, k)*this%vsk(s, k)
+          if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+            this%cf_vs(nmess) = this%cf_vs(nmess) + this%vsk(CFindex, k)*this%vsk(s, k) + &
+&                                                   this%vsp(CFindex, k)*this%vsp(s, k) + &
+&                                                   this%vsk(CFindex, k)*this%vsp(s, k) + &
+&                                                   this%vsp(CFindex, k)*this%vsk(s, k)
+          end if
 
           ! bulk viscosity
           if (Bulkviscosity) then
@@ -26901,17 +27306,17 @@ contains
 
         end do !k = 1, 3
 
-
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
         ! include the digonal elements to the shear viscosity (Pxx-Pyy)/2 and (Pyy-Pzz)/2
           this%cf_vs(nmess) = this%cf_vs(nmess) + (1._RK/4._RK)* ((this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
-&                                                              (this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
-&                                                              (this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
-&                                                              (this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
-&                                                              (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)) + &
-&                                                              (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
-&                                                              (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
-&                                                              (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)))
-
+&                                                                (this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
+&                                                                (this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
+&                                                                (this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
+&                                                                (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)) + &
+&                                                                (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
+&                                                                (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
+&                                                                (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)))
+         end if
 
          !Thermal diffusivity
          if (this%Ncomponents .gt. 1) then
@@ -26965,11 +27370,12 @@ contains
       end do  ! NMess
       this%Mmess  = this%Mmess +1
 
-      do i = 1, this%NComponents
-        this%average_cf_d(i, :) = (this%average_cf_d(i,:) + this%cf_d(i,:))
-      end do
-
-      this%average_cf_vs(:)= (this%average_cf_vs(:) + this%cf_vs(:))
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        do i = 1, this%NComponents
+          this%average_cf_d(i, :) = (this%average_cf_d(i,:) + this%cf_d(i,:))
+        end do
+        this%average_cf_vs(:)= (this%average_cf_vs(:) + this%cf_vs(:))
+      end if  
       this%average_cf_vb(:)= (this%average_cf_vb(:) + this%cf_vb(:))
       this%average_cf_c(:) = (this%average_cf_c(:) + this%cf_c(:))
       this%average_cf_ec(:)= (this%average_cf_ec(:) + this%cf_ec(:))
@@ -26978,9 +27384,11 @@ contains
         do k = 1, this%NComponents
           this%average_cf_soret(k,:)= (this%average_cf_soret(k,:) + this%cf_soret(k,:))
         end do
-        do k = 1, ncomp2
-          this%average_lamda(k,:) = (this%average_lamda(k,:) + this%lamda(k,:))
-        end do
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          do k = 1, ncomp2
+            this%average_lamda(k,:) = (this%average_lamda(k,:) + this%lamda(k,:))
+          end do
+        end if  
       end if
 
 
@@ -26990,15 +27398,15 @@ contains
 ! -----------------------------------
      else ! if (Step .gt. this%NCorr)
         CFindex = Mindex +1
-        this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+          this%a(:,CFindex - this%NSpanCF:CFindex-1) = this%A_SpanCF(:,1:this%NSpanCF)
+        end if  
      end if ! if (Step .gt. this%NCorr)
     end if ! if (mod(Step, this%NSpanCF).eq.0)
 
  end if ! RootProc
    end subroutine TEnsemble_CalCorrFun
 #endif
-
-
 
 #if TRANS==1
 !==============================================================!
@@ -27014,10 +27422,8 @@ contains
     ! Declare local varibles
     integer  :: i, j, k
     integer  :: ncomp2
-    real(RK) :: helpvar!, det, deter1, deter2, deter3, deter4
-    real(RK) :: x1, x2, x3 !, w1, w2, MM
-!    real(RK) :: Inv_x1, Inv_x2, Inv_x3
-!    real(RK) :: B11, B12, B21, B22
+    real(RK) :: helpvar
+    real(RK) :: x1, x2, x3 
     real(RK) :: BoxLength_dt2
 
     BoxLength_dt2      =  (this%BoxLength/TimeStep)**2
@@ -27026,46 +27432,45 @@ contains
     !w1 = this%Component(1)%Molecule%Mass*this%Component(1)%Fraction/MM
     !w2 = this%Component(2)%Molecule%Mass*this%Component(2)%Fraction/MM
 
-
-
-    do i  = 1, this%NComponents
-      helpvar =  1._RK /(3._RK *this%Component(i)%NPart) * BoxLength_dt2
-      if (abs(this%cf_d(i, 1)) .gt. 1e-15) then
-         this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), this%TimeStepCorr, this%NCorr )
-         this%average_sinte_i(i,:) = simpson( this%average_cf_d(i,:)/this%average_cf_d(i, 1),this%TimeStepCorr, this%NCorr )
-         this%average_sinte_i(i,:) = this%average_sinte_i(i,:)*this%average_cf_d(i, 1)*helpvar/this%Mmess
-         this%selfd_i(i) = this%sinte_i(i, this%NCorr) * this%cf_d(i, 1) * helpvar
-      end if
-    end do
-
-
-    if ( this%NComponents .gt. 1) then
-      helpvar =  Third /(this%NPart) * BoxLength_dt2
-      do k = 1, ncomp2
-        if (abs(this%lamda(k, 1)) .gt. 1e-15) then
-           this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1),this%TimeStepCorr, this%NCorr)
-           this%average_sinte_lamda(k,:) = simpson(this%average_lamda(k,:)/this%average_lamda(k,1),this%TimeStepCorr, this%NCorr)
-           this%average_sinte_lamda(k,:) = this%average_sinte_lamda(k,:)* this%average_lamda(k,1)*helpvar/this%Mmess
+    if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+       !Self-diffusion coefficients     
+      do i  = 1, this%NComponents
+        helpvar =  1._RK /(3._RK *this%Component(i)%NPart) * BoxLength_dt2
+        if (abs(this%cf_d(i, 1)) .gt. 1e-15) then
+           this%sinte_i(i,:) = simpson( this%cf_d(i,:)/this%cf_d(i, 1), this%TimeStepCorr, this%NCorr )
+           this%average_sinte_i(i,:) = simpson( this%average_cf_d(i,:)/this%average_cf_d(i, 1),this%TimeStepCorr, this%NCorr )
+           this%average_sinte_i(i,:) = this%average_sinte_i(i,:)*this%average_cf_d(i, 1)*helpvar/this%Mmess
+           this%selfd_i(i) = this%sinte_i(i, this%NCorr) * this%cf_d(i, 1) * helpvar
         end if
       end do
 
-      k = 1
-       do i = 1, this%NComponents
-         do j = 1, this%NComponents
+      !Onsager Coefficients
+      if ( this%NComponents .gt. 1) then
+        helpvar =  Third /(this%NPart) * BoxLength_dt2
+        do k = 1, ncomp2
+          if (abs(this%lamda(k, 1)) .gt. 1e-15) then
+             this%sinte_lamda(k, :) = simpson(this%lamda(k,:)/this%lamda(k,1),this%TimeStepCorr, this%NCorr)
+             this%average_sinte_lamda(k,:) = simpson(this%average_lamda(k,:)/this%average_lamda(k,1),this%TimeStepCorr, this%NCorr)
+             this%average_sinte_lamda(k,:) = this%average_sinte_lamda(k,:)* this%average_lamda(k,1)*helpvar/this%Mmess
+          end if
+        end do
+
+        k = 1
+        do i = 1, this%NComponents
+          do j = 1, this%NComponents
              this%Onsager(i,j) = this%sinte_lamda(k,this%NCorr)*this%lamda(k,1)*helpvar
              k = k +1
-         end do
-      end do
+          end do
+        end do
+      end if
 
-    end if
-
-
-    helpvar =  this%Density /(5._RK *this%NPart * this%Temperature)
-    this%sinte_vs = simpson( this%cf_vs(:)/this%cf_vs(1), this%TimeStepCorr, this%NCorr )
-    this%average_sinte_vs = simpson( this%average_cf_vs(:)/this%average_cf_vs(1), this%TimeStepCorr, this%NCorr)
-    this%average_sinte_vs = this%average_sinte_vs(:)*this%average_cf_vs(1)*helpvar/this%Mmess
-    this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
-
+      !shear Viscosity
+      helpvar =  this%Density /(5._RK *this%NPart * this%Temperature)
+      this%sinte_vs = simpson( this%cf_vs(:)/this%cf_vs(1), this%TimeStepCorr, this%NCorr )
+      this%average_sinte_vs = simpson( this%average_cf_vs(:)/this%average_cf_vs(1), this%TimeStepCorr, this%NCorr)
+      this%average_sinte_vs = this%average_sinte_vs(:)*this%average_cf_vs(1)*helpvar/this%Mmess
+      this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
+    end if  
 
     helpvar =  this%Density*Ninth/(this%NPart * this%Temperature)
     if (this%Bulkviscosity) then
@@ -27076,34 +27481,31 @@ contains
     end if
 
     helpvar = this%Density*Third/this%NPart
- !   if (this%Conductivity) then
+    if (abs(this%cf_c(1)) .gt. 1e-15) then
       this%sinte_c = simpson( this%cf_c(:)/this%cf_c(1), this%TimeStepCorr, this%NCorr )
       this%average_sinte_c = simpson( this%average_cf_c(:)/this%average_cf_c(1),this%TimeStepCorr, this%NCorr)
       this%average_sinte_c = this%average_sinte_c(:)*this%average_cf_c(1)*(helpvar/this%Mmess)
       this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * helpvar
- !   end if
-
-     if ( this%NComponents .gt. 1 ) then
- !     if (abs(this%cf_soret(1)) .gt. 1e-15) then
-        do k = 1, this%NComponents
-          if (abs(this%cf_soret(k,1)) .gt. 1e-15) then
-            this%sinte_soret(k,:) = simpson (this%cf_soret(k,:)/this%cf_soret(k,1), this%TimeStepCorr, this%NCorr )
-            this%average_sinte_soret(k,:) = simpson (this%average_cf_soret(k,:)/this%average_cf_soret(k,1), this%TimeStepCorr, this%NCorr)
-            this%average_sinte_soret(k,:) = this%average_sinte_soret(k,:)*this%average_cf_soret(k,1)*helpvar*this%Component(k)%Molecule%Mass/(2._RK*this%Mmess)
-            this%soret(k) =  this%sinte_soret(k, this%NCorr)*this%cf_soret(k,1)*this%Component(k)%Molecule%Mass*helpvar/2._RK
-          end if
-        end do
- !     end if
     end if
 
-     helpvar = this%Density*Third /(this%NPart * this%Temperature)
+    if ( this%NComponents .gt. 1 ) then
+      do k = 1, this%NComponents
+        if (abs(this%cf_soret(k,1)) .gt. 1e-15) then
+           this%sinte_soret(k,:) = simpson (this%cf_soret(k,:)/this%cf_soret(k,1), this%TimeStepCorr, this%NCorr )
+           this%average_sinte_soret(k,:) = simpson (this%average_cf_soret(k,:)/this%average_cf_soret(k,1), this%TimeStepCorr, this%NCorr)
+           this%average_sinte_soret(k,:) = this%average_sinte_soret(k,:)*this%average_cf_soret(k,1)*helpvar*this%Component(k)%Molecule%Mass/(2._RK*this%Mmess)
+           this%soret(k) =  this%sinte_soret(k, this%NCorr)*this%cf_soret(k,1)*this%Component(k)%Molecule%Mass*helpvar/2._RK
+         end if
+       end do
+    end if
+
+    helpvar = this%Density*Third /(this%NPart * this%Temperature)
     if (this%EConductivity) then
       this%sinte_ec = simpson( this%cf_ec(:)/this%cf_ec(1), this%TimeStepCorr, this%NCorr )
       this%average_sinte_ec = simpson( this%average_cf_ec(:)/this%average_cf_ec(1),this%TimeStepCorr, this%NCorr)
       this%average_sinte_ec = this%average_sinte_ec(:)*this%average_cf_ec(1)*(helpvar * BoxLength_dt2/this%Mmess)
       this%econduct = this%sinte_ec( this%NCorr ) * this%cf_ec(1) * (helpvar * BoxLength_dt2)
     end if
-
 
   contains
 
@@ -27494,30 +27896,30 @@ contains
     ! this is a helper function that supply the regular counting method
     ! counting is performed from grid to each atom
     ! BEWARE the NEW_YORK metric is used as distance check
-    
+
     implicit none
     ! Declare arguments
     type(TEnsemble), intent(in) :: this
     integer                     :: NeighborCounter(:) !DC NOTE- could be made global to save reallocation
     type(TComponent), pointer   :: pcur
     real(RK), intent(in)        :: DistCrit !DC NOTE- calculated critical distance for neighbour memebrship
-    ! Declare local variables    
+    ! Declare local variables
     integer                     :: i, i_x, i_y, i_z, j  !DC NOTE- loop counters
     integer                     :: x_edge, y_edge, z_edge !DC NOTE- indicators if element is in edge of particular direction
     integer                     :: x_ind, y_ind, z_ind !DC NOTE- the idexes of cell the atom is inside
-    integer                     :: xyz_ind !DC NOTE- the index into flattened NeihbourCounter array  
+    integer                     :: xyz_ind !DC NOTE- the index into flattened NeihbourCounter array
     real(RK)                    :: grid_center, rim_radius
     integer                     :: x_min,x_max,y_min,y_max,z_min,z_max
 
     grid_center = (this%NGridPoints-1)*DistCrit/2.0 - 0.5 !DC NOTE- convert to -0.5,0.5 coords
     rim_radius = 0.5 - DistCrit - grid_center !DC NOTE- rim radius distance is box_length - DistCrit - grid_center in 0,1 coords
 
-    !DC NOTE- Loop over all grid points in the considered parallel context    
+    !DC NOTE- Loop over all grid points in the considered parallel context
     do i = 1, this%NGridPoints1
       NeighborCounter(i) = 0 !DC NOTE- re/initialisation of the Neighbor counter
     end do
 
-    do j = 1, pcur%NPart                 
+    do j = 1, pcur%NPart
       x_edge = int((pcur%P0(j, 1, 1) - grid_center)/rim_radius)
       y_edge = int((pcur%P0(j, 2, 1) - grid_center)/rim_radius)
       z_edge = int((pcur%P0(j, 3, 1) - grid_center)/rim_radius)
@@ -27525,35 +27927,35 @@ contains
       x_ind = floor( (0.5_RK + pcur%P0(j, 1, 1))/DistCrit )
       y_ind = floor( (0.5_RK + pcur%P0(j, 2, 1))/DistCrit )
       z_ind = floor( (0.5_RK + pcur%P0(j, 3, 1))/DistCrit )
-      
+
       !DC DEBUG- message below help with bug hunt in counitng method
       ! write( IOBuffer, '("DEBUG da3:",I4," edge:",3I3," ind:",3I3)')j, x_edge,y_edge,z_edge, x_ind,y_ind,z_ind
       ! call LogWrite
-      
-      if (x_ind < x_ind+x_edge) then 
-        x_min = x_ind        
+
+      if (x_ind < x_ind+x_edge) then
+        x_min = x_ind
         x_max = x_ind+(this%NGridPoints-x_ind)
       else
         x_min = x_ind+x_edge
-        x_max = x_ind+1 
+        x_max = x_ind+1
       end if
-      
-      if (y_ind < y_ind+y_edge) then 
+
+      if (y_ind < y_ind+y_edge) then
         y_min = y_ind
-        y_max = y_ind+(this%NGridPoints-y_ind)        
+        y_max = y_ind+(this%NGridPoints-y_ind)
       else
         y_min = y_ind+y_edge
         y_max = y_ind+1
       end if
-      
-      if (z_ind < z_ind+z_edge) then 
+
+      if (z_ind < z_ind+z_edge) then
         z_min = z_ind
-        z_max = z_ind+(this%NGridPoints-z_ind) 
+        z_max = z_ind+(this%NGridPoints-z_ind)
       else
         z_min = z_ind+z_edge
         z_max = z_ind+1
       end if
-      
+
       !DC DEBUG- message below help with bug hunt in counitng method
       ! write( IOBuffer, '("x",2I3," y",2I3," z",2I3)') x_min, x_max, y_min, y_max, z_min, z_max
       ! call LogWrite
@@ -27563,22 +27965,22 @@ contains
           do i_z = z_min, z_max
             xyz_ind = 1 + mod(i_x + this%NGridPoints,this%NGridPoints) &
                     &   + mod(i_y + this%NGridPoints,this%NGridPoints) *this%NGridPoints &
-                    &   + mod(i_z + this%NGridPoints,this%NGridPoints) *this%NGridPoints*this%NGridPoints          
+                    &   + mod(i_z + this%NGridPoints,this%NGridPoints) *this%NGridPoints*this%NGridPoints
 #if MPI_VER > 0
             if (xyz_ind .ge. this%NGridPoints0 .and. xyz_ind .le. this%NGridPoints2) then
               xyz_ind = xyz_ind - this%NGridPoints0 + 1
-            else 
+            else
               cycle
             end if
 #endif
-            NeighborCounter(xyz_ind) = NeighborCounter(xyz_ind) + 1  
-          end do          
-        end do        
-      end do       
+            NeighborCounter(xyz_ind) = NeighborCounter(xyz_ind) + 1
+          end do
+        end do
+      end do
 
-    end do       
+    end do
   end subroutine TEnsemble_count_direct_atom3
-  
+
   subroutine TEnsemble_ClustNeighbors_print(this, ClusterCounter, print_array )
   ! facilitates printing out array information to the file
   ! integrated into parallel version: TEnsemble_ClustNeighbors_gather_print
@@ -27588,7 +27990,7 @@ contains
 
     ! Declare arguments
     type(TEnsemble)     :: this
-    integer, intent(in) :: ClusterCounter 
+    integer, intent(in) :: ClusterCounter
     ! Declare local variables
     integer             :: i
     integer, intent(in) :: print_array(:)
@@ -27623,14 +28025,14 @@ contains
 
     ! Declare arguments
     type(TEnsemble)     :: this
-    integer, intent(in) :: ClusterCounter 
+    integer, intent(in) :: ClusterCounter
 
     !DC NOTE- only root PU output the header
     if( .not. RootProc ) return
 
     write( IOBuffer, '("# timestep: ", I8, " | edge ", I6, " | MolperCluster", I6, " | Clusters", I6 )' ) Step,  this%NGridPoints, this%Ccount, ClusterCounter
     call FileWrite (this%iounit_cc)
-    
+
   end subroutine TEnsemble_ClustNeighbors_hprint
 
   subroutine TEnsemble_ClustNeighbors_gather_print(this, ClusterCounter, NeighborCounter)
@@ -27648,12 +28050,13 @@ contains
 
     ! Declare arguments
     type(TEnsemble)      :: this
-    integer, intent(in)  :: ClusterCounter 
+    integer, intent(in)  :: ClusterCounter
     integer, intent(in)  :: NeighborCounter(:)
     ! Declare local variables
     integer              :: stat
     integer              :: i
     integer              :: stride
+    integer              :: sendGridpointCount                                                               
     integer, allocatable :: GPCounter_all(:)
     integer, allocatable :: GPStrides_all(:)
     integer, allocatable :: NeighborCounter_all(:)
@@ -27676,10 +28079,14 @@ contains
 
 #if MPI_VER > 0
   !DC NOTE- gather the allocated grid sizes
-  call MPI_Gather(this%NGridPoints1 , 1 , MPI_INT, GPCounter_all,  1, MPI_INT, NRootProc, Communicator, ierror ) ! BEWARE if every processor sends same length
+  sendGridpointCount = this%NGridPoints1
+  if (sendGridpointCount<1) then
+    sendGridpointCount = 0
+  endif                                 
+  call MPI_Gather(sendGridpointCount , 1 , MPI_INT, GPCounter_all,  1, MPI_INT, NRootProc, Communicator, ierror ) ! BEWARE if every processor sends same length
 
   !DC NOTE- gather the strides for the gatherv call
-  if (RootProc) then 
+  if (RootProc) then
     stride = 0
     do i=1,NProcs
       GPStrides_all(i) = stride
@@ -27689,9 +28096,9 @@ contains
 
   !DC HELP- on gatherv:
   !    MPI_GATHERV(SENDBUF         , SENDCOUNT         , SENDTYPE, RECVBUF           , RECVCOUNTS   ,DISPLS        , RECVTYPE, ROOT    , COMM        , IERROR)
-  call MPI_Gatherv(NeighborCounter , this%NGridPoints1 , MPI_INT, NeighborCounter_all, GPCounter_all, GPStrides_all, MPI_INT, NRootProc, Communicator, ierror )
+  call MPI_Gatherv(NeighborCounter , sendGridpointCount , MPI_INT, NeighborCounter_all, GPCounter_all, GPStrides_all, MPI_INT, NRootProc, Communicator, ierror )
 
-  !DC NOTE- print of the collected information 
+  !DC NOTE- print of the collected information
   if (RootProc) then
     write( IOBuffer, '("# timestep: ", I8, " | edge ", I6, " | MolperCluster", I6, " | Clusters", I6 )' ) Step,  this%NGridPoints, this%Ccount, ClusterCounter
     call FileWrite (this%iounit_cc)
@@ -27704,7 +28111,7 @@ contains
   end if
 
 #else
-  !DC NOTE- single thread variant 
+  !DC NOTE- single thread variant
   write( IOBuffer, '("# timestep: ", I8, " | edge ", I6, " | MolperCluster", I6, " | Clusters", I6 )' ) Step,  this%NGridPoints, this%Ccount, ClusterCounter
   call FileWrite (this%iounit_cc)
   do i= 1, this%NGridPointsAll - 1
@@ -27721,94 +28128,9 @@ contains
 !  Subroutine TEnsemble_ClustCrit                              !
 !==============================================================!
 
-  function TEnsemble_ClustCrit_naive( this, DistCrit ) result(ClusterCounter)
-  ! this function perform simple distance check for each entity
-  ! NOTE impemented in parallel over first molecule loop
-  ! BEWARE works only for vapor type detection 
-  ! BEWARE does not allow multiensemble and multicomponent checking
-  ! -> calculation method
-  !   |- for each i molecule iterater over j molecule
-  !   |- check for i==j and skip
-  !   |- calculate distance, account PCB
-  !   |- decide if it is neighbor and increment counter in positive case
-  !   |- check if neighbor counter is above user specified threshold in positive case increment cluster counter
-  ! -> print information header into .clust file
-  ! -> return the ClusterCounter that represent number of suspected clusters found
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-    ! Declare arguments
-    type(TEnsemble)           :: this    
-    real(RK)                  :: DistCrit
-    ! Declare result
-    integer                   :: ClusterCounter
-    ! Declare local variables
-    type(TComponent), pointer :: pcur, pcom
-    integer             :: i, i0, i1, j
-    real(RK)            :: Distij    
-    real(RK)            :: dxyz_ij(3)    
-    integer             :: NeighborCounter !DC NOTE- local counter reused for each molecule
-    
-    !DC NOTE- Initialize values and arrays
-    ClusterCounter = 0 
-   
-    !DC TODO- account for the multicomponent system
-    pcur => this%Component(1) 
-
-    !DC NOTE- sequetntial distribution of work
-    i0 = 1
-    i1 = pcur%NPart
-#if MPI_VER > 0
-    !DC NOTE- parallel split of outer loop over i accross CPUs
-    if (SimulationType .eq. MolecularDynamics) then
-      i0 = pcur%NPart0
-      i1 = pcur%NPart2
-    end if
-#endif
-    !DC NOTE- Loop over all particles    
-    do i = i0, i1      
-      NeighborCounter = 0 !DC NOTE- re/initialisation of the Neighbor counter
-      do j = 1,pcur%NPart
-        if (i .eq. j) then 
-          cycle !DC NOTE- safeguard that the very molecule is not counted as its neighbour
-        end if 
-        
-        dxyz_ij(1) = pcur%P0(i, 1, 1) - pcur%P0(j, 1, 1)
-        dxyz_ij(2) = pcur%P0(i, 2, 1) - pcur%P0(j, 2, 1)
-        dxyz_ij(3) = pcur%P0(i, 3, 1) - pcur%P0(j, 3, 1)
-        
-        dxyz_ij(1)= dxyz_ij(1) - anint( dxyz_ij(1) )
-        dxyz_ij(2)= dxyz_ij(2) - anint( dxyz_ij(2) )
-        dxyz_ij(3)= dxyz_ij(3) - anint( dxyz_ij(3) )
-
-        Distij = SQRT( DOT_PRODUCT(dxyz_ij,dxyz_ij) )
-
-        if (Distij .le. DistCrit) then
-          !DC NOTE- increment is done only for i molecule to prevent doubling and requirement for intercomunication
-          ! that means it has to be also checked in same way
-          ! variant with least space usage -> all is kept as local incrementers
-          NeighborCounter = NeighborCounter + 1 !DC NOTE- increment of temporarry counter for i entity
-        end if
-      end do
-      !DC NOTE- i entity can be checked if fulfulls given criteria and then forgotten
-      if (NeighborCounter .ge. this%Ccount) then
-        ClusterCounter = ClusterCounter + 1
-      end if
-    end do
-
-#if MPI_VER > 0
-    call MPI_Allreduce( MPI_IN_PLACE, ClusterCounter, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )            
-#endif    
-    call TEnsemble_ClustNeighbors_hprint(this, ClusterCounter)
-
-  end function TEnsemble_ClustCrit_naive
 
   function TEnsemble_ClustCrit_vapgrid( this, DistCrit ) result(ClusterCounter)
-  ! this fucntion calculate neighbour entities on the regular grid and check if the grid 
+  ! this fucntion calculate neighbour entities on the regular grid and check if the grid
   ! points have GRATER (.gt.) tham specified number of elements
   ! -> implementation of the Neighbor counting within grid points
   !   |- the Check distance is given parameter
@@ -27825,7 +28147,7 @@ contains
 #if MPI_VER > 0
     include 'mpif.h'
 #endif
-    type(TEnsemble)           :: this    
+    type(TEnsemble)           :: this
     real(RK)                  :: DistCrit
     ! Declare result
     integer                   :: ClusterCounter
@@ -27834,27 +28156,27 @@ contains
     integer, allocatable      :: NeighborCounter_da3(:)
     type(TComponent), pointer :: pcur
     integer                   :: i
-    
+
     allocate(NeighborCounter_da3(this%NGridPoints1), STAT = stat )
     call AllocationError( stat, 'Neighbor counter allocation in TEnsemble_ClustCrit', Nprocs )
 
     ClusterCounter = 0
-    
-    !DC TODO- calculate components in parallel -based on assumption that components form independent clusters
-    pcur => this%Component(1) 
 
-    call TEnsemble_count_direct_atom3(this, NeighborCounter_da3, pcur, DistCrit) 
- 
+    !DC TODO- calculate components in parallel -based on assumption that components form independent clusters
+    pcur => this%Component(1)
+
+    call TEnsemble_count_direct_atom3(this, NeighborCounter_da3, pcur, DistCrit)
+
     do i = 1,this%NGridPoints1
       !DC NOTE- this is the decision part of the criteria where potential clusters are counted
-      if (NeighborCounter_da3(i) .ge. this%Ccount) then 
+      if (NeighborCounter_da3(i) .ge. this%Ccount) then
         ClusterCounter = ClusterCounter + 1
       end if
-    end do 
+    end do
 
-#if MPI_VER > 0    
-    call MPI_Allreduce( MPI_IN_PLACE, ClusterCounter, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )            
-    call TEnsemble_ClustNeighbors_gather_print(this, ClusterCounter,NeighborCounter_da3)    
+#if MPI_VER > 0
+    call MPI_Allreduce( MPI_IN_PLACE, ClusterCounter, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )
+    call TEnsemble_ClustNeighbors_gather_print(this, ClusterCounter,NeighborCounter_da3)
 #else
     call TEnsemble_ClustNeighbors_print(this, ClusterCounter, NeighborCounter_da3)
 #endif
@@ -27862,7 +28184,7 @@ contains
   end function TEnsemble_ClustCrit_vapgrid
 
   function TEnsemble_ClustCrit_liqgrid( this, DistCrit ) result(ClusterCounter)
-  ! this fucntion calculate neighbour entities on the regular grid and check if the grid 
+  ! this fucntion calculate neighbour entities on the regular grid and check if the grid
   ! points have LOWER (.lt.) tham specified number of elements
   ! -> implementation of the Neighbor counting within grid points
   !   |- the Check distance is given parameter
@@ -27872,7 +28194,7 @@ contains
   !   |- accumulate the cluster count suspected grid points
   ! -> print information header and neighbors array into .clust file
   ! -> return the ClusterCounter that represent number of suspected clusters found
-  
+
     implicit none
 
   ! Include MPI header
@@ -27889,27 +28211,27 @@ contains
     integer, pointer          :: NeighborCounter_da3(:)
     type(TComponent), pointer :: pcur
     integer                   :: i
-    
+
     allocate(NeighborCounter_da3(this%NGridPoints1), STAT = stat )
     call AllocationError( stat, 'Neighbor counter allocation in TEnsemble_ClustCrit', Nprocs )
 
     ClusterCounter = 0
-    
-    !DC TODO- calculate components in parallel -based on assumption that components form independent clusters
-    pcur => this%Component(1) 
 
-    call TEnsemble_count_direct_atom3(this, NeighborCounter_da3, pcur, DistCrit) 
- 
+    !DC TODO- calculate components in parallel -based on assumption that components form independent clusters
+    pcur => this%Component(1)
+
+    call TEnsemble_count_direct_atom3(this, NeighborCounter_da3, pcur, DistCrit)
+
     do i = 1,this%NGridPoints1
       !DC NOTE- this is the decision part of the criteria where potential clusters are counted
       if (NeighborCounter_da3(i) .le. this%Ccount) then
         ClusterCounter = ClusterCounter + 1
       end if
-    end do 
+    end do
 
-#if MPI_VER > 0    
-    call MPI_Allreduce( MPI_IN_PLACE, ClusterCounter, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )            
-    call TEnsemble_ClustNeighbors_gather_print(this, ClusterCounter, NeighborCounter_da3)    
+#if MPI_VER > 0
+    call MPI_Allreduce( MPI_IN_PLACE, ClusterCounter, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )
+    call TEnsemble_ClustNeighbors_gather_print(this, ClusterCounter, NeighborCounter_da3)
 #else
     call TEnsemble_ClustNeighbors_print(this, ClusterCounter, NeighborCounter_da3)
 #endif
@@ -27918,7 +28240,7 @@ contains
 
   subroutine TEnsemble_ClustCrit( this )
   ! this subroutine calls the cluster criteria variants and terminates the simulation if necesarry
-  ! NOTE - this metod is effective only in VisualCCUpdate frequency specified by user 
+  ! NOTE - this metod is effective only in VisualCCUpdate frequency specified by user
   ! BEWARE - this should not be called during equilibration procedures
   !   - higher level check should be implemented
   ! -> should enable switching for the CC method employed
@@ -27927,18 +28249,18 @@ contains
     implicit none
 
     ! Declare arguments
-    type(TEnsemble) :: this    
-    ! Declare local variables    
+    type(TEnsemble) :: this
+    ! Declare local variables
     real(RK)                  :: DistCrit
     integer                   :: ClusterCounter
 
     !DC NOTE- skip execution if it is not valid anymore (not valid simulation .or. already stopped due to the error or CC)
     !DC NOTE- this is handled by the TSimulation_RunMDStep to save initialization of functions
-       
+
     !DC NOTE- skip execution if it is equilibration or not time to update
     !DC NOTE- this is handled by the TEnsemble_RunMDStep to save this function launch
 
-    !DC NOTE- calculate the scaled critical cluster check distance    
+    !DC NOTE- calculate the scaled critical cluster check distance
     DistCrit = this%Ccritdist*(1._RK / this%BoxLength)
 
     select case( this%Ccrittype )
@@ -27957,22 +28279,428 @@ contains
           call FileWrite (this%iounit_cc)
         end if
     end select
-    
+
     !DC DEBUG- message below for proper multiensemble case stopping validation
-    ! write (*, '("Step:",I4,"Ensemble:",I4,"Ncluster:", I4, "isStopSimulation:", L2)') Step, this%EnsembleNumber, ClusterCounter, this%isStopSimulation    
-    
-    if (this%isStopSimulation .eqv. .true.)  then              
+    ! write (*, '("Step:",I4,"Ensemble:",I4,"Ncluster:", I4, "isStopSimulation:", L2)') Step, this%EnsembleNumber, ClusterCounter, this%isStopSimulation
+
+    if (this%isStopSimulation .eqv. .true.)  then
       write( IOBuffer, '("!Calculation is stopped by criteria id: ", I2," at ensemble: ", I2)' ) this%Ccrittype, this%EnsembleNumber
       call FileWrite (this%iounit_cc)
       call LogWriteBlank
       write( IOBuffer, '("Calculation is stopped by criteria id: ", I2," at ensemble: ", I2)' ) this%Ccrittype, this%EnsembleNumber
       call LogWrite
-      
-      !DC NOTE- prevent future calculation and update of this simulation and prevent the repeated writing of previous message      
+
+      !DC NOTE- prevent future calculation and update of this simulation and prevent the repeated writing of previous message
       this%isCCSimulation = .false.
     end if
 
   end subroutine TEnsemble_ClustCrit
+
+
+!==============================================================!
+!  Subroutine TEnsemble_vlecalcsvc              
+!==============================================================!
+! Subroutine for finding the solutions of the nonlinear equations
+! describing the chemical potential. This solver combines the fast
+! convergence of the Newton-Method and a globally convergend line 
+! search method.  IN: Initial guess vector. OUT: Initial 
+! guess vector overwritten with final results; vector f of 
+! the chemical potential functions.
+!==============================================================!
+
+subroutine TEnsemble_vlecalcsvc (x, f, conv, this) 
+
+implicit none
+
+type(TEnsemble)        :: this
+
+real(RK), intent(inout) :: x(:)
+real(RK), intent(out) :: f(:)
+logical, intent(out) :: conv
+
+! Variables for the solver
+real(RK), dimension(:,:), allocatable :: J , jac 
+real(RK), dimension(:), allocatable :: p, c, xneu, g 
+real(RK), dimension(:), allocatable :: xnewt, fn
+
+integer :: n, i, fehler, errCode
+
+! Stopping and scaling criteria
+integer :: itercount, stopcode
+real(RK)  :: xtest, ftest, typx
+
+! Solver parameters (fixed)
+integer, parameter :: itermax = 1000
+real(RK), parameter :: tolf = 1e-8, tolx = 1e-8, alpha = 1.0e-4
+real(RK), parameter :: maxlambda = 0.5, minlambda = 0.1
+
+! Solver parameters
+real(RK) :: lambda, lambdamin, lambdaprev, lambdaprev2, lambdaprevsq
+real(RK) :: fprim, fnewt, fobj, fobj2, lambdanew, lambdaq
+real(RK) :: a1,b1,b2,a,b, disc
+
+! Size of the input vector of initial guesses
+n = size(x) 
+
+! Allocating memory for dynamic array
+allocate(J(n,n), jac(n,n), p(n), c(n), xneu(n), g(n), xnewt(n), fn(n)) 
+fehler = 0 !No error calculation
+typx = 1 !Scaling value for x 
+
+f = TEnsemble_fun( x, fehler, this) !First function evaluation
+call TEnsemble_jacobi(x ,f, J, fehler)
+jac = J 
+
+! Iterations
+
+itercount = 0 
+lambda = 1  !The first iteration is the basic Newton step (steplength = 1).
+stopcode = 0 
+
+do while (itercount < itermax .and. stopcode == 0 )
+
+  if (lambda == 1) then 
+  
+    ! Convergence test / stopping criteria for the basic Newton-Step.
+    
+    ftest= dot_product(f,f) !vectors
+    xtest = maxval(abs(x-xnewt)/max(abs(x),typx)) 
+    if (xtest < tolx .or. ftest < tolf) then
+      stopcode = 2
+    end if
+    if (stopcode > 0) then
+      conv = .true.
+      return
+       
+    end if
+
+    ! Solving the linear equation p = -J^(-1)*F ---> p = -J \ F  
+    ! ---> by rewriting the matrix equation : J*p = -F.
+    ! J is the Jacobian, F ist the vector of function values, p is the step in descent direction.
+    ! Like Matrix equation Ax = c;  c is -F, A is J, and p the searched step. 
+    c = -f
+    
+    ! LU-Decomposition + partial pivoting.
+    
+    call TEnsemble_solvelinsys(J, c, errcode) ! in this place J matrix is decomposed into another form (modified values)
+    p = c
+    ! IN: Jacobian J and right side of the equation -f. 
+    ! OUT: overwritten c -> step p in descent direction
+    
+    ! Line search method
+    g = matmul(f,jac) !!gradient g' = F*J, cf. Eq. (3.15) in Saric, Bachelorthesis.
+    fprim = dot_product(g,p) ! product g'*p, cf. Eq. (3.14).
+    fnewt = dot_product(f,f) ! Minimizing the norm for the Newton step, cf. Eq. (3.13).
+    xnewt = x ! x value in Newton direction
+    lambdamin = (epsilon(lambda)**(0.6666) )/ maxval( abs(p) / max(abs(xnewt),typx) ) 
+    if (lambdamin > 1e-5) lambdamin = 1e-10 !correcting lambdamin 
+  endif  !Getting out of the full Newton step
+
+  itercount = itercount + 1
+  lambdaprev = lambda !Save previous lambda
+  x = xnewt + p*lambda ! New value of x, cf. eq. (3.17) in thesis
+  f = TEnsemble_fun(x, fehler, this) 
+  call TEnsemble_jacobi(x,f,J, fehler) !New Jacobi-Matrix
+  jac = J !Save jacobi matrix temporarily
+  fobj = dot_product(f , f) !Minimizing the new function
+
+  if (lambda < lambdamin) then
+    stopcode = 3
+  end if
+
+  if (fobj <= fnewt+alpha*lambda*fprim ) then ! Armijo-Rule, Eq. (3.17) in thesis
+    lambda = 1 ! if going in the steepest direction, use lambda = 1 and try the full Newton step again.
+  else ! Reduce lambda with quadratic or cubic fit.
+    if (lambda == 1) then ! quadratic fit.
+      lambdaq = -fprim /2/(fobj-fnewt-fprim)
+      lambdanew = lambdaq
+    else !cubic fit, see [1].
+      a1 = 1 / (lambdaprev - lambdaprev2)
+      lambdaprevsq = lambdaprev*lambdaprev
+      b1 = (1/lambdaprevsq)*(fobj-fnewt*lambdaprev*fprim)+(-1/lambdaprevsq)*(fobj2-fnewt-lambdaprev2*fprim)
+      b2 = (-lambdaprev2/lambdaprevsq)*(fobj-fnewt*lambdaprev*fprim) &
+          + (lambdaprev/lambdaprevsq)*(fobj2-fnewt-lambdaprev2*fprim)
+      a = a1*b1 
+      b = a1*b2
+      disc = b*b - 3*a*fprim
+
+      if (a == 0) then
+        lambdanew = -fprim /2/(fobj-fnewt-fprim) !quadratic fit
+      else
+        lambdanew = (-b + sqrt(disc)) / (3*a) !cubic fit
+      end if
+
+    endif 
+
+    if (lambdanew > maxlambda*lambda) then     !if lambdanew > 0.5*lambda, then set to 0.5*lambda
+      lambdanew = maxlambda*lambda
+    elseif (lambdanew > minlambda*lambda) then !if lambdanew < 0.1*lambda, then set to 0.1*lambda
+      lambda = lambdanew 
+    else
+      lambda = minlambda*lambda 
+    end if
+
+    lambdaprev2 = lambdaprev !Save second previous lambda (for the cubic fit)
+    fobj2 = fobj !save minimized function value
+  end if
+    
+end do
+deallocate(J, jac, p, c, xneu, g, xnewt, fn)
+end subroutine
+
+!==============================================================!
+! Function TEnsemble_fun    
+!==============================================================!
+! The chemical potential function of the liquid and 
+! vapor phase. Iteration of these functions up to the equality of 
+! the chemical potential functions in both phases
+! yields the final results of the NpT + SVC method.
+!==============================================================! 
+
+function TEnsemble_fun(x, fehler, this)
+
+implicit none
+
+type(TEnsemble) :: this
+
+real(RK), intent(in) :: x(:) !Initial guess vector
+integer, intent(in) :: fehler   
+real(RK), dimension(size(x)) :: TEnsemble_fun !Output
+
+!Temporary values of x, SVC and dBdT matrix  
+real(RK), allocatable :: xstart(:)
+real(RK) :: X1 
+
+! Temporary variables for generating the SVC matrix and equations for the vapor chemical potential
+real(RK) :: Bdummy, BmixSVC, dBdTdummy, dBdTmixSVC, ystart
+real(RK) :: VapPressSVC, VapDensSVC, t_subs
+real(RK), allocatable:: ydummy(:), ymix(:)
+
+! Partial molar volume, liquid chemical potential for p_0
+real(RK), allocatable:: ChemPotVapSVC(:),ChemPotLiqSVC(:) 
+
+integer :: i, n, nprobe, j, k, s 
+
+n = size(x)
+
+t_subs = x(1) ! t for better initial guesses [Bachelorthesis, Saric].
+  
+allocate(xstart(n),ymix(n), ydummy(n))
+allocate(ChemPotVapSVC(n), ChemPotliqSVC(n)) ! 
+
+! Generate the initial guess vector using the identity that the sum of mole fractions is == 1.
+
+if (n == 1) then !n = n
+  xstart = 1
+else
+  do i = 1, n
+    if (i == n) then
+      xstart(n) = 1 -  &
+      & sum(xstart(1:(n-1)))
+    else
+      xstart(i) = x(i+1)
+    end if
+  end do
+end if
+
+! 2. VC of the mixture, eq. (3.2) in thesis.
+BmixSVC = 0
+dBdTmixSVC = 0
+ystart = 0
+
+do i = 1, n
+  do j = 1, n  
+    Bdummy = xstart(i)*xstart(j)*ArrSVC(i*2-1, j*2, EnsembleNum)
+    dBdTdummy = xstart(i)*xstart(j)*ArrdBdT(i*2-1, j*2, EnsembleNum)
+    BmixSVC = Bdummy + BmixSVC
+    dBdTmixSVC = dBdTdummy + dBdTmixSVC
+    ydummy(j) = xstart(j)* ArrSVC(i*2-1, j*2, EnsembleNum)
+    ystart = ystart + ydummy(j)
+  end do 
+  ymix(i) = ystart !y_mix = y1B11 + 2y1y2B12 + y2B22... (for binary mixtures)
+  ystart = 0
+end do
+
+if (fehler == 1) then !for error calculation, 
+  VapPressSVC = x(1)
+  VapDensSVC = (SQRT((4*BmixSVC*VapPressSVC/StartTemperature)+1) - 1) / (2*BmixSVC) !thesis, Eq. (2.17)
+  else !icalculations with x(1), see thesis Eq. (3.21) and (3.22).
+  VapPressSVC = (StartTemperature*(t_subs-1)) / (4*BmixSVC)
+  VapDensSVC =  (SQRT(t_subs) - 1) / (2*BmixSVC)
+end if  
+
+! Chemical potential on the liquid side, see thesis Eq. (3.1).
+do i = 1, n
+  ChemPotLiqSVC(i) = ArrChemPot(i) + (ArrPartMolVol(i) /  StartTemperature) * (VapPressSVC - StartPressure)
+end do
+
+! Chemical potential on the vapor side, see thesis Eq. (3.2). 
+do i = 1, n
+  ChemPotVapSVC(i) =  log(xstart(i)) + log(VapDensSVC) + 2*VapDensSVC*ymix(i) 
+end do
+
+TEnsemble_fun(:) = 0d0 ! Allocate zeroes
+do i = 1, n
+  TEnsemble_fun(i) = ChemPotLiqSVC(i) - ChemPotVapSVC(i)
+  ! In the VLE, fun(i) goes to zero.
+end do
+
+! Saving mixture SVC and dBdT at the VLE
+ do i = 1 , n
+   if (abs(TEnsemble_fun(i)) < 1e-4) then
+   BmixSVCtemp = BMixSVC
+   dBdTmixtemp = dBdTmixSVC 
+   end if
+ end do
+
+ deallocate(xstart,ymix, ydummy)
+ deallocate(ChemPotVapSVC, ChemPotliqSVC) 
+ 
+end function TEnsemble_fun
+
+subroutine TEnsemble_jacobi(x,f, df, fehler)
+
+!==============================================================!
+!  Subroutine TEnsemble_jacobi      
+!==============================================================!        
+!  Calculating the Jacobi matrix of functions 
+!  using the central difference approximation.  
+!==============================================================!
+
+implicit none
+
+type(TEnsemble) :: this
+
+  
+! Input, output
+real(RK), intent(inout) :: x(:)
+real(RK), intent(out) :: f(:)
+real(RK), intent(out) :: df(: , :)
+integer, intent(in) :: fehler
+
+real(RK) :: stepsizej, tempj
+real(RK), DIMENSION(size(x)) :: df_p,df_m
+integer :: j, s, k, n
+
+n=size(x)
+f = TEnsemble_fun(x, fehler, this)
+stepsizej = epsilon(x)**(0.6666) !stepsize h
+
+do j=1, n
+  tempj = x(j) !start with x
+  x(j) = x(j) + stepsizej !x+h
+  stepsizej = x(j) - tempj
+  df_p(:) = TEnsemble_fun(x, fehler, this)  !fun(x+h)
+  x(j) = tempj - stepsizej !x-h
+  df_m(:) = TEnsemble_fun(x, fehler, this)  !fun(x-h)
+  df(:,j) = (df_p-df_m)/ (2*stepsizej)
+  x(j)=tempj !get back to x
+end do
+
+end subroutine
+
+!==============================================================!
+! TEnsemble_solvelinsys    
+!==============================================================!          
+! Solves the linear system of equations Ax = b through
+! LU-Decomposition with partial pivoting.
+! b is the input (right side of the Ax = b),
+! but also the output of this subroutine overwritten by x. 
+! Pivot is the index of the changing rows!
+!==============================================================
+
+subroutine TEnsemble_solvelinsys(a, b, errCode)
+
+implicit none
+
+type(TEnsemble) :: this
+
+real(RK),intent(inout),dimension(:,:) :: a ! matrix
+real(RK),intent(inout),dimension(:) :: b !solution vector
+real(RK):: t_s
+
+integer,dimension(:), allocatable :: pivot 
+integer,intent(out):: errCode ! =0 OK; =1 singular
+integer:: j,k,m,i
+integer,dimension(1) :: kmax ! location of the max value
+integer:: n
+  
+errCode=0
+n=size(a,1)
+allocate(pivot(n))
+
+if (n <= 1) then
+  if (a(1,1) == 0.0) then
+    errCode=1
+  end if 
+  return ! singular matrix
+end if
+
+do k=1,n-1 ! LU Decomposition with pivoting
+  kmax= maxloc(abs(a(k:n,k)))   ! pivot row
+  m=k-1+kmax(1)
+
+  pivot(k)=m
+  if (m /= k) pivot(n)=-pivot(n)
+
+  ! Changing the position of pivot
+  t_s=a(m,k)
+  a(m,k)=a(k,k)
+  a(k,k)=t_s
+  if (a(k,k) == 0.0) a(k,k) = 1.0e-10 !to avoid singularity 
+  if (t_s /= 0.0) then
+    t_s=1.0/t_s
+    a(k+1:n,k)=-t_s*a(k+1:n,k)
+    do j=k+1,n   ! form the A = LU matrix
+      t_s=a(m,j)
+      a(m,j)=a(k,j)
+      a(k,j)=t_s
+      if (t_s /= 0.0) a(k+1:n,j) =a (k+1:n,j) + t_s*a(k+1:n,k)
+    end do
+  end if
+end do
+
+!Forward elimination Ly = b
+n=size(a,1) 
+do k=1,n-1   
+  m=pivot(k)
+  t_s=b(m)
+  b(m)=b(k)
+  b(k)=t_s
+  b(k+1:n)=b(k+1:n) + t_s*a(k+1:n,k)
+end do       
+
+!Backward substitution Ux = y
+do k=n,1,-1
+  b(k)=b(k)/a(k,k)
+  t_s=-b(k)
+  do i=1,k-1
+    b(i)=b(i)+a(i,k)*t_s
+  end do       
+end do
+  
+end subroutine TEnsemble_solvelinsys
+
+subroutine TEnsemble_infnan(f, flag) 
+
+!==============================================================!
+! TEnsemble_infnan
+!==============================================================!
+! Check if the value of solution vector is equal NaN or Inf.
+! If false, the range of validity of the NpT + SVC method
+! was left by the solver.  
+!==============================================================!
+
+implicit none
+real(RK), intent(in) :: f
+logical, intent(out) :: flag
+real(RK) :: inf
+flag = .true.
+inf = huge(f)
+if (f > inf .or. f /= f) then
+flag = .false.
+end if
+end subroutine  TEnsemble_infnan
 
 
 !==============================================================!
