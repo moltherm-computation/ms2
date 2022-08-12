@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 4.0                !
-!  (c) 2020 by TU Kaiserslautern / TU Berlin                   !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 3.0                !
+!  (c) 2017 by TU Kaiserslautern / U Paderborn                 !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -55,9 +55,7 @@ module ms2_simulation
 #if MPI_VER > 0
     logical :: doneBcastTerm=.false., doneMsgTerm=.false.
     integer :: numMsgTerm_send=0, numMsgTerm_recv=0
-    !integer :: mpireqbcastTerm=MPI_REQUEST_NULL, mpireqmsgTerm=MPI_REQUEST_NULL
-    integer :: mpireqbcastTerm=0, mpireqmsgTerm=0
-    integer :: TerminateStatus_bcast=0, TerminateStatus_msg=0
+    integer :: mpireqbcastTerm, mpireqmsgTerm
 #endif
     !
 
@@ -76,11 +74,10 @@ module ms2_simulation
     integer :: terminate_cc_multiensemble !DC NOTE- the counter that signifies if the simulation is to be terminated in multiensemble case
 
 #if  TRANS == 1
-
+!TRANSPORT_start
     ! I/O unit for correlation function
     integer :: iounit_rescf
-    integer :: iounit_ecoef
-
+!TRANSPORT_END
 #endif
 
 end type TSimulation
@@ -165,6 +162,18 @@ end type TSimulation
     module procedure TSimulation_VisualClose
   end interface
 
+  interface VisualCCOpen
+    module procedure TSimulation_VisualCCOpen
+  end interface
+
+  interface VisualCCUpdate
+    module procedure TSimulation_VisualCCUpdate
+  end interface
+
+  interface VisualCCClose
+    module procedure TSimulation_VisualCCClose
+  end interface
+
   interface CCOpen
     module procedure TSimulation_CCOpen
   end interface
@@ -210,7 +219,7 @@ end type TSimulation
   interface ODFClose
     module procedure TSimulation_ODFClose
   end interface
-
+  
   interface KBIOpen
     module procedure TSimulation_KBIOpen
   end interface
@@ -265,12 +274,10 @@ contains
     real(RK)                    :: debyelen_h
     integer                     :: grid_h,spline_h
     integer                     :: nvecmax_h,nsqmax_h,nmax_h
-    integer                     :: maxNComp, thisNComp
-    real(RK)                    :: dummyR
-    
+
 #if MPI_VER > 0
     integer  :: icommunicator
-    !real(RK) :: dummyR
+    real(RK) :: dummyR
     !integer  :: dummyI
 #endif
 
@@ -475,6 +482,7 @@ contains
       BlockSize = 0
       ErrorsUpdateFrequency = NSteps
       VisualUpdateFrequency = 0
+      VisualCCUpdateFrequency = 0 !DC NOTE- initialize the visual CC update frequency
       RDFUpdateFrequency = 0
       ODFUpdateFrequency = 0
       KBIUpdateFrequency = 0
@@ -592,11 +600,6 @@ contains
         ConstantTemperature = .true.
         ConstantPressure = .true.
         EnsembleTypeString = 'Humid Air'
-    case( 'NPTSVC', 'nptsvc' )
-        EnsembleType = EnsembleTypeNPTSVC
-        ConstantTemperature = .true.
-        ConstantPressure = .true.
-        EnsembleTypeString = 'NpT + SVC'
 
       case default
         call Error( trim( str )//' ensemble is not implemented' )
@@ -818,7 +821,7 @@ contains
         write( IOBuffer, '("ODF files will not be created")' )
       end if
       call LogWrite
-
+      
       if( ODFUpdateFrequency > 0 ) then
         call FileReadParameter( nR, iounit_params , IdnR, .true., 3 )
         write( IOBuffer, '("ODF will operate with", I7, " shells")' ) nR
@@ -834,7 +837,7 @@ contains
         call LogWrite
       end if
       call LogWriteBlank
-
+      
       ! Read frequency of updating KBI file
       call FileReadParameter( KBIUpdateFrequency, iounit_params , IdKBIUpdateFrequency, .true., 0 )
       if( KBIUpdateFrequency > 0 ) then
@@ -883,7 +886,7 @@ contains
             call LogWrite
             write( IOBuffer, '("Alpha2 correlation length: ", T40, I7, " time steps")' ) ALPHA2Length
             call LogWrite
-            write( IOBuffer, '("Alpha2 correlation span", T40, I7, " time steps")' ) ALPHA2Shift
+            write( IOBuffer, '("Alpha2 correlation shift each", T40, I7, " time steps")' ) ALPHA2Shift
             call LogWrite           
         else
             call Error( trim( str )//' -> Alpha2 correlation function is defined for MD only' )
@@ -1102,55 +1105,30 @@ contains
 
     ! Read number of MPI ensemble groups
     call FileReadParameter( this%mpiEnsembleGroups, iounit_params , IdmpiEnsembleGroups, .true., 0 )
-    if ( this%mpiEnsembleGroups /= 0 ) then
-        write( IOBuffer, '("mpiEnsembleGroups:",T24, I3)' ) this%mpiEnsembleGroups
-        call LogWrite
-    end if
 #if MPI_VER > 0
+    write( IOBuffer, '("mpiEnsembleGroups:",T24, I3)' ) this%mpiEnsembleGroups
+    call LogWrite
     if ( this%mpiEnsembleGroups .eq. 1 ) this%mpiEnsembleGroups=this%NEnsembles
     if ( this%mpiEnsembleGroups .gt. this%NEnsembles .or. this%mpiEnsembleGroups .gt. NProcs_W ) &
 &      this%mpiEnsembleGroups=min(this%NEnsembles,NProcs_W)
     if ( this%mpiEnsembleGroups .le. 1 ) this%mpiEnsembleGroups=0
     
     if (this%mpiEnsembleGroups .gt. 1) then
-        write( IOBuffer, '("setting up",I3," MPI ensemble groups")' ) this%mpiEnsembleGroups
-        call LogWrite
-        ! Close the ParameterFile to reopen it within the subcommunicators
-        call FileClose( iounit_params )
-        call MPI_Bcast( ParameterFileName, FileNameLength, MPI_CHARACTER, NRootProc, Communicator, ierror )
-        ! create subcommunicators to process subranges of the ensembles ++++++++++++++++++++++++++++++
-        call SplitCommunicator(this%mpiEnsembleGroups)    ! setting NCommunicator, NCommunicators and Communicator etc
-        ! 1-index based
-        this%firstEnsembleIdx=this%NEnsembles*NCommunicator/NCommunicators+1
-        this%lastEnsembleIdx=this%NEnsembles*(NCommunicator+1)/NCommunicators
-        write( IOBuffer, '("MPI communicator",I3," (out of",I3,") with ",I3," PEs computes ensemble",I3," -",I3)' ) &
-&              NCommunicator+1,NCommunicators,NProcs,this%firstEnsembleIdx,this%lastEnsembleIdx
-        ! be aware that e.g. the random number generator calls might be different
-        call LogWrite
-        ! Reopen the ParameterFile (dirty hack) for each communicator
-        call FileReset( iounit_params, ParameterFileName )
-        !call FileReadParameter( dummyI, iounit_params , IdNEnsembles, .true., 1 )
-        
-        !TerminateStatus=0
-        !TerminateStatus_msg=0
-        !TerminateStatus_bcast=0
-        !doneBcastTerm=.false.
-        !doneMsgTerm=.false.
-        !numMsgTerm_send=0
-        !numMsgTerm_recv=0
-        this%mpireqbcastTerm=MPI_REQUEST_NULL
-        this%mpireqmsgTerm=MPI_REQUEST_NULL
-        
-        if ( RootProc) then
-          if ( RootProc_R ) then
-            ! RootProc_W subcommunicator root starts receiving a TerminateStatus message
-            call MPI_Irecv(this%TerminateStatus_msg, 1, MPI_INTEGER, MPI_ANY_SOURCE, mpimsgtag_simTerm, Communicator_R, this%mpireqmsgTerm, ierror)
-          else ! (RootProc.and.).not.RootProc_R
-            ! non_RootProc_R subcommunicator roots start receiving TerminateStatus broadcast of TerminateStatus before the loop
-            call MPI_Ibcast(this%TerminateStatus_bcast, 1, MPI_INTEGER, NRootProc_R, Communicator_R, this%mpireqbcastTerm, ierror)
-          end if
-        end if
-      
+      ! Close the ParameterFile to reopen it within the subcommunicators
+      call FileClose( iounit_params )
+      call MPI_Bcast( ParameterFileName, FileNameLength, MPI_CHARACTER, NRootProc, Communicator, ierror )
+      ! create subcommunicators to process subranges of the ensembles ++++++++++++++++++++++++++++++
+      call SplitCommunicator(this%mpiEnsembleGroups)    ! setting NCommunicator, NCommunicators and Communicator etc
+      ! 1-index based
+      this%firstEnsembleIdx=this%NEnsembles*NCommunicator/NCommunicators+1
+      this%lastEnsembleIdx=this%NEnsembles*(NCommunicator+1)/NCommunicators
+      write( IOBuffer, '("MPI communicator",I3," (out of",I3,") with ",I3," PEs computes ensemble",I3," -",I3)' ) &
+&            NCommunicator+1,NCommunicators,NProcs,this%firstEnsembleIdx,this%lastEnsembleIdx
+      ! be aware that e.g. the random number generator calls might be different
+      call LogWrite
+      ! Reopen the ParameterFile (dirty hack) for each communicator
+      call FileReset( iounit_params, ParameterFileName )
+      !call FileReadParameter( dummyI, iounit_params , IdNEnsembles, .true., 1 )
     endif
 #else
     if ( this%mpiEnsembleGroups /= 0 ) then
@@ -1167,25 +1145,26 @@ contains
     call AllocationError( stat, 'ensembles', this%NEnsembles )
 
     this%terminate_cc_multiensemble = 0 !DC NOTE- initialize the global termination counter for multiensemble simulation
-    !DC NOTE- Read option if the simulation is supposed to be Cluster criteria
+    !DC NOTE- Read option if the simulation is supposed to be Cluster criteria          
+#if 0
     call FileReadParameter( str , iounit_params , IdIsClusterCriteria, .true. , 'no' )
     select case( str )
       case( 'yes', 'Yes', 'YES' , 'ok', 'OK', 'True', 'true', 'ja' )
         this%Ensemble(:)%isCCSimulation = .true.
-        write( IOBuffer, '("Cluster Criteria evaluation:    .true.")' )
+        write( IOBuffer, '("Cluster Criteria evaluation:    .true.")' ) 
         call LogWrite
 
       case( 'no', 'No', 'NO', 'False', 'false' ,'nein')
         this%Ensemble(:)%isCCSimulation = .false.
-        write( IOBuffer, '("Cluster Criteria evaluation:    .false.")' )
+        write( IOBuffer, '("Cluster Criteria evaluation:    .false.")' ) 
         call LogWrite
 
       case default
         call Error( 'Unknown Cluster Criteria control option :'//trim(str))
-    end select
-
+    end select            
+#endif
 #if  TRANS == 1
-
+!TRANSPORT_start
     ! Read correlation function mode
     if ( parVersionNr .lt. 2.0_RK ) then
       call FileReadParameter( str , iounit_params , IdCorrFun, .true. , 'no' )
@@ -1208,27 +1187,19 @@ contains
       call LogWrite
     endif
 
-      !Read Transport Method 
-      call FileReadParameter( str, iounit_params , IdTransMethod, .true., "GK" )
-      select case( str )
-        case( 'GK', 'gk', 'GreenKubo', 'GREENKUBO', 'Green-Kubo')
-            TransMethod = GreenKubo
-            TransportString = 'Green-Kubo'
-            write( IOBuffer, '("Method for transport: ", A)' ) trim( TransportString )
-            call LogWrite
-        case( 'Einstein', 'EINSTEIN', 'einsein', 'MSD', 'msd')
-            TransMethod = Einstein
-            TransportString = 'Einstein'
-            write( IOBuffer, '("Method for transport: ", A)' ) trim( TransportString )
-            call LogWrite
-        case( 'Both', 'all', 'GKEinstein', 'GK-Einstein', 'All', 'ALL','both')
-            TransMethod = GKEinstein
-            TransportString = 'GKEinstein'
-            write( IOBuffer, '("Method for transport: ", A)' ) trim( TransportString )
-            call LogWrite
-         case default
-           call Error( 'Unknown transport properties ('//trim(IdCorrFun)//'='//trim(str)//')' )
-      end select
+
+     !EinsteinCoef procedure switching
+     call FileReadParameter( str, iounit_params, IdEinsteinCoefCalc, .true., 'no' )
+     if (str == 'yes') then
+        EinsteinCoefCalc = .true.
+        write( IOBuffer, '("Einstein formalism procedure is switched on")')
+        call LogWrite
+     else
+        EinsteinCoefCalc = .false.
+        write( IOBuffer, '("Einstein formalism procedure is switched off")')
+        call LogWrite
+     endif
+!TRANSPORT_END
 #endif
 
 #if MPI_VER > 0
@@ -1280,6 +1251,7 @@ contains
 #endif
 
 #if  TRANS == 1
+!TRANSPORT_start
     ! Read correlation function mode
     if ( parVersionNr .ge. 2.0_RK ) then
       if ( .not. ANY(this%Ensemble(:)%CorrFunMode) ) then
@@ -1291,6 +1263,7 @@ contains
         call LogWrite
       endif
     endif
+!TRANSPORT_END
 #endif
 
   GradInsFrequency = BlockSize
@@ -1304,92 +1277,6 @@ contains
   write( IOBuffer, '(72(1H*))')
   call LogWrite
   call LogWriteBlank
-! preparation of VLE calculation based on SVC  
-  if (SimulationType .eq. MolecularDynamics .or. SimulationType .eq. MonteCarlo) then   
-     if (EnsembleType .eq. EnsembleTypeNPTSVC) then
-       if (SVCCalc .eqv. .false.) then !if SVC was not calculated until now
-           write( IOBuffer, '(72(1H*))')
-           call LogWrite
-           write(IOBuffer, '(T18, "Reading Second Virial Coefficient Parameters")')
-           call LogWrite
-           write( IOBuffer, '(72(1H*))')
-           call LogWrite
-           call LogWriteBlank
-           SimulationTypeString = 'Second Virial Coefficient'
-           SimulationType = SecondVirialCoeff
-           call FileReset( iounit_params, ParameterFileName ) !An den Anfang von *.par
-           if( .not. UseReducedUnits ) then
-           call FileReadParameter( NOrient, iounit_params , IdNOrient, .false., 1000 ) ! hard-coded.
-           call FileReadParameter( NSteps, iounit_params , IdRSteps, .false., 200 )
-           call FileReadParameter( MinRadius, iounit_params , IdMinRadius, .false., 2._RK )
-           call FileReadParameter( MaxRadius, iounit_params , IdMaxRadius, .false., 20._RK  )
-           else
-           call FileReadParameter( NOrient, iounit_params , IdNOrient, .false., 1000 ) ! 
-           call FileReadParameter( NSteps, iounit_params , IdRSteps, .false., 400 )
-           call FileReadParameter( MinRadius, iounit_params , IdMinRadius, .false., 0.66_RK )
-           call FileReadParameter( MaxRadius, iounit_params , IdMaxRadius, .false., 6.66_RK )
-           end if
-           maxNComp=0
-           do i = 1, this%NEnsembles !maximum number of components
-               call FileReadParameter( dummyR, iounit_params , IdRefTemperature, .false. )! dirty hack to move the file pointer to the next ensemble
-               call FileReadParameter( thisNComp, iounit_params , IdNComponents, .false. )
-               if (thisNComp > maxNComp) maxNComp = thisNComp !maximum number of NComponents of all ensembles
-           end do
-           allocate(ArrSVC(maxNComp*2,maxNComp*2,this%NEnsembles), STAT=stat) !allocate memory for SVC and dB/dT
-           call AllocationError( stat, 'Array SVC' )
-           ArrSVC(:,:,:) = 0.0
-           allocate(ArrdBdT(maxNComp*2,maxNComp*2,this%NEnsembles), STAT=stat)      
-           ArrdBdT(:,:,:) = 0.0
-           call AllocationError( stat, 'Array dB/dT' )
-           allocate(ArrChemPot(maxNComp), STAT=stat) !allocate memory for SVC and dB/dT
-           call AllocationError( stat, 'Array Chemical potential' )
-           allocate(ArrPartMolVol(maxNComp), STAT=stat) !allocate memory for v_i
-           call AllocationError( stat, 'Array Partial molar volume' )
-
-           
-           CutoffMode = CenterofMass ! Set cutoff mode
-           BlockSize = 0
-           ErrorsUpdateFrequency = NSteps ! Set output frequencies
-           NStepsSVC = NSteps
-           VisualUpdateFrequency = 0
-           RDFUpdateFrequency = 0
-           write( IOBuffer, '("Number of orientations: ",T24, I7)' ) NOrient
-           call LogWrite
-           write( IOBuffer, '("Number of radial steps: ",T23, I8)' ) NSteps
-           call LogWrite
-                    if( .not. UseReducedUnits ) then
-              MinRadius = MinRadius / UnitLength * Angstroem
-              MaxRadius = MaxRadius / UnitLength * Angstroem
-           endif
-           write( IOBuffer, '("Minimum radius: ",T27, F8.3, " A")' ) MinRadius * UnitLength / Angstroem
-           call LogWrite
-           write( IOBuffer, '("Maximum radius: ",T27, F8.3, " A")' ) MaxRadius * UnitLength / Angstroem   
-           call LogWrite      
-           call FileClose( iounit_params )         
-           call FileReset( iounit_params, ParameterFileName ) !An den Anfang von *.par         
-#if MPI_VER > 0
-           ! force sequential reading of parameter file (within Ensemble Construct)    better use MPI-IO!
-           do icommunicator = 0,NCommunicators-1
-             if (icommunicator==NCommunicator) then
-#endif
-             do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-               call ConstructSVC( this%Ensemble(i), i )
-             end do
-#if MPI_VER > 0
-             else
-               ! dirty hack to move the file pointer to the next ensemble
-               call FileReadParameter( dummyR, iounit_params , IdRefTemperature, .false. )
-               call FileReadParameter( dummyR, iounit_params , IdRefDensity, .false. )
-             end if
-             call MPI_Barrier( MPI_COMM_WORLD, ierror )
-           end do
-#endif
-           call FileReset( iounit_params, ParameterFileName ) !An den Anfang von *.par
-           call FileClose( iounit_params )     
-           SVCCalc = .true.
-       endif
-     endif
-  endif     
 
   ! Create accumulators
   call CreateAccumulators( this )
@@ -1402,21 +1289,18 @@ contains
   this%iounit_rescf  = iounit_rescf  !TRANSPORT_thisline
 #endif
 
-! Open result and visualisation files
+    ! Open result and visualisation files
     call LogWriteBlank
     call LogWriteBlank
     write( IOBuffer, '(72(1H*))')
     call LogWrite
-    if (SimulationType .eq. SecondVirialCoeff) then
-        write( IOBuffer, '(T28, "Start Calculation of Second Virial Coefficient")')
-    else
-        write( IOBuffer, '(T28, "Start Simulation")')
-    endif    
+    write( IOBuffer, '(T28, "Start Simulation")')
     call LogWrite
     write( IOBuffer, '(72(1H*))')
     call LogWrite
     call ResultOpen( this )
     call VisualOpen( this )
+    call VisualCCOpen( this )
     call CCOpen( this )
     call RDFOpen( this )
     call ODFOpen( this )
@@ -1437,7 +1321,7 @@ contains
 !  Subroutine TSimulation_Destruct                             !
 !==============================================================!
 
-  recursive subroutine TSimulation_Destruct( this )
+  subroutine TSimulation_Destruct( this )
 
     implicit none
 
@@ -1455,6 +1339,7 @@ contains
     call LogWriteBlank
     call ResultClose( this )
     call VisualClose( this )
+    call VisualCCClose( this )
     call CCClose( this )
     call KBIClose( this )
     !call RDFClose( this ) ! file is closed after updating
@@ -1472,18 +1357,6 @@ contains
       deallocate( this%Ensemble )
     end if
 
-! Start NPT Simulation if SVC was calculated before NPT start
-    if (SVCCalc .eqv. .true.) then
-        call Construct( this )
-        call Run( this )
-        SVCCalc = .false.
-        ! Deallocate Arrays for SVC and dB/dT
-        deallocate( ArrSVC )
-        deallocate( ArrdBdT )
-        deallocate( ArrChemPot )
-        deallocate( ArrPartMolVol )
-        call Destruct( this )
-    endif
   end subroutine TSimulation_Destruct
 
 
@@ -1611,8 +1484,8 @@ contains
       end if
     end if
 
-#if MPI_VER > 0
-    ! For MC parallelization: if we have common equilibration
+#if MPI_VER > 0 
+    ! For MC parallelization: if we have common equilibration 
     ! active, we revert to one rootproc
     if (SimulationType .eq. MonteCarlo) then 
       if (CommonEqui) then
@@ -2291,16 +2164,15 @@ eqloop: do
     if (NCommunicators > 1 ) then
       ! clean up (but don't use MPI_Cancel)
       if ( RootProc ) then
-        if ( RootProc_R ) then ! RootProc.and.RootProc_R
+        if ( RootProc_R ) then
           call MPI_Reduce( MPI_IN_PLACE, this%numMsgTerm_send, 1, MPI_INTEGER, MPI_SUM, NRootProc_R, Communicator_R, ierror )
 !          if ( .not. this%doneMsgTerm ) then
 !            ! check again, if terminate message was received
 !            call MPI_Test(this%mpireqmsgTerm, this%doneMsgTerm, mpistatus, ierror)
 !            if ( this%doneMsgTerm ) then
 !              write( IOBuffer, '("received message with termination status (",B0,") after step ",I0,"/",I0)' ) &
-!&                    this%TerminateStatus_msg, Step, StepTotal
+!&                    TerminateStatus, Step, StepTotal
 !              call LogWriteTime
-!              TerminateStatus=this%TerminateStatus_msg
 !              this%doneMsgTerm=.true.
 !              this%numMsgTerm_recv = this%numMsgTerm_recv + 1
 !            end if
@@ -2311,15 +2183,14 @@ eqloop: do
             if (IAND(TerminateStatus,1).eq.1) TerminateProgram=.true.
             if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.
           end do
-        else ! RootProc.and..not.RootProc_R
+        else ! .not.RootProc_R
           !if ( .not. this%doneMsgTerm .and. NProc_R.eq.1 ) then ! only works if NRootProc_R.ne.1 (NRootProc_R==0)
           if ( .not. this%doneMsgTerm .and. NProc_R.eq.mod(NRootProc_R+1,NProcs_R) ) then    ! should work for NProcs_R.gt.1
             ! at least one terminate message should be sent to serve the RootProc_R irecv - e.g. NProc==1
 !              write( IOBuffer, '("PE (W) ",I0," sending message with termination status (",B0,")")' ) NProc_W, TerminateStatus
 !              call LogWriteTime
-              this%TerminateStatus_msg=TerminateStatus
               !    MPI_Bsend should also work and doesn't require the MPI_Wait
-              call MPI_ISend(this%TerminateStatus_msg, 1, MPI_INTEGER, NRootProc_R, mpimsgtag_simTerm, Communicator_R, this%mpireqmsgTerm, ierror)
+              call MPI_ISend(TerminateStatus, 1, MPI_INTEGER, NRootProc_R, mpimsgtag_simTerm, Communicator_R, this%mpireqmsgTerm, ierror)
               this%doneMsgTerm=.true.
               this%numMsgTerm_send = this%numMsgTerm_send + 1
           end if
@@ -2327,27 +2198,23 @@ eqloop: do
         end if
         if ( this%doneMsgTerm ) then
           call MPI_Wait(this%mpireqmsgTerm, mpistatus, ierror)
-          !TerminateStatus=this%TerminateStatus_msg
         end if
 
         if ( .not. this%doneBcastTerm ) then
-          if ( RootProc_R ) then ! RootProc.and.RootProc_R
-             ! satisfy the pending non-root Ibcast
+          if ( RootProc_R ) then
 !            write( IOBuffer, '("broadcasting termination status (",B0,")")' ) TerminateStatus
 !            call LogWriteTime
-            call MPI_Ibcast(this%TerminateStatus_bcast, 1, MPI_INTEGER, NRootProc_R, Communicator_R, this%mpireqbcastTerm, ierror)
+            call MPI_Ibcast(TerminateStatus, 1, MPI_INTEGER, NRootProc_R, Communicator_R, this%mpireqbcastTerm, ierror)
             this%doneBcastTerm = .true.
 !          else
 !            call MPI_Test(this%mpireqbcastTerm, this%doneBcastTerm, mpistatus, ierror)
-!            if (this%doneBcastTerm) then
+!            if (this%doneBcastTerm .and. TerminateStatus>0) then
 !              write( IOBuffer, '("received broadcast with termination status (",B0,") after step ",I0,"/",I0)' ) &
-!&                    this%TerminateStatus_bcast, Step, StepTotal
+!&                    TerminateStatus, Step, StepTotal
 !              call LogWriteTime
-!              TerminateStatus=this%TerminateStatus_bcast
 !            end if
           end if
           call MPI_Wait(this%mpireqbcastTerm, mpistatus, ierror)
-          TerminateStatus=this%TerminateStatus_bcast
         end if
       end if    ! RootProc
 
@@ -2454,6 +2321,7 @@ eqloop: do
       end if
       
       if (mod(Step,1000)==0) then
+    print*, Step
 end if
       ! Run simulation step
       select case( SimulationType )
@@ -2471,6 +2339,7 @@ end if
       ! Update result and visualisation files
       call ResultUpdate( this )
       call VisualUpdate( this )
+      call VisualCCUpdate( this )
       call RDFUpdate ( this )
       call ODFUpdate ( this )
       call KBIUpdate ( this )
@@ -2484,37 +2353,34 @@ end if
 #endif
       endif
 
-      !DC NOTE- check whether the simulation should be aborted
+      !DC NOTE- check whether the simulation should be aborted      
 #if MPI_VER > 0
       !DC NOTE- MPI Abortion
       !DC NOTE- termination status is 0/1 value - reducing it as product yield the 0/1 value if program is to be terminated
       !       - termination is only done when all PU have the terminate_cc_multiensemble = 1
       stop_cc_simulation = 0
-      ! ??? 
-      !call MPI_Allreduce( this%terminate_cc_multiensemble, stop_cc_simulation, 1, MPI_INTEGER, MPI_SUM, Communicator_R, ierror )
-      call MPI_Allreduce( this%terminate_cc_multiensemble, stop_cc_simulation, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )
-      ! ???
+      call MPI_Allreduce( this%terminate_cc_multiensemble, stop_cc_simulation, 1, MPI_INTEGER, MPI_SUM, Communicator_R, ierror )
       !DC NOTE- perform the check in MPI context
-      if ( stop_cc_simulation .ge. this%NEnsembles ) then
-#ifdef __INTEL_COMPILER
+      if ( stop_cc_simulation .ge. this%NEnsembles ) then            
+#ifdef __INTEL_COMPILER          
         call MPI_Bcast(err,1,MPI_INTEGER,NRootProc,Communicator,ierror)
         err = SetTerminateProgram( 1 )
-#else
+#else          
         call MPI_Bcast(err,1,MPI_INTEGER,NRootProc,Communicator,ierror)
-        call SetTerminateProgram
+        call SetTerminateProgram          
 #endif
       end if
 
 #else
       !DC NOTE- Single Abortion
       !DC NOTE- perform the check in serial context
-      if (this%terminate_cc_multiensemble .ge. this%NEnsembles ) then
+      if (this%terminate_cc_multiensemble .ge. this%NEnsembles ) then            
 #ifdef __INTEL_COMPILER
         err = SetTerminateProgram( 1 )
 #else
         call SetTerminateProgram
 #endif
-      end if
+      end if      
 #endif
 
       ! Check for termination request (caused e.g. by signal handler)
@@ -2530,51 +2396,45 @@ end if
         if ( RootProc ) then
           call MPI_Reduce( MPI_IN_PLACE, TerminateStatus, 1, MPI_INTEGER, MPI_BOR, NRootProc, Communicator, ierror )
           if ( .not. this%doneMsgTerm ) then
-            if ( RootProc_R ) then ! RootProc.and.RootProc_R
+            if ( RootProc_R ) then
               !    MPI_Iprobe &MPI_Recv afterwards (instead of MPI_Irecv before) should also work
               call MPI_Test(this%mpireqmsgTerm, this%doneMsgTerm, mpistatus, ierror)
               if ( this%doneMsgTerm ) then
 !                write( IOBuffer, '("PE ",I0,"(W) received message with termination status (",B0,") within step ",I0,"/",I0)' ) &
-!&                      NProc_W, this%TerminateStatus_msg, Step, StepTotal
+!&                      NProc_W, TerminateStatus, Step, StepTotal
 !                call LogWriteTime
-                TerminateStatus=this%TerminateStatus_msg
                 this%doneMsgTerm=.true.
                 this%numMsgTerm_recv = this%numMsgTerm_recv + 1
               end if
             else ! RootProc .and. .not.RootProc_W
               if (TerminateStatus /= 0) then
-                 this%TerminateStatus_msg=TerminateStatus
 !                write( IOBuffer, '("PE ",I0,"(W) sending message with termination status (",B0,") within step ",I0,"/",I0)' ) &
-!&                      NProc_W, this%TerminateStatus_msg, Step, StepTotal
+!&                      NProc_W, TerminateStatus, Step, StepTotal
 !                call LogWriteTime
-                call MPI_ISend(this%TerminateStatus_msg, 1, MPI_INTEGER, NRootProc_R, mpimsgtag_simTerm, Communicator_R, this%mpireqmsgTerm, ierror)
+                call MPI_ISend(TerminateStatus, 1, MPI_INTEGER, NRootProc_R, mpimsgtag_simTerm, Communicator_R, this%mpireqmsgTerm, ierror)
                 this%doneMsgTerm=.true.
                 this%numMsgTerm_send = this%numMsgTerm_send + 1
               end if
             end if
           end if
           if ( .not. this%doneBcastTerm ) then
-            if ( RootProc_R ) then ! RootProc.and.RootProc_R
+            if ( RootProc_R ) then
               if (TerminateStatus /= 0) then
-                this%TerminateStatus_bcast=TerminateStatus
                 write( IOBuffer, '("PE ",I0,"(W) broadcasting termination status (",B0,") within step ",I0,"/",I0)' ) &
-&                      NProc_W, this%TerminateStatus_bcast, Step, StepTotal
+&                      NProc_W, TerminateStatus, Step, StepTotal
                 call LogWriteTime
-                call MPI_Ibcast(this%TerminateStatus_bcast, 1, MPI_INTEGER, NRootProc_R, Communicator_R, this%mpireqbcastTerm, ierror)
+                call MPI_Ibcast(TerminateStatus, 1, MPI_INTEGER, NRootProc_R, Communicator_R, this%mpireqbcastTerm, ierror)
                 this%doneBcastTerm = .true.
               end if
-            else ! RootProc.and..not.RootProc_R
+            else
               call MPI_Test(this%mpireqbcastTerm, this%doneBcastTerm, mpistatus, ierror)
-              if (this%doneBcastTerm) then
+              if (this%doneBcastTerm .and. TerminateStatus>0) then
+                !TerminateProgram=.true.
+                !if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.
                 write( IOBuffer, '("PE ",I0,"(W) received broadcast with termination status (",B0,") within step ",I0,"/",I0)' ) &
-&                      NProc_W, this%TerminateStatus_bcast, Step, StepTotal
+&                      NProc_W, TerminateStatus, Step, StepTotal
                 call LogWriteTime
-                TerminateStatus=this%TerminateStatus_bcast
               end if
-              !if (TerminateStatus>0) then
-              !  TerminateProgram=.true.
-              !  if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.
-              !end if
             end if
           end if
         else !.not.RootProc
@@ -2595,7 +2455,7 @@ end if
       if ( TerminateProgram ) then
         write( IOBuffer, '("terminating program after step ",I0,"/",I0)' ) Step,StepTotal
         call LogWriteTime
-        exit !***
+        exit
       end if
       ! Check for too many particles (GE only)
       if ( tooManyParticles ) exit
@@ -2629,31 +2489,31 @@ end if
     do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       !DC NOTE- way to discontinue calculation of simulations stopped by CC
       if (this%Ensemble(i)%isStopSimulation .eqv. .false. ) then
-        call RunMDStep( this%Ensemble(i) )
-      end if
+      call RunMDStep( this%Ensemble(i) )
+      end if      
     end do
 
-  !DC NOTE- this section facilitates middle level of simulation stop
+  !DC NOTE- this section facilitates middle level of simulation stop    
   if ((RootProc .eqv. .true.)) then
-      terminate_counter = 0
-      do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      terminate_counter = 0 
+      do i = this%firstEnsembleIdx, this%lastEnsembleIdx        
         if (this%Ensemble(i)%isStopSimulation .eqv. .true.) then
           terminate_counter = terminate_counter +1
         end if
       end do
 
       !DC DEBUG- message below is for indication of terminating in multiensemble case per step- validating the condition
-      ! write (*, '("Step:",I4," Ensemble:",I2,"-",I2," terminate_counter: ",I4," terminate_cc_multiensemble:", I12)') Step, this%firstEnsembleIdx, this%lastEnsembleIdx, terminate_counter, this%terminate_cc_multiensemble
+      ! write (*, '("Step:",I4," Ensemble:",I2,"-",I2," terminate_counter: ",I4," terminate_cc_multiensemble:", I12)') Step, this%firstEnsembleIdx, this%lastEnsembleIdx, terminate_counter, this%terminate_cc_multiensemble  
 
       if ( .not. Equilibration .and. &
       & (this%terminate_cc_multiensemble .eq. 0) .and. &
       & (terminate_counter .gt. (this%lastEnsembleIdx - this%firstEnsembleIdx)) ) then
         write( IOBuffer, '("Ensemble(s)",I3," : ",I3," stopped - the PU idle ")' ) this%firstEnsembleIdx, this%lastEnsembleIdx
         call LogWrite
-        !DC NOTE- this ensures that message will be printed only once
+        !DC NOTE- this ensures that message will be printed only once 
         !DC NOTE- signifies for other PU that this one is done
         !DC TODO- correct the index calculation for proper stop
-        this%terminate_cc_multiensemble = 1 + this%lastEnsembleIdx - this%firstEnsembleIdx
+        this%terminate_cc_multiensemble = 1 + this%lastEnsembleIdx - this%firstEnsembleIdx 
       end if
     end if
 
@@ -2976,7 +2836,7 @@ end if
     if( .not. RootProc ) return
 
     ! Update log file
-    write( IOBuffer, '("Saving second virial coefficient  results")' )
+    write( IOBuffer, '("Saving simulation results")' )
     call LogWrite
 
     ! Save ensemble results
@@ -3075,6 +2935,83 @@ end if
 
   end subroutine TSimulation_VisualClose
 
+!==============================================================!
+!  Subroutine TSimulation_VisualCCOpen                         !
+!==============================================================!
+
+  subroutine TSimulation_VisualCCOpen( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    !DC NOTE- Check for root process
+    if( .not. RootProc ) return    
+
+    !DC NOTE- Open ensemble visualisation files
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call VisualCCOpen( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_VisualCCOpen
+
+
+!==============================================================!
+!  Subroutine TSimulation_VisualCCUpdate                       !
+!==============================================================!
+
+  subroutine TSimulation_VisualCCUpdate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    !DC NOTE- Check for root process
+    if( .not. RootProc ) return
+
+    !DC NOTE- Return if equilibration
+    if( Equilibration ) return
+
+    !DC NOTE- Update ensemble visualisation files    
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx        
+      call VisualCCUpdate( this%Ensemble(i))        
+    end do
+    
+
+  end subroutine TSimulation_VisualCCUpdate
+
+
+!==============================================================!
+!  Subroutine TSimulation_VisualCCClose                        !
+!==============================================================!
+
+  subroutine TSimulation_VisualCCClose( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSimulation) :: this
+
+    ! Declare local variables
+    integer :: i
+
+    !DC NOTE- Check for root process
+    if( .not. RootProc ) return
+
+    !DC NOTE- Close ensemble visualisation files
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
+      call VisualCCClose( this%Ensemble(i) )
+    end do
+
+  end subroutine TSimulation_VisualCCClose
 
 !==============================================================!
 !  Subroutine TSimulation_CCOpen                               !
@@ -3125,7 +3062,7 @@ end if
 
     !DC NOTE- Check for root process
     if( .not. RootProc ) return
-
+    
     !DC NOTE- Close ensemble visualisation files
     do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       call CCClose( this%Ensemble(i) )
