@@ -5433,6 +5433,9 @@ loop5:  do nc = 1, this%NComponents
 
     if (UseIntDegFreed) call Force( this )
     call Atom2Unit( this )
+    if (UseIntDegFreed .and. Shake > 0 ) then
+      call QShake(this)
+    end if
     call Correct( this )
 
 #if CONSTR > 0
