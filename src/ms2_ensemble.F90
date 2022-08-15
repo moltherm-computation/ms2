@@ -11662,12 +11662,22 @@ loop2:        do nc = 1, this%NComponents
       end if
 
       ! Calculate distance
-      R1x = this%Component(this%ResidComp1)%Molecule%SiteMIEnm(this%ResidSite1)%RX(Numb1)
-      R1y = this%Component(this%ResidComp1)%Molecule%SiteMIEnm(this%ResidSite1)%RY(Numb1)
-      R1z = this%Component(this%ResidComp1)%Molecule%SiteMIEnm(this%ResidSite1)%RZ(Numb1)
-      R2x = this%Component(this%ResidComp2)%Molecule%SiteMIEnm(this%ResidSite2)%RX(Numb2)
-      R2y = this%Component(this%ResidComp2)%Molecule%SiteMIEnm(this%ResidSite2)%RY(Numb2)
-      R2z = this%Component(this%ResidComp2)%Molecule%SiteMIEnm(this%ResidSite2)%RZ(Numb2)
+      if( this%NMIEnmMax > 0 ) then
+        R1x = this%Component(this%ResidComp1)%Molecule%SiteMIEnm(this%ResidSite1)%RX(Numb1)
+        R1y = this%Component(this%ResidComp1)%Molecule%SiteMIEnm(this%ResidSite1)%RY(Numb1)
+        R1z = this%Component(this%ResidComp1)%Molecule%SiteMIEnm(this%ResidSite1)%RZ(Numb1)
+        R2x = this%Component(this%ResidComp2)%Molecule%SiteMIEnm(this%ResidSite2)%RX(Numb2)
+        R2y = this%Component(this%ResidComp2)%Molecule%SiteMIEnm(this%ResidSite2)%RY(Numb2)
+        R2z = this%Component(this%ResidComp2)%Molecule%SiteMIEnm(this%ResidSite2)%RZ(Numb2)
+      end if
+      if( this%NTT68Max > 0 ) then
+        R1x = this%Component(this%ResidComp1)%Molecule%SiteTT68(this%ResidSite1)%RX(Numb1)
+        R1y = this%Component(this%ResidComp1)%Molecule%SiteTT68(this%ResidSite1)%RY(Numb1)
+        R1z = this%Component(this%ResidComp1)%Molecule%SiteTT68(this%ResidSite1)%RZ(Numb1)
+        R2x = this%Component(this%ResidComp2)%Molecule%SiteTT68(this%ResidSite2)%RX(Numb2)
+        R2y = this%Component(this%ResidComp2)%Molecule%SiteTT68(this%ResidSite2)%RY(Numb2)
+        R2z = this%Component(this%ResidComp2)%Molecule%SiteTT68(this%ResidSite2)%RZ(Numb2)
+      end if
 
       drx = (R1x - R2x)
       drx = ( (drx -anint(drx))*this%BoxLength )**2
@@ -11730,12 +11740,21 @@ loop2:        do nc = 1, this%NComponents
       do j=1, pc2%NPart
 
         ! Calculate distance
-        R1x = pc1%Molecule%SiteMIEnm(this%ResidSite1)%RX(i)
-        R1y = pc1%Molecule%SiteMIEnm(this%ResidSite1)%RY(i)
-        R1z = pc1%Molecule%SiteMIEnm(this%ResidSite1)%RZ(i)
-        R2x = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RX(j)
-        R2y = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RY(j)
-        R2z = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RZ(j)
+        if( this%NMIEnmMax > 0 ) then
+          R1x = pc1%Molecule%SiteMIEnm(this%ResidSite1)%RX(i)
+          R1y = pc1%Molecule%SiteMIEnm(this%ResidSite1)%RY(i)
+          R1z = pc1%Molecule%SiteMIEnm(this%ResidSite1)%RZ(i)
+          R2x = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RX(j)
+          R2y = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RY(j)
+          R2z = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RZ(j)
+        end if
+        if( this%NTT68Max > 0 ) then
+          R1x = pc1%Molecule%SiteTT68(this%ResidSite1)%RX(i)
+          R1y = pc1%Molecule%SiteTT68(this%ResidSite1)%RY(i)
+          R1z = pc1%Molecule%SiteTT68(this%ResidSite1)%RZ(i)
+          R2x = pc2%Molecule%SiteTT68(this%ResidSite2)%RX(j)
+          R2y = pc2%Molecule%SiteTT68(this%ResidSite2)%RY(j)
+        end if
 
         drx = (R1x - R2x)
         drx = ( (drx -anint(drx))*this%BoxLength )**2
