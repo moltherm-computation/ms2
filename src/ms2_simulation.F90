@@ -1168,7 +1168,6 @@ contains
 
     this%terminate_cc_multiensemble = 0 !DC NOTE- initialize the global termination counter for multiensemble simulation
     !DC NOTE- Read option if the simulation is supposed to be Cluster criteria
-#if 0
     call FileReadParameter( str , iounit_params , IdIsClusterCriteria, .true. , 'no' )
     select case( str )
       case( 'yes', 'Yes', 'YES' , 'ok', 'OK', 'True', 'true', 'ja' )
@@ -1184,7 +1183,7 @@ contains
       case default
         call Error( 'Unknown Cluster Criteria control option :'//trim(str))
     end select
-#endif
+
 #if  TRANS == 1
 
     ! Read correlation function mode
