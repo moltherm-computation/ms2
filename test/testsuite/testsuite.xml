@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.297</tools4ms2version>
-	<caseRepositoryHash>954e2dc917f4fec95d6244e44c812d5be63e9b4a</caseRepositoryHash>
+	<caseRepositoryHash>3dbab36ed88af9a590b9cf489349a715fe554f7a</caseRepositoryHash>
 	<caseList>
 		<case name="einstein_CO2" file="einstein_CO2.xml" />
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
@@ -14,6 +14,7 @@
 		<case name="LJ126_site_mpi" file="LJ126_site_mpi.xml" />
 		<case name="MC" file="MC.xml" />
 		<case name="MC_298_rodgers" file="MC_298_rodgers.xml" />
+		<case name="MC_aceton_NPH" file="MC_aceton_NPH.xml" />
 		<case name="MC_commonequi" file="MC_commonequi.xml" />
 		<case name="MC_GE_aceton" file="MC_GE_aceton.xml" />
 		<case name="MC_GE_methaneCO2_250_x009_serial" file="MC_GE_methaneCO2_250_x009_serial.xml" />
