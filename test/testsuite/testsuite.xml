@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.297</tools4ms2version>
-	<caseRepositoryHash>a54eef0a353964787ca28739b0de12e4d39d1c62</caseRepositoryHash>
+	<caseRepositoryHash>4accf88a28b0ae193e7cbd5238abeea5859dfd2e</caseRepositoryHash>
 	<caseList>
 		<case name="einstein_CO2" file="einstein_CO2.xml" />
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
@@ -21,12 +21,12 @@
 		<case name="MC_gradins_GradInsInitialization" file="MC_gradins_GradInsInitialization.xml" />
 		<case name="MC_gradins_methaneCO2_250_serial" file="MC_gradins_methaneCO2_250_serial.xml" />
 		<case name="MChybrid_scalar_ReactionField" file="MChybrid_scalar_ReactionField.xml" />
-<!-- 		<case name="MC_leap_aceton" file="MC_leap_aceton.xml" /> -->
+		<case name="MC_leap_aceton" file="MC_leap_aceton.xml" />
 		<case name="MC_leap_aceton_MeOH_KBI" file="MC_leap_aceton_MeOH_KBI.xml" />
 		<case name="MC_NVE_gear_o2ace_fl-T400-x008" file="MC_NVE_gear_o2ace_fl-T400-x008.xml" />
 		<case name="MC_NVT_gradins_CO2" file="MC_NVT_gradins_CO2.xml" />
 		<case name="MC_optpressure" file="MC_optpressure.xml" />
-<!-- 		<case name="MC_optpressure_site" file="MC_optpressure_site.xml" /> -->
+		<case name="MC_optpressure_site" file="MC_optpressure_site.xml" />
 		<case name="MC_thermoInt_meoh" file="MC_thermoInt_meoh.xml" />
 		<case name="MC_ThermoInt" file="MC_ThermoInt.xml" />
 		<case name="MC_widom_hydrazineH2O_T391-x025_restart" file="MC_widom_hydrazineH2O_T391-x025_restart.xml" />
@@ -49,7 +49,7 @@
 		<case name="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1" file="MD_NVT_gear_hydrazineH2O_T391-x025_osmop1.xml" />
 		<case name="MD_NVT_leap_Ar_ensembleGroups" file="MD_NVT_leap_Ar_ensembleGroups.xml" />
 		<case name="MD_NVT_leap_CO2_alpha" file="MD_NVT_leap_CO2_alpha.xml" />
-<!-- 		<case name="MD_optpressure_site" file="MD_optpressure_site.xml" /> -->
+		<case name="MD_optpressure_site" file="MD_optpressure_site.xml" />
 		<case name="muVT" file="muVT.xml" />
 		<case name="muVT_AccInserts" file="muVT_AccInserts.xml" />
 		<case name="muVT_restart" file="muVT_restart.xml" />
@@ -68,7 +68,7 @@
 		<case name="TangToennies_site" file="TangToennies_site.xml" />
 		<case name="trans_24DAT" file="trans_24DAT.xml" />
 		<case name="trans_partMolEnth" file="trans_partMolEnth.xml" />
-<!-- 		<case name="trans_aceton_site" file="trans_aceton_site.xml" /> -->
+		<case name="trans_aceton_site" file="trans_aceton_site.xml" />
 		<case name="trans_KBI" file="trans_KBI.xml" />
 	</caseList>
 </testsuite>
