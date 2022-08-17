@@ -6,7 +6,6 @@
 	<np>4</np>
 	<reference>
 		<file>MC_NVT_gradins_CO2.rst</file>
-		<relativeTolerance>2e-13</relativeTolerance>
 	</reference>
 	<reference>
 		<file>MC_NVT_gradins_CO2_1.res</file>

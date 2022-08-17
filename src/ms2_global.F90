@@ -25,6 +25,10 @@
 !DEC$ MESSAGE:'Compiling ms2_global.F90...'
 #endif
 
+!#if MPI_VER>1
+! #define MPI_USE_MODULE
+!#endif
+
 !           __GFORTRAN__
 #if defined __GNUC__
 ! the gfortran preprocessor seems not to support the # operator
@@ -55,6 +59,13 @@
 #endif
 
 module ms2_global
+
+#if MPI_VER > 0 && defined(MPI_USE_MODULE)
+  use mpi
+  !use mpi_f08
+#endif
+
+  use ms2_version
 
 #ifdef _WIN32
   use dfport
@@ -98,9 +109,6 @@ module ms2_global
   character(*), parameter :: ProgramFileName = 'ms2'
 #endif
 
-  ! Version of program
-  character(*), parameter :: VersionString = 'v3.0'
-  real(RK)                :: ms2VersionNr = 3.0_RK
 #ifdef __DATE__
 #ifdef __TIME__
   character(*), parameter :: CompileTime = __DATE__ // ',' // __TIME__
@@ -954,7 +962,7 @@ module ms2_global
 #endif
   integer :: TerminateStatus = 0
 
-  integer, parameter :: IdErrorCodeBase = b'1000000000000000'   !=32768
+  integer, parameter :: IdErrorCodeBase = int(b'1000000000000000')   !=32768
   ! e.g. 10000 would be better to read for pure addition, but
   ! bits might code error type, origin (module&function),...
 
@@ -1224,7 +1232,9 @@ contains
     implicit none
 
     ! Include MPI header
+#if !defined(MPI_USE_MODULE)
     include 'mpif.h'
+#endif
 
     ! Declare arguments
     integer, intent(in) :: comm
@@ -1252,7 +1262,9 @@ contains
     implicit none
 
     ! Include MPI header
+#if !defined(MPI_USE_MODULE)
     include 'mpif.h'
+#endif
 
     ! Declare arguments
     integer, intent(in)         :: ngroups
@@ -1320,7 +1332,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -1779,7 +1791,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -1841,7 +1853,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -1900,7 +1912,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -2025,7 +2037,9 @@ contains
 ! subroutine Global_LogWrite_MPI(rank)
 !
 !     implicit none
+!#if !defined(MPI_USE_MODULE)
 !     include 'mpif.h'
+!#endif
 !
 !     ! Declare local variables
 !     integer, intent(in), optional      :: rank
@@ -2185,7 +2199,9 @@ contains
   subroutine Global_FileRewrite_parallel( iounit, filename )
 
     implicit none
+#if !defined(MPI_USE_MODULE)
     include 'mpif.h'
+#endif
     ! Declare arguments
     integer                       :: iounit
     character(*), intent(in)      :: filename
@@ -2216,7 +2232,9 @@ contains
   subroutine Global_FileAppend_parallel( iounit, filename )
 
     implicit none
+#if !defined(MPI_USE_MODULE)
     include 'mpif.h'
+#endif
     ! Declare arguments
     integer, intent(in)           :: iounit
     character(*), intent(in)      :: filename
@@ -2262,7 +2280,9 @@ contains
   subroutine Global_FileWriteNoAdvance_parallel( iounit )
 
     implicit none
+#if !defined(MPI_USE_MODULE)
     include 'mpif.h'
+#endif
     ! Declare arguments
     integer             :: mpistatus(MPI_STATUS_SIZE)
     integer, intent(in) :: iounit
@@ -2448,7 +2468,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -2563,7 +2583,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -2605,7 +2625,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -3055,7 +3075,7 @@ contains
     implicit none
 
 !     ! Include MPI header
-! #if MPI_VER > 0
+! #if MPI_VER > 0 && !defined(MPI_USE_MODULE)
 !     include 'mpif.h'
 ! #endif
 
@@ -3153,7 +3173,7 @@ subroutine time_left(time_limit)
 
     ! could also use (an extended version of) TStopwatch
 
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     ! Include MPI header
     include 'mpif.h'
 #endif
@@ -3248,7 +3268,7 @@ subroutine Global_printprocStatus(tag_string)
 
       implicit none
 
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
       ! Include MPI header
       include 'mpif.h'
 #endif

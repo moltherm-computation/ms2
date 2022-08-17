@@ -27,7 +27,16 @@
 !DEC$ MESSAGE:'Compiling ms2_molecule.F90...'
 #endif
 
+!#if MPI_VER>1
+! #define MPI_USE_MODULE
+!#endif
+
 module ms2_molecule
+
+#if MPI_VER > 0 && defined(MPI_USE_MODULE)
+  use mpi
+  !use mpi_f08
+#endif
 
   use ms2_global
   use ms2_site
@@ -207,7 +216,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -807,7 +816,6 @@ contains
     call FindMOI(this) ! if NDFRot < 0
     call ReadMOI(this) ! if NDFRot >= 0
 
-    write(*,*) "ndfrot = ", this%Unit(1)%NDFRot
     call FindNDF(this)
 
     ! check for elongation of rigid molecules
