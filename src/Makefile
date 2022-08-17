@@ -16,6 +16,8 @@ MPI      ?= 0
 OMP      ?= 0
 SP       ?= 0
 #---------------------------------------
+#USE_MPI_MODULE ?= 1
+#---------------------------------------
 #
 PROG     = ms2
 PROG     :=  $(PROG)_$(COMPILER)
@@ -107,6 +109,11 @@ ifeq ($(SPME),1)
   PROG     := $(PROG)_spme
 endif
 
+ifdef USE_MPI_MODULE
+  #CPPFLAGS += -DUSE_MPI_MODULE=$(USE_MPI_MODULE)
+  CPPFLAGS += -DUSE_MPI_MODULE
+endif
+
 SRCS =  ms2.F90 \
         ms2_stopwatch.F90 \
         ms2_global.F90 \
@@ -120,7 +127,8 @@ SRCS =  ms2.F90 \
         ms2_idf.F90 \
         ms2_interaction.F90 \
         ms2_potential.F90 \
-        ms2_accumulator.F90
+        ms2_accumulator.F90 \
+        ms2_version.F90
 
 OBJS =  $(foreach SRC,$(SRCS),$(basename $(SRC)).o)
 
@@ -169,6 +177,8 @@ endif
 #
 ms2.o: ms2_simulation.mod ms2_global.mod
 
+ms2_global.mod: ms2_version.mod
+
 ms2_simulation.mod: ms2_ensemble.mod ms2_accumulator.mod ms2_global.mod \
   ms2_stopwatch.mod
 
@@ -180,7 +190,7 @@ ms2_component.mod: ms2_molecule.mod ms2_site.mod \
 
 math_types.mod: ms2_global.mod
 
-ms2_molecule.mod: ms2_site.mod ms2_unit.mod ms2_idf.mod ms2_global.mod
+ms2_molecule.mod: ms2_site.mod ms2_global.mod ms2_unit.mod ms2_idf.mod
 
 ms2_unit.mod: ms2_site.mod ms2_global.mod
 
@@ -190,7 +200,7 @@ ms2_idf.mod:  ms2_global.mod
 
 ms2_interaction.mod: ms2_potential.mod ms2_component.mod ms2_global.mod
 
-ms2_potential.mod: ms2_site.mod ms2_idf.mod ms2_global.mod  ms2_molecule.mod math_types.mod
+ms2_potential.mod: ms2_site.mod ms2_idf.mod ms2_global.mod ms2_molecule.mod math_types.mod
 
 ms2_accumulator.mod: ms2_global.mod
 
