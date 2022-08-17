@@ -214,7 +214,7 @@ end type TSiteTT68
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK),pointer  :: r(:), or(:)
+    real(RK)          :: r(3), or(3)
     real(RK)          :: D
     real(RK)          :: mass
     real(RK)          :: shield
@@ -343,6 +343,7 @@ contains
     
     ! Declare local variables
     integer          :: stat
+
 
     ! Read site parameters
     if( UseIntDegFreed ) then

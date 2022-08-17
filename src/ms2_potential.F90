@@ -17257,7 +17257,7 @@ loop2:  do j = 1, j1
               end do
 
              else ! Improper dihedral angle
-   earg= arg-this%gamma0(1)
+               earg= arg-this%gamma0(1)
 
                ! Energy and forces:
                ! formulae  E = ForConst*earg**2

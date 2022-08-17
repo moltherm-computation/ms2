@@ -11746,7 +11746,6 @@ loop2:        do nc = 1, this%NComponents
           R1z = pc1%Molecule%SiteMIEnm(this%ResidSite1)%RZ(i)
           R2x = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RX(j)
           R2y = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RY(j)
-          R2z = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RZ(j)
         end if
         if( this%NTT68Max > 0 ) then
           R1x = pc1%Molecule%SiteTT68(this%ResidSite1)%RX(i)
@@ -13437,7 +13436,6 @@ loop2:        do nc = 1, this%NComponents
 #endif
           call Update( pc%SumVW, this%NPart * ( this%SumVolume%Average &
 &                    - pc%SumInvChemPot%Average / pc%SumInvChemPotRho%Average ) )
-            call Update( pc%SumHM, 0._RK )
 
           case( ChemPotMethodWidom )
             call Update( pc%SumVW, this%NPart * ( pc%SumChemPotVV%Average / pc%SumChemPotV%Average &
