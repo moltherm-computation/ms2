@@ -11026,6 +11026,7 @@ loop2:        do nc = 1, this%NComponents
           R1z = pc1%Molecule%SiteMIEnm(this%ResidSite1)%RZ(i)
           R2x = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RX(j)
           R2y = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RY(j)
+          R2z = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RZ(j)
         end if
         if( this%NTT68Max > 0 ) then
           R1x = pc1%Molecule%SiteTT68(this%ResidSite1)%RX(i)
@@ -11033,6 +11034,7 @@ loop2:        do nc = 1, this%NComponents
           R1z = pc1%Molecule%SiteTT68(this%ResidSite1)%RZ(i)
           R2x = pc2%Molecule%SiteTT68(this%ResidSite2)%RX(j)
           R2y = pc2%Molecule%SiteTT68(this%ResidSite2)%RY(j)
+          R2z = pc2%Molecule%SiteTT68(this%ResidSite2)%RZ(j)
         end if
 
         drx = (R1x - R2x)
@@ -12734,7 +12736,7 @@ loop2:        do nc = 1, this%NComponents
         if( LongRange .eq. Rfield ) then
           do i = 1, this%NComponents
             pc => this%Component(i)
-            if (pc%Molecule%NDipole > 0) then
+            if (pc%Molecule%NDipole > 0 .and. associated(pc%MueX)) then
               do kIndex = 1, pc%NPart
                   MX=MX+pc%MueX(kIndex, 1)
                   MY=MY+pc%MueY(kIndex, 1)
