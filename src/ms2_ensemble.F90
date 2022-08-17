@@ -11551,7 +11551,7 @@ loop2:        do nc = 1, this%NComponents
         if( LongRange .eq. Rfield ) then
           do i = 1, this%NComponents
             pc => this%Component(i)
-            if (pc%Molecule%NDipole > 0) then
+            if (pc%Molecule%NDipole > 0 .and. associated(pc%MueX)) then
               do kIndex = 1, pc%NPart
                   MX=MX+pc%MueX(kIndex)
                   MY=MY+pc%MueY(kIndex)
