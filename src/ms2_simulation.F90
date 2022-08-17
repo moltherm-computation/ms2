@@ -31,16 +31,7 @@
 !DEC$ MESSAGE:'Compiling ms2_simulation.F90...'
 #endif
 
-!#if MPI_VER>1
-! #define MPI_USE_MODULE
-!#endif
-
 module ms2_simulation
-
-#if MPI_VER > 0 && defined(MPI_USE_MODULE)
-  use mpi
-  !use mpi_f08
-#endif
 
   use ms2_global
   use ms2_ensemble
@@ -259,7 +250,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -1553,7 +1544,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -1763,6 +1754,10 @@ contains
         if ( (LongRange .eq. Ewald) .or. (LongRange .eq. PME) ) then
           this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
         end if
+
+         ! Set all potential energy matrices
+         call Energy( this%Ensemble(j), this%Ensemble(j)%EPot )
+         call UpdateEnergy( this%Ensemble(j) )
 
       end do
     endif   ! SimulationType .eq. MonteCarlo
@@ -2112,7 +2107,28 @@ eqloop: do
     ! (the equilibration is finished. From now on, every process runs its own simulation etc.)
 #if MPI_VER > 0 
     if (SimulationType .eq. MonteCarlo .and. CommonEqui) then 
-
+      
+      do k = this%firstEnsembleIdx, this%lastEnsembleIdx
+          do i = 1, this%Ensemble(k)%NRealComponents
+            do j = 1, this%Ensemble(k)%NRealComponents
+              pi => this%Ensemble(k)%Interaction(j, i)
+              n1 = pi%NPart1 * pi%NUnit1
+              n2 = pi%NPart2 * pi%NUnit2
+        
+              call MPI_Allreduce( pi%EPot(1:n1, 1:n2), pi%EPotNew(1:n1, 1:n2), n1*n2 , &
+&                  MPI_RK, MPI_SUM, Communicator, ierror )
+              pi%EPot(1:n1, 1:n2) =  pi%EPotNew(1:n1, 1:n2)
+       
+              if ( this%Ensemble(k)%OptPressure ) then
+                call MPI_Allreduce( pi%Virial(1:n1, 1:n2) ,pi%VirialNew(1:n1, 1:n2), n1*n2 , &
+&                    MPI_RK, MPI_SUM, Communicator, ierror )
+                pi%Virial(1:n1, 1:n2)  =  pi%VirialNew(1:n1, 1:n2)
+              endif
+            end do
+          end do
+      end do
+      
+      
       if (multNodes) then
       
         if (RootProc) then
@@ -2184,7 +2200,10 @@ eqloop: do
         if ( (LongRange .eq. Ewald) .or. (LongRange .eq. PME) ) then
           this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
         end if
-
+        
+        ! Set all potential energy matrices
+        call Energy( this%Ensemble(j), this%Ensemble(j)%EPot )
+        call UpdateEnergy( this%Ensemble(j) )
       end do
 
 
@@ -2370,7 +2389,7 @@ eqloop: do
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -2596,7 +2615,7 @@ end if
     implicit none
 
   ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
     ! Declare arguments
@@ -2697,7 +2716,7 @@ end if
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -3467,7 +3486,7 @@ end if
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -3533,7 +3552,7 @@ end if
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
