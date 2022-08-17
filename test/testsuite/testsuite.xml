@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.297</tools4ms2version>
-	<caseRepositoryHash>3dbab36ed88af9a590b9cf489349a715fe554f7a</caseRepositoryHash>
+	<caseRepositoryHash>a54eef0a353964787ca28739b0de12e4d39d1c62</caseRepositoryHash>
 	<caseList>
 		<case name="einstein_CO2" file="einstein_CO2.xml" />
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
@@ -38,7 +38,7 @@
 		<case name="MD_gear_hydrazineH2O_T391-x025_restart" file="MD_gear_hydrazineH2O_T391-x025_restart.xml" />
 		<case name="MD_gear_methaneCO2_250_cluster" file="MD_gear_methaneCO2_250_cluster.xml" />
 		<case name="MD_gear_methaneCO2_250_x009_osmop2" file="MD_gear_methaneCO2_250_x009_osmop2.xml" />
-<!-- 		<case name="MD_gear_o2ace_fl-T400-x008" file="MD_gear_o2ace_fl-T400-x008.xml" /> -->
+		<case name="MD_gear_o2ace_fl-T400-x008" file="MD_gear_o2ace_fl-T400-x008.xml" />
 		<case name="MD_KBI_multi_comp" file="MD_KBI_multi_comp.xml" />
 		<case name="MD_leap_aceton_MeOH_KBI" file="MD_leap_aceton_MeOH_KBI.xml" />
 		<case name="MD_leap_hydrazineH2O_T391-x025_hbond" file="MD_leap_hydrazineH2O_T391-x025_hbond.xml" />
