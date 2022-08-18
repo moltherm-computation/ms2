@@ -16923,10 +16923,10 @@ loop2:  do j = 1, j1
     ! Declare local variables
     real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:)
     real(RK)          :: RijRkj, RijSquared, RkjSquared
-    type(vector)      :: R1, R2, R3, Rij, Rkj
+    type(vector)      :: R1, R2, R3, Rij, Rkj, fa, fb, faa, fbb
     real(RK)          :: EPotLocal
     real(RK)          :: ForConst, Angle, Angle0, dAngle, cosa, sina
-    real(RK)          :: abc, sab, cab, fab, fbb, faa, fax, fay, faz,  fbx, fby, fbz
+    real(RK)          :: abc, sab, cab, fab
 
 
     integer           :: i, i1
@@ -17005,27 +17005,24 @@ loop2:  do j = 1, j1
          sab = -2._RK*abc/sina
          cab = sab*cosa
 
-         fab = sab/RijRkj
-         faa = cab/RijSquared
-         fbb = cab/RkjSquared
+         faa = SCALE_VECTOR(Rij, cab/RijSquared)
+         fbb = SCALE_VECTOR(Rkj, cab/RkjSquared)
 
-         fax = fab*Rkj%x-faa*Rij%x
-         fay = fab*Rkj%y-faa*Rij%y
-         faz = fab*Rkj%z-faa*Rij%z
+         fa = SCALE_VECTOR(Rkj, sab/RijRkj)
+         fa = SUB_VECTOR(fa, faa)
 
-         fbx = fab*Rij%x-fbb*Rkj%x
-         fby = fab*Rij%y-fbb*Rkj%y
-         fbz = fab*Rij%z-fbb*Rkj%z
+         fb = SCALE_VECTOR(Rij, sab/RijRkj)
+         fb = SUB_VECTOR(fb, fbb)
 
-         FX1(i) = FX1(i) - fax
-         FY1(i) = FY1(i) - fay
-         FZ1(i) = FZ1(i) - faz
-         FX2(i) = FX2(i) + fax + fbx
-         FY2(i) = FY2(i) + fay + fby
-         FZ2(i) = FZ2(i) + faz + fbz
-         FX3(i) = FX3(i) - fbx
-         FY3(i) = FY3(i) - fby
-         FZ3(i) = FZ3(i) - fbz
+         FX1(i) = FX1(i) - fa%x
+         FY1(i) = FY1(i) - fa%y
+         FZ1(i) = FZ1(i) - fa%z
+         FX2(i) = FX2(i) + fa%x + fb%x
+         FY2(i) = FY2(i) + fa%y + fb%y
+         FZ2(i) = FZ2(i) + fa%z + fb%z
+         FX3(i) = FX3(i) - fb%x
+         FY3(i) = FY3(i) - fb%y
+         FZ3(i) = FZ3(i) - fb%z
        end do
 
     ! Update potential energy, no contribution to virial!
@@ -17183,48 +17180,36 @@ loop2:  do j = 1, j1
 
     implicit none
 
-    ! Declare arguments
-    type(TPotDihedral)     :: this
-    real(RK), intent(in out) :: EPot
-    real(RK), intent(in out) :: EPotIntra_Dihedral
-    real(RK), intent(in)     :: BoxLength
+    ! Declare arguments                               (i)            (l)
+    type(TPotDihedral)     :: this !                    \            /
+    real(RK), intent(in out) :: EPot !                a  \          / c
+    real(RK), intent(in out) :: EPotIntra_Dihedral !      (j)-----(m)
+    real(RK), intent(in)     :: BoxLength !                     b
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:), FX3(:), FY3(:), FZ3(:), FX4(:), FY4(:), FZ4(:)
+    type(TIdfDihedral) :: dihedral
     real(RK)          :: EPotLocal, VirialLocal
     real(RK)          :: num, den, de1
     real(RK)          :: ab, bc, ac, aa, bb, cc, axb, bxc, co, si, signum, arg, earg
-    real(RK)          :: deri,dnum,dden,ffi,ffj,ffk,ffl
-    type(vector)      :: a, b, c, Rj, Ri, Rm, Rl
+    real(RK)          :: deri,dnum,dden, df(4)
+    type(vector)      :: Rij(3), R(4)
 
-    integer           :: i, i1, j
+    integer           :: i, i1, j, iSite, iBond
 #if MPI_VER > 0
      integer           :: i0
 #endif
 
+    dihedral = this%Dihedral
+
 #if MPI_VER > 0
-    i0 = this%Dihedral%NPart0
-    i1 = this%Dihedral%NPart2
+    i0 = dihedral%NPart0
+    i1 = dihedral%NPart2
 #else
-     i1 = this%Dihedral%NPart
+    i1 = dihedral%NPart
 #endif
 
     EPotLocal   = 0._RK
     VirialLocal = 0._RK
-
-    ! Assign pointers
-     FX1 => this%Dihedral%F(1)%X
-     FY1 => this%Dihedral%F(1)%Y
-     FZ1 => this%Dihedral%F(1)%Z
-     FX2 => this%Dihedral%F(2)%X !                  (i)            (l)
-     FY2 => this%Dihedral%F(2)%Y !                    \            /
-     FZ2 => this%Dihedral%F(2)%Z !                  a  \          / c
-     FX3 => this%Dihedral%F(3)%X !                      (j)-----(m)
-     FY3 => this%Dihedral%F(3)%Y !                            b
-     FZ3 => this%Dihedral%F(3)%Z
-     FX4 => this%Dihedral%F(4)%X
-     FY4 => this%Dihedral%F(4)%Y
-     FZ4 => this%Dihedral%F(4)%Z
 
       ! Loop over molecules
 #if MPI_VER > 0
@@ -17232,10 +17217,9 @@ loop2:  do j = 1, j1
 #else
       do i = 1, i1
 #endif
-        Ri = vector(this%Dihedral%R(1)%X(i), this%Dihedral%R(1)%Y(i), this%Dihedral%R(1)%Z(i))
-        Rj = vector(this%Dihedral%R(2)%X(i), this%Dihedral%R(2)%Y(i), this%Dihedral%R(2)%Z(i))
-        Rm = vector(this%Dihedral%R(3)%X(i), this%Dihedral%R(3)%Y(i), this%Dihedral%R(3)%Z(i))
-        Rl = vector(this%Dihedral%R(4)%X(i), this%Dihedral%R(4)%Y(i), this%Dihedral%R(4)%Z(i))
+        do iSite = 1, 4
+            R(iSite) = vector(dihedral%R(iSite)%X(i), dihedral%R(iSite)%Y(i), dihedral%R(iSite)%Z(i))
+        end do
 
 !CDIR NODEP
 
@@ -17243,27 +17227,23 @@ loop2:  do j = 1, j1
         if (this%nmax .eq. 0) then
            earg = 1._RK + cos(-this%gamma0(1))
            EPotLocal = EPotLocal + earg * this%ForConst(1)
+
         else
-          ! Calculate vectors IJ, JK, KL
-          a = SUB_VECTOR(Rj, Ri)
-          b = SUB_VECTOR(Rm, Rj)
-          c = SUB_VECTOR(Rl, Rm)
+            do iBond = 1, 3
 
-          a = SUB_ANINT_VECTOR(a)
-          a = SCALE_VECTOR(a, BoxLength)
+                ! Calculate vectors IJ, JK, KL
+                Rij(iBond) = SUB_VECTOR(R(iBond + 1), R(iBond))
+                Rij(iBond) = SUB_ANINT_VECTOR(Rij(iBond))
+                Rij(iBond) = SCALE_VECTOR(Rij(iBond), BoxLength)
 
-          b = SUB_ANINT_VECTOR(b)
-          b = SCALE_VECTOR(b, BoxLength)
+            end do
 
-          c = SUB_ANINT_VECTOR(c)
-          c = SCALE_VECTOR(c, BoxLength)
-
-          ab = SCALAR_PRODUCT(a, b)
-          bc = SCALAR_PRODUCT(b, c)
-          ac = SCALAR_PRODUCT(a, c)
-          aa = SCALAR_PRODUCT(a, a)
-          bb = SCALAR_PRODUCT(b, b)
-          cc = SCALAR_PRODUCT(c, c)
+          ab = SCALAR_PRODUCT(Rij(1), Rij(2))
+          bc = SCALAR_PRODUCT(Rij(2), Rij(3))
+          ac = SCALAR_PRODUCT(Rij(1), Rij(3))
+          aa = SCALAR_PRODUCT(Rij(1), Rij(1))
+          bb = SCALAR_PRODUCT(Rij(2), Rij(2))
+          cc = SCALAR_PRODUCT(Rij(3), Rij(3))
 
           ! Vector products
           axb = (aa*bb) - (ab*ab)
@@ -17284,7 +17264,7 @@ loop2:  do j = 1, j1
             if ( co .lt. -1._RK ) co = -1._RK
 
             ! sign of angle:
-            signum = a%x*(b%y*c%z-c%y*b%z)+a%y*(b%z*c%x-c%z*b%x)+a%z*(b%x*c%y-c%x*b%y)
+            signum = Rij(1)%x*(Rij(2)%y*Rij(3)%z-Rij(3)%y*Rij(2)%z)+Rij(1)%y*(Rij(2)%z*Rij(3)%x-Rij(3)%z*Rij(2)%x)+Rij(1)%z*(Rij(2)%x*Rij(3)%y-Rij(3)%x*Rij(2)%y)
 
             ! Value of angle:
             arg = sign( acos(co), signum)
@@ -17322,58 +17302,58 @@ loop2:  do j = 1, j1
              de1 = deri/den/si
 
             ! X components
-            dnum = c%x*bb - b%x*bc
-            dden = ( ab*b%x - a%x*bb )*bxc
-            FFI = (dnum - dden) * de1
-            dnum = ((b%x-a%x)*bc - ab*c%x ) + (2.0*ac*b%x - c%x*bb)
-            dden = axb*(bc*c%x-b%x*cc) + (a%x*bb-aa*b%x-ab*(b%x-a%x))*bxc
-            FFJ = (dnum - dden) * de1
-            dnum = ab*b%x - a%x*bb
-            dden = axb*( bb*c%x - bc*b%x )
-            FFL = (dnum - dden) * de1
-            FFK = -(ffi+ffj+ffl)
+            dnum = Rij(3)%x*bb - Rij(2)%x*bc
+            dden = ( ab*Rij(2)%x - Rij(1)%x*bb )*bxc
+            df(1) = (dnum - dden) * de1
+            dnum = ((Rij(2)%x-Rij(1)%x)*bc - ab*Rij(3)%x ) + (2.0*ac*Rij(2)%x - Rij(3)%x*bb)
+            dden = axb*(bc*Rij(3)%x-Rij(2)%x*cc) + (Rij(1)%x*bb-aa*Rij(2)%x-ab*(Rij(2)%x-Rij(1)%x))*bxc
+            df(2) = (dnum - dden) * de1
+            dnum = ab*Rij(2)%x - Rij(1)%x*bb
+            dden = axb*( bb*Rij(3)%x - bc*Rij(2)%x )
+            df(4) = (dnum - dden) * de1
+            df(3) = -(df(1)+df(2)+df(4))
 
-            ! Forces
-            FX1(i) = FX1(i)+ffi
-            FX2(i) = FX2(i)+ffj
-            FX3(i) = FX3(i)+ffk
-            FX4(i) = FX4(i)+ffl
+            do iSite = 1, 4
+
+                dihedral%F(iSite)%X(i) = dihedral%F(iSite)%X(i) + df(iSite)
+
+            end do
 
             ! Y components
-            dnum = c%y*bb - b%y*bc
-            dden = ( ab*b%y - a%y*bb )*bxc
-            FFI = (dnum - dden) * de1
-            dnum = ((b%y-a%y)*bc - ab*c%y ) + (2.0*ac*b%y - c%y*bb)
-            dden = axb*(bc*c%y-b%y*cc) + (a%y*bb-aa*b%y-ab*(b%y-a%y))*bxc
-            FFJ = (dnum - dden) * de1
-            dnum = ab*b%y - a%y*bb
-            dden = axb*( bb*c%y - bc*b%y )
-            FFL = (dnum - dden) * de1
-            FFK = -(ffi+ffj+ffl)
+            dnum = Rij(3)%y*bb - Rij(2)%y*bc
+            dden = ( ab*Rij(2)%y - Rij(1)%y*bb )*bxc
+            df(1) = (dnum - dden) * de1
+            dnum = ((Rij(2)%y-Rij(1)%y)*bc - ab*Rij(3)%y ) + (2.0*ac*Rij(2)%y - Rij(3)%y*bb)
+            dden = axb*(bc*Rij(3)%y-Rij(2)%y*cc) + (Rij(1)%y*bb-aa*Rij(2)%y-ab*(Rij(2)%y-Rij(1)%y))*bxc
+            df(2) = (dnum - dden) * de1
+            dnum = ab*Rij(2)%y - Rij(1)%y*bb
+            dden = axb*( bb*Rij(3)%y - bc*Rij(2)%y )
+            df(4) = (dnum - dden) * de1
+            df(3) = -(df(1)+df(2)+df(4))
 
-            ! Forces
-            FY1(i) = FY1(i)+ffi
-            FY2(i) = FY2(i)+ffj
-            FY3(i) = FY3(i)+ffk
-            FY4(i) = FY4(i)+ffl
+            do iSite = 1, 4
 
-            ! Z components
-            dnum = c%z*bb - b%z*bc
-            dden = ( ab*b%z - a%z*bb )*bxc
-            FFI = (dnum - dden) * de1
-            dnum = ((b%z-a%z)*bc - ab*c%z ) + (2.0*ac*b%z - c%z*bb)
-            dden = axb*(bc*c%z-b%z*cc) + (a%z*bb-aa*b%z-ab*(b%z-a%z))*bxc
-            FFJ = (dnum - dden) * de1
-            dnum = ab*b%z - a%z*bb
-            dden = axb*( bb*c%z - bc*b%z )
-            FFL = (dnum - dden) * de1
-            FFK = -(ffi+ffj+ffl)
+                dihedral%F(iSite)%Y(i) = dihedral%F(iSite)%Y(i) + df(iSite)
 
-            ! Forces
-            FZ1(i) = FZ1(i)+ffi
-            FZ2(i) = FZ2(i)+ffj
-            FZ3(i) = FZ3(i)+ffk
-            FZ4(i) = FZ4(i)+ffl
+            end do
+
+            ! Z components)%
+            dnum = Rij(3)%z*bb - Rij(2)%z*bc
+            dden = ( ab*Rij(2)%z - Rij(1)%z*bb )*bxc
+            df(1) = (dnum - dden) * de1
+            dnum = ((Rij(2)%z-Rij(1)%z)*bc - ab*Rij(3)%z ) + (2.0*ac*Rij(2)%z - Rij(3)%z*bb)
+            dden = axb*(bc*Rij(3)%z-Rij(2)%z*cc) + (Rij(1)%z*bb-aa*Rij(2)%z-ab*(Rij(2)%z-Rij(1)%z))*bxc
+            df(2) = (dnum - dden) * de1
+            dnum = ab*Rij(2)%z - Rij(1)%z*bb
+            dden = axb*( bb*Rij(3)%z - bc*Rij(2)%z )
+            df(4) = (dnum - dden) * de1
+            df(3) = -(df(1)+df(2)+df(4))
+
+            do iSite = 1, 4
+
+                dihedral%F(iSite)%Z(i) = dihedral%F(iSite)%Z(i) + df(iSite)
+
+            end do
 
           endif ! den>0
         endif ! nmax/=0
