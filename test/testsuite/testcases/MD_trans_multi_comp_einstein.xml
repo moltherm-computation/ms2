@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MD_trans_multi_comp_einstein.par</parFile>
+	<name>MD_trans_multi_comp_einstein</name>
+	<np>3</np>
+	<compilerOption>TRANS</compilerOption>
+	<reference>
+		<file>MD_trans_multi_comp_einstein_1.rav</file>
+	</reference>
+	<reference>
+		<file>MD_trans_multi_comp_einstein_1.res</file>
+	</reference>
+	<reference>
+		<file>MD_trans_multi_comp_einstein_1.rtr</file>
+	</reference>
+	<reference>
+		<file>MD_trans_multi_comp_einstein_1.run</file>
+	</reference>
+	<reference>
+		<file>MD_trans_multi_comp_einstein_2.rav</file>
+	</reference>
+	<reference>
+		<file>MD_trans_multi_comp_einstein_2.res</file>
+	</reference>
+	<reference>
+		<file>MD_trans_multi_comp_einstein_2.rtr</file>
+	</reference>
+	<reference>
+		<file>MD_trans_multi_comp_einstein_2.run</file>
+	</reference>
+<!-- 	<reference>
+		<file>MD_trans_multi_comp_einstein.rst</file>
+	</reference> -->
+</testcase>

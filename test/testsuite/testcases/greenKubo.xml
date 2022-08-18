@@ -61,9 +61,9 @@
 	<reference>
 		<file>2500_Einstein_128_3.res</file>
 	</reference>
-	<reference>
+<!-- 	<reference>
 		<file>2500_Einstein_128_3.rst</file>
-	</reference>
+	</reference> -->
 	<reference>
 		<file>2500_Einstein_128_3.rtr</file>
 	</reference>

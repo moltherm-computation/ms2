@@ -22,16 +22,11 @@
 !DEC$ MESSAGE:'Compiling ms2_accumulator.F90...'
 #endif
 
-!#if MPI_VER>1
-! #define MPI_USE_MODULE
-!#endif
-
 
 module ms2_accumulator
 
 #if MPI_VER > 0 && defined(MPI_USE_MODULE)
-  use mpi
-  !use mpi_f08
+  use mpi_f08
 #endif
 
   use ms2_global
@@ -492,12 +487,12 @@ contains
   end subroutine TAccumulator_Error
 
 
-  subroutine writeAverages(this, iounit_result, iounit_runave, optionalFormatString, parallelMC)
+  subroutine writeAverages(this, resultFile, runaveFile, optionalFormatString, parallelMC)
 
     implicit none
 
     type(TAccumulator) :: this
-    integer            :: iounit_result, iounit_runave
+    type(TFile)        :: resultFile, runaveFile
     logical            :: parallelMC
     character(len=*), intent(in), optional :: optionalFormatString
     character(:), allocatable :: formatString
@@ -512,19 +507,19 @@ contains
     if (parallelMC) then
 
         write( IOBuffer, formatString) this%BlockAverage
-        call FileWriteNoAdvance_parallel(iounit_result)
+        call FileWriteNoAdvance_parallel(resultFile)
 
         write( IOBuffer, formatString) this%Average
-        call FileWriteNoAdvance_parallel(iounit_runave)
+        call FileWriteNoAdvance_parallel(runaveFile)
 
     else
 #endif
 
     write( IOBuffer, formatString) this%BlockAverage
-    call FileWriteNoAdvance(iounit_result)
+    call FileWriteNoAdvance(resultFile)
 
     write( IOBuffer, formatString) this%Average
-    call FileWriteNoAdvance(iounit_runave)
+    call FileWriteNoAdvance(runaveFile)
 
 #if MPI_VER > 0
     end if
@@ -533,12 +528,12 @@ contains
   end subroutine writeAverages
 
 
-  subroutine writeAverageAndVariance(this, variableName, iounit_errors, reducedTitle)
+  subroutine writeAverageAndVariance(this, variableName, errorsFile, reducedTitle)
 
     implicit none
 
     type(TAccumulator) :: this
-    integer, intent(in)        :: iounit_errors
+    type(TFile), intent(in)        :: errorsFile
     character(:), allocatable    :: formatString
     character(len=*), intent(in)    :: variableName
     logical, optional :: reducedTitle
@@ -558,8 +553,8 @@ contains
 
     write( IOBuffer, formatString) this%Average, this%Variance
 
-    call FileWrite(iounit_errors)
-    call FileWriteBlank(iounit_errors)
+    call FileWrite(errorsFile)
+    call FileWriteBlank(errorsFile)
 
   end subroutine writeAverageAndVariance
 
@@ -724,8 +719,8 @@ contains
       end if
     end if
     ! Save contents to restart file
-    write( iounit_restart, '(I10)' ) j
-    if( j > 0 ) write( iounit_restart, '(ES20.12E3, ";", I10)' ) &
+    write( restartFile%iounit, '(I10)' ) j
+    if( j > 0 ) write( restartFile%iounit, '(ES20.12E3, ";", I10)' ) &
 &     ( this%BlockSum(i), this%NBlockSum(i), i = 1, j )
 
   end subroutine TAccumulator_RestartSave
@@ -754,10 +749,10 @@ contains
     ! Check for root process
     if( RootProc ) then
       ! Read contents from restart file
-      read( iounit_restart, '(I10)' ) i
-      !read( iounit_restart, '(ES20.12E3, X, I10)' ) ( this%BlockSum(j), this%NBlockSum(j), j = 1, i )
+      read( restartFile%iounit, '(I10)' ) i
+      !read( restartFile%iounit, '(ES20.12E3, X, I10)' ) ( this%BlockSum(j), this%NBlockSum(j), j = 1, i )
       do j = 1, i ! should be equivalent to the previous line, which produced an "input conversion error"
-        read( iounit_restart, '(ES20.12E3, 1X, I10)' ) this%BlockSum(j), this%NBlockSum(j)
+        read( restartFile%iounit, '(ES20.12E3, 1X, I10)' ) this%BlockSum(j), this%NBlockSum(j)
       end do
     endif
     

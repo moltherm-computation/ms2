@@ -347,7 +347,7 @@ contains
 
     ! Read site parameters
     if( UseIntDegFreed ) then
-        call FileReadParameter( this%SiteId, iounit_potmod, IdMIE_SiteId, .false. )
+        call FileReadParameter( this%SiteId, potmodFile%iounit, IdMIE_SiteId, .false. )
     end if
     
     nullify ( this%r )
@@ -356,8 +356,8 @@ contains
 
       select case( LJorMIE )
       case( 'MIE' ) !Case: Mie-Potential
-         call FileReadParameter( this%mie_n, iounit_potmod, IdMIE_n, .false. ) !read parameters n and m for mie-potential
-         call FileReadParameter( this%mie_m, iounit_potmod, IdMIE_m, .false. )
+         call FileReadParameter( this%mie_n, potmodFile%iounit, IdMIE_n, .false. ) !read parameters n and m for mie-potential
+         call FileReadParameter( this%mie_m, potmodFile%iounit, IdMIE_m, .false. )
             if ( this%mie_n == 4._RK) this%mie_n = 3.99999_RK !to avoid poles in the correction functions
             if ( this%mie_m == 4._RK) this%mie_m = 3.99999_RK
             if ( this%mie_n == 5._RK) this%mie_n = 4.99999_RK
@@ -366,12 +366,12 @@ contains
          this%mie_n = 12._RK
          this%mie_m = 6._RK
       end select
-    call FileReadParameter( this%r(1), iounit_potmod, IdMIEnm_r1, .false. )
-    call FileReadParameter( this%r(2), iounit_potmod, IdMIEnm_r2, .false. )
-    call FileReadParameter( this%r(3), iounit_potmod, IdMIEnm_r3, .false. )
-    call FileReadParameter( this%sig, iounit_potmod, IdMIEnm_sig, .false. )
-    call FileReadParameter( this%eps, iounit_potmod, IdMIEnm_eps, .false. )
-    call FileReadParameter( this%mass, iounit_potmod, IdMIEnm_mass, .false. )
+    call FileReadParameter( this%r(1), potmodFile%iounit, IdMIEnm_r1, .false. )
+    call FileReadParameter( this%r(2), potmodFile%iounit, IdMIEnm_r2, .false. )
+    call FileReadParameter( this%r(3), potmodFile%iounit, IdMIEnm_r3, .false. )
+    call FileReadParameter( this%sig, potmodFile%iounit, IdMIEnm_sig, .false. )
+    call FileReadParameter( this%eps, potmodFile%iounit, IdMIEnm_eps, .false. )
+    call FileReadParameter( this%mass, potmodFile%iounit, IdMIEnm_mass, .false. )
 
 
     ! Convert to SI units
@@ -673,24 +673,24 @@ contains
     ! Save site parameters
     if( UseIntDegFreed ) then 
         write( IOBuffer, '(I3)' ) this%SiteId
-        call FileWriteParameter( iounit_normal, IdMIE_SiteId )
+        call FileWriteParameter( normalFile%iounit, IdMIE_SiteId )
     end if
     write( IOBuffer, '(G20.10, T32, "# : ", G20.10)' ) this%mie_n
-    call FileWriteParameter( iounit_normal, IdMIE_n )
+    call FileWriteParameter( normalFile%iounit, IdMIE_n )
     write( IOBuffer, '(G20.10, T32, "# : ", G20.10)' ) this%mie_m
-    call FileWriteParameter( iounit_normal, IdMIE_m )
+    call FileWriteParameter( normalFile%iounit, IdMIE_m )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(1) * UnitLength / Angstroem, this%r(1)
-    call FileWriteParameter( iounit_normal, IdMIEnm_r1 )
+    call FileWriteParameter( normalFile%iounit, IdMIEnm_r1 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(2) * UnitLength / Angstroem, this%r(2)
-    call FileWriteParameter( iounit_normal, IdMIEnm_r2 )
+    call FileWriteParameter( normalFile%iounit, IdMIEnm_r2 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(3) * UnitLength / Angstroem, this%r(3)
-    call FileWriteParameter( iounit_normal, IdMIEnm_r3 )
+    call FileWriteParameter( normalFile%iounit, IdMIEnm_r3 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%sig * UnitLength / Angstroem, this%sig
-    call FileWriteParameter( iounit_normal, IdMIEnm_sig )
+    call FileWriteParameter( normalFile%iounit, IdMIEnm_sig )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%eps * UnitEnergy / kBoltzmann, this%eps
-    call FileWriteParameter( iounit_normal, IdMIEnm_eps )
+    call FileWriteParameter( normalFile%iounit, IdMIEnm_eps )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%mass * UnitMass * 1000._RK * NAvogadro, this%mass
-    call FileWriteParameter( iounit_normal, IdMIEnm_mass )
+    call FileWriteParameter( normalFile%iounit, IdMIEnm_mass )
 
 
   end subroutine TSiteMIEnm_Save
@@ -709,16 +709,16 @@ contains
     type(TSiteTT68) :: this
 
     ! Read site parameters
-    call FileReadParameter( this%r(1), iounit_potmod, IdTT68_r1, .false. )
-    call FileReadParameter( this%r(2), iounit_potmod, IdTT68_r2, .false. )
-    call FileReadParameter( this%r(3), iounit_potmod, IdTT68_r3, .false. )
-    call FileReadParameter( this%tt_a, iounit_potmod, IdTT68_A, .false. )
-    call FileReadParameter( this%tt_b, iounit_potmod, IdTT68_b, .false. )
-    call FileReadParameter( this%alph, iounit_potmod, IdTT68_alpha, .false. )
-    call FileReadParameter( this%c6, iounit_potmod, IdTT68_C6, .false. )
-    call FileReadParameter( this%c8, iounit_potmod, IdTT68_C8, .false. )
-    call FileReadParameter( this%mass, iounit_potmod, IdTT68_mass, .false. )
-    call FileReadParameter( this%shield, iounit_potmod, IdTT68_shield, .false. )
+    call FileReadParameter( this%r(1), potmodFile%iounit, IdTT68_r1, .false. )
+    call FileReadParameter( this%r(2), potmodFile%iounit, IdTT68_r2, .false. )
+    call FileReadParameter( this%r(3), potmodFile%iounit, IdTT68_r3, .false. )
+    call FileReadParameter( this%tt_a, potmodFile%iounit, IdTT68_A, .false. )
+    call FileReadParameter( this%tt_b, potmodFile%iounit, IdTT68_b, .false. )
+    call FileReadParameter( this%alph, potmodFile%iounit, IdTT68_alpha, .false. )
+    call FileReadParameter( this%c6, potmodFile%iounit, IdTT68_C6, .false. )
+    call FileReadParameter( this%c8, potmodFile%iounit, IdTT68_C8, .false. )
+    call FileReadParameter( this%mass, potmodFile%iounit, IdTT68_mass, .false. )
+    call FileReadParameter( this%shield, potmodFile%iounit, IdTT68_shield, .false. )
 
     ! Convert to SI units
     this%r(:) = this%r(:) * Angstroem
@@ -1027,25 +1027,25 @@ contains
 
     ! Save site parameters
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(1) * UnitLength / Angstroem, this%r(1)
-    call FileWriteParameter( iounit_normal, IdTT68_r1 )
+    call FileWriteParameter( normalFile%iounit, IdTT68_r1 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(2) * UnitLength / Angstroem, this%r(2)
-    call FileWriteParameter( iounit_normal, IdTT68_r2 )
+    call FileWriteParameter( normalFile%iounit, IdTT68_r2 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(3) * UnitLength / Angstroem, this%r(3)
-    call FileWriteParameter( iounit_normal, IdTT68_r3 )
+    call FileWriteParameter( normalFile%iounit, IdTT68_r3 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%tt_a * UnitEnergy / kBoltzmann, this%tt_a
-    call FileWriteParameter( iounit_normal, IdTT68_A )
+    call FileWriteParameter( normalFile%iounit, IdTT68_A )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%tt_b * Angstroem / UnitLength, this%tt_b
-    call FileWriteParameter( iounit_normal, IdTT68_b )
+    call FileWriteParameter( normalFile%iounit, IdTT68_b )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%alph * Angstroem / UnitLength, this%alph
-    call FileWriteParameter( iounit_normal, IdTT68_alpha )
+    call FileWriteParameter( normalFile%iounit, IdTT68_alpha )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%c6 * UnitEnergy * UnitVolume**2 / ( kBoltzmann * Angstroem**6 ), this%c6
-    call FileWriteParameter( iounit_normal, IdTT68_C6 )
+    call FileWriteParameter( normalFile%iounit, IdTT68_C6 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%c8 * UnitEnergy * UnitVolume**2 * UnitLength**2 / ( kBoltzmann * Angstroem**8 ), this%c8
-    call FileWriteParameter( iounit_normal, IdTT68_C8 )
+    call FileWriteParameter( normalFile%iounit, IdTT68_C8 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%mass * UnitMass * 1000._RK * NAvogadro, this%mass
-    call FileWriteParameter( iounit_normal, IdTT68_mass )
+    call FileWriteParameter( normalFile%iounit, IdTT68_mass )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%shield * UnitLength / Angstroem, this%shield
-    call FileWriteParameter( iounit_normal, IdTT68_shield )
+    call FileWriteParameter( normalFile%iounit, IdTT68_shield )
 
   end subroutine TSiteTT68_Save
 
@@ -1064,15 +1064,15 @@ contains
 
     ! Read site parameters
     if( UseIntDegFreed ) then
-      call FileReadParameter( this%SiteId, iounit_potmod, IdCharge_SiteId, .false. )
+      call FileReadParameter( this%SiteId, potmodFile%iounit, IdCharge_SiteId, .false. )
     end if
 
-    call FileReadParameter( this%r(1), iounit_potmod, IdCharge_r1, .false. )
-    call FileReadParameter( this%r(2), iounit_potmod, IdCharge_r2, .false. )
-    call FileReadParameter( this%r(3), iounit_potmod, IdCharge_r3, .false. )
-    call FileReadParameter( this%e, iounit_potmod, IdCharge_e, .false. )
-    call FileReadParameter( this%mass, iounit_potmod, IdCharge_mass, .false. )
-    call FileReadParameter( this%shield, iounit_potmod, IdCharge_shield, .false. )
+    call FileReadParameter( this%r(1), potmodFile%iounit, IdCharge_r1, .false. )
+    call FileReadParameter( this%r(2), potmodFile%iounit, IdCharge_r2, .false. )
+    call FileReadParameter( this%r(3), potmodFile%iounit, IdCharge_r3, .false. )
+    call FileReadParameter( this%e, potmodFile%iounit, IdCharge_e, .false. )
+    call FileReadParameter( this%mass, potmodFile%iounit, IdCharge_mass, .false. )
+    call FileReadParameter( this%shield, potmodFile%iounit, IdCharge_shield, .false. )
 
     ! Convert to SI units
     this%r(:) = this%r(:) * Angstroem
@@ -1356,20 +1356,20 @@ contains
     ! Save site parameters
     if( UseIntDegFreed ) then
         write( IOBuffer, '(I3)' ) this%SiteId
-        call FileWriteParameter( iounit_normal, IdCharge_SiteId ) 
+        call FileWriteParameter( normalFile%iounit, IdCharge_SiteId )
     end if
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(1) * UnitLength / Angstroem, this%r(1)
-    call FileWriteParameter( iounit_normal, IdCharge_r1 )
+    call FileWriteParameter( normalFile%iounit, IdCharge_r1 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(2) * UnitLength / Angstroem, this%r(2)
-    call FileWriteParameter( iounit_normal, IdCharge_r2 )
+    call FileWriteParameter( normalFile%iounit, IdCharge_r2 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(3) * UnitLength / Angstroem, this%r(3)
-    call FileWriteParameter( iounit_normal, IdCharge_r3 )
+    call FileWriteParameter( normalFile%iounit, IdCharge_r3 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%e * UnitCharge / ElementaryCharge,  this%e
-    call FileWriteParameter( iounit_normal, IdCharge_e )
+    call FileWriteParameter( normalFile%iounit, IdCharge_e )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%mass * UnitMass * 1000._RK * NAvogadro, this%mass
-    call FileWriteParameter( iounit_normal, IdCharge_mass )
+    call FileWriteParameter( normalFile%iounit, IdCharge_mass )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%shield * UnitLength / Angstroem, this%shield
-    call FileWriteParameter( iounit_normal, IdCharge_shield )
+    call FileWriteParameter( normalFile%iounit, IdCharge_shield )
 
   end subroutine TSiteCharge_Save
 
@@ -1391,17 +1391,17 @@ contains
 
     ! Read site parameters
     if( UseIntDegFreed ) then
-        call FileReadParameter( this%SiteId, iounit_potmod, IdDipole_SiteId, .false. )
+        call FileReadParameter( this%SiteId, potmodFile%iounit, IdDipole_SiteId, .false. )
     end if
 
-    call FileReadParameter( this%r(1), iounit_potmod, IdDipole_r1, .false. )
-    call FileReadParameter( this%r(2), iounit_potmod, IdDipole_r2, .false. )
-    call FileReadParameter( this%r(3), iounit_potmod, IdDipole_r3, .false. )
-    call FileReadParameter( theta, iounit_potmod, IdDipole_theta, .false. )
-    call FileReadParameter( phi, iounit_potmod, IdDipole_phi, .false. )
-    call FileReadParameter( this%D, iounit_potmod, IdDipole_D, .false. )
-    call FileReadParameter( this%mass, iounit_potmod, IdDipole_mass, .false. )
-    call FileReadParameter( this%shield, iounit_potmod, IdDipole_shield, .false. )
+    call FileReadParameter( this%r(1), potmodFile%iounit, IdDipole_r1, .false. )
+    call FileReadParameter( this%r(2), potmodFile%iounit, IdDipole_r2, .false. )
+    call FileReadParameter( this%r(3), potmodFile%iounit, IdDipole_r3, .false. )
+    call FileReadParameter( theta, potmodFile%iounit, IdDipole_theta, .false. )
+    call FileReadParameter( phi, potmodFile%iounit, IdDipole_phi, .false. )
+    call FileReadParameter( this%D, potmodFile%iounit, IdDipole_D, .false. )
+    call FileReadParameter( this%mass, potmodFile%iounit, IdDipole_mass, .false. )
+    call FileReadParameter( this%shield, potmodFile%iounit, IdDipole_shield, .false. )
 
     ! Convert to SI units
     this%r(:) = this%r(:) * Angstroem
@@ -1754,28 +1754,28 @@ contains
     ! Save site parameters
     if( UseIntDegFreed ) then 
         write( IOBuffer, '(I3)' ) this%SiteId
-        call FileWriteParameter( iounit_normal, IdDipole_SiteId )
+        call FileWriteParameter( normalFile%iounit, IdDipole_SiteId )
     end if
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(1) * UnitLength / Angstroem, this%r(1)
-    call FileWriteParameter( iounit_normal, IdDipole_r1 )
+    call FileWriteParameter( normalFile%iounit, IdDipole_r1 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(2) * UnitLength / Angstroem, this%r(2)
-    call FileWriteParameter( iounit_normal, IdDipole_r2 )
+    call FileWriteParameter( normalFile%iounit, IdDipole_r2 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(3) * UnitLength / Angstroem, this%r(3)
-    call FileWriteParameter( iounit_normal, IdDipole_r3 )
+    call FileWriteParameter( normalFile%iounit, IdDipole_r3 )
     write( IOBuffer, '(G20.10)' ) acos( this%or(3) ) * DegreesInRadian
-    call FileWriteParameter( iounit_normal, IdDipole_theta )
+    call FileWriteParameter( normalFile%iounit, IdDipole_theta )
     if( abs( this%or(1) ) > Zero .or. abs( this%or(2) ) > Zero ) then
       write( IOBuffer, '(G20.10)' ) atan2( this%or(2), this%or(1) ) * DegreesInRadian
     else
       write( IOBuffer, '(G20.10)' ) 0._RK
     end if
-    call FileWriteParameter( iounit_normal, IdDipole_phi )
+    call FileWriteParameter( normalFile%iounit, IdDipole_phi )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%D * UnitDipole * DebyesInSI, this%D
-    call FileWriteParameter( iounit_normal, IdDipole_D )
+    call FileWriteParameter( normalFile%iounit, IdDipole_D )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%mass * UnitMass * 1000._RK * NAvogadro, this%mass
-    call FileWriteParameter( iounit_normal, IdDipole_mass )
+    call FileWriteParameter( normalFile%iounit, IdDipole_mass )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%shield * UnitLength / Angstroem, this%shield
-    call FileWriteParameter( iounit_normal, IdDipole_shield )
+    call FileWriteParameter( normalFile%iounit, IdDipole_shield )
 
   end subroutine TSiteDipole_Save
 
@@ -1797,17 +1797,17 @@ contains
 
     ! Read site parameters
     if( UseIntDegFreed ) then
-        call FileReadParameter( this%SiteId, iounit_potmod, IdQuadrupole_SiteId, .false. )
+        call FileReadParameter( this%SiteId, potmodFile%iounit, IdQuadrupole_SiteId, .false. )
     end if
 
-    call FileReadParameter( this%r(1), iounit_potmod, IdQuadrupole_r1, .false. )
-    call FileReadParameter( this%r(2), iounit_potmod, IdQuadrupole_r2, .false. )
-    call FileReadParameter( this%r(3), iounit_potmod, IdQuadrupole_r3, .false. )
-    call FileReadParameter( theta, iounit_potmod, IdQuadrupole_theta, .false. )
-    call FileReadParameter( phi, iounit_potmod, IdQuadrupole_phi, .false. )
-    call FileReadParameter( this%Q, iounit_potmod, IdQuadrupole_Q, .false. )
-    call FileReadParameter( this%mass, iounit_potmod, IdQuadrupole_mass, .false. )
-    call FileReadParameter( this%shield, iounit_potmod, IdQuadrupole_shield, .false. )
+    call FileReadParameter( this%r(1), potmodFile%iounit, IdQuadrupole_r1, .false. )
+    call FileReadParameter( this%r(2), potmodFile%iounit, IdQuadrupole_r2, .false. )
+    call FileReadParameter( this%r(3), potmodFile%iounit, IdQuadrupole_r3, .false. )
+    call FileReadParameter( theta, potmodFile%iounit, IdQuadrupole_theta, .false. )
+    call FileReadParameter( phi, potmodFile%iounit, IdQuadrupole_phi, .false. )
+    call FileReadParameter( this%Q, potmodFile%iounit, IdQuadrupole_Q, .false. )
+    call FileReadParameter( this%mass, potmodFile%iounit, IdQuadrupole_mass, .false. )
+    call FileReadParameter( this%shield, potmodFile%iounit, IdQuadrupole_shield, .false. )
 
     ! Convert to SI units
     this%r(:) = this%r(:) * Angstroem
@@ -2164,28 +2164,28 @@ contains
     ! Save site parameters
     if( UseIntDegFreed ) then 
         write( IOBuffer, '(I3)' ) this%SiteId
-        call FileWriteParameter( iounit_normal, IdQuadrupole_SiteId )
+        call FileWriteParameter( normalFile%iounit, IdQuadrupole_SiteId )
     end if
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(1) * UnitLength / Angstroem, this%r(1)
-    call FileWriteParameter( iounit_normal, IdQuadrupole_r1 )
+    call FileWriteParameter( normalFile%iounit, IdQuadrupole_r1 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(2) * UnitLength / Angstroem, this%r(2)
-    call FileWriteParameter( iounit_normal, IdQuadrupole_r2 )
+    call FileWriteParameter( normalFile%iounit, IdQuadrupole_r2 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(3) * UnitLength / Angstroem, this%r(3)
-    call FileWriteParameter( iounit_normal, IdQuadrupole_r3 )
+    call FileWriteParameter( normalFile%iounit, IdQuadrupole_r3 )
     write( IOBuffer, '(G20.10)' ) acos( this%or(3) ) * DegreesInRadian
-    call FileWriteParameter( iounit_normal, IdQuadrupole_theta )
+    call FileWriteParameter( normalFile%iounit, IdQuadrupole_theta )
     if( abs( this%or(1) ) > Zero .or. abs( this%or(2) ) > Zero ) then
       write( IOBuffer, '(G20.10)' ) atan2( this%or(2), this%or(1) ) * DegreesInRadian
     else
       write( IOBuffer, '(G20.10)' ) 0._RK
     end if
-    call FileWriteParameter( iounit_normal, IdQuadrupole_phi )
+    call FileWriteParameter( normalFile%iounit, IdQuadrupole_phi )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%Q * UnitQuadrupole * BuckinghamsInSI, this%Q
-    call FileWriteParameter( iounit_normal, IdQuadrupole_Q )
+    call FileWriteParameter( normalFile%iounit, IdQuadrupole_Q )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%mass * UnitMass * 1000._RK * NAvogadro, this%mass
-    call FileWriteParameter( iounit_normal, IdQuadrupole_mass )
+    call FileWriteParameter( normalFile%iounit, IdQuadrupole_mass )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%shield * UnitLength / Angstroem, this%shield
-    call FileWriteParameter( iounit_normal, IdQuadrupole_shield )
+    call FileWriteParameter( normalFile%iounit, IdQuadrupole_shield )
 
   end subroutine TSiteQuadrupole_Save
 

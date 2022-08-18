@@ -5,6 +5,7 @@ F90mpi           = mpif90
 # Initialize variable
 VERSIONDEPENDENDOPTION =
 
+ifneq ($(MPI_USE_MODULE), 1) # if MPI module is not used
 ifeq ($(MPI), 1) # if MPI is active
 
     # Get complete version, e.g. 5.4.0
@@ -20,6 +21,7 @@ ifeq ($(MPI), 1) # if MPI is active
         VERSIONDEPENDENDOPTION += -fallow-argument-mismatch -w
         # replace errors with warnings and hide ALL warnings
     endif
+endif
 endif
 
 OMPFLAGS         = -fopenmp
