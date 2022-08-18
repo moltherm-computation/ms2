@@ -514,15 +514,6 @@ module ms2_global
   character(*), parameter :: IdDihedral_ScaleLJ14          = 'ScaleLJ14'
   character(*), parameter :: IdDihedral_ScaleEl14          = 'ScaleEl14'
   character(*), parameter :: IdNFluct                      = 'NFluct'
-
-#if CONSTR > 0
-  character(*), parameter :: IdNCons                       = 'NConstr'
-  character(*), parameter :: IdCons1Comp                   = 'Constr1Typ'
-  character(*), parameter :: IdCons2Comp                   = 'Constr2Typ'
-  character(*), parameter :: IdCons1                       = 'Constr1'
-  character(*), parameter :: IdCons2                       = 'Constr2'
-  character(*), parameter :: IdConsR                       = 'ConstrDist'
-#endif
   character(*), parameter :: IdOptPressure                 = 'CalcPressure'
   character(*), parameter :: IdCommonEqui                  = 'CommonEqui'
 
@@ -660,6 +651,7 @@ module ms2_global
   integer, parameter :: EnsembleTypeGE  = 5                ! Grand Equilibrium muVT
   integer, parameter :: EnsembleTypeHA  = 6                ! Humid Air mupT 
   integer, parameter :: EnsembleTypeNPTSVC = 7             ! NpT + SVC
+  integer, parameter :: EnsembleTypeMUVT = 8               ! muVT
   integer            :: EnsembleType
   logical            :: ConstantTemperature, ConstantPressure
 
@@ -1010,11 +1002,7 @@ module ms2_global
   end interface
 
   interface LogWrite
-!#if MPI_VER > 0
-!    module procedure Global_LogWrite_MPI
-!#else
     module procedure Global_LogWrite
-!#endif
   end interface
 
   interface LogWriteNoAdvance
@@ -1520,12 +1508,13 @@ contains
     ParameterFileName = 'ms2.par'
     OutputNameTag='ms2out'
 #endif
-    RestartFileName=trim(OutputNameTag)//RestartFileExtension
 
 #if MPI_VER > 0
     call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
     call MPI_Bcast( OutputNameTag, len(OutputNameTag), MPI_CHARACTER, NRootProc, Communicator, ierror )
 #endif
+    
+    RestartFileName=trim(OutputNameTag)//RestartFileExtension
 
     ! Open log file
     call LogOpen
@@ -1678,7 +1667,7 @@ contains
       call LogWrite
       write( IOBuffer, '("Root process rank  :",I4)' ) NRootProc
       call LogWrite
-      call MPI_Attr_get(Communicator, MPI_HOST, hostrank, flag, ierror)
+      call MPI_Comm_get_attr(Communicator, MPI_HOST, hostrank, flag, ierror)
       if(ierror==0 .and. flag .and. hostrank/=MPI_PROC_NULL ) then
         write( IOBuffer, '("MPI Host rank      :",I4)' ) hostrank
         call LogWrite
@@ -1691,7 +1680,7 @@ contains
     call MPI_Gather(procname, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
 &                  ,procnames, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
 &                  ,NRootProc, Communicator, ierror)
-    call MPI_Attr_get(Communicator, MPI_IO, iorank, flag, ierror)
+    call MPI_Comm_get_attr(Communicator, MPI_IO, iorank, flag, ierror)
     call MPI_Gather(iorank, 1, MPI_INTEGER, ioranks, 1, MPI_INTEGER &
 &                  ,NRootProc, Communicator, ierror)
 
@@ -2029,37 +2018,6 @@ contains
 
   end subroutine Global_LogWrite
 
-! #if MPI_VER > 0
-! !==============================================================!
-! !  Subroutine Global_LogWrite_MPI                              !
-! !==============================================================!
-!
-! subroutine Global_LogWrite_MPI(rank)
-!
-!     implicit none
-!#if !defined(MPI_USE_MODULE)
-!     include 'mpif.h'
-!#endif
-!
-!     ! Declare local variables
-!     integer, intent(in), optional      :: rank
-!     
-!     integer             :: mpistatus(MPI_STATUS_SIZE)
-! 
-!     
-!     if( present( rank ) .and. (rank .ne. NRootProc) ) then
-!       ! transfer IOBuffer to NRootProc
-!       call MPI_Sendrecv( IOBuffer, IOBufferLength, MPI_CHARACTER, NRootProc, mpimsgtag_log, &
-! &                        IOBuffer, IOBufferLength, MPI_CHARACTER, rank,      mpimsgtag_log, &
-! &                        Communicator, mpistatus, ierror)
-!       !call MPI_Barrier( Communicator, ierror )
-!     endif
-!     ! execute LogWrite on NRootProc
-!     if( RootProc ) call Global_LogWrite()
-!
-!   end subroutine Global_LogWrite_MPI
-! #endif
-
 
 !==============================================================!
 !  Subroutine Global_LogWriteNoAdvance                         !
@@ -2286,11 +2244,15 @@ contains
     ! Declare arguments
     integer             :: mpistatus(MPI_STATUS_SIZE)
     integer, intent(in) :: iounit
-
+    
     ! Write contents of buffer to file
     call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)
-
-
+    !call MPI_File_write_all(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)    ! collective operation (still with individual file pointer)
+    !
+    !call MPI_File_write_shared(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER,mpistatus,ierror) ! write (a whole dataset at once) with a shared file handle
+    !call MPI_File_write_ordered(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER, mpistatus, ierror)  ! collective operation to write ranks one after another with a shared file handler
+    !
+    
   end subroutine Global_FileWriteNoAdvance_parallel
 
 #endif
@@ -3198,13 +3160,8 @@ subroutine time_left(time_limit)
     if (FirstCAll)then
 #if MPI_VER > 0
        first_time = MPI_WTIME()
-!#elif defined ENABLE_OMP ! comment put by simon -> otherwise omp error
-!       first_time = omp_get_wtime()   !-"-
+
 #else
-       !first_time = real(time())
-       !!first_time = rtc()
-       ! call system_clock(count_rate=sysclkcountrate,count_max=sysclkcountmax)
-       ! call system_clock(sysclkcount)
        call system_clock(sysclkcount, sysclkcountrate, sysclkcountmax)
        first_time = real(real(sysclkcount)/sysclkcountrate)
 #endif
@@ -3212,17 +3169,12 @@ subroutine time_left(time_limit)
     end if
 #if MPI_VER > 0
     time_elapsed = MPI_WTIME() - first_time
-!#elif defined ENABLE_OMP   ! comment put by simon -> otherwise omp error
-!      first_time = omp_get_wtime() - first_time        ! -"-
+
 #else
     !time_elapsed = real(time()) - first_time
     call system_clock(sysclkcount, sysclkcountrate, sysclkcountmax)
     time_elapsed = real(sysclkcount)/sysclkcountrate - first_time
 #endif
-
-! Get CPU time consumed by each task and compute the maximum value
-!    call cpu_time(cputime)
-! CPU time (!= elapsed wallclock time) does not make much sense here! There are also problems with multithreaded programs and "wrap around".
 
 #ifdef KARLS
 ! getenv delivers the value of the environment variable JMS_t

@@ -650,7 +650,7 @@ contains
       read( iounit_restart, '(I10)' ) i
       !read( iounit_restart, '(ES20.12E3, X, I10)' ) ( this%BlockSum(j), this%NBlockSum(j), j = 1, i )
       do j = 1, i ! should be equivalent to the previous line, which produced an "input conversion error"
-        read( iounit_restart, '(ES20.12E3, X, I10)' ) this%BlockSum(j), this%NBlockSum(j)
+        read( iounit_restart, '(ES20.12E3, 1X, I10)' ) this%BlockSum(j), this%NBlockSum(j)
       end do
     endif
     
