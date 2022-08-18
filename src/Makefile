@@ -43,8 +43,6 @@ $(info H-Bonding statistics enabled)
 endif
 ifeq ($(SPME),1)
 $(info Smooth Particle Mesh Ewald enabled)
-$(info SPME needs the fftw3 library, make sure that it is availabe. \
-E.g. install libfftw3-dev or load the module if possible.)
 endif
 ifeq ($(MPI),1)
 $(info MPI enabled)

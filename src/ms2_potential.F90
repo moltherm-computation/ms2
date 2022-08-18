@@ -58,7 +58,7 @@ module ms2_potential
     real(RK)                  :: BoxlengthInv, BoxLengthThird
     real(RK)                  :: ScaleLJ14
     integer, pointer, contiguous          :: NInCutoff(:), CutoffPartner(:, :)
-    integer(KIND=8), pointer, contiguous          :: RDFSum(:)
+    integer, pointer, contiguous          :: RDFSum(:)
 #if OSMOP == 2
     real(RK), pointer, contiguous         :: VirialProfile(:)
 #endif
@@ -110,7 +110,7 @@ module ms2_potential
     logical                    :: SameComponent
 
     integer, pointer, contiguous          :: NInCutoff(:), CutoffPartner(:, :)
-    integer(KIND=8), pointer, contiguous          :: RDFSum(:)
+    integer, pointer, contiguous          :: RDFSum(:)
 #if OSMOP == 2
     real(RK), pointer, contiguous         :: VirialProfile(:)
 #endif
@@ -664,6 +664,7 @@ contains
     real(RK), intent(in)        :: ScaleSigma, ScaleEpsilon
 
     ! Declare local variables
+    real(RK) :: RCutoff3Inv, RCutoff9Inv
     real(RK) :: tau, tau1, tau2
     integer :: k, ende
     real(RK) :: Pi2mie_a, Piminus23mie_a, Pi29mie_a
@@ -700,7 +701,7 @@ contains
       this%Sigma = this%Sigma * ScaleSigma
       this%Epsilon = this%Epsilon * ScaleEpsilon
     end if
-    this%EpsilonMie_a = this%Mie_a * this%Epsilon
+    this%EpsilonMie_a = 4._RK * this%Epsilon
 
     ! if this potential is intra
     if (this%SameComponent .and. Molecule1%hasIntraLJEl ) then
@@ -760,11 +761,13 @@ contains
 
       endif
     else ! Site-site cutoff or both sites in center of mass
-     this%EPotCorr = Pi2mie_a * this%Epsilon * ( TICCu(-this%Mie_nHalf, RCutoff, this%Sigma**2._RK) - TICCu(-this%Mie_mHalf, RCutoff, this%Sigma**2._RK) )
+      RCutoff3Inv = (this%Sigma / RCutoff)**3
+      RCutoff9Inv = RCutoff3Inv**3
+      this%EPotCorr = Pi89 * this%Epsilon * (RCutoff9Inv - 3._RK * RCutoff3Inv)
 
-     this%VirialCorr = Piminus23mie_a * this%Epsilon * ( TICCp(-this%Mie_nHalf, RCutoff, this%Sigma**2._RK) - TICCp(-this%Mie_mHalf, RCutoff, this%Sigma**2._RK) )
+      this%VirialCorr = Pi329 * this%Epsilon * (RCutoff9Inv - 1.5_RK * RCutoff3Inv)
 
-     this%d2EpotdV2Corr = Pi29mie_a * this%Epsilon *  ( TICCd2EpotdV2(-this%Mie_nHalf, RCutoff, this%Sigma**2._RK) - TICCd2EpotdV2(-this%Mie_mHalf, RCutoff, this%Sigma**2._RK) )
+      this%d2EpotdV2Corr = Pi89 * this%Epsilon *  ( TICCd2EpotdV2(-this%Mie_nHalf, RCutoff, this%Sigma**2) - TICCd2EpotdV2(-this%Mie_mHalf, RCutoff, this%Sigma**2) )
 
     end if
     this%EPotTestCorr = 2._RK * this%EPotCorr
@@ -1194,7 +1197,6 @@ contains
         PYi = PY1(i)
         PZi = PZ1(i)
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -1237,7 +1239,7 @@ loop1:  do k = 1, this%NInCutoff(unit)
             EPotLocal1 = RijMie_nInv - RijMie_mInv
             EPotLocal = EPotLocal + EPotLocal1
             EPotLocalInter = EPotLocalInter + EPotLocal1
-            Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
+            Fij = EpsilonMie_aF * RijSquaredInv**3 * (RijSquaredInv**3 - .5_RK) * RijSquaredInv
             FXij = Fij * RXij
             FYij = Fij * RYij
             FZij = Fij * RZij
@@ -1270,8 +1272,8 @@ loop2:    do m=1,NBinsDen
           end if
 #endif
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
-                           + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * RijSquaredInv**3 * (12._RK*RijSquaredInv**3  -  6._RK) * (sitecorr * sitecorr - (PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared)*Third*Third !xxxx LJ
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * RijSquaredInv**3 * (156._RK*RijSquaredInv**3 - 42._RK) *  sitecorr * sitecorr*Third*Third
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -1538,13 +1540,13 @@ loop3:  do j = j0, j1
     CTempZ(:)   = 0._RK
     tuTempX(:)  = 0._RK
     tuTempY(:)  = 0._RK
-    tuTempZ(:)  = 0._RK
+    tuTempz(:)  = 0._RK
     tlTempX(:)  = 0._RK
     tlTempY(:)  = 0._RK
-    tlTempZ(:)  = 0._RK
+    tlTempz(:)  = 0._RK
     tdTempX(:)  = 0._RK
     tdTempY(:)  = 0._RK
-    tdTempZ(:)  = 0._RK
+    tdTempz(:)  = 0._RK
 #endif
 
 
@@ -1743,7 +1745,6 @@ loop3:  do j = j0, j1
 #endif
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -2141,7 +2142,6 @@ loop3:  do j = j0, j1
       unit=this%NUnit1*(i-1)+this%Site1%UnitNumber
 
 !CDIR NODEP
-!NEC$ ivdep
 loop1:do k = 1, this%NInCutoff(unit)
         j = this%CutoffPartner(k, unit) ! Unit-partner of this unit
         if ( mod(j-this%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
@@ -2174,7 +2174,7 @@ loop1:do k = 1, this%NInCutoff(unit)
 !  Subroutine TPotMIEMIE_ChemicalPotential                     !
 !==============================================================!
 
-  subroutine TPotMIEMIE_ChemicalPotential( this, EPotTest)
+  subroutine TPotMIEMIE_ChemicalPotential( this, EPotTest )
 
     implicit none
 
@@ -2254,7 +2254,6 @@ loop1:do k = 1, this%NInCutoff(unit)
         unit = this%NUnit1*(i-1)+this%Site1%UnitNumber
 
 !CDIR NODEP
-!NEC$ ivdep
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, this%NUnit2)==0) then  ! choose only units, to which our Site2 correspond
@@ -2292,7 +2291,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
         RZi = RZ1(i)
         EPotLocal = 0._RK
 !CDIR NODEP
-!NEC$ ivdep
 loop2:  do j = 1, N2
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -2336,7 +2334,7 @@ loop2:  do j = 1, N2
     this%BoxLengthInv = BoxLengthInv
     this%BoxLengthThird = Third * BoxLength
     this%SigmaSquared = (this%Sigma * BoxLengthInv)**2
-    this%EpsilonMie_aF = this%EpsilonMie_a * BoxLengthInv / this%SigmaSquared
+    this%EpsilonMie_aF = 12._RK * this%EpsilonMie_a * BoxLengthInv / this%SigmaSquared
     this%RCutoffSquaredScaled = this%RCutoffSquared * BoxLengthInv**2
 
   end subroutine TPotMIEMIE_UpdateBoxLength
@@ -2805,7 +2803,6 @@ loop2:  do j = 1, N2
         PYi = PY1(i)
         PZi = PZ1(i)
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -3317,7 +3314,6 @@ loop3:  do j = j0, j1
 #endif
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -3706,7 +3702,6 @@ loop3:  do j = j0, j1
       RZi = RZ1(i)
 
 !CDIR NODEP
-!NEC$ ivdep
 loop1:do k = 1, this%NInCutoff(i)
         j = this%CutoffPartner(k, i)
         RXij = RXi - RX2(j)
@@ -3803,7 +3798,6 @@ loop1:do k = 1, this%NInCutoff(i)
         PZi = PZ1(i)
         EPotLocal = 0._RK
 !CDIR NODEP
-!NEC$ ivdep
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -3876,7 +3870,6 @@ loop1:  do k = 1, this%NInCutoff(i)
         RZi = RZ1(i)
         EPotLocal = 0._RK
 !CDIR NODEP
-!NEC$ ivdep
 loop2:  do j = 1, N2
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -4114,7 +4107,6 @@ loop2:  do j = 1, N2
       PZi = PZ1(i)
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -4406,7 +4398,6 @@ loop2:  do m=1,NBinsDen
       PZi = PZ1(i)
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -4682,13 +4673,13 @@ loop2:  do m=1,NBinsDen
     CTempZ(:)  = 0._RK
     tuTempX(:) = 0._RK
     tuTempY(:) = 0._RK
-    tuTempZ(:) = 0._RK
+    tuTempz(:) = 0._RK
     tlTempX(:) = 0._RK
     tlTempY(:) = 0._RK
-    tlTempZ(:) = 0._RK
+    tlTempz(:) = 0._RK
     tdTempX(:) = 0._RK
     tdTempY(:) = 0._RK
-    tdTempZ(:) = 0._RK
+    tdTempz(:) = 0._RK
 
     !TRANSPORT_END
 #endif
@@ -4805,9 +4796,9 @@ loop2:  do m=1,NBinsDen
     tdx1 => this%Site1%tdCx
     tdy1 => this%Site1%tdCy
     tdz1 => this%Site1%tdCz
-    tdx2 => this%Site2%tdCx
-    tdy2 => this%Site2%tdCy
-    tdz2 => this%Site2%tdCz
+    tdx2 => this%Site1%tdCx
+    tdy2 => this%Site1%tdCy
+    tdz2 => this%Site1%tdCz
     q1  => this%Site1%Qm0r(:, 1, 1)
     q2  => this%Site1%Qm0r(:, 2, 1)
     q3  => this%Site1%Qm0r(:, 3, 1)
@@ -4870,7 +4861,6 @@ loop2:  do m=1,NBinsDen
 #endif
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -5357,7 +5347,6 @@ loop2:  do m=1,NBinsDen
 #endif
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -5634,7 +5623,6 @@ loop2:  do m=1,NBinsDen
 
 
 !CDIR NODEP
-!NEC$ ivdep
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
@@ -5898,7 +5886,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
       PZi = PZ1(i)
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -6204,13 +6191,13 @@ loop2:  do m=1,NBinsDen
     CTempZ(:)  = 0._RK
     tuTempX(:) = 0._RK
     tuTempY(:) = 0._RK
-    tuTempZ(:) = 0._RK
+    tuTempz(:) = 0._RK
     tlTempX(:) = 0._RK
     tlTempY(:) = 0._RK
-    tlTempZ(:) = 0._RK
+    tlTempz(:) = 0._RK
     tdTempX(:) = 0._RK
     tdTempY(:) = 0._RK
-    tdTempZ(:) = 0._RK
+    tdTempz(:) = 0._RK
 #endif
 
 
@@ -6288,7 +6275,7 @@ loop2:  do m=1,NBinsDen
     VBz1 => this%Site1%vbCz
     VBx2 => this%Site2%vbDx
     VBy2 => this%Site2%vbDy
-    VBz2 => this%Site2%vbDz
+    VBz2 => this%Site2%vbdz
     VSux1=> this%Site1%vsuCx
     VSuy1=> this%Site1%vsuCy
     VSuz1=> this%Site1%vsuCz
@@ -6389,7 +6376,6 @@ loop2:  do m=1,NBinsDen
 #endif
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -6435,7 +6421,7 @@ loop1:do k = 1, this%NInCutoff(unit)
           CosTheta3 = 3._RK * CosTheta
           Epsilon1 = Epsilon * RijSquaredInv
           Epsilon2 = Epsilon1 * RijInv
-          EPotLocal1 = Epsilon1 * CosTheta              !Define EPotLocal 1
+          EPotlocal1 = Epsilon1 * CosTheta              !Define EPotLocal 1
           EPotLocal  = EPotLocal + EPotlocal1                         ! Uebereinstimmumg mit Price
           EPotLocalInter  = EPotLocalInter + EPotLocal1
           FXij = Epsilon2 * ( CosTheta3 * eX - OXj )                              ! F2 bei Price
@@ -6759,7 +6745,6 @@ loop2:  do m=1,NBinsDen
 
 
 !CDIR NODEP
-!NEC$ ivdep
 loop1:  do k = 1, this%NInCutoff(unit)
           j = this%CutoffPartner(k, unit)
           if ( mod(j-this%Site2%UnitNumber, nu2)==0) then  ! choose only units, to which our Site2 correspond
@@ -7028,7 +7013,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
       PZi = PZ1(i)
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -7337,13 +7321,13 @@ loop2:  do m=1,NBinsDen
     CTempZ(:)  = 0._RK
     tuTempX(:) = 0._RK
     tuTempY(:) = 0._RK
-    tuTempZ(:) = 0._RK
+    tuTempz(:) = 0._RK
     tlTempX(:) = 0._RK
     tlTempY(:) = 0._RK
-    tlTempZ(:) = 0._RK
+    tlTempz(:) = 0._RK
     tdTempX(:) = 0._RK
     tdTempY(:) = 0._RK
-    tdTempZ(:) = 0._RK
+    tdTempz(:) = 0._RK
 #endif
 
 !$OMP PARALLEL &
@@ -7520,7 +7504,6 @@ loop2:  do m=1,NBinsDen
 #endif
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -7562,7 +7545,7 @@ loop1:do k = 1, this%NInCutoff(unit)
           eX = RXij * RijInv                                                      ! Normierter Abstandsvektor
           eY = RYij * RijInv
           eZ = RZij * RijInv
-          CosTheta  = OXj * eX + OYj * eY + OZj * eZ
+          CosTheta  = OXj * ex + OYj * eY + OZj * eZ
           Epsilon1 = Epsilon * RijSquaredInv * RijInv
           EPotLocal1 = Epsilon1 * ( CosTheta * CosTheta - Third ) !Gabriela: Definition of EpotLocal1
           EPotLocal = EPotLocal + EPotlocal1
@@ -7661,15 +7644,6 @@ loop2:  do m=1,NBinsDen
         tdxi   = tdxi + 0.5 * PXij* txi
         tdyi   = tdyi + 0.5 * PYij* tyi
         tdzi   = tdzi + 0.5 * PZij* tzi
-        tuTempX(j)= tuTempX(j) + 0.5 * PXij* tyi
-        tuTempY(j)= tuTempY(j) + 0.5 * PXij* tzi
-        tuTempZ(j)= tuTempZ(j) + 0.5 * PYij* tzi
-        tlTempX(j)= tlTempX(j) + 0.5 * PYij* txi
-        tlTempY(j)= tlTempY(j) + 0.5 * PZij* txi
-        tlTempZ(j)= tlTempZ(j) + 0.5 * PZij* tyi
-        tdTempX(j)= tdTempX(j) + 0.5 * PXij* txi
-        tdTempY(j)= tdTempY(j) + 0.5 * PYij* tyi
-        tdTempZ(j)= tdTempZ(j) + 0.5 * PZij* tzi
 #endif
 
         end if
@@ -7765,17 +7739,17 @@ loop2:  do m=1,NBinsDen
     TZ2 = TZ2 + momTempZ
 
 #if  TRANS == 1
-   VSx2 = VSx2 + VSTempX
-   VSy2 = VSy2 + VSTempY
-   VSz2 = VSz2 + VSTempZ
+   VSx2 = VSx2 + VSTempX*BoxLength
+   VSy2 = VSy2 + VSTempY*BoxLength
+   VSz2 = VSz2 + VSTempZ*BoxLength
 
-   VSux2 = VSux2 + VSuTempX
-   VSuy2 = VSuy2 + VSuTempY
-   VSuz2 = VSuz2 + VSuTempZ
+   VSux2 = VSux2 + VSuTempX*BoxLength
+   VSuy2 = VSuy2 + VSuTempY*BoxLength
+   VSuz2 = VSuz2 + VSuTempZ*BoxLength
 
-   VBx2 = VBx2 + VBTempX
-   VBy2 = VBy2 + VBTempY
-   VBz2 = VBz2 + VBTempZ
+   VBx2 = VBx2 + VBTempX*BoxLength
+   VBy2 = VBy2 + VBTempY*BoxLength
+   VBz2 = VBz2 + VBTempZ*BoxLength
 
    Cx2 = Cx2 + CTempX
    Cy2 = Cy2 + CTempY
@@ -7893,7 +7867,6 @@ loop2:  do m=1,NBinsDen
      EPotLocal = 0._RK
 
 !CDIR NODEP
-!NEC$ ivdep
 
      unit = nu1*(i-1)+this%Site1%UnitNumber
 
@@ -8166,7 +8139,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
       TZi = TZ1(i)
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -8631,7 +8603,6 @@ loop2:  do m=1,NBinsDen
 #endif
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -8769,15 +8740,15 @@ loop2:  do m=1,NBinsDen
           tdxi   = tdxi + 0.5 * PXij* txir
           tdyi   = tdyi + 0.5 * PYij* tyir
           tdzi   = tdzi + 0.5 * PZij* tzir
-          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyir
-          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzir
-          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzir
-          tlTempX(j)= tlTempX(j) + 0.5*PYij*txir
-          tlTempY(j)= tlTempY(j) + 0.5*PZij*txir
-          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyir
-          tdTempX(j)= tdTempX(j) + 0.5*PXij*txir
-          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyir
-          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzir
+          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyi
+          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzi
+          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzi
+          tlTempX(j)= tlTempX(j) + 0.5*PYij*txi
+          tlTempY(j)= tlTempY(j) + 0.5*PZij*txi
+          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyi
+          tdTempX(j)= tdTempX(j) + 0.5*PXij*txi
+          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyi
+          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzi
 #endif
         end if
       end do loop1
@@ -8996,7 +8967,6 @@ loop2:  do m=1,NBinsDen
       EPotLocal = 0._RK
 
 !CDIR NODEP
-!NEC$ ivdep
 
       unit = nu1*(i-1)+this%Site1%UnitNumber
 
@@ -9304,7 +9274,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
         PZi = PZ1(i)
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -9751,13 +9720,13 @@ loop3:  do j = j0, j1
     CTempZ(:)  = 0._RK
     tuTempX(:) = 0._RK
     tuTempY(:) = 0._RK
-    tuTempZ(:) = 0._RK
+    tuTempz(:) = 0._RK
     tlTempX(:) = 0._RK
     tlTempY(:) = 0._RK
-    tlTempZ(:) = 0._RK
+    tlTempz(:) = 0._RK
     tdTempX(:) = 0._RK
     tdTempY(:) = 0._RK
-    tdTempZ(:) = 0._RK
+    tdTempz(:) = 0._RK
 #endif
 
 
@@ -9973,7 +9942,6 @@ loop3:  do j = j0, j1
 #endif
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -10126,15 +10094,15 @@ loop2:    do m=1,NBinsDen
           tdxi   = tdxi + 0.5 * PXij* txir
           tdyi   = tdyi + 0.5 * PYij* tyir
           tdzi   = tdzi + 0.5 * PZij* tzir
-          tuTempX(j)= tuTempX(j) + 0.5 * PXij*tyir
-          tuTempY(j)= tuTempY(j) + 0.5 * PXij*tzir
-          tuTempZ(j)= tuTempZ(j) + 0.5 * PYij*tzir
-          tlTempX(j)= tlTempX(j) + 0.5 * PYij*txir
-          tlTempY(j)= tlTempY(j) + 0.5 * PZij*txir
-          tlTempZ(j)= tlTempZ(j) + 0.5 * PZij*tyir
-          tdTempX(j)= tdTempX(j) + 0.5 * PXij*txir
-          tdTempY(j)= tdTempY(j) + 0.5 * PYij*tyir
-          tdTempZ(j)= tdTempZ(j) + 0.5 * PZij*tzir
+          tuTempX(j)= tuTempX(j) + 0.5 * PXij*tyi
+          tuTempY(j)= tuTempY(j) + 0.5 * PXij*tzi
+          tuTempZ(j)= tuTempZ(j) + 0.5 * PYij*tzi
+          tlTempX(j)= tlTempX(j) + 0.5 * PYij*txi
+          tlTempY(j)= tlTempY(j) + 0.5 * PZij*txi
+          tlTempZ(j)= tlTempZ(j) + 0.5 * PZij*tyi
+          tdTempX(j)= tdTempX(j) + 0.5 * PXij*txi
+          tdTempY(j)= tdTempY(j) + 0.5 * PYij*tyi
+          tdTempZ(j)= tdTempZ(j) + 0.5 * PZij*tzi
           !TRANSPORT_END
 #endif
           end if
@@ -10360,17 +10328,17 @@ loop3:  do j = j0, j1
     TZ2 = TZ2 + momTempZ
 
 #if  TRANS == 1
-   VSx2 = VSx2 + VSTempX
-   VSy2 = VSy2 + VSTempY
-   VSz2 = VSz2 + VSTempZ
+   VSx2 = VSx2 + VSTempX*BoxLength
+   VSy2 = VSy2 + VSTempY*BoxLength
+   VSz2 = VSz2 + VSTempZ*BoxLength
 
-   VSux2 = VSux2 + VSuTempX
-   VSuy2 = VSuy2 + VSuTempY
-   VSuz2 = VSuz2 + VSuTempZ
+   VSux2 = VSux2 + VSuTempX*BoxLength
+   VSuy2 = VSuy2 + VSuTempY*BoxLength
+   VSuz2 = VSuz2 + VSuTempZ*BoxLength
 
-   VBx2 = VBx2 + VBTempX
-   VBy2 = VBy2 + VBTempY
-   VBz2 = VBz2 + VBTempZ
+   VBx2 = VBx2 + VBTempX*BoxLength
+   VBy2 = VBy2 + VBTempY*BoxLength
+   VBz2 = VBz2 + VBTempZ*BoxLength
 
    Cx2 = Cx2 + CTempX
    Cy2 = Cy2 + CTempY
@@ -10507,7 +10475,6 @@ loop3:  do j = j0, j1
         EPotLocal = 0._RK
 
 !CDIR NODEP
-!NEC$ ivdep
 
         unit = nu1*(i-1)+this%Site1%UnitNumber
 
@@ -10570,7 +10537,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
         EPotLocal = 0._RK
 
 !CDIR NODEP
-!NEC$ ivdep
 loop2:  do j = 1, j1
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -10864,7 +10830,6 @@ loop2:  do j = 1, j1
         PZi = PZ1(i)
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -11536,7 +11501,6 @@ loop3:  do j = j0, j1
 #endif
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -11693,15 +11657,15 @@ loop2:    do m=1,NBinsDen
           tdxi   = tdxi + 0.5 * PXij*txir
           tdyi   = tdyi + 0.5 * PYij*tyir
           tdzi   = tdzi + 0.5 * PZij*tzir
-          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyir
-          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzir
-          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzir
-          tlTempX(j)= tlTempX(j) + 0.5*PYij*txir
-          tlTempY(j)= tlTempY(j) + 0.5*PZij*txir
-          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyir
-          tdTempX(j)= tdTempX(j) + 0.5*PXij*txir
-          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyir
-          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzir
+          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyi
+          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzi
+          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzi
+          tlTempX(j)= tlTempX(j) + 0.5*PYij*txi
+          tlTempY(j)= tlTempY(j) + 0.5*PZij*txi
+          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyi
+          tdTempX(j)= tdTempX(j) + 0.5*PXij*txi
+          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyi
+          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzi
           !TRANSPORT_END
 #endif
           end if
@@ -12082,7 +12046,6 @@ loop3:  do j = j0, j1
         EPotLocal = 0._RK
 
 !CDIR NODEP
-!NEC$ ivdep
 
         unit = nu1*(i-1)+this%Site1%UnitNumber
 
@@ -12142,7 +12105,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
         EPotLocal = 0._RK
 
 !CDIR NODEP
-!NEC$ ivdep
 loop2:  do j = 1, j1
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -12405,7 +12367,6 @@ loop2:  do j = 1, j1
       TYi = TY1(i)
       TZi = TZ1(i)
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:do m=1,NBinsDen
         if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -12859,7 +12820,6 @@ loop2:  do m=1,NBinsDen
       TZi = TZ1(i)
 
 !CDIR NODEP
-!NEC$ ivdep
 #if  TRANS == 1
         !TRANSPORT_start
         VSxi = VSx1(i)
@@ -13034,15 +12994,15 @@ loop2:  do m=1,NBinsDen
           tdxi   = tdxi + 0.5 * PXij *txir
           tdyi   = tdyi + 0.5 * PYij *tyir
           tdzi   = tdzi + 0.5 * PZij *tzir
-          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyir
-          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzir
-          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzir
-          tlTempX(j)= tlTempX(j) + 0.5*PYij*txir
-          tlTempY(j)= tlTempY(j) + 0.5*PZij*txir
-          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyir
-          tdTempX(j)= tdTempX(j) + 0.5*PXij*txir
-          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyir
-          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzir
+          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyi
+          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzi
+          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzi
+          tlTempX(j)= tlTempX(j) + 0.5*PYij*txi
+          tlTempY(j)= tlTempY(j) + 0.5*PZij*txi
+          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyi
+          tdTempX(j)= tdTempX(j) + 0.5*PXij*txi
+          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyi
+          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzi
           !TRANSPORT_END
 #endif
         end if
@@ -13266,7 +13226,6 @@ loop2:  do m=1,NBinsDen
       EPotLocal = 0._RK
 
 !CDIR NODEP
-!NEC$ ivdep
 
       unit = nu1*(i-1)+this%Site1%UnitNumber
 
@@ -13569,7 +13528,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
         PZi = PZ1(i)
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -13796,14 +13754,12 @@ loop2:    do m=1,NBinsDen
         end if
 
 !CDIR NODEP
-!NEC$ ivdep
 loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
 
 !CDIR NODEP
-!NEC$ ivdep
 loop3:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
@@ -14022,13 +13978,13 @@ loop3:  do j = j0, j1
     CTempZ(:)  = 0._RK
     tuTempX(:) = 0._RK
     tuTempY(:) = 0._RK
-    tuTempZ(:) = 0._RK
+    tuTempz(:) = 0._RK
     tlTempX(:) = 0._RK
     tlTempY(:) = 0._RK
-    tlTempZ(:) = 0._RK
+    tlTempz(:) = 0._RK
     tdTempX(:) = 0._RK
     tdTempY(:) = 0._RK
-    tdTempZ(:) = 0._RK
+    tdTempz(:) = 0._RK
 #endif
 
     FX2 => this%Site2%FX
@@ -14211,7 +14167,6 @@ loop3:  do j = j0, j1
         PZi = PZ1(i)
 
 !CDIR NODEP
-!NEC$ ivdep
 #if  TRANS == 1
         !TRANSPORT_start
         VSxi= VSx1(i)
@@ -14394,24 +14349,24 @@ loop2:    do m=1,NBinsDen
             txir   = A11 * txii + A12 * tyii + A13 * tzii
             tyir   = A21 * txii + A22 * tyii + A23 * tzii
             tzir   = A31 * txii + A32 * tyii + A33 * tzii
-            tuxi   = tuxi + 0.5*PXij*tyir 
-            tuyi   = tuyi + 0.5*PXij*tzir
-            tuzi   = tuzi + 0.5*PYij*tzir
-            tlxi   = tlxi + 0.5*PYij*txir
-            tlyi   = tlyi + 0.5*PZij*txir
-            tlzi   = tlzi + 0.5*PZij*tyir
-            tdxi   = tdxi + 0.5*PXij*txir
-            tdyi   = tdyi + 0.5*PYij*tyir
-            tdzi   = tdzi + 0.5*PZij*tzir
-            tuTempX(j)= tuTempX(j) + 0.5 * PXij*tyir 
-            tuTempY(j)= tuTempY(j) + 0.5 * PXij*tzir
-            tuTempZ(j)= tuTempZ(j) + 0.5 * PYij*tzir
-            tlTempX(j)= tlTempX(j) + 0.5 * PYij*txir
-            tlTempY(j)= tlTempY(j) + 0.5 * PZij*txir
-            tlTempZ(j)= tlTempZ(j) + 0.5 * PZij*tyir
-            tdTempX(j)= tdTempX(j) + 0.5 * PXij*txir
-            tdTempY(j)= tdTempY(j) + 0.5 * PYij*tyir
-            tdTempZ(j)= tdTempZ(j) + 0.5 * PZij*tzir
+            tuxi   = tuxi + PXij*tyir
+            tuyi   = tuyi + PXij*tzir
+            tuzi   = tuzi + PYij*tzir
+            tlxi   = tlxi + PYij*txir
+            tlyi   = tlyi + PZij*txir
+            tlzi   = tlzi + PZij*tyir
+            tdxi   = tdxi + PXij*txir
+            tdyi   = tdyi + PYij*tyir
+            tdzi   = tdzi + PZij*tzir
+          tuTempX(j)= tuTempX(j) + 0.5 * PXij*tyi
+          tuTempY(j)= tuTempY(j) + 0.5 * PXij*tzi
+          tuTempZ(j)= tuTempZ(j) + 0.5 * PYij*tzi
+          tlTempX(j)= tlTempX(j) + 0.5 * PYij*txi
+          tlTempY(j)= tlTempY(j) + 0.5 * PZij*txi
+          tlTempZ(j)= tlTempZ(j) + 0.5 * PZij*tyi
+          tdTempX(j)= tdTempX(j) + 0.5 * PXij*txi
+          tdTempY(j)= tdTempY(j) + 0.5 * PYij*tyi
+          tdTempZ(j)= tdTempZ(j) + 0.5 * PZij*tzi
 
             !TRANSPORT_END
 #endif
@@ -14560,13 +14515,11 @@ loop2:    do m=1,NBinsDen
         end if
 
 !CDIR NODEP
-!NEC$ ivdep
 loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
 !CDIR NODEP
-!NEC$ ivdep
 loop3:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
@@ -14803,7 +14756,6 @@ loop3:  do j = j0, j1
 
 
 !CDIR NODEP
-!NEC$ ivdep
         unit = nu1*(i-1)+this%Site1%UnitNumber
 
 loop1:  do k = 1, this%NInCutoff(unit)
@@ -14862,7 +14814,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
         EPotLocal = 0._RK
 
 !CDIR NODEP
-!NEC$ ivdep
 loop2:  do j = 1, j1
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -15155,7 +15106,6 @@ loop2:  do j = 1, j1
         PZi = PZ1(i)
 
 !CDIR NODEP
-!NEC$ ivdep
 #if OSMOP == 2
 loop0:  do m=1,NBinsDen
           if (PXi .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -15409,13 +15359,11 @@ loop2:    do m=1,NBinsDen
         end if
 
 !CDIR NODEP
-!NEC$ ivdep
 loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
 !CDIR NODEP
-!NEC$ ivdep
 loop3:  do j = j0, j1
 #endif
 
@@ -15849,7 +15797,6 @@ loop3:  do j = j0, j1
         PZi = PZ1(i)
 
 !CDIR NODEP
-!NEC$ ivdep
 #if  TRANS == 1
         !TRANSPORT_start
         VSxi= VSx1(i)
@@ -16052,15 +15999,15 @@ loop2:    do m=1,NBinsDen
           tdxi   = tdxi + 0.5 * PXij* txir
           tdyi   = tdyi + 0.5 * PYij* tyir
           tdzi   = tdzi + 0.5 * PZij* tzir
-          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyir
-          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzir
-          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzir
-          tlTempX(j)= tlTempX(j) + 0.5*PYij*txir
-          tlTempY(j)= tlTempY(j) + 0.5*PZij*txir
-          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyir
-          tdTempX(j)= tdTempX(j) + 0.5*PXij*txir
-          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyir
-          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzir
+          tuTempX(j)= tuTempX(j) + 0.5*PXij*tyi
+          tuTempY(j)= tuTempY(j) + 0.5*PXij*tzi
+          tuTempZ(j)= tuTempZ(j) + 0.5*PYij*tzi
+          tlTempX(j)= tlTempX(j) + 0.5*PYij*txi
+          tlTempY(j)= tlTempY(j) + 0.5*PZij*txi
+          tlTempZ(j)= tlTempZ(j) + 0.5*PZij*tyi
+          tdTempX(j)= tdTempX(j) + 0.5*PXij*txi
+          tdTempY(j)= tdTempY(j) + 0.5*PYij*tyi
+          tdTempZ(j)= tdTempZ(j) + 0.5*PZij*tzi
 
 
             !TRANSPORT_END
@@ -16226,13 +16173,11 @@ loop2:    do m=1,NBinsDen
         end if
 
 !CDIR NODEP
-!NEC$ ivdep
 loop3:  do ji = j0, j1
           j = 1 + mod( ji - 1, N1 )
 #else
         j0 = merge( i + 1, 1, SameComponent )
 !CDIR NODEP
-!NEC$ ivdep
 loop3:  do j = j0, j1
 #endif
           RXij = RXi - RX2(j)
@@ -16483,7 +16428,6 @@ loop3:  do j = j0, j1
 
 
 !CDIR NODEP
-!NEC$ ivdep
 
         unit = nu1*(i-1)+this%Site1%UnitNumber
 
@@ -16553,7 +16497,6 @@ loop1:  do k = 1, this%NInCutoff(unit)
         OZi = OZ1(i)
         EPotLocal = 0._RK
 !CDIR NODEP
-!NEC$ ivdep
 loop2:  do j = 1, j1
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
@@ -17301,15 +17244,16 @@ loop2:  do j = 1, j1
 
             if (this%nmax > 0) then
               ! Normal Amber-type torsion angle
-              earg = 1._RK + cos(-this%gamma0(1))
-              EPotLocal = EPotLocal + earg * this%ForConst(1)
+              earg = 1 * arg - this%gamma0(1)
+              EPotLocal = EPotLocal + this%ForConst(1) * (1._RK + cos(earg))
+              deri = -this%ForConst(1) * 1.0 * sin(earg)
               do j = 1,this%nmax
-                earg= j*arg-this%gamma0(j+1)
+                earg= (j + 1) * arg - this%gamma0(j + 1)
                 ! Energy and forces:
                 ! formulae  E = ForConst*( 1 + cos(earg) )
                 !           F = ForConst*n*sin(earg)
                 EPotLocal = EPotLocal + this%ForConst(j+1)*(1._RK+cos(earg))
-                deri = deri - this%ForConst(j+1)*j*sin(earg)
+                deri = deri - this%ForConst(j + 1)*(j + 1)*sin(earg)
               end do
 
              else ! Improper dihedral angle
