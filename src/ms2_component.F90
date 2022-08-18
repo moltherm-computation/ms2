@@ -374,14 +374,6 @@ module ms2_component
     module procedure TComponent_InitIntegratorLeap
   end interface
 
-  interface InitIntegratorVerlet
-    module procedure TComponent_InitIntegratorVerlet
-  end interface
-
-  interface InitIntegratorVV
-    module procedure TComponent_InitIntegratorVV
-  end interface
-
   interface RemoveNetMomentum
     module procedure TComponent_RemoveNetMomentum
   end interface
@@ -2944,40 +2936,6 @@ contains
 
 
 !==============================================================!
-!  Subroutine TComponent_InitIntegratorVerlet                  !
-!==============================================================!
-
-  subroutine TComponent_InitIntegratorVerlet( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent) :: this
-
-    ! Issue error
-    call Error( 'Subroutine TComponent_InitIntegratorVerlet is not implemented' )
-
-  end subroutine TComponent_InitIntegratorVerlet
-
-
-!==============================================================!
-!  Subroutine TComponent_InitIntegratorVV                      !
-!==============================================================!
-
-  subroutine TComponent_InitIntegratorVV( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent) :: this
-
-    ! Issue error
-    call Error( 'Subroutine TComponent_InitIntegratorVV is not implemented' )
-
-  end subroutine TComponent_InitIntegratorVV
-
-
-!==============================================================!
 !  Subroutine TComponent_RemoveNetMomentum                     !
 !==============================================================!
 
@@ -5466,40 +5424,6 @@ loop1:do i = 1, this%NPart
     end if
 
   end subroutine TComponent_ZeroNAttempts
-
-
-#if 0
-!==============================================================!
-!  Subroutine TComponent_UpdateDisplacements                   !
-!==============================================================!
-
-  subroutine TComponent_UpdateDisplacements( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TComponent) :: this
-
-    ! Update translational displacement
-    if( this%NMoveSuccesses < this%NMoveAttempts * Acceptance ) then
-      this%DispTran = this%DispTran * .95_RK
-
-    else if( this%DispTran < DispTranLimit ) then
-      this%DispTran = this%DispTran * 1.05_RK
-
-    end if
-
-    ! Update rotational displacement
-    if( this%NRotateSuccesses < this%NRotateAttempts * Acceptance ) then
-      this%DispRot = this%DispRot * .95_RK
-
-    else if( this%DispRot < DispRotLimit ) then
-      this%DispRot = this%DispRot * 1.05_RK
-
-    end ifl
-
-  end subroutine TComponent_UpdateDisplacements
-#endif
 
 
 !==============================================================!

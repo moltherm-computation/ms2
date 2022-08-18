@@ -634,8 +634,6 @@ module ms2_global
   character(80)      :: IntegratorTypeString
   integer, parameter :: IntegratorTypeGear     = 1
   integer, parameter :: IntegratorTypeLeapFrog = 2
-  integer, parameter :: IntegratorTypeVerlet   = 3
-  integer, parameter :: IntegratorTypeVV       = 4
   integer            :: IntegratorType
 
   ! Type of ensembles
