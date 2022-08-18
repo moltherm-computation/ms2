@@ -14822,7 +14822,7 @@ loop2:        do nc = 1, this%NComponents
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("Unit of energy", T36, ":", F20.9, " K")' ) UnitEnergy / kBoltzmann
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("Unit of mass", T36, ":", F20.9, " a.u.")' ) UnitMass * NAvogadro * 1000._RK
+    write( IOBuffer, '("Unit of mass", T36, ":", F20.9, " g/mol")' ) UnitMass * NAvogadro * 1000._RK
     call FileWrite( this%iounit_errors )
     call FileWriteBlank( this%iounit_errors )
 
