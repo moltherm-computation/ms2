@@ -514,7 +514,6 @@ module ms2_global
   character(*), parameter :: IdDihedral_ScaleLJ14          = 'ScaleLJ14'
   character(*), parameter :: IdDihedral_ScaleEl14          = 'ScaleEl14'
   character(*), parameter :: IdNFluct                      = 'NFluct'
-  character(*), parameter :: IdOptPressure                 = 'CalcPressure'
   character(*), parameter :: IdCommonEqui                  = 'CommonEqui'
 
 ! Calculation of residence times
@@ -2161,7 +2160,7 @@ contains
     include 'mpif.h'
 #endif
     ! Declare arguments
-    integer                       :: iounit
+    integer, intent(out)          :: iounit
     character(*), intent(in)      :: filename
 
     if(RootProc) then
@@ -2173,7 +2172,7 @@ contains
         close(iounit)
       end if
     end if
-    call MPI_File_Open(MPI_COMM_WORLD, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, iounit, ierror)
+    call MPI_File_Open(Communicator, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, iounit, ierror)
     if(RootProc) then
       if( ierror .ne. 0 ) then
         write( IOBuffer,'(a,a)') 'Can not create ',trim( filename )
@@ -2194,7 +2193,7 @@ contains
     include 'mpif.h'
 #endif
     ! Declare arguments
-    integer, intent(in)           :: iounit
+    integer, intent(out)          :: iounit
     character(*), intent(in)      :: filename
 
     ! Declare local variables
@@ -2210,24 +2209,19 @@ contains
         call LogWrite
       end if
 
-      inquire( file = filename, exist = ex )
-      if( ex ) then
-        open( iounit, file = filename, action = 'WRITE', status = 'OLD', position = 'APPEND' )
-      else
-        write( IOBuffer, '("File does not exist. Creating new")' )
-        call LogWrite
-        open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
-      end if
     endif
-    !!! ERRONEOUS
-    ! don't mix Fortran POSIX IO with mpi IO; Fortran units != MPI units; mpi iounit is intend(out) here...
-    call MPI_File_Open(MPI_COMM_WORLD, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, iounit, ierror)
+    ! MB: Fortran POSIX IO != MPI IO; Fortran units != MPI units; mpi iounit is not a prescribed value but returned from MPI_File_Open...
+    call MPI_File_Open(Communicator, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE + MPI_MODE_APPEND, MPI_INFO_NULL &
+&                     , iounit, ierror)
+    ! no "Append" in the strict sense!
     if(RootProc) then
       if( ierror /= 0 ) then
         write( IOBuffer,'(a,a)') 'Can not create ',trim( filename )
         call logwrite
       end if
     end if
+
+! TODO: Rewrite of MPI_IO? binary versions of output files?
 
   end subroutine Global_FileAppend_parallel
 

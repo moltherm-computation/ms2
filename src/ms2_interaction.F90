@@ -90,7 +90,7 @@ module ms2_interaction
     ! Virial
     real(RK) :: Virial
     real(RK), pointer, contiguous :: VirialMol(:,:)
-    logical           :: OptPressure
+                                    
 
     real(RK), pointer, contiguous :: d2EpotdV2Mol(:,:)
 
@@ -2154,7 +2154,7 @@ contains
     integer           :: unit1,jk
     integer           :: nu2
     logical           :: SameComponent
-    logical           :: OptPressure
+                                    
 
     ! Zero energy
     EPot=0._RK
@@ -4109,6 +4109,7 @@ end subroutine TInteraction_Energy
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -4159,6 +4160,7 @@ end subroutine TInteraction_Energy
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
@@ -4222,6 +4224,7 @@ end subroutine TInteraction_Energy
 
           ! Loop over molecules
 !CDIR NODEP
+!NEC$ ivdep
           do k = 1, this%NInCutoff(np)
             j = this%CutoffPartner(k, np)
             RXij = RXi - RX2(j)
