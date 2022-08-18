@@ -1226,7 +1226,7 @@ contains
   subroutine Global_printVersion()
     implicit none
     if (RootProc) then
-      print *, trim( ProgramFileName ), ' Version: ', VersionString &
+      print *, trim( ProgramFileName ), ' Version: ', VersionString, "_idf" &
 &            , ' (compiled at ', CompileTime, ')'
     end if
   end subroutine Global_printVersion
@@ -1683,6 +1683,10 @@ contains
 #endif
 #if SPME == 1
     write( IOBuffer, '(" SPME=1")' )
+    call LogWriteNoAdvance
+#endif
+#if MPI_USE_MODULE == 1
+    write( IOBuffer, '(" MPI_USE_MODULE=1")' )
     call LogWriteNoAdvance
 #endif
     ! new compiler flags should be added

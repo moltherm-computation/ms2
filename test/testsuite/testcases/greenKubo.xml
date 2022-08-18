@@ -40,9 +40,9 @@
 	<reference>
 		<file>2500_Einstein_128_2.res</file>
 	</reference>
-	<reference>
+<!-- 	<reference>
 		<file>2500_Einstein_128_2.rst</file>
-	</reference>
+	</reference> -->
 	<reference>
 		<file>2500_Einstein_128_2.rtr</file>
 	</reference>
