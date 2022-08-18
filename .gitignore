@@ -1,10 +1,12 @@
 
+#### ignore all files starting with ms2_, e.g. executables, .mod, .o
+src/ms2*
+
+#### but exclude fortran source files from this ignore
+!src/ms2*.F90
+
+
+#### ECLIPSE files
 .settings
 .cproject
 .project
-
-
-ms2_GNU*
-
-**/*.o
-**/*.mod
