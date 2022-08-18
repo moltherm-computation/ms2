@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MCNPT_ThermoInt_mpiMCCommonGroups.par</parFile>
+	<name>MChybrid_scalar_ReactionField</name>
+	<np>4</np>
+	<reference>
+		<file>MCNPT_ThermoInt_mpiMCCommonGroups_1.rav</file>
+	</reference>
+	<reference>
+		<file>MCNPT_ThermoInt_mpiMCCommonGroups_1.res</file>
+	</reference>
+	<reference>
+		<file>MCNPT_ThermoInt_mpiMCCommonGroups_1.rst</file>
+	</reference>
+	<reference>
+		<file>MCNPT_ThermoInt_mpiMCCommonGroups_1.run</file>
+	</reference>
+	<reference>
+		<file>MCNPT_ThermoInt_mpiMCCommonGroups_1.thi</file>
+	</reference>
+	<reference>
+		<file>MCNPT_ThermoInt_mpiMCCommonGroups_2.rst</file>
+	</reference>
+	<reference>
+		<file>MCNPT_ThermoInt_mpiMCCommonGroups_3.rst</file>
+	</reference>
+	<reference>
+		<file>MCNPT_ThermoInt_mpiMCCommonGroups_4.rst</file>
+	</reference>
+</testcase>

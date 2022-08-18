@@ -72,7 +72,6 @@ module ms2_component
     ! Centers of mass positions for molecules
     real(RK), pointer, contiguous :: Pm0(:, :)
     real(RK), pointer, contiguous :: P0Save( :, :, :)
-    real(RK), pointer, contiguous :: Pm0old(:, :)
     ! Centers of mass positions and their derivatives for Units
     real(RK), pointer, contiguous :: P0(:, :, :)
     real(RK), pointer, contiguous :: P1(:, :, :)
@@ -305,6 +304,7 @@ module ms2_component
     type(TAccumulator) :: SumInvChemPot
     type(TAccumulator) :: SumChemPotV
     type(TAccumulator) :: SumChemPotVV
+    type(TAccumulator) :: SumChemPotGE
     type(TAccumulator) :: SumHW_counter
     type(TAccumulator) :: SumHW_denom
     type(TAccumulator) :: SumVW
@@ -692,8 +692,8 @@ contains
 
 
 #if MPI_VER > 0
-        if (SimulationType .eq. MolecularDynamics .and. .not. UseIntDegFreed) then
-           this%NTest = ((this%NTest -1)/NProcs +1)
+        if (( (SimulationType .eq. MolecularDynamics) .or. (mpiMCCommonGroups > 0) ) .and. .not. UseIntDegFreed) then
+           this%NTest = ((this%NTest -1)/NProcs +1) !for mpiMCCommonGroups > 0: inside a group chemical potential calculation is parallelized by this%NTest
         endif
 #endif
       end if
@@ -783,8 +783,8 @@ contains
         end if
 
 #if MPI_VER>0
-        if (SimulationType .eq. MolecularDynamics) then
-          this%NTest = ((this%NTest-1)/NProcs +1)
+        if ( (SimulationType .eq. MolecularDynamics) .or. (mpiMCCommonGroups > 0) ) then
+          this%NTest = ((this%NTest-1)/NProcs +1) !for mpiMCCommonGroups > 0: inside a group chemical potential calculation is parallelized by this%NTest
         endif
 #endif
         if (this%LaMin**this%LambdaExponent .lt. 1E-30_RK) then
@@ -1236,6 +1236,9 @@ contains
       call Construct( this%SumVW, .true. )
       call Construct( this%SumHM, .true. )
     end select
+    if (EnsembleType .eq. EnsembleTypeGE) then
+      call Construct( this%SumChemPotGE, .false. )
+    endif
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Construct( this%SumFraction, .false. )
@@ -1293,6 +1296,9 @@ contains
       call Destruct( this%SumVW )
       call Destruct( this%SumHM )
     end select
+    if (EnsembleType .eq. EnsembleTypeGE) then
+      call Destruct( this%SumChemPotGE )
+    endif
 
     if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumFraction )
@@ -1348,7 +1354,6 @@ contains
     nullify( this%EPotTestIntra )
     nullify( this%Pm0 )
     nullify( this%P0Save )
-    nullify( this%Pm0old )
     nullify( this%P1 )
     nullify( this%P2 )
     nullify( this%P3 )
@@ -1520,8 +1525,6 @@ contains
     call AllocationError( stat, 'particles', np )
     allocate( this%P0Save( np, 3, nu ), STAT = stat )
     call AllocationError( stat, 'units*particles', nup )
-    allocate( this%Pm0old( np, 3 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
     ! Centers of mass positions for Units
     allocate( this%P0( np, 3, nu ), STAT = stat )
     call AllocationError( stat, 'units*particles', nup )
@@ -2506,9 +2509,6 @@ contains
     if( associated( this%P0Save ) ) then
       deallocate( this%P0Save )
     end if
-    if( associated( this%Pm0old ) ) then
-      deallocate( this%Pm0old )
-    end if
     if( associated( this%P1 ) ) then
       deallocate( this%P1 )
     end if
@@ -3117,7 +3117,7 @@ contains
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
     ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
+    if ( SimulationType .ne. MonteCarlo .or. (Equilibration .and. CommonEqui) .or. (mpiMCCommonGroups > 0)) then
       call MPI_Bcast( this%P0(:, :, :), size( this%P0 ), MPI_RK, NRootProc, Communicator, ierror )
       if( this%Molecule%isElongated ) then
         call MPI_Bcast( this%Q0(:, :, :), size( this%Q0 ), MPI_RK, NRootProc, Communicator, ierror )
@@ -4905,7 +4905,7 @@ loop1:do i = 1, this%NPart
     ! Declare local variables
     integer :: np, nra, iUnit
     integer :: i, j
-    real(RK) :: r(this%NPart, 3)
+    real(RK) :: r(this%NPart, 3), P0old
 
     ! Assign local variables
     np = this%NPart
@@ -4913,6 +4913,11 @@ loop1:do i = 1, this%NPart
     ! Predict COM positions and their derivatives
     do j = 1, 3
       do i = 1, np
+
+        if (.not. UseIntDegFreed) then ! there should exist only one unit
+            P0old = this%P0(i, j, 1)
+        end if
+
         do iUnit = 1, this%Molecule%NUnit
           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) + this%P1(i, j, iUnit) + this%P2(i, j, iUnit) + this%P3(i, j, iUnit) + this%P4(i, j, iUnit) + this%P5(i, j, iUnit)
           this%P1(i, j, iUnit) = this%P1(i, j, iUnit) + 2._RK * this%P2(i, j, iUnit) + 3._RK * this%P3(i, j, iUnit) + 4._RK * this%P4(i, j, iUnit) + 5._RK * this%P5(i, j, iUnit)
@@ -4923,7 +4928,7 @@ loop1:do i = 1, this%NPart
 
         ! Calculate displacement
         if (.not. UseIntDegFreed) then ! there should exist only one unit
-            this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j, 1) - this%Pm0old(i, j)
+            this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j, 1) - P0old
         end if
 
         r(i, j) = 0._RK
@@ -4944,14 +4949,14 @@ loop1:do i = 1, this%NPart
         end do
 
         if (UseIntDegFreed) then
+          P0old = this%Pm0(i, j)
           this%Pm0(i,j) = r(i, j)/this%Molecule%Mass ! (unit-)mass averaged coordinates
           ! Calculate displacement of molecules
-          this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+          this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - P0old
           this%Pm0(i,j) = this%Pm0(i,j) - anint(this%Pm0(i,j))
         else ! there should exist only one unit
           this%Pm0(i,j) = this%P0(i, j, 1)
         end if
-        this%Pm0old(i, j) = this%Pm0(i, j)
       end do
     end do
 
@@ -5000,7 +5005,7 @@ loop1:do i = 1, this%NPart
 
     ! Declare local variables
     real(RK)          :: BoxLengthInv
-    real(RK)          :: MassInv
+    real(RK)          :: MassInv, P0old
     real(RK)          :: Moi23, Moi31, Moi12
     real(RK)          :: TMoi1, TMoi2, TMoi3
     real(RK), pointer, contiguous :: pF(:, :, :), pT(:, :, :)
@@ -5022,6 +5027,11 @@ loop1:do i = 1, this%NPart
     do j = 1, 3
       do i = 1, np
         r(i, j) = 0._RK
+
+        if (.not. UseIntDegFreed) then
+            P0old = this%P0(i, j, 1)
+        end if
+
         do iUnit= 1, this%Molecule%NUnit
           if (.not. UseIntDegFreed) then
               MassInv = 1._RK / this%Molecule%Mass
@@ -5042,7 +5052,7 @@ loop1:do i = 1, this%NPart
           this%P5(i, j, iUnit) = this%P5(i, j, iUnit) + this%Corr1(i, j, iUnit) * Gear25
 
           if (.not. UseIntDegFreed) then ! there should exist only one unit
-              this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j, 1) - this%Pm0old(i, j)
+              this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j, 1) - P0old
           end if
 
           ! Check for conservation of particles in primary cell
@@ -5064,14 +5074,14 @@ loop1:do i = 1, this%NPart
         end do
 
         if (UseIntDegFreed) then
+            P0old = this%Pm0(i, j)
             this%Pm0(i, j) = r(i, j)/this%Molecule%Mass
             ! Calculate displacement of molecules
-            this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+            this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - P0old
             this%Pm0(i, j) = this%Pm0(i, j) - anint(this%Pm0(i, j))
         else ! there should exist only one unit
             this%Pm0(i, j) = this%P0(i, j, 1)
         end if
-        this%Pm0old(i, j) = this%Pm0(i, j)
       end do
     end do
 
@@ -5164,7 +5174,7 @@ loop1:do i = 1, this%NPart
     real(RK), intent(in) :: scale
 
     ! Declare local variables
-    real(RK) :: Korr
+    real(RK) :: Korr, P0old
     integer  :: np, nra, iUnit
     integer  :: i, j
     real(RK) :: r(this%NPart, 3)
@@ -5174,6 +5184,11 @@ loop1:do i = 1, this%NPart
 
     do j = 1, 3
       do i = 1, np
+
+        if (.not. UseIntDegFreed) then
+            P0old = this%P0(i, j, 1)
+        end if
+
         do iUnit = 1, this%Molecule%NUnit
           this%P1(i, j, iUnit) = Korr * this%P1(i, j, iUnit) + this%P2(i, j, iUnit)
           this%P0(i, j, iUnit) = this%P0(i, j, iUnit) + this%P1(i, j, iUnit)
@@ -5181,7 +5196,7 @@ loop1:do i = 1, this%NPart
 
         if (.not. UseIntDegFreed) then
             ! Calculate displacement
-            this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j, 1) - this%Pm0old(i, j)
+            this%Disp(i, j) = this%Disp(i, j) + this%P0(i, j, 1) - P0old
         end if
 
         r(i, j) = 0._RK
@@ -5200,15 +5215,16 @@ loop1:do i = 1, this%NPart
           ! Calculate new positions of COM for molecules from new COM of units
           r(i, j) = r(i, j) + this%Molecule%Unit(iUnit)%Mass*(this%P0(i,j,iUnit)-anint(this%P0(i,j,iUnit)-this%Pm0(i,j)))
 
+
           if (UseIntDegFreed) then
+              P0old = this%Pm0(i, j)
               this%Pm0(i, j) = r(i, j)/this%Molecule%Mass
               ! Calculate displacement of molecules
-              this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - this%Pm0old(i, j)
+              this%Disp(i, j) = this%Disp(i, j) + this%Pm0(i, j) - P0old
               this%Pm0(i, j) = this%Pm0(i,j) - anint(this%Pm0(i,j))
           else
               this%Pm0(i, j) = this%P0(i,j,1)
           end if
-          this%Pm0old(i,j ) = this%Pm0(i, j)
         end do
       end do
     end do
@@ -6175,9 +6191,6 @@ loop1:do i = 1, this%NPart
     end if
 #endif
 
-    ! Update old positions
-    this%Pm0old = this%Pm0
-
   end subroutine TComponent_RestartRead
 
 
@@ -6292,7 +6305,7 @@ subroutine TComponent_ForceTransport( this )
     ! Declare local variables
     integer           :: nu, np
     integer           :: i, j, k
-    real(RK)          :: r(3), BoxLengthInv
+    real(RK)          :: r(3), BoxLengthInv, P0old(3)
 
     BoxLengthInv = 1._RK / this%BoxLength
     np = this%NPart
@@ -6331,11 +6344,12 @@ subroutine TComponent_ForceTransport( this )
         end do
       end do
 
+      P0old = this%Pm0(i, :)
+
       this%Pm0(i,:) = r(:)/this%Molecule%Mass
       ! Calculate displacement of molecules
-      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - this%Pm0old(i, :)
+      this%Disp(i, :) = this%Disp(i, :) + this%Pm0(i, :) - P0old
       this%Pm0(i,:) = this%Pm0(i,:) - anint(this%Pm0(i,:))
-      this%Pm0old(i,:) = this%Pm0(i, :)
     end do
 
     do k = 1, nu

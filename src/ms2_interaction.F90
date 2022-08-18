@@ -1056,8 +1056,13 @@ contains
 
 #if MPI_VER > 0
     ! Loop over molecules
-    i0 = this%NPart10
-    i1 = this%NPart12
+    if ( mpiMCCommonGroups > 0 ) then
+      i0 = 1
+      i1 = this%NPart1
+    else
+      i0 = this%NPart10
+      i1 = this%NPart12
+    endif
     do i = i0, i1
 #else
     i1 = this%NPart1
@@ -2096,7 +2101,7 @@ contains
     type(TInteraction)   :: this
     integer, intent(in)  :: np, nu
     real(RK), intent(in) :: BoxLength
-    logical, intent(in), optional :: matrixhalf
+    logical, intent(in)  :: matrixhalf
 
     ! Declare local variables
     type(TPotMIEnmMIEnm), pointer           :: pmie
@@ -2162,11 +2167,7 @@ contains
 
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
-      if (present( matrixhalf )) then 
         call CalcCutoffPartners( this, np, nu, matrixhalf )
-      else    
-        call CalcCutoffPartners( this, np, nu )
-      end if
     end if
 
     ! Assign local variables
@@ -3425,7 +3426,7 @@ contains
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
-            if( present(matrixhalf) .and. j > np ) exit
+            if( matrixhalf .eqv. .true. .and. j > np ) exit
             RXij = RXi - RX2(j)
             RYij = RYi - RY2(j)
             RZij = RZi - RZ2(j)
@@ -3498,7 +3499,7 @@ contains
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
-            if( present(matrixhalf) .and. j > np ) exit
+            if( matrixhalf .eqv. .true. .and. j > np ) exit
             RXij = RXi - RX2(j)
             RYij = RYi - RY2(j)
             RZij = RZi - RZ2(j)
@@ -3600,7 +3601,7 @@ contains
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
-            if( present(matrixhalf) .and. j > np ) exit
+            if( matrixhalf .eqv. .true. .and. j > np ) exit
             RXij = RXi - RX2(j)
             RYij = RYi - RY2(j)
             RZij = RZi - RZ2(j)
@@ -3697,7 +3698,7 @@ contains
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
-            if( present(matrixhalf) .and. j > np ) exit
+            if( matrixhalf .eqv. .true. .and. j > np ) exit
             RXij = RXi - RX2(j)
             RYij = RYi - RY2(j)
             RZij = RZi - RZ2(j)
@@ -3802,7 +3803,7 @@ contains
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
-            if( present(matrixhalf) .and. j > np ) exit
+            if( matrixhalf .eqv. .true. .and. j > np ) exit
             RXij = RXi - RX2(j)
             RYij = RYi - RY2(j)
             RZij = RZi - RZ2(j)
@@ -3904,7 +3905,7 @@ contains
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
-            if( present(matrixhalf) .and. j > np ) exit
+            if( matrixhalf .eqv. .true. .and. j > np ) exit
             RXij = RXi - RX2(j)
             RYij = RYi - RY2(j)
             RZij = RZi - RZ2(j)
@@ -5256,7 +5257,7 @@ end subroutine TInteraction_EnergySVC
     type(TInteraction)  :: this
     integer, intent(in) :: np
     integer, intent(in) :: nu
-    logical, intent(in), optional :: matrixhalf
+    logical, intent(in) :: matrixhalf
 
     ! Declare local variables
     real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
@@ -5288,7 +5289,7 @@ end subroutine TInteraction_EnergySVC
       do k = 1, this%NUnit2
           !k = CEILING(real(j)/this%NUnit2)
           if( this%SameComponent .and. j == np ) cycle
-          if( present(matrixhalf) .and. j > np ) exit
+          if( (matrixhalf .eqv. .true.) .and. (j > np) ) exit
           PXij = PXi - PX2(j, k)
           PYij = PYi - PY2(j, k)
           PZij = PZi - PZ2(j, k)
@@ -5341,6 +5342,8 @@ end subroutine TInteraction_EnergySVC
     PX2 => this%PX2
     PY2 => this%PY2
     PZ2 => this%PZ2
+
+
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE(NInCutoff, PXi, PYi, PZi, PXij, PYij, PZij,RijSquared)
     ! Calculate partners within cutoff sphere

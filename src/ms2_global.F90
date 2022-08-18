@@ -268,11 +268,6 @@ module ms2_global
   integer, parameter :: iounit_cc        = iounit_start + 20 !DC TODO - this should be changed appropriate to the other output files
   integer, parameter :: iounit_ccgrid    = iounit_start + 21 !DC TODO - this should be changed appropriate to the other output files
 
-#if MPI_VER > 0
-  integer            :: iounit_result_parallel = iounit_start + 6
-  integer            :: iounit_runave_parallel = iounit_start + 7
-#endif
-
   ! Define number of output files for each ensemble
   integer, parameter :: FilesPerEnsemble = iounit_dcp - iounit_result + 1
 
@@ -308,6 +303,7 @@ module ms2_global
   character(*), parameter :: IdIntegratorType              = 'Integrator'
   character(*), parameter :: IdTimeStep                    = 'TimeStep'
   character(*), parameter :: IdAcceptance                  = 'Acceptance'
+  character(*), parameter :: IdAccInserts                  = 'AccInserts'
   character(*), parameter :: IdNStepsMC                    = 'MCORSteps'
   character(*), parameter :: IdNStepsrigEmin               = 'rigEminSteps'
   character(*), parameter :: IdNStepsflexEmin              = 'flexEminSteps'
@@ -353,6 +349,7 @@ module ms2_global
   character(*), parameter :: IdMaxRadius                   = 'RMaxRadius'
   character(*), parameter :: IdNEnsembles                  = 'NEnsembles'
   character(*), parameter :: IdmpiEnsembleGroups           = 'mpiEnsembleGroups'
+  character(*), parameter :: IdmpiMCCommonGroups           = 'mpiMCCommonGroups'
   character(*), parameter :: IdRefTemperature              = 'Temperature'
   character(*), parameter :: IdRefHamiltonian              = 'Hamiltonian'
   character(*), parameter :: IdRefEnthalpy                 = 'Enthalpy'
@@ -648,7 +645,7 @@ module ms2_global
   integer, parameter :: EnsembleTypeNPH = 3
   integer, parameter :: EnsembleTypeNPT = 4
   integer, parameter :: EnsembleTypeGE  = 5                ! Grand Equilibrium muVT
-  integer, parameter :: EnsembleTypeHA  = 6                ! Humid Air mupT 
+  integer, parameter :: EnsembleTypeHA  = 6                ! Humid Air mupT
   integer, parameter :: EnsembleTypeNPTSVC = 7             ! NpT + SVC
   integer, parameter :: EnsembleTypeMUVT = 8               ! muVT
   integer            :: EnsembleType
@@ -729,9 +726,13 @@ module ms2_global
   ! Frequency of updating MC displacements
   integer, parameter :: DispUpdateFrequency = 100
 
+  ! muVT insert/delete acceptance
+  real(RK) :: AccInserts
+  real(RK) :: InsertUpperLimit,InsertLowerLimit
+
   ! Number of simulation time steps
   integer :: NSteps
-  integer :: NStepsSVC  
+  integer :: NStepsSVC
 
   ! Number of MC overlap reduction steps
   integer :: NStepsMC
@@ -775,18 +776,18 @@ module ms2_global
 
 ! Logical parameters for VLE with NPT and SVC
   logical :: SVCCalc = .false. !If SVC was already calculated
-  ! Arrays for SVC and dB/dT 
-  
+  ! Arrays for SVC and dB/dT
+
   real(RK), dimension(:, :, :), allocatable :: ArrSVC
   real(RK), dimension(:, :, :), allocatable :: ArrdBdT
   real(RK), dimension(:), allocatable :: ArrChemPot
   real(RK), dimension(:), allocatable :: ArrPartMolVol
 
 
-  
+
    real(RK) :: BmixSVCtemp, dBdTmixtemp
    real(RK) :: StartTemperature, StartPressure
-   integer  :: EnsembleNum  
+   integer  :: EnsembleNum
   ! Parameters of gradual insertion
   integer :: GradInsFrequency, NFullFluct, MaxCounter
 
@@ -891,6 +892,9 @@ module ms2_global
   ! equilibration is performed
   logical :: CommonEqui
 
+  ! Number of common groups for MC parallelization of cycles and particles
+  integer :: mpiMCCommonGroups
+
  ! Frequency of updating log file
   integer, parameter :: LogUpdateFrequency = 1000
 
@@ -908,6 +912,7 @@ module ms2_global
   integer :: Communicator   ! actual MPI communicator
   !integer :: Communicator_W    ! =MPI_COMM_WORLD
   integer :: Communicator_R ! MPI communicator containing all roots
+  integer :: MCCommonGroups_R ! MPI communicator containing all roots of Communicator
   integer :: NProcs ! number of PEs within actual MPI communicator
   integer :: NProc  ! MPI rank of actual MPI communicator
   integer :: NRootProc  ! MPI rank of root of actual MPI communicator
@@ -920,6 +925,10 @@ module ms2_global
   integer :: NProc_R    ! MPI rank within actual Communicator_R
   integer :: NRootProc_R    ! MPI rank of root PE within actual Communicator_R
   logical :: RootProc_R     ! is PE root of actual Communicator_R?
+  integer :: NProcs_MCCom   ! number of PEs within actual MCCommonGroups_R
+  integer :: NProc_MCCom    ! MPI rank within actual MCCommonGroups_R
+  integer :: NRootProc_MCCom   ! MPI rank of root PE within actual MCCommonGroups_R
+  logical :: RootProc_MCCom    ! is PE root of actual MCCommonGroups_R
   integer :: NCommunicators ! number of Communicators (useful after MPI_Comm_Split)
   integer :: NCommunicator  ! ID of the Communicator
   !
@@ -1309,6 +1318,33 @@ contains
 
 #endif
 
+  subroutine writeCitationHeader(ioUnit)
+
+    implicit none
+
+    integer, intent(in) :: ioUnit
+
+    write( IOBuffer, '(76("="))')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("*                         Publishing with ms2                              *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                      *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* R. Fingerhut, G. Guevara-Carrion, I. Nitzke, D. Saric, J. Marx,          *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* K. Langenbach, S. Prokopev, D. Celny, M. Bernreuther, S. Stephan,        *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* M. Kohns, H. Hasse, J. Vrabec                                            *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '("* Computer Physics Communications (2020)                                   *")')
+    call FileWrite(ioUnit)
+    write( IOBuffer, '(76("="))')
+    call FileWrite(ioUnit)
+    call FileWriteBlank(ioUnit)
+
+  end subroutine writeCitationHeader
 
 !==============================================================!
 !  Subroutine Global_InitializeProgram                         !
@@ -1335,9 +1371,9 @@ contains
     character*(MPI_MAX_PROCESSOR_NAME)         :: procname
     integer                                    :: procnamelen
     character*(MPI_MAX_PROCESSOR_NAME),pointer, contiguous :: procnames(:)
-    integer                                    :: hostrank = MPI_PROC_NULL
-    integer                                    :: iorank = MPI_PROC_NULL
-    integer,pointer, contiguous                            :: ioranks(:)
+    integer(KIND=MPI_ADDRESS_KIND)             :: hostrank = MPI_PROC_NULL
+    integer(KIND=MPI_ADDRESS_KIND)             :: iorank = MPI_PROC_NULL
+    integer(KIND=MPI_ADDRESS_KIND),pointer, contiguous :: ioranks(:)
     logical                                    :: flag
 #endif
 #ifdef ENABLE_OMP
@@ -1512,7 +1548,7 @@ contains
     call MPI_Bcast( Restart, 1, MPI_LOGICAL, NRootProc, Communicator, ierror )
     call MPI_Bcast( OutputNameTag, len(OutputNameTag), MPI_CHARACTER, NRootProc, Communicator, ierror )
 #endif
-    
+
     RestartFileName=trim(OutputNameTag)//RestartFileExtension
 
     ! Open log file
@@ -1527,25 +1563,9 @@ contains
     write( IOBuffer, '(74("*"))')
     call LogWrite
     call LogWriteBlank
-    write( IOBuffer, '(74("*"))')
-    call LogWrite
-    write( IOBuffer, '("*                         Publishing with ms2                            *")')
-    call LogWrite
-    write( IOBuffer, '("* Every user agrees to cite ms2 upon usage as follows                    *")')
-    call LogWrite
-    write( IOBuffer, '("* ---------------------------------------------------------------------- *")')
-    call LogWrite
-    write( IOBuffer, '("* R. Fingerhut, G. Guevara-Carrion, I. Nitzke, D. Saric, J. Marx,        *")')
-    call LogWrite
-    write( IOBuffer, '("* K. Langenbach, S. Prokopev, D. Celny, M. Bernreuther, S. Stephan,      *")')
-    call LogWrite
-    write( IOBuffer, '("* M. Kohns, H. Hasse, J. Vrabec                                          *")')
-    call LogWrite
-    write( IOBuffer, '("* Computer Physics Communications (2020)                                 *")')
-    call LogWrite
-    write( IOBuffer, '(74("*"))')
-    call LogWrite
-    call LogWriteBlank
+
+    call writeCitationHeader(iounit_log)
+
     write( IOBuffer, '(74("*"))')
     call LogWrite
     write( IOBuffer, '("* (c) by TU Kaiserslautern / TU Berlin                                   *")')
@@ -1614,6 +1634,10 @@ contains
     write( IOBuffer, '(" OSMOP=2")' )
     call LogWriteNoAdvance
 #endif
+#if SPME == 1
+    write( IOBuffer, '(" SPME=1")' )
+    call LogWriteNoAdvance
+#endif
     ! new compiler flags should be added
     ! include target, omp and precision???
     write( IOBuffer, '(" ")' )
@@ -1666,8 +1690,8 @@ contains
       call LogWrite
       write( IOBuffer, '("Root process rank  :",I4)' ) NRootProc
       call LogWrite
-      call MPI_Comm_get_attr(Communicator, MPI_HOST, hostrank, flag, ierror)
-      if(ierror==0 .and. flag .and. hostrank/=MPI_PROC_NULL ) then
+      call MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_HOST, hostrank, flag, ierror)
+      if( (ierror == MPI_SUCCESS) .and. (flag) .and. (hostrank /= MPI_PROC_NULL) ) then
         write( IOBuffer, '("MPI Host rank      :",I4)' ) hostrank
         call LogWrite
       end if
@@ -1679,8 +1703,8 @@ contains
     call MPI_Gather(procname, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
 &                  ,procnames, MPI_MAX_PROCESSOR_NAME, MPI_CHARACTER &
 &                  ,NRootProc, Communicator, ierror)
-    call MPI_Comm_get_attr(Communicator, MPI_IO, iorank, flag, ierror)
-    call MPI_Gather(iorank, 1, MPI_INTEGER, ioranks, 1, MPI_INTEGER &
+    call MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_IO, iorank, flag, ierror)
+    call MPI_Gather(iorank, 1, MPI_AINT, ioranks, 1, MPI_AINT &
 &                  ,NRootProc, Communicator, ierror)
 
     if( RootProc ) then
@@ -1948,6 +1972,11 @@ contains
     ! Check for root process
     if( .not. RootProc ) return
 
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! using <OutputNameTag>.log, if only one communicator exists date_and_time
     ! and   <OutputNameTag>_<CommId>.log for several
@@ -1989,6 +2018,12 @@ contains
     ! Check for root process
     if( .not. RootProc ) return
 
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
+
     ! Close log file
     call FileClose( iounit_log )
 
@@ -2006,6 +2041,12 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Write contents of buffer to log file
     call FileWrite( iounit_log )
@@ -2029,6 +2070,12 @@ contains
     ! Check for root process
     if( .not. RootProc ) return
 
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
+
     ! Write contents of buffer to log file
     call FileWriteNoAdvance( iounit_log )
 
@@ -2046,6 +2093,12 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Write blank line to log file
     call FileWriteBlank( iounit_log )
@@ -2068,6 +2121,12 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Update log file
     call LogWriteNoAdvance
@@ -2092,6 +2151,12 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Update log file
     write( IOBuffer, '(I9, " steps completed")' ) Step
@@ -2118,6 +2183,7 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+
 
     ! Open file for reading
     write( IOBuffer, '("Opening file <", A, "> for reading (unit",I5,")")' ) trim( filename ), iounit
@@ -2215,7 +2281,7 @@ contains
 &                     , iounit, ierror)
     ! no "Append" in the strict sense!
     if(RootProc) then
-      if( ierror /= 0 ) then
+      if( ierror /= MPI_SUCCESS ) then
         write( IOBuffer,'(a,a)') 'Can not create ',trim( filename )
         call logwrite
       end if
@@ -2238,7 +2304,7 @@ contains
     ! Declare arguments
     integer             :: mpistatus(MPI_STATUS_SIZE)
     integer, intent(in) :: iounit
-    
+
     ! Write contents of buffer to file
     call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)
     !call MPI_File_write_all(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)    ! collective operation (still with individual file pointer)
@@ -2246,7 +2312,7 @@ contains
     !call MPI_File_write_shared(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER,mpistatus,ierror) ! write (a whole dataset at once) with a shared file handle
     !call MPI_File_write_ordered(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER, mpistatus, ierror)  ! collective operation to write ranks one after another with a shared file handler
     !
-    
+
   end subroutine Global_FileWriteNoAdvance_parallel
 
 #endif
@@ -2363,6 +2429,12 @@ contains
     ! Check for root process
     if( .not. RootProc ) return
 
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
+
     ! Write contents of buffer to file
     call FileWriteNoAdvance( iounit )
     call FileWriteBlank( iounit )
@@ -2385,6 +2457,12 @@ contains
     ! Check for root process
     if( .not. RootProc ) return
 
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
+
     ! Write contents of buffer to file
     write( iounit, '(A)', advance = 'NO' ) trim( IOBuffer )
 
@@ -2405,6 +2483,12 @@ contains
 
     ! Check for root process
     if( .not. RootProc ) return
+
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Write blank line to file
     write( iounit, '()' )
@@ -2772,6 +2856,12 @@ contains
     ! Check for root process
     if( .not. RootProc ) return
 
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
+
     ! Write parameter to file
     write( iounit, '(A, T12, "=", A)' ) trim( parameter ), trim( IOBuffer )
 
@@ -2795,7 +2885,7 @@ contains
     iy = ieor(777755555, seed)
 
     ! Initialize test particle random number generator
-    tpix = NProc
+    tpix = NProc_W !for standard MC or MD NProc=NProc_W, whereas for MC with mpiMCCommonGroups NProc!=NProc_W
     tpix = ieor( tpix, ishft(tpix,5) ) + 1422217823
     tpix = ieor( tpix, ishft(tpix,-16) ) + 1842055030
     tpix = ieor( tpix, ishft(tpix,9) ) + 80567781
@@ -3094,7 +3184,7 @@ contains
       ! The if-statement reads:
       ! only do it if we are in the equilibration phase of a MC  simulation
       ! and common equilibration is active. It is a little complicated, but that cannot be helped
-      if( (SimulationType .ne. MonteCarlo) .or. (CommonEqui .and. (Equilibration .or. Step==0))) then
+      if( (SimulationType .ne. MonteCarlo) .or. (CommonEqui .and. (Equilibration .or. Step==0)) .or. (mpiMCCommonGroups > 0)) then
         range_size = 1 + (overall_size - 1) / NProcs
         first_index = 1 + NProc * range_size
         last_index = min( first_index + range_size - 1, overall_size )
@@ -3300,7 +3390,6 @@ subroutine Global_printprocStatus(tag_string)
 
   end subroutine Global_printprocStatus
 #endif
-
 
 !==============================================================!
 !  Subroutine Global_FileRewind                                !

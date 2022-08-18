@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>muVT_1_07_AccInserts.par</parFile>
+	<name>muVT_AccInserts</name>
+	<np>3</np>
+	<reference>
+		<file>muVT_1_07_AccInserts.rst</file>
+	</reference>
+	<reference>
+		<file>muVT_1_07_AccInserts_1.rav</file>
+	</reference>
+	<reference>
+		<file>muVT_1_07_AccInserts_1.run</file>
+	</reference>
+</testcase>
