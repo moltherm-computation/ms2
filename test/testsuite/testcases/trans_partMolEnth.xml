@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>x06.par</parFile>
+	<name>trans_partMolEnth</name>
+	<np>3</np>
+	<compilerOption>
+		<name>TRANS</name>
+	</compilerOption>
+	<reference>
+		<file>x06_1.rav</file>
+	</reference>
+	<reference>
+		<file>x06_1.res</file>
+	</reference>
+	<reference>
+		<file>x06_1.rtr</file>
+	</reference>
+	<reference>
+		<file>x06_1.run</file>
+	</reference>
+	<reference>
+		<file>x06.rst</file>
+	</reference>
+</testcase>

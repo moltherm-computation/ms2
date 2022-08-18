@@ -271,7 +271,7 @@ contains
 
     ! Open potential model file
     this%PotModFileName = filename
-    call FileReset( potmodFile%iounit, this%PotModFileName )
+    call FileReset(potmodFile, this%PotModFileName)
 
     ! Read number of potential types
     call FileReadParameter( ntypes, potmodFile%iounit, IdSite_ntypes, .false. )
@@ -1469,7 +1469,7 @@ contains
     end if
 
     ! Close potential model file
-    call FileClose( potmodFile%iounit )
+    call FileClose(potmodFile)
 
     ! Reduction of point charges and dipoles of units to body fixed dipole vector
     do iUnit=1, this%nUnits
@@ -1886,7 +1886,7 @@ contains
       write( filename, '(A,".",A,"_",I0,A)') trim(OutputNameTag),trim( this%PotModFileName(1:i-1) ),fluctstate &
 &           ,trim(NormalizedPotModExtension)
     end if
-    call FileRewrite( normalFile%iounit, filename )
+    call FileRewrite(normalFile, filename)
 
     ! Save number of potential types
     ntypes = 0
@@ -1997,7 +1997,7 @@ contains
     end if
 
     ! Close file
-    call FileClose( normalFile%iounit )
+    call FileClose(normalFile)
 
     ! Update log file
     write( IOBuffer, '("Normalized potential model for ", A, &
