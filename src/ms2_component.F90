@@ -6529,7 +6529,7 @@ contains
 !  Subroutine TComponent_Mol2Unit                              !
 !==============================================================!
 
-  subroutine TComponent_Mol2Unit( this, np )
+  subroutine TComponent_Mol2Unit( this, np, dq )
 
     implicit none
 
@@ -6541,6 +6541,7 @@ contains
     ! Declare arguments
     type(TComponent)    :: this
     integer, intent(in) :: np
+    real(RK)            :: dq(4)
 
     ! Declare local variables
     type(TUnit), pointer           :: pUnit
@@ -6557,7 +6558,7 @@ contains
     if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
       call MPI_Bcast( this%Pm0(np, :), 3, MPI_RK, NRootProc, Communicator, ierror )
       if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Qm0(np, :), 3, MPI_RK, NRootProc, Communicator, ierror )
+        call MPI_Bcast( dq(:), 4, MPI_RK, NRootProc, Communicator, ierror )
       end if
     end if
 #endif
@@ -6566,10 +6567,10 @@ contains
     BoxLengthInv = 1._RK / this%BoxLength
 
     ! Calculate rotation matrix elements
-    q1 = this%Qm0(np, 1)
-    q2 = this%Qm0(np, 2)
-    q3 = this%Qm0(np, 3)
-    q4 = this%Qm0(np, 4)
+    q1 = dq(1)
+    q2 = dq(2)
+    q3 = dq(3)
+    q4 = dq(4)
     ! Normalise quaternions
 #if ARCH == 3
     qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
@@ -6581,10 +6582,10 @@ contains
     q3 = q3 * qinv
     q4 = q4 * qinv
 
-    this%Qm0(np, 1) = q1
-    this%Qm0(np, 2) = q2
-    this%Qm0(np, 3) = q3
-    this%Qm0(np, 4) = q4
+    dq(1) = q1
+    dq(2) = q2
+    dq(3) = q3
+    dq(4) = q4
 
     A11 = q1**2 + q2**2 - q3**2 - q4**2
     A12 = 2._RK * (q2 * q3 + q1 * q4)
@@ -6604,10 +6605,10 @@ contains
         this%P0(np, 2, iUnit) = this%Pm0(np, 2) + (pUnit%P0(1) * A12 + pUnit%P0(2) * A22 +pUnit%P0(3) * A32) * BoxLengthInv
         this%P0(np, 3, iUnit) = this%Pm0(np, 3) + (pUnit%P0(1) * A13 + pUnit%P0(2) * A23 +pUnit%P0(3) * A33) * BoxLengthInv
 
-        this%Q0(np,1,iUnit) = this%Qm0(np,1)*pUnit%Q0(1) - this%Qm0(np,2)*pUnit%Q0(2) - this%Qm0(np,3)*pUnit%Q0(3) - this%Qm0(np,4)*pUnit%Q0(4)
-        this%Q0(np,2,iUnit) = this%Qm0(np,1)*pUnit%Q0(2) + this%Qm0(np,2)*pUnit%Q0(1) + this%Qm0(np,3)*pUnit%Q0(4) - this%Qm0(np,4)*pUnit%Q0(3)
-        this%Q0(np,3,iUnit) = this%Qm0(np,1)*pUnit%Q0(3) + this%Qm0(np,3)*pUnit%Q0(1) - this%Qm0(np,2)*pUnit%Q0(4) + this%Qm0(np,4)*pUnit%Q0(2)
-        this%Q0(np,4,iUnit) = this%Qm0(np,1)*pUnit%Q0(4) + this%Qm0(np,4)*pUnit%Q0(1) - this%Qm0(np,2)*pUnit%Q0(3) - this%Qm0(np,3)*pUnit%Q0(2)
+        this%Q0(np,1,iUnit) = dq(1)*pUnit%Q0(1) - dq(2)*pUnit%Q0(2) - dq(3)*pUnit%Q0(3) - dq(4)*pUnit%Q0(4)
+        this%Q0(np,2,iUnit) = dq(1)*pUnit%Q0(2) + dq(2)*pUnit%Q0(1) + dq(3)*pUnit%Q0(4) - dq(4)*pUnit%Q0(3)
+        this%Q0(np,3,iUnit) = dq(1)*pUnit%Q0(3) + dq(3)*pUnit%Q0(1) - dq(2)*pUnit%Q0(4) + dq(4)*pUnit%Q0(2)
+        this%Q0(np,4,iUnit) = dq(1)*pUnit%Q0(4) + dq(4)*pUnit%Q0(1) - dq(2)*pUnit%Q0(3) - dq(3)*pUnit%Q0(2)
     end do
 
   end subroutine TComponent_Mol2Unit
