@@ -5047,8 +5047,8 @@ xloop:do i = 1, NCells1dim(1)
               if( r <= 1._RK ) exit
             end do
           pc%Qm0(j, :) = pc%Qm0(j, :) / sqrt( r )
+          call Mol2Unit( pc, j )
           end if
-          call Mol2Unit( pc, j, pc%Molecule%nUnits )
         end do
       else
         pc%P0(:,:,1) = pc%Pm0(:,:) ! if P0' 3.dim is over 1 -> elongated
@@ -6075,8 +6075,7 @@ loop5:    do nc = 1, this%NComponents
 
     ! Call Mol2Unit for each component
     do i = 1, this%NComponents
-      call Mol2Unit( this%Component(i), this%Component(i)%NPart, &
-&                      this%Component(i)%Molecule%nUnits )
+      call Mol2Unit( this%Component(i), this%Component(i)%NPart )
     end do
 
   end subroutine TEnsemble_Mol2Unit
@@ -6098,8 +6097,7 @@ loop5:    do nc = 1, this%NComponents
 
     ! Call Unit2Mol for each component
     do i = 1, this%NComponents
-      call Mol2Unit( this%Component(i), this%Component(i)%NPart, &
-&                      this%Component(i)%Molecule%nUnits )
+      call Mol2Unit( this%Component(i), this%Component(i)%NPart )
     end do
 
   end subroutine TEnsemble_Unit2Mol

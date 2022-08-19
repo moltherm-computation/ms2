@@ -6529,7 +6529,7 @@ contains
 !  Subroutine TComponent_Mol2Unit                              !
 !==============================================================!
 
-  subroutine TComponent_Mol2Unit( this, np, nu )
+  subroutine TComponent_Mol2Unit( this, np )
 
     implicit none
 
@@ -6541,7 +6541,6 @@ contains
     ! Declare arguments
     type(TComponent)    :: this
     integer, intent(in) :: np
-    integer, intent(in) :: nu
 
     ! Declare local variables
     type(TUnit), pointer           :: pUnit
@@ -6597,7 +6596,7 @@ contains
     A32 = 2._RK * (q3 * q4 - q1 * q2)
     A33 = q1**2 - q2**2 - q3**2 + q4**2
 
-    do iUnit = 1, nu
+    do iUnit = 1, this%Molecule%nUnits
         pUnit => this%Molecule%Unit(iUnit)
 
         ! Calculating new Positions and quaternions of unit iUnit after rotation
