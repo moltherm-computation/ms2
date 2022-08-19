@@ -6570,7 +6570,6 @@ contains
     nup = nu*np
 
     ! Check number of rotation axes
-    if( this%Molecule%isElongated ) then
       ! Loop over molecules
       do i = 1, np
         ! Positions and quaternions of particle i
@@ -6622,20 +6621,6 @@ contains
            this%Q0(i,4,j) = this%Qm0(i,1)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(3) - this%Qm0(i,3)*pUnit%Q0(2)
          end do
        end do
-
-    else    ! if Molecule is not Elongated
-      do i = 1, np
-        ! Positions and quaternions of particle i
-        this%Pm0(i, 1) = this%Pm0(i, 1)
-        this%Pm0(i, 2) = this%Pm0(i, 2)
-        this%Pm0(i, 3) = this%Pm0(i, 3)
-        do j = 1, nu
-          this%P0(i, 1, j) = this%Pm0(i, 1)
-          this%P0(i, 2, j) = this%Pm0(i, 2)
-          this%P0(i, 3, j) = this%Pm0(i, 3)
-        end do
-      end do
-    end if
 
   end subroutine TComponent_Mol2Unit
 
