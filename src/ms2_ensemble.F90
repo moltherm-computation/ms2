@@ -5038,7 +5038,6 @@ xloop:do i = 1, NCells1dim(1)
               r = sum( dq(:)**2 )
               if( r <= 1._RK ) exit
             end do
-          pc%Qm0(j, :) = dq(:) / sqrt( r )
           dq(:) = dq(:) / sqrt( r )
           call Mol2Unit( pc, j, dq )
           end if

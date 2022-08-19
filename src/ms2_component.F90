@@ -75,9 +75,6 @@ module ms2_component
     real(RK), pointer, contiguous :: P4(:, :, :)
     real(RK), pointer, contiguous :: P5(:, :, :)
 
-    ! Quaternion parameters for molecules - only to calculate the initial orientation
-    real(RK), pointer :: Qm0(:, :)
-
     ! Quaternion parameters and their derivatives for Units
     real(RK), pointer, contiguous :: Q0(:, :, :)
     real(RK), pointer, contiguous :: Q0Save(:, :, :)
@@ -1459,8 +1456,6 @@ contains
     call AllocationError( stat, '3*particles', np )
     allocate( this%FRC3( np, 3 ), STAT = stat )
     call AllocationError( stat, '3*particles', np )
-    allocate( this%Qm0( np, 4 ), STAT = stat )
-    call AllocationError( stat, 'particles', np )
     allocate( this%Q0( np, 4, nu ), STAT = stat )
     call AllocationError( stat, 'units*4*particles', nup )
 
@@ -1594,8 +1589,6 @@ contains
 ! For the calculation of transport properties, the necessary quaternion matrix has
 ! already been allocated in this subroutine!
       ! Quaternion parameters
-      allocate( this%Qm0( np, 4 ), STAT = stat )
-      call AllocationError( stat, 'particles', np )
       allocate( this%Q0( np, 4, nu ), STAT = stat )
       call AllocationError( stat, 'units*particles', nup )
 #endif
