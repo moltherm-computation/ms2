@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xml>
 <testsuite>
-	<tools4ms2version>0.0.297</tools4ms2version>
-	<caseRepositoryHash>1e518e4762356ece8b88b88a10d6016f4d7d499e</caseRepositoryHash>
+	<tools4ms2version>0.0.319</tools4ms2version>
+	<caseRepositoryHash>c4cca696c0e17bb6b1a11ac17676c924d0e285e9</caseRepositoryHash>
 	<caseList>
 		<case name="pentan_1" file="pentan_1.xml" />
 		<case name="pentan_2" file="pentan_2.xml" />

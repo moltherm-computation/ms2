@@ -12,4 +12,8 @@
 	<reference>
 		<file>pentan_NPT_1_1.res</file>
 	</reference>
+	<analyze>
+		<command>python do.py</command>
+		<picture>compareWithElts.pdf</picture>
+	</analyze>
 </testcase>
