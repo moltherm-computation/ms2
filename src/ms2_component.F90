@@ -6533,15 +6533,15 @@ subroutine TComponent_InitUnit( this, np, dq )
     real(RK)            :: dq(4)
 
     ! Declare local variables
-    type(TUnit), pointer           :: pUnit
-    real(RK)                       :: BoxLengthInv
-    real(RK)                       :: A11, A12, A13
-    real(RK)                       :: A21, A22, A23
-    real(RK)                       :: A31, A32, A33
-    real(RK)                       :: q1, q2, q3, q4, qinv
-    integer                        :: iUnit
+    type(TUnit), pointer :: pUnit
+    real(RK)             :: BoxLengthInv
+    real(RK)             :: A11, A12, A13
+    real(RK)             :: A21, A22, A23
+    real(RK)             :: A31, A32, A33
+    real(RK)             :: q1, q2, q3, q4, qinv
+    integer              :: iUnit
 
-    ! Broadcast positions and orientations to all processes
+    ! Broadcast center of mass (molecule) positions to all processes
 #if MPI_VER > 0
     ! in MC simulations, we only communicate during common equilibration
     if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
@@ -6576,23 +6576,23 @@ subroutine TComponent_InitUnit( this, np, dq )
     dq(3) = q3
     dq(4) = q4
 
-    A11 = q1**2 + q2**2 - q3**2 - q4**2
-    A12 = 2._RK * (q2 * q3 + q1 * q4)
-    A13 = 2._RK * (q2 * q4 - q1 * q3)
-    A21 = 2._RK * (q2 * q3 - q1 * q4)
-    A22 = q1**2 - q2**2 + q3**2 - q4**2
-    A23 = 2._RK * (q3 * q4 + q1 * q2)
-    A31 = 2._RK * (q2 * q4 + q1 * q3)
-    A32 = 2._RK * (q3 * q4 - q1 * q2)
-    A33 = q1**2 - q2**2 - q3**2 + q4**2
+    A11 = q2**2 - q3**2 - q4**2 + q1**2
+    A12 = 2._RK * (q2 * q3 + q4*q1)
+    A13 = 2._RK * (q2 * q4 - q3*q1)
+    A21 = 2._RK * (q2 * q3 - q4*q1)
+    A22 = - q2**2 + q3**2 - q4**2 + q1**2
+    A23 = 2._RK * (q3 * q4 + q2*q1)
+    A31 = 2._RK * (q2 * q4 + q3*q1)
+    A32 = 2._RK * (q3 * q4 - q2*q1)
+    A33 = - q2**2 - q3**2 + q4**2 + q1**2
 
-    do iUnit = 1, this%Molecule%nUnits
+    do iUnit=1,this%Molecule%nUnits
       pUnit => this%Molecule%Unit(iUnit)
 
       ! Calculating new Positions and quaternions of unit iUnit after rotation
-      this%P0(np, 1, iUnit) = this%Pm0(np, 1) + (pUnit%P0(1) * A11 + pUnit%P0(2) * A21 +pUnit%P0(3) * A31) * BoxLengthInv
-      this%P0(np, 2, iUnit) = this%Pm0(np, 2) + (pUnit%P0(1) * A12 + pUnit%P0(2) * A22 +pUnit%P0(3) * A32) * BoxLengthInv
-      this%P0(np, 3, iUnit) = this%Pm0(np, 3) + (pUnit%P0(1) * A13 + pUnit%P0(2) * A23 +pUnit%P0(3) * A33) * BoxLengthInv
+      this%P0(np,1,iUnit) = this%Pm0(np,1) + (pUnit%P0(1) * A11 + pUnit%P0(2) * A21 + pUnit%P0(3) * A31) * BoxLengthInv
+      this%P0(np,2,iUnit) = this%Pm0(np,2) + (pUnit%P0(1) * A12 + pUnit%P0(2) * A22 + pUnit%P0(3) * A32) * BoxLengthInv
+      this%P0(np,3,iUnit) = this%Pm0(np,3) + (pUnit%P0(1) * A13 + pUnit%P0(2) * A23 + pUnit%P0(3) * A33) * BoxLengthInv
 
       ! Unit%Q0*dq w/o norm
       this%Q0(np,1,iUnit) = dq(1)*pUnit%Q0(1) - dq(2)*pUnit%Q0(2) - dq(3)*pUnit%Q0(3) - dq(4)*pUnit%Q0(4)
