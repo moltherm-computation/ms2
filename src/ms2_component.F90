@@ -6544,80 +6544,72 @@ contains
     integer, intent(in) :: nu
 
     ! Declare local variables
+    type(TUnit), pointer           :: pUnit
     real(RK)                       :: BoxLengthInv
-    real(RK)                       :: PmX(np), PmY(np), PmZ(np)
-    real(RK)                       :: q1, q2, q3, q4, qinv
     real(RK)                       :: A11, A12, A13
     real(RK)                       :: A21, A22, A23
     real(RK)                       :: A31, A32, A33
-    integer                        :: nup
-    type(TUnit), pointer           :: pUnit
-    integer                        :: i, j
+    real(RK)                       :: q1, q2, q3, q4, qinv
+    integer                        :: iUnit
 
     ! Broadcast positions and orientations to all processes
 #if MPI_VER > 0
     ! in MC simulations, we only communicate during common equilibration
     if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%Pm0(:, :), size( this%Pm0 ), MPI_RK, NRootProc, Communicator, ierror )
+      call MPI_Bcast( this%Pm0(np, :), 3, MPI_RK, NRootProc, Communicator, ierror )
       if( this%Molecule%isElongated ) then
-        call MPI_Bcast( this%Qm0(:, :), size( this%Qm0 ), MPI_RK, NRootProc, Communicator, ierror )
+        call MPI_Bcast( this%Qm0(np, :), 3, MPI_RK, NRootProc, Communicator, ierror )
       end if
     end if
 #endif
 
     ! Assign local variables
     BoxLengthInv = 1._RK / this%BoxLength
-    nup = nu*np
 
-    ! Check number of rotation axes
-      ! Loop over molecules
-      do i = 1, np
-        ! Positions and quaternions of particle i
-        q1 = this%Qm0(i, 1)
-        q2 = this%Qm0(i, 2)
-        q3 = this%Qm0(i, 3)
-        q4 = this%Qm0(i, 4)
-
-        ! Normalise quaternions
+    ! Calculate rotation matrix elements
+    q1 = this%Qm0(np, 1)
+    q2 = this%Qm0(np, 2)
+    q3 = this%Qm0(np, 3)
+    q4 = this%Qm0(np, 4)
+    ! Normalise quaternions
 #if ARCH == 3
-        qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+    qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
 #else
-        qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
+    qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
 #endif
-        q1 = q1 * qinv
-        q2 = q2 * qinv
-        q3 = q3 * qinv
-        q4 = q4 * qinv
-        this%Qm0(i, 1) = q1
-        this%Qm0(i, 2) = q2
-        this%Qm0(i, 3) = q3
-        this%Qm0(i, 4) = q4
+    q1 = q1 * qinv
+    q2 = q2 * qinv
+    q3 = q3 * qinv
+    q4 = q4 * qinv
 
-        ! Calculate rotation matrix elements
-        A11 = q1**2 + q2**2 - q3**2 - q4**2
-        A12 = 2._RK * (q2 * q3 + q1 * q4)
-        A13 = 2._RK * (q2 * q4 - q1 * q3)
-        A21 = 2._RK * (q2 * q3 - q1 * q4)
-        A22 = q1**2 - q2**2 + q3**2 - q4**2
-        A23 = 2._RK * (q3 * q4 + q1 * q2)
-        A31 = 2._RK * (q2 * q4 + q1 * q3)
-        A32 = 2._RK * (q3 * q4 - q1 * q2)
-        A33 = q1**2 - q2**2 - q3**2 + q4**2
+    this%Qm0(np, 1) = q1
+    this%Qm0(np, 2) = q2
+    this%Qm0(np, 3) = q3
+    this%Qm0(np, 4) = q4
 
-      ! Calculate initial COM position and quartenions for Units
-      ! Loop over Units in molecule
-         do j = 1, nu
-           pUnit => this%Molecule%Unit(j)
-           this%P0(i, 1, j) = this%Pm0(i, 1) + (pUnit%P0(1)*A11+pUnit%P0(2)*A21+pUnit%P0(3)*A31) * BoxLengthInv
-           this%P0(i, 2, j) = this%Pm0(i, 2) + (pUnit%P0(1)*A12+pUnit%P0(2)*A22+pUnit%P0(3)*A32) * BoxLengthInv
-           this%P0(i, 3, j) = this%Pm0(i, 3) + (pUnit%P0(1)*A13+pUnit%P0(2)*A23+pUnit%P0(3)*A33) * BoxLengthInv
+    A11 = q1**2 + q2**2 - q3**2 - q4**2
+    A12 = 2._RK * (q2 * q3 + q1 * q4)
+    A13 = 2._RK * (q2 * q4 - q1 * q3)
+    A21 = 2._RK * (q2 * q3 - q1 * q4)
+    A22 = q1**2 - q2**2 + q3**2 - q4**2
+    A23 = 2._RK * (q3 * q4 + q1 * q2)
+    A31 = 2._RK * (q2 * q4 + q1 * q3)
+    A32 = 2._RK * (q3 * q4 - q1 * q2)
+    A33 = q1**2 - q2**2 - q3**2 + q4**2
 
-           this%Q0(i,1,j) = this%Qm0(i,1)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(2) - this%Qm0(i,3)*pUnit%Q0(3) - this%Qm0(i,4)*pUnit%Q0(4)
-           this%Q0(i,2,j) = this%Qm0(i,1)*pUnit%Q0(2) + this%Qm0(i,2)*pUnit%Q0(1) + this%Qm0(i,3)*pUnit%Q0(4) - this%Qm0(i,4)*pUnit%Q0(3)
-           this%Q0(i,3,j) = this%Qm0(i,1)*pUnit%Q0(3) + this%Qm0(i,3)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(2)
-           this%Q0(i,4,j) = this%Qm0(i,1)*pUnit%Q0(4) + this%Qm0(i,4)*pUnit%Q0(1) - this%Qm0(i,2)*pUnit%Q0(3) - this%Qm0(i,3)*pUnit%Q0(2)
-         end do
-       end do
+    do iUnit = 1, nu
+        pUnit => this%Molecule%Unit(iUnit)
+
+        ! Calculating new Positions and quaternions of unit iUnit after rotation
+        this%P0(np, 1, iUnit) = this%Pm0(np, 1) + (pUnit%P0(1) * A11 + pUnit%P0(2) * A21 +pUnit%P0(3) * A31) * BoxLengthInv
+        this%P0(np, 2, iUnit) = this%Pm0(np, 2) + (pUnit%P0(1) * A12 + pUnit%P0(2) * A22 +pUnit%P0(3) * A32) * BoxLengthInv
+        this%P0(np, 3, iUnit) = this%Pm0(np, 3) + (pUnit%P0(1) * A13 + pUnit%P0(2) * A23 +pUnit%P0(3) * A33) * BoxLengthInv
+
+        this%Q0(np,1,iUnit) = this%Qm0(np,1)*pUnit%Q0(1) - this%Qm0(np,2)*pUnit%Q0(2) - this%Qm0(np,3)*pUnit%Q0(3) - this%Qm0(np,4)*pUnit%Q0(4)
+        this%Q0(np,2,iUnit) = this%Qm0(np,1)*pUnit%Q0(2) + this%Qm0(np,2)*pUnit%Q0(1) + this%Qm0(np,3)*pUnit%Q0(4) - this%Qm0(np,4)*pUnit%Q0(3)
+        this%Q0(np,3,iUnit) = this%Qm0(np,1)*pUnit%Q0(3) + this%Qm0(np,3)*pUnit%Q0(1) - this%Qm0(np,2)*pUnit%Q0(4) + this%Qm0(np,4)*pUnit%Q0(2)
+        this%Q0(np,4,iUnit) = this%Qm0(np,1)*pUnit%Q0(4) + this%Qm0(np,4)*pUnit%Q0(1) - this%Qm0(np,2)*pUnit%Q0(3) - this%Qm0(np,3)*pUnit%Q0(2)
+    end do
 
   end subroutine TComponent_Mol2Unit
 

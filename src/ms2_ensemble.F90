@@ -5048,8 +5048,8 @@ xloop:do i = 1, NCells1dim(1)
             end do
           pc%Qm0(j, :) = pc%Qm0(j, :) / sqrt( r )
           end if
+          call Mol2Unit( pc, j, pc%Molecule%nUnits )
         end do
-        call Mol2Unit( pc, pc%NPart, pc%Molecule%nUnits )
       else
         pc%P0(:,:,1) = pc%Pm0(:,:) ! if P0' 3.dim is over 1 -> elongated
       end if
