@@ -2046,9 +2046,6 @@ contains
 
       if( SimulationType .eq. MolecularDynamics .and. .not. MCOverlapReduction ) then
 
-        ! Calculate positions of units
-        call Mol2Unit( this)   ! Calculate initial orientations and positions of units
-
         ! Initialize molecular dynamics simulation
         call InitMolecularDynamics( this, .false. )
 
@@ -5052,6 +5049,7 @@ xloop:do i = 1, NCells1dim(1)
           pc%Qm0(j, :) = pc%Qm0(j, :) / sqrt( r )
           end if
         end do
+        call Mol2Unit( pc, pc%NPart, pc%Molecule%nUnits )
       else
         pc%P0(:,:,1) = pc%Pm0(:,:) ! if P0' 3.dim is over 1 -> elongated
       end if
