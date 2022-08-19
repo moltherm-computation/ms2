@@ -5031,15 +5031,20 @@ xloop:do i = 1, NCells1dim(1)
               end do
               pc%Q0(j, :, 1) = pc%Q0(j, :, 1) / sqrt( r )
           else
-            do
-              do k = 1, 4
-                dq(k) = rnd( -1._RK, 1._RK )
+              pm(:) = pc%Pm0(j,:)
+              do
+                do k = 1, 4
+                  dq(k) = rnd( -1._RK, 1._RK )
+                end do
+                r = sum( dq(:)**2 )
+                if( r <= 1._RK ) exit
               end do
-              r = sum( dq(:)**2 )
-              if( r <= 1._RK ) exit
-            end do
-          dq(:) = dq(:) / sqrt( r )
-          call Mol2Unit( pc, j, dq )
+              dq(:) = dq(:) / sqrt( r )
+              call Mol2Unit(pc,j,dq )
+              do iUnit = 1, pc%Molecule%nUnits
+                pc%P0(j,:,iUnit) = pc%P0(j,:,iUnit) + pm(:) - pc%Pm0(j,:) ! since pm=Pm0, this does nothing
+              end do
+              pc%Pm0(j,:) = pm(:)
           end if
         end do
       else
