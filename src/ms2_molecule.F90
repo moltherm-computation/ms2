@@ -761,23 +761,8 @@ contains
       this%UnitQP(iUnit) = this%Unit(iUnit-1)%NQuadrupole + this%UnitQP(iUnit-1)
     end do
 
-    ! Read number of rotation axes
-    call FileReadParameter( stype, potmodFile%iounit, IdSite_NDFRot, .false. )
-    select case( stype )
-    case( '0' )
-      this%NDFRot = 0
-    case( '2' )
-      this%NDFRot = 2
-    case( '3' )
-      this%NDFRot = 3
-    case( 'AUTO', 'Auto', 'auto' )
-      this%NDFRot = -1
-    case default
-      call Error( IdSite_NDFRot//' cannot be equal to '//trim( stype ) )
-    end select
-
     ! Find moments of inertia for molecule
-    if( this%NDFRot < 0 ) then
+    if( this%Unit(1)%NDFRot < 0 ) then
     ! Calculate moment-of-inertia tensor
     moi(:, :) = 0._RK
     do i = 1, this%NMIEnm
