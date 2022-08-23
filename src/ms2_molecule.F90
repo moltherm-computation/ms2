@@ -235,7 +235,7 @@ contains
     logical                :: ok, ok1, LJ1, LJ2, same
     logical                :: charge1, charge2, dipole1, dipole2, quadrupole1, quadrupole2
     integer                :: cc, cd, cq, dc, dd, dq, qc, qd, qq, lj
-    integer                :: Site1, Site2, Site3, Site4
+    integer                :: Site(4)
     integer, allocatable   :: AllSites(:, :), Int14(:,:)
     integer, allocatable   :: IntLJ14(:, :), IntLJ15(:,:)
     integer, allocatable   :: SameCoord(:,:)
@@ -927,22 +927,22 @@ contains
 
 
         do i=1, this%NDihedral
-            Site1=this%IdfDihedral(i)%SiteId(1)
-            Site2=this%IdfDihedral(i)%SiteId(2)
-            Site3=this%IdfDihedral(i)%SiteId(3)
-            Site4=this%IdfDihedral(i)%SiteId(4)
-            AllSites(Site1,Site2)=0
-            AllSites(Site1,Site3)=0
-            AllSites(Site1,Site4)=0
-            AllSites(Site2,Site3)=0
-            AllSites(Site2,Site4)=0
-            AllSites(Site3,Site4)=0
-            AllSites(Site2,Site1)=0
-            AllSites(Site3,Site1)=0
-            AllSites(Site4,Site1)=0
-            AllSites(Site3,Site2)=0
-            AllSites(Site4,Site2)=0
-            AllSites(Site4,Site3)=0
+            Site(1)=this%IdfDihedral(i)%SiteId(1)
+            Site(2)=this%IdfDihedral(i)%SiteId(2)
+            Site(3)=this%IdfDihedral(i)%SiteId(3)
+            Site(4)=this%IdfDihedral(i)%SiteId(4)
+            AllSites(Site(1),Site(2))=0
+            AllSites(Site(1),Site(3))=0
+            AllSites(Site(1),Site(4))=0
+            AllSites(Site(2),Site(3))=0
+            AllSites(Site(2),Site(4))=0
+            AllSites(Site(3),Site(4))=0
+            AllSites(Site(2),Site(1))=0
+            AllSites(Site(3),Site(1))=0
+            AllSites(Site(4),Site(1))=0
+            AllSites(Site(3),Site(2))=0
+            AllSites(Site(4),Site(2))=0
+            AllSites(Site(4),Site(3))=0
         end do
 
         do iUnit = 1, this%nUnits
@@ -1147,30 +1147,30 @@ contains
             k=1
             do i=1, this%NDihedral
                 if (this%IdfDihedral(i)%nmax>=0) then  !If proper dihedral
-                    Site1=this%IdfDihedral(i)%SiteId(1)
-                    Site4=this%IdfDihedral(i)%SiteId(4)
-                    if (Site1>Site4) then
-                        Site1=this%IdfDihedral(i)%SiteId(4)
-                        Site4=this%IdfDihedral(i)%SiteId(1)
+                    Site(1)=this%IdfDihedral(i)%SiteId(1)
+                    Site(4)=this%IdfDihedral(i)%SiteId(4)
+                    if (Site(1)>Site(4)) then
+                        Site(1)=this%IdfDihedral(i)%SiteId(4)
+                        Site(4)=this%IdfDihedral(i)%SiteId(1)
                     end if
                     if (k>1) then
-                        call binar_search(Int14(1:k,1), Site1, ok1, index)
+                        call binar_search(Int14(1:k,1), Site(1), ok1, index)
                         if (.not. ok1) then
-                            Int14(k,1)=Site1
-                            Int14(k,2)=Site4
+                            Int14(k,1)=Site(1)
+                            Int14(k,2)=Site(4)
                             CoeffLJ14(k)=this%IdfDihedral(i)%ScaleLJ14
                             CoeffEl14(k)=this%IdfDihedral(i)%ScaleEl14
                             k=k+1
-                        else if (Int14(index, 2) .ne. Site4) then
-                            Int14(k,1)=Site1
-                            Int14(k,2)=Site4
+                        else if (Int14(index, 2) .ne. Site(4)) then
+                            Int14(k,1)=Site(1)
+                            Int14(k,2)=Site(4)
                             CoeffLJ14(k)=this%IdfDihedral(i)%ScaleLJ14
                             CoeffEl14(k)=this%IdfDihedral(i)%ScaleEl14
                             k=k+1
                         end if
                     else
-                        Int14(k,1)=Site1
-                        Int14(k,2)=Site4
+                        Int14(k,1)=Site(1)
+                        Int14(k,2)=Site(4)
                         CoeffLJ14(k)=this%IdfDihedral(i)%ScaleLJ14
                         CoeffEl14(k)=this%IdfDihedral(i)%ScaleEl14
                         k=k+1
