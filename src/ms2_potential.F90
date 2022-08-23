@@ -1276,8 +1276,8 @@ loop2:    do m=1,NBinsDen
           end if
 #endif
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * RijSquaredInv**3 * (12._RK*RijSquaredInv**3  -  6._RK) * (sitecorr * sitecorr - (PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared)*Third*Third !xxxx LJ
-          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * RijSquaredInv**3 * (156._RK*RijSquaredInv**3 - 42._RK) *  sitecorr * sitecorr*Third*Third
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Third * Third * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
+                           + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -2342,7 +2342,7 @@ loop2:  do j = 1, N2
     this%BoxLengthInv = BoxLengthInv
     this%BoxLengthThird = Third * BoxLength
     this%SigmaSquared = (this%Sigma * BoxLengthInv)**2
-    this%EpsilonMie_aF = 12._RK * this%EpsilonMie_a * BoxLengthInv / this%SigmaSquared
+    this%EpsilonMie_aF = 12._RK * this%EpsilonMie_a * BoxLengthInv / this%SigmaSquared ! in master is no 12
     this%RCutoffSquaredScaled = this%RCutoffSquared * BoxLengthInv**2
 
   end subroutine TPotMIEMIE_UpdateBoxLength
