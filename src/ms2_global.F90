@@ -196,7 +196,7 @@ module ms2_global
   ! Extension of restart file
   character(*), parameter :: RestartFileExtension = '.rst'
 
-  ! Extension of RDF file 
+  ! Extension of RDF file
   character(*), parameter :: RDFFileExtension = '.rdf'
 
   ! Extension of ODF file
@@ -205,7 +205,7 @@ module ms2_global
   ! Extension of KBI file (Kirkwood-Buff Integration)
   character(*), parameter :: KBIrdfFileExtension = '.kbirdf'
   character(*), parameter :: KBIravFileExtension = '.kbirav'
-  
+
   ! Extension of alpha2 file (displacement correlation function)
   character(*), parameter :: ALPHA2ravFileExtension = '.a2rav'
 
@@ -218,9 +218,9 @@ module ms2_global
   ! Extension fo result correlation fucntion
   character(*), parameter :: ResultTransportExtension = '.rtr'
 
-  ! Extension of DCP file 
+  ! Extension of DCP file
   character(*), parameter :: DCPFileExtension = '.dcp'
-  
+
   ! Marker within a result file for each ensemble data
   character(*), parameter :: RstEnsembleMarker = 'ENSEMBLE'
 
@@ -324,7 +324,7 @@ module ms2_global
   character(*), parameter :: IdNStepsV                     = 'NVTSteps'
   character(*), parameter :: IdNStepsE                     = 'NVESteps'
   character(*), parameter :: IdNStepsP                     = 'NPTSteps'
-  character(*), parameter :: IdNStepsH                     = 'NPHSteps'  
+  character(*), parameter :: IdNStepsH                     = 'NPHSteps'
   character(*), parameter :: IdNStepsMue                   = 'mueVTSteps'
   character(*), parameter :: IdNStepsMueP                  = 'muePTSteps'
   character(*), parameter :: IdNSteps                      = 'RunSteps'
@@ -340,10 +340,10 @@ module ms2_global
   character(*), parameter :: IdODFOutputFrequency          = 'ODFOutputFreq'
   character(*), parameter :: IdKBIUpdateFrequency          = 'KBIFreq' !Kirkwood-Buff Integration
   character(*), parameter :: IdKBINumberShells             = 'KBINumShells'
-  character(*), parameter :: IdKBIResetFrequency           = 'KBIResetFreq' 
+  character(*), parameter :: IdKBIResetFrequency           = 'KBIResetFreq'
   character(*), parameter :: IdALPHA2UpdateFrequency       = 'ALPHA2Freq' !Alpha2 correlation function
   character(*), parameter :: IdALPHA2Length                = 'ALPHA2Length'
-  character(*), parameter :: IdALPHA2Shift                 = 'ALPHA2Span' 
+  character(*), parameter :: IdALPHA2Shift                 = 'ALPHA2Span'
   !character(*), parameter :: IdEinsteinCoefCalc            = 'EinsteinCoefCalc' !EinsteinCoefN
   character(*), parameter :: IdTransMethod                 = 'TransMethod'
   character(*), parameter :: IdNBinsDen                    = 'NumDenBins'
@@ -584,9 +584,9 @@ module ms2_global
   real(RK), parameter :: DegreesInRadian = 180._RK / Pi
   real(RK)            :: DebyesInSI
   real(RK)            :: BuckinghamsInSI
-  real(RK)            :: kForceOsmoticPressure 
-  
-  
+  real(RK)            :: kForceOsmoticPressure
+
+
   ! Version of the parameter file
   real(RK) :: parVersionNr
 
@@ -865,7 +865,7 @@ module ms2_global
 
   ! Number of RDF shells
   integer :: RDFNumberShells
-  
+
   ! Number of ODF shells
   integer :: nR
 
@@ -900,7 +900,7 @@ module ms2_global
   ! Number of density profile bins
   integer :: NBinsDen
 
-  ! Common equilibration flag for MC. Determines whether one shared 
+  ! Common equilibration flag for MC. Determines whether one shared
   ! equilibration is performed
   logical :: CommonEqui
 
@@ -1060,7 +1060,7 @@ module ms2_global
     module procedure Global_FileReset
   end interface
 
-# if MPI_VER > 0 
+# if MPI_VER > 0
   interface FileRewrite_parallel
     module procedure Global_FileRewrite_parallel
   end interface
@@ -1226,7 +1226,7 @@ contains
   subroutine Global_printVersion()
     implicit none
     if (RootProc) then
-      print *, trim( ProgramFileName ), ' Version: ', VersionString, "_idf" &
+      print *, trim( ProgramFileName ), ' Version: ', VersionString &
 &            , ' (compiled at ', CompileTime, ')'
     end if
   end subroutine Global_printVersion
@@ -1830,8 +1830,8 @@ contains
     exp_arg_max = log(limits_RK_MAX)
 
 #ifdef SINGLEPRECISION
-    DebyesInSI = real( sqrt( 1E49_RK / (4._RK * real(Pi, RK) * real(VacuumPermittivity, RK) ) ), RK )
-    BuckinghamsInSI = real( sqrt( 1E69_RK / (4._RK * real(Pi, RK) * real(VacuumPermittivity, RK) ) ), RK )
+    DebyesInSI = real( sqrt( 1E49_8 / (4._RK * real(Pi, RK) * real(VacuumPermittivity, RK) ) ), 8 )
+    BuckinghamsInSI = real( sqrt( 1E69_8 / (4._RK * real(Pi, RK) * real(VacuumPermittivity, RK) ) ), 8 )
 #else
     DebyesInSI = sqrt( 1E49_RK / (4._RK * Pi * VacuumPermittivity) )
     BuckinghamsInSI = sqrt( 1E69_RK / (4._RK * Pi * VacuumPermittivity) )
@@ -2156,8 +2156,6 @@ contains
 
   end subroutine Global_LogWriteBlank
 
-
-
 !==============================================================!
 !  Subroutine Global_LogWriteTime                              !
 !==============================================================!
@@ -2258,8 +2256,8 @@ contains
 
     call MPI_File_close(file%MPIhandle, ierror)
 
-    if( RootProc )then 
-        write( IOBuffer, '("File <", A, "> closed")' )"*.run or *.rav"  
+    if( RootProc )then
+        write( IOBuffer, '("File <", A, "> closed")' )"*.run or *.rav"
         call LogWrite
     endif
 
