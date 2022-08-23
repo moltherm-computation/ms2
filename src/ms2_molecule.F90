@@ -220,6 +220,7 @@ contains
 
     ! Declare local variables
     integer       :: i, j
+    integer       :: iDihedral, iDihedralSite, jDihedralSite
     integer       :: ntypes
     character(16) :: stype
     integer       :: stat
@@ -232,8 +233,8 @@ contains
     character(16) :: sidftype  !type of internal degree of freedom
     integer                :: ncs        ! number of all constraint sites
     integer, allocatable   :: ncspu(:)   ! number of constraint sites pro unit
-    logical                :: ok, ok1, LJ1, LJ2, same
-    logical                :: charge1, charge2, dipole1, dipole2, quadrupole1, quadrupole2
+    logical                :: ok, ok1, LJfound(2), same
+    logical                :: charge(2), dipole(2), quadrupole(2)
     integer                :: cc, cd, cq, dc, dd, dq, qc, qd, qq, lj
     integer                :: Site(4)
     integer, allocatable   :: AllSites(:, :), Int14(:,:)
@@ -250,9 +251,7 @@ contains
     real, allocatable      :: ScaleDC14(:), ScaleDD14(:), ScaleDQ14(:)
     real, allocatable      :: ScaleQC14(:), ScaleQD14(:), ScaleQQ14(:)
     real, allocatable      :: CoeffLJ14(:), CoeffEl14(:)
-    integer                :: Charge1Id, Charge2Id
-    integer                :: Dipole1Id, Dipole2Id
-    integer                :: Quadrupole1Id, Quadrupole2Id
+    integer                :: ChargeID(2), DipoleID(2), QuadrupoleID(2)
 
     ! Nullify pointers.
     nullify( this%SiteMIEnm )
@@ -926,23 +925,18 @@ contains
         end do
 
 
-        do i=1, this%NDihedral
-            Site(1)=this%IdfDihedral(i)%SiteId(1)
-            Site(2)=this%IdfDihedral(i)%SiteId(2)
-            Site(3)=this%IdfDihedral(i)%SiteId(3)
-            Site(4)=this%IdfDihedral(i)%SiteId(4)
-            AllSites(Site(1),Site(2))=0
-            AllSites(Site(1),Site(3))=0
-            AllSites(Site(1),Site(4))=0
-            AllSites(Site(2),Site(3))=0
-            AllSites(Site(2),Site(4))=0
-            AllSites(Site(3),Site(4))=0
-            AllSites(Site(2),Site(1))=0
-            AllSites(Site(3),Site(1))=0
-            AllSites(Site(4),Site(1))=0
-            AllSites(Site(3),Site(2))=0
-            AllSites(Site(4),Site(2))=0
-            AllSites(Site(4),Site(3))=0
+        do i = 1, this%NDihedral
+
+            Site(1:4)=this%IdfDihedral(i)%SiteId(1:4)
+
+            do iDihedralSite = 1, 4
+
+                do jDihedralSite = 1, 4
+
+                    AllSites(Site(iDihedralSite), Site(jDihedralSite)) = 0
+                end do
+
+            end do
         end do
 
         do iUnit = 1, this%nUnits
@@ -1019,73 +1013,69 @@ contains
         do i=1, this%NSite
             do j=i+1, this%NSite
                 if (AllSites(i,j)==1) then
-                    LJ1 =.false.
-                    LJ2 =.false.
-                    charge1 = .false.
-                    charge2 = .false.
-                    dipole1 = .false.
-                    dipole2 = .false.
-                    quadrupole1 = .false.
-                    quadrupole2 = .false.
-                    call binar_search(this%LJSiteIds(:), i, LJ1, index)
-                    call binar_search(this%LJSiteIds(:), j, LJ2, index)
-                    if (LJ1 .and. LJ2) then
+                    LJfound(1:2) =.false.
+                    charge(1:2) = .false.
+                    dipole(1:2) = .false.
+                    quadrupole(1:2) = .false.
+                    call binar_search(this%LJSiteIds(:), i, LJfound(1), index)
+                    call binar_search(this%LJSiteIds(:), j, LJfound(2), index)
+                    if (LJfound(1) .and. LJfound(2)) then
                         IntLJ15(lj,1)=i
                         IntLJ15(lj,2)=j
                         lj=lj+1
-                    else if (.not. LJ1 .and. .not. LJ2) then
-                        call binar_search(this%ChargeSiteIds(:), i, charge1, index)
-                        if (.not. charge1) then
-                            call binar_search(this%DipoleSiteIds(:), i, dipole1, index)
-                            if (.not. dipole1) then
-                                call binar_search(this%QuadrupoleSiteIds(:), i, quadrupole1, index)
+                    else if (.not. LJfound(1) .and. .not. LJfound(2)) then
+                        call binar_search(this%ChargeSiteIds(:), i, charge(1), index)
+                        if (.not. charge(1)) then
+                            call binar_search(this%DipoleSiteIds(:), i, dipole(1), index)
+                            if (.not. dipole(1)) then
+                                call binar_search(this%QuadrupoleSiteIds(:), i, quadrupole(1), index)
                             end if
                         end if
-                        call binar_search(this%ChargeSiteIds(:), j, charge2, index)
-                        if (.not. charge2) then
-                            call binar_search(this%DipoleSiteIds(:), i, dipole2, index)
-                            if (.not. dipole2) then
-                                call binar_search(this%QuadrupoleSiteIds(:), i, quadrupole2, index)
+                        call binar_search(this%ChargeSiteIds(:), j, charge(2), index)
+                        if (.not. charge(2)) then
+                            call binar_search(this%DipoleSiteIds(:), i, dipole(2), index)
+                            if (.not. dipole(2)) then
+                                call binar_search(this%QuadrupoleSiteIds(:), i, quadrupole(2), index)
                             end if
                         end if
-                        if (charge1) then
-                            if (charge2) then
+                        if (charge(1)) then
+                            if (charge(2)) then
                                 IntCC15(cc,1)= i
                                 IntCC15(cc,2)= j
                                 cc=cc+1
-                            else if (dipole2) then
+                            else if (dipole(2)) then
                                 IntCD15(cd,1)= i
                                 IntCD15(cd,2)= j
                                 cd=cd+1
-                            else !quadrupole2
+                            else !quadrupole(2)
                                 IntCQ15(cq,1)=i
                                 IntCQ15(cq,2)=j
                                 cq=cq+1
                             end if
-                        else if (dipole1) then
-                            if (charge2) then
+                        else if (dipole(1)) then
+                            if (charge(2)) then
                                 IntDC15(dc,1)= i
                                 IntDC15(dc,2)= j
                                 dc=dc+1
-                            else if (dipole2) then
+                            else if (dipole(2)) then
                                 IntDD15(dd,1)= i
                                 IntDD15(dd,2)= j
                                 dd=dd+1
-                            else !quadrupole2
+                            else !quadrupole(2)
                                 IntDQ15(dq,1)=i
                                 IntDQ15(dq,2)=j
                                 dq=dq+1
                             end if
-                        else ! quadrupole1
-                            if (charge2)then
+                        else ! quadrupole(1)
+                            if (charge(2))then
                                 IntQC15(qc,1)= i
                                 IntQC15(qc,2)= j
                                 qc=qc+1
-                            else if (dipole2)then
+                            else if (dipole(2))then
                                 IntQD15(qd,1)= i
                                 IntQD15(qd,2)= j
                                 qd=qd+1
-                            else ! quadrupole2
+                            else ! quadrupole(2)
                                 IntQQ15(qq,1)=i
                                 IntQQ15(qq,2)=j
                                 qq=qq+1
@@ -1189,74 +1179,74 @@ contains
             qd = 1
             qq = 1
             do i =1, k-1
-                call binar_search(this%LJSiteIds(:), Int14(i,1), LJ1, index1)
-                call binar_search(this%LJSiteIds(:), Int14(i,2), LJ2, index2)
-                if (LJ1 .and. LJ2) then
+                call binar_search(this%LJSiteIds(:), Int14(i,1), LJfound(1), index1)
+                call binar_search(this%LJSiteIds(:), Int14(i,2), LJfound(2), index2)
+                if (LJfound(1) .and. LJfound(2)) then
                     IntLJ14(lj,1)=Int14(i,1)
                     IntLJ14(lj,2)=Int14(i,2)
                     ScaleLJ14(lj)=CoeffLJ14(i)
                     lj = lj+1
-                    Charge1Id = SameCoord(this%LJSiteIds(index1),1)
-                    Charge2Id = SameCoord(this%LJSiteIds(index2),1)
-                    Dipole1Id = SameCoord(this%LJSiteIds(index1),2)
-                    Dipole2Id = SameCoord(this%LJSiteIds(index2),2)
-                    Quadrupole1Id = SameCoord(this%LJSiteIds(index1),3)
-                    Quadrupole2Id = SameCoord(this%LJSiteIds(index1),3)
-                    if (Charge1Id > 0) then
-                        if ( Charge2Id > 0) then
-                            IntCC14(cc,1) = Charge1Id
-                            IntCC14(cc,2) = Charge2Id
+                    ChargeID(1) = SameCoord(this%LJSiteIds(index1),1)
+                    ChargeID(2) = SameCoord(this%LJSiteIds(index2),1)
+                    DipoleID(1) = SameCoord(this%LJSiteIds(index1),2)
+                    DipoleID(2) = SameCoord(this%LJSiteIds(index2),2)
+                    QuadrupoleID(1) = SameCoord(this%LJSiteIds(index1),3)
+                    QuadrupoleID(2) = SameCoord(this%LJSiteIds(index1),3)
+                    if (ChargeID(1) > 0) then
+                        if ( ChargeID(2) > 0) then
+                            IntCC14(cc,1) = ChargeID(1)
+                            IntCC14(cc,2) = ChargeID(2)
                             ScaleCC14(cc)=CoeffEl14(i)
                             cc = cc+1
-                        else if ( Dipole2Id > 0) then
-                            IntCD14(cd,1) = Charge1Id
-                            IntCD14(cd,2) = Dipole2Id
+                        else if ( DipoleID(2) > 0) then
+                            IntCD14(cd,1) = ChargeID(1)
+                            IntCD14(cd,2) = DipoleID(2)
                             ScaleCD14(cd)=CoeffEl14(i)
                             cd = cd+1
                         else
-                            if ( Quadrupole2Id > 0) then
-                                IntCQ14(cq,1) = Charge1Id
-                                IntCQ14(cq,2) = Quadrupole2Id
+                            if ( QuadrupoleID(2) > 0) then
+                                IntCQ14(cq,1) = ChargeID(1)
+                                IntCQ14(cq,2) = QuadrupoleID(2)
                                 ScaleCQ14(cq)=CoeffEl14(i)
                                 cq = cq+1
                             end if
                         end if
                     end if
-                    if (Dipole1Id > 0) then
-                        if ( Charge2Id > 0) then
-                            IntDC14(dc,1) = Dipole1Id
-                            IntDC14(dc,2) = Charge2Id
+                    if (DipoleID(1) > 0) then
+                        if ( ChargeID(2) > 0) then
+                            IntDC14(dc,1) = DipoleID(1)
+                            IntDC14(dc,2) = ChargeID(2)
                             ScaleDC14(dc)=CoeffEl14(i)
                             dc = dc+1
-                        else if ( Dipole2Id > 0) then
-                            IntDD14(dd,1) = Dipole1Id
-                            IntDD14(dd,2) = Dipole2Id
+                        else if ( DipoleID(2) > 0) then
+                            IntDD14(dd,1) = DipoleID(1)
+                            IntDD14(dd,2) = DipoleID(2)
                             ScaleDD14(dd)=CoeffEl14(i)
                             dd = dd+1
                         else
-                            if (Quadrupole2Id > 0) then
-                                IntDQ14(dq,1) = Dipole1Id
-                                IntDQ14(dq,2) = Quadrupole2Id
+                            if (QuadrupoleID(2) > 0) then
+                                IntDQ14(dq,1) = DipoleID(1)
+                                IntDQ14(dq,2) = QuadrupoleID(2)
                                 ScaleDQ14(dq)=CoeffEl14(i)
                                 dq = dq+1
                             end if
                         end if
                     end if
-                    if (Quadrupole1Id > 0) then
-                        if ( Charge2Id > 0) then
-                            IntQC14(qc,1) = Quadrupole1Id
-                            IntQC14(qc,2) = Charge2Id
+                    if (QuadrupoleID(1) > 0) then
+                        if ( ChargeID(2) > 0) then
+                            IntQC14(qc,1) = QuadrupoleID(1)
+                            IntQC14(qc,2) = ChargeID(2)
                             ScaleQC14(qc) = CoeffEl14(i)
                             qc = qc+1
-                        else if ( Dipole2Id > 0) then
-                            IntQD14(qd,1) = Quadrupole1Id
-                            IntQD14(qd,2) = Dipole2Id
+                        else if ( DipoleID(2) > 0) then
+                            IntQD14(qd,1) = QuadrupoleID(1)
+                            IntQD14(qd,2) = DipoleID(2)
                             ScaleQD14(qd) = CoeffEl14(i)
                             qd = qd+1
                         else
-                            if ( Quadrupole2Id > 0) then
-                                IntQQ14(qq,1) = Quadrupole1Id
-                                IntQQ14(qq,2) = Quadrupole2Id
+                            if ( QuadrupoleID(2) > 0) then
+                                IntQQ14(qq,1) = QuadrupoleID(1)
+                                IntQQ14(qq,2) = QuadrupoleID(2)
                                 ScaleQQ14(qq)= CoeffEl14(i)
                                 qq = qq+1
                             end if
