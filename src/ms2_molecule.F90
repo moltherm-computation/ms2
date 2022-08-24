@@ -102,7 +102,7 @@ module ms2_molecule
     type(TIdfDihedral), pointer, contiguous ::IdfDihedral(:)
 
     ! Constraint for internal degree of freedom
-    integer :: NConstraint
+    integer :: nConstraints
     integer :: NNotConstraint
 
     ! Units of molecule
@@ -221,6 +221,7 @@ contains
     ! Declare local variables
     integer       :: i, j
     integer       :: iDihedral, iDihedralSite, jDihedralSite
+    integer       :: iConstraint
     integer       :: ntypes
     character(16) :: stype
     integer       :: stat
@@ -232,7 +233,7 @@ contains
     integer       :: nidftypes  !number of internal degree of freedom types
     character(16) :: sidftype  !type of internal degree of freedom
     integer                :: ncs        ! number of all constraint sites
-    integer, allocatable   :: ncspu(:)   ! number of constraint sites pro unit
+    integer, allocatable   :: nSitesOfConstraint(:)   ! number of sites for constraint
     logical                :: ok, ok1, LJfound(2), same
     logical                :: charge(2), dipole(2), quadrupole(2)
     integer                :: cc, cd, cq, dc, dd, dq, qc, qd, qq, lj
@@ -277,7 +278,7 @@ contains
     this%NDihedral = 0
 
     ! Zero number of constraint and unconstrained Units
-    this%NConstraint = 0
+    this%nConstraints = 0
     this%NNotConstraint = 0
 
     ! Zero number of sites
@@ -415,23 +416,23 @@ contains
         end do
 
         ! Calculate total number of Units
-        call FileReadParameter( this%NConstraint, potmodFile%iounit, IdUnit_NConstraint, .true., 0 )
-        if (this%NConstraint > 0) then
-            allocate (ncspu(this%NConstraint), STAT = stat)
-            call AllocationError( stat, 'ncspu', this%NConstraint )
-            do j = 1,this%NConstraint
-                call FileReadParameter( ncspu(j), potmodFile%iounit, IdConstraint_NSites, .false. )
-                ncs = ncs + ncspu(j)  ! number of sites in all constraint units
+        call FileReadParameter( this%nConstraints, potmodFile%iounit, IdUnit_NConstraint, .true., 0 )
+        if (this%nConstraints > 0) then
+            allocate (nSitesOfConstraint(this%nConstraints), STAT = stat)
+            call AllocationError( stat, 'nSitesOfConstraint', this%nConstraints )
+            do iConstraint = 1, this%nConstraints
+                call FileReadParameter( nSitesOfConstraint(iConstraint), potmodFile%iounit, IdConstraint_NSites, .false. )
+                ncs = ncs + nSitesOfConstraint(iConstraint)  ! number of sites in all constraint units
             end do
             allocate (this%ConstraintSiteIds(ncs), STAT = stat)
             call AllocationError( stat, 'ConstraintSiteIds', ncs )
         end if
         this%NNotConstraint = this%NSite-ncs  ! number of not constraint units
-        this%nUnits   = this%NNotConstraint+this%NConstraint ! total number of units
+        this%nUnits   = this%NNotConstraint+this%nConstraints ! total number of units
 
     else !  No IDF,  rigid molecule
         this%nUnits = 1
-        this%NConstraint = 1 ! Only one constrained unit for the whole molecule
+        this%nConstraints = 1 ! Only one constrained unit for the whole molecule
         this%NNotConstraint = 0
     end if
 
@@ -500,52 +501,52 @@ contains
 
     ! Construct Units
     if (UseIntDegFreed) then
-        if (this%NConstraint > 0) then
+        if (this%nConstraints > 0) then
             ! Construct constrained Units and create array this%ConstraintSiteIds
             k = 0
-            do i = 1, this%NConstraint
-                call Construct(this%Unit(i), .true., ncspu(i))
-                do j=1, ncspu(i)
-                    this%ConstraintSiteIds(j+k)=this%Unit(i)%SiteIds(j)
-                    call binar_search(this%SiteMIEnm%SiteId, this%Unit(i)%SiteIds(j), ok, index )
+            do iConstraint = 1, this%nConstraints
+                call Construct(this%Unit(iConstraint), .true., nSitesOfConstraint(iConstraint))
+                do j=1, nSitesOfConstraint(iConstraint)
+                    this%ConstraintSiteIds(j+k)=this%Unit(iConstraint)%SiteIds(j)
+                    call binar_search(this%SiteMIEnm%SiteId, this%Unit(iConstraint)%SiteIds(j), ok, index )
                     if (ok) then
-                        this%Unit(i)%NMIEnm=this%Unit(i)%NMIEnm+1
-                        this%Unit(i)%SiteMIEnm(this%Unit(i)%NMIEnm)=this%SiteMIEnm(index)
-                        this%SiteMIEnm(index)%UnitNumber = i
+                        this%Unit(iConstraint)%NMIEnm=this%Unit(iConstraint)%NMIEnm+1
+                        this%Unit(iConstraint)%SiteMIEnm(this%Unit(iConstraint)%NMIEnm)=this%SiteMIEnm(index)
+                        this%SiteMIEnm(index)%UnitNumber = iConstraint
                     end if
                     if  ( .not. ok .and. this%NCharge > 0) then
-                        call binar_search(this%SiteCharge%SiteId, this%Unit(i)%SiteIds(j), ok, index )
+                        call binar_search(this%SiteCharge%SiteId, this%Unit(iConstraint)%SiteIds(j), ok, index )
                         if (ok) then
-                            this%Unit(i)%NCharge=this%Unit(i)%NCharge+1
-                            this%Unit(i)%SiteCharge(this%Unit(i)%NCharge)=this%SiteCharge(index)
-                            this%SiteCharge(index)%UnitNumber = i
+                            this%Unit(iConstraint)%NCharge=this%Unit(iConstraint)%NCharge+1
+                            this%Unit(iConstraint)%SiteCharge(this%Unit(iConstraint)%NCharge)=this%SiteCharge(index)
+                            this%SiteCharge(index)%UnitNumber = iConstraint
                         end if
                     end if
                     if  ( .not. ok .and. this%NDipole > 0) then
-                        call binar_search(this%SiteDipole%SiteId, this%Unit(i)%SiteIds(j), ok, index )
+                        call binar_search(this%SiteDipole%SiteId, this%Unit(iConstraint)%SiteIds(j), ok, index )
                         if (ok) then
-                            this%Unit(i)%NDipole=this%Unit(i)%NDipole+1
-                            this%Unit(i)%SiteDipole(this%Unit(i)%NDipole)=this%SiteDipole(index)
-                            this%SiteDipole(index)%UnitNumber = i
+                            this%Unit(iConstraint)%NDipole=this%Unit(iConstraint)%NDipole+1
+                            this%Unit(iConstraint)%SiteDipole(this%Unit(iConstraint)%NDipole)=this%SiteDipole(index)
+                            this%SiteDipole(index)%UnitNumber = iConstraint
                         end if
                     end if
                     if  ( .not. ok .and. this%NQuadrupole > 0) then
-                        call binar_search(this%SiteQuadrupole%SiteId, this%Unit(i)%SiteIds(j), ok, index )
+                        call binar_search(this%SiteQuadrupole%SiteId, this%Unit(iConstraint)%SiteIds(j), ok, index )
                         if (ok) then
-                            this%Unit(i)%NQuadrupole=this%Unit(i)%NQuadrupole+1
-                            this%Unit(i)%SiteQuadrupole(this%Unit(i)%NQuadrupole)=this%SiteQuadrupole(index)
-                            this%SiteQuadrupole(index)%UnitNumber = i
+                            this%Unit(iConstraint)%NQuadrupole=this%Unit(iConstraint)%NQuadrupole+1
+                            this%Unit(iConstraint)%SiteQuadrupole(this%Unit(iConstraint)%NQuadrupole)=this%SiteQuadrupole(index)
+                            this%SiteQuadrupole(index)%UnitNumber = iConstraint
                         end if
                     end if
                 end do
-                k=k+ncspu(i)
+                k=k+nSitesOfConstraint(iConstraint)
             end do
         end if ! if NConstraint > 0
         if (this%NNotConstraint > 0) then
             allocate (this%NotConstraintSiteIds(this%NNotConstraint), STAT = stat)
             call AllocationError( stat, 'NotConstraintSiteIds', this%NNotConstraint )
             k=1
-            if (this%NConstraint > 0) then
+            if (this%nConstraints > 0) then
                 call sort_array(this%ConstraintSiteIds)
                 do i = 1, this%NSite
                     call binar_search(this%ConstraintSiteIds, this%SiteIds(i), ok, index)
@@ -564,9 +565,9 @@ contains
                 end do
             end if
             ! Construct not constrained Units
-            do iUnit = (this%NConstraint+1), this%nUnits
+            do iUnit = (this%nConstraints+1), this%nUnits
                 call Construct(this%Unit(iUnit), .false., 1)
-                this%Unit(iUnit)%SiteIds=this%NotConstraintSiteIds(iUnit-this%NConstraint)
+                this%Unit(iUnit)%SiteIds=this%NotConstraintSiteIds(iUnit-this%nConstraints)
                 ! To know about this site parameters like in Constraint Unit
                 call binar_search(this%SiteMIEnm%SiteId, this%Unit(iUnit)%SiteIds(1), ok, index )
                 if (ok) then
@@ -3230,11 +3231,11 @@ contains
    ! Save information about Constraint Units
    ! Save number of constraint unites
      call FileWriteBlank(normalFile)
-     write( IOBuffer, '(I2)' ) this%NConstraint
+     write( IOBuffer, '(I2)' ) this%nConstraints
      call FileWriteParameter( normalFile%iounit, IdUnit_NConstraint )
-     if( this%NConstraint > 0 ) then
+     if( this%nConstraints > 0 ) then
        call FileWriteBlank(normalFile)
-       do i = 1, this%NConstraint
+       do i = 1, this%nConstraints
          call FileWriteBlank(normalFile)
          call Save( this%Unit(i) )
        end do
