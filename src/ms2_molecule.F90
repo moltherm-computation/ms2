@@ -374,63 +374,6 @@ contains
     ! Calculate the total number of sites
     this%NSite = this%NMIEnm+this%NCharge+this%NDipole+this%NQuadrupole
 
-    ! Create SiteIds array, if use IDF
-    if (UseIntDegFreed) then
-
-        ! Allocation
-        allocate (this%SiteIds(this%NSite), STAT = stat)
-        call AllocationError( stat, 'MoleculeSiteIds', this%NSite )
-        allocate (this%LJSiteIds(this%NMIEnm), STAT = stat)
-        call AllocationError( stat, 'LJSiteIds', this%NMIEnm )
-        allocate (this%ChargeSiteIds(this%NCharge), STAT = stat)
-        call AllocationError( stat, 'ChargeSiteIds', this%NCharge )
-        allocate (this%DipoleSiteIds(this%NDipole), STAT = stat)
-        call AllocationError( stat, 'DipoleSiteIds', this%NDipole )
-        allocate (this%QuadrupoleSiteIds(this%NQuadrupole), STAT = stat)
-        call AllocationError( stat, 'QuadrupoleSiteIds', this%NQuadrupole )
-
-
-        ! Important constants
-        nullify( this%BoPartner )
-        allocate (this%BoPartner(this%NSite,this%NSite), STAT = stat)
-        call AllocationError( stat, 'BoPartner', this%NSite )
-        nullify( this%AnglePartner )
-        allocate (this%AnglePartner(this%NSite,this%NSite*2), STAT = stat)
-        call AllocationError( stat, 'AnglePartner', this%NSite )
-        nullify( this%DihedralPartner )
-        allocate (this%DihedralPartner(this%NSite,this%NSite*2), STAT = stat)
-        call AllocationError( stat, 'DihedralPartner', this%NSite )
-
-        if( this%NMIEnm > 0 ) then
-            do j = 1, this%NMIEnm
-                this%SiteIds(j)=this%SiteMIEnm(j)%SiteId
-                this%LJSiteIds(j)=this%SiteMIEnm(j)%SiteId
-            end do
-        end if
-        i=this%NMIEnm
-        if( this%NCharge > 0 ) then
-            do j = 1+i, this%NCharge+i
-                this%SiteIds(j)=this%SiteCharge(j-i)%SiteId
-                this%ChargeSiteIds(j-i)=this%SiteCharge(j-i)%SiteId
-            end do
-        end if
-        i=i+this%NCharge
-        if( this%NDipole > 0 ) then
-            do j = 1+i, this%NDipole+i
-                this%SiteIds(j)=this%SiteDipole(j-i)%SiteId
-                this%DipoleSiteIds(j-i)=this%SiteDipole(j-i)%SiteId
-            end do
-        end if
-        i=i+this%NDipole
-        if( this%NQuadrupole > 0 ) then
-            do j = 1+i, this%NQuadrupole+i
-                this%SiteIds(j)=this%SiteQuadrupole(j-i)%SiteId
-                this%QuadrupoleSiteIds(j-i)=this%SiteQuadrupole(j-i)%SiteId
-            end do
-        end if
-    end if
-
-
     ! Read number of IDF types
     if (UseIntDegFreed) then
         call FileReadParameter( nidftypes, potmodFile%iounit, IdIdf_ntypes, .false. )
@@ -497,6 +440,63 @@ contains
 
     ! Rewind File for reading Constraints
     call FileRewind( potmodFile%iounit, this%PotModFileName )  !Michael Sch.: fix me ... needed? if not delete whole rewind-routine
+
+    ! Create SiteIds array, if use IDF
+    if (UseIntDegFreed) then
+
+        ! Allocation
+        allocate (this%SiteIds(this%NSite), STAT = stat)
+        call AllocationError( stat, 'MoleculeSiteIds', this%NSite )
+        allocate (this%LJSiteIds(this%NMIEnm), STAT = stat)
+        call AllocationError( stat, 'LJSiteIds', this%NMIEnm )
+        allocate (this%ChargeSiteIds(this%NCharge), STAT = stat)
+        call AllocationError( stat, 'ChargeSiteIds', this%NCharge )
+        allocate (this%DipoleSiteIds(this%NDipole), STAT = stat)
+        call AllocationError( stat, 'DipoleSiteIds', this%NDipole )
+        allocate (this%QuadrupoleSiteIds(this%NQuadrupole), STAT = stat)
+        call AllocationError( stat, 'QuadrupoleSiteIds', this%NQuadrupole )
+
+
+        ! Important constants
+        nullify( this%BoPartner )
+        allocate (this%BoPartner(this%NSite,this%NSite), STAT = stat)
+        call AllocationError( stat, 'BoPartner', this%NSite )
+        nullify( this%AnglePartner )
+        allocate (this%AnglePartner(this%NSite,this%NSite*2), STAT = stat)
+        call AllocationError( stat, 'AnglePartner', this%NSite )
+        nullify( this%DihedralPartner )
+        allocate (this%DihedralPartner(this%NSite,this%NSite*2), STAT = stat)
+        call AllocationError( stat, 'DihedralPartner', this%NSite )
+
+        if( this%NMIEnm > 0 ) then
+            do j = 1, this%NMIEnm
+                this%SiteIds(j)=this%SiteMIEnm(j)%SiteId
+                this%LJSiteIds(j)=this%SiteMIEnm(j)%SiteId
+            end do
+        end if
+        i=this%NMIEnm
+        if( this%NCharge > 0 ) then
+            do j = 1+i, this%NCharge+i
+                this%SiteIds(j)=this%SiteCharge(j-i)%SiteId
+                this%ChargeSiteIds(j-i)=this%SiteCharge(j-i)%SiteId
+            end do
+        end if
+        i=i+this%NCharge
+        if( this%NDipole > 0 ) then
+            do j = 1+i, this%NDipole+i
+                this%SiteIds(j)=this%SiteDipole(j-i)%SiteId
+                this%DipoleSiteIds(j-i)=this%SiteDipole(j-i)%SiteId
+            end do
+        end if
+        i=i+this%NDipole
+        if( this%NQuadrupole > 0 ) then
+            do j = 1+i, this%NQuadrupole+i
+                this%SiteIds(j)=this%SiteQuadrupole(j-i)%SiteId
+                this%QuadrupoleSiteIds(j-i)=this%SiteQuadrupole(j-i)%SiteId
+            end do
+        end if
+    end if
+
 
     ! Construct Units
     if (UseIntDegFreed) then
@@ -627,22 +627,20 @@ contains
             this%SiteQuadrupole(j)%UnitNumber = 1
         end do
 
-        if (.not. UseIntDegFreed) then
-            ! Read number of rotation axes
-            call FileReadParameter( stype, potmodFile%iounit, IdSite_NDFRot, .false. )
-            select case( stype )
-            case( '0' )
-              this%Unit(1)%NDFRot = 0
-            case( '2' )
-              this%Unit(1)%NDFRot = 2
-            case( '3' )
-              this%Unit(1)%NDFRot = 3
-            case( 'AUTO', 'Auto', 'auto' )
-              this%Unit(1)%NDFRot = -1
-            case default
-              call Error( IdSite_NDFRot//' cannot be equal to '//trim( stype ) )
-            end select
-        end if
+        ! Read number of rotation axes
+        call FileReadParameter( stype, potmodFile%iounit, IdSite_NDFRot, .false. )
+        select case( stype )
+        case( '0' )
+          this%Unit(1)%NDFRot = 0
+        case( '2' )
+          this%Unit(1)%NDFRot = 2
+        case( '3' )
+          this%Unit(1)%NDFRot = 3
+        case( 'AUTO', 'Auto', 'auto' )
+          this%Unit(1)%NDFRot = -1
+        case default
+          call Error( IdSite_NDFRot//' cannot be equal to '//trim( stype ) )
+        end select
 
     end if
 
@@ -808,9 +806,9 @@ contains
     end if
 
     ! create list of 1-4, 1-5 interactions
-    ! Michael Sch.: instead of "this%NSite-3" "..-4" should be sufficient...testing needed!
-    npossPartners = (this%NSite-4)*(this%NSite-3)/2
     if (this%hasIntraLJEl) then
+        ! Michael Sch.: instead of "this%NSite-3" "..-4" should be sufficient...testing needed!
+        npossPartners = (this%NSite-4)*(this%NSite-3)/2
         allocate (AllSites(this%NSite, this%NSite))
         call AllocationError( stat, 'AllSites', this%NSite*this%NSite )
         allocate (SameCoord(this%NMIEnm, 3))
