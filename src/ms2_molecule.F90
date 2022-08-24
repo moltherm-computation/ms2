@@ -391,30 +391,15 @@ contains
 
 
         ! Important constants
-        nullify( this%BondCount )
         nullify( this%BoPartner )
-        allocate (this%BondCount(this%NSite), STAT = stat)
-        call AllocationError( stat, 'BondCount', this%NSite )
         allocate (this%BoPartner(this%NSite,this%NSite), STAT = stat)
         call AllocationError( stat, 'BoPartner', this%NSite )
-        nullify( this%AngleCount )
         nullify( this%AnglePartner )
-        allocate (this%AngleCount(this%NSite*2), STAT = stat)
-        call AllocationError( stat, 'AngleCount', this%NSite*2 )
         allocate (this%AnglePartner(this%NSite,this%NSite*2), STAT = stat)
         call AllocationError( stat, 'AnglePartner', this%NSite )
-        nullify( this%DihedralCount )
         nullify( this%DihedralPartner )
-        allocate (this%DihedralCount(this%NSite*2), STAT = stat)
-        call AllocationError( stat, 'DihedralCount', this%NSite*2 )
         allocate (this%DihedralPartner(this%NSite,this%NSite*2), STAT = stat)
         call AllocationError( stat, 'DihedralPartner', this%NSite )
-
-        ! Initialize
-        this%BondCount = 0
-        this%AngleCount = 0
-        this%DihedralCount = 0
-
 
         if( this%NMIEnm > 0 ) then
             do j = 1, this%NMIEnm
@@ -693,8 +678,14 @@ contains
 
     !Michael Sch.: changed mechanics here.
     if (UseIntDegFreed) then
+
         if (this%NBond>0) then ! check bonds and find initial bond lengths
-            this%BondCount(1:this%nUnits)=0  ! Zero arrays
+
+            nullify( this%BondCount )
+            allocate (this%BondCount(this%NSite), STAT = stat)
+            call AllocationError( stat, 'BondCount', this%NSite )
+            this%BondCount = 0
+
             do j = 1, this%NBond
                 !if (j<=this%NBond) then
                 call FindBondR(this,this%IdfBond(j), j)
@@ -706,7 +697,12 @@ contains
         end if
 
         if (this%NAngle>0) then ! check angles and find initial angles
-            this%AngleCount(1:this%nUnits)=0  ! Zero arrays
+
+            nullify( this%AngleCount )
+            allocate (this%AngleCount(this%NSite*2), STAT = stat)
+            call AllocationError( stat, 'AngleCount', this%NSite*2 )
+            this%AngleCount = 0
+
             do j = 1, this%NAngle
                 !if (j<=this%NAngle) then
                 call FindAngle(this,this%IdfAngle(j), j)
@@ -718,7 +714,12 @@ contains
         end if
 
         if ( this%NDihedral > 0 ) then
-            this%DihedralCount(1:this%nUnits)=0
+
+            nullify( this%DihedralCount )
+            allocate (this%DihedralCount(this%NSite*2), STAT = stat)
+            call AllocationError( stat, 'DihedralCount', this%NSite*2 )
+            this%DihedralCount = 0
+
             do j = 1, this%NDihedral
                 !if (j<=this%NDihedral) then
                 call FindDihedral(this,this%IdfDihedral(j), j)
