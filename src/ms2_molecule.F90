@@ -502,45 +502,9 @@ contains
     ! Construct Units
     if (UseIntDegFreed) then
         if (this%nConstraints > 0) then
-            ! Construct constrained Units and create array this%ConstraintSiteIds
-            k = 0
-            do iConstraint = 1, this%nConstraints
-                call Construct(this%Unit(iConstraint), .true., nSitesOfConstraint(iConstraint))
-                do j=1, nSitesOfConstraint(iConstraint)
-                    this%ConstraintSiteIds(j+k)=this%Unit(iConstraint)%SiteIds(j)
-                    call binar_search(this%SiteMIEnm%SiteId, this%Unit(iConstraint)%SiteIds(j), ok, index )
-                    if (ok) then
-                        this%Unit(iConstraint)%NMIEnm=this%Unit(iConstraint)%NMIEnm+1
-                        this%Unit(iConstraint)%SiteMIEnm(this%Unit(iConstraint)%NMIEnm)=this%SiteMIEnm(index)
-                        this%SiteMIEnm(index)%UnitNumber = iConstraint
-                    end if
-                    if  ( .not. ok .and. this%NCharge > 0) then
-                        call binar_search(this%SiteCharge%SiteId, this%Unit(iConstraint)%SiteIds(j), ok, index )
-                        if (ok) then
-                            this%Unit(iConstraint)%NCharge=this%Unit(iConstraint)%NCharge+1
-                            this%Unit(iConstraint)%SiteCharge(this%Unit(iConstraint)%NCharge)=this%SiteCharge(index)
-                            this%SiteCharge(index)%UnitNumber = iConstraint
-                        end if
-                    end if
-                    if  ( .not. ok .and. this%NDipole > 0) then
-                        call binar_search(this%SiteDipole%SiteId, this%Unit(iConstraint)%SiteIds(j), ok, index )
-                        if (ok) then
-                            this%Unit(iConstraint)%NDipole=this%Unit(iConstraint)%NDipole+1
-                            this%Unit(iConstraint)%SiteDipole(this%Unit(iConstraint)%NDipole)=this%SiteDipole(index)
-                            this%SiteDipole(index)%UnitNumber = iConstraint
-                        end if
-                    end if
-                    if  ( .not. ok .and. this%NQuadrupole > 0) then
-                        call binar_search(this%SiteQuadrupole%SiteId, this%Unit(iConstraint)%SiteIds(j), ok, index )
-                        if (ok) then
-                            this%Unit(iConstraint)%NQuadrupole=this%Unit(iConstraint)%NQuadrupole+1
-                            this%Unit(iConstraint)%SiteQuadrupole(this%Unit(iConstraint)%NQuadrupole)=this%SiteQuadrupole(index)
-                            this%SiteQuadrupole(index)%UnitNumber = iConstraint
-                        end if
-                    end if
-                end do
-                k=k+nSitesOfConstraint(iConstraint)
-            end do
+
+            call constructUnitPerConstraint()
+
         end if ! if NConstraint > 0
         if (this%NNotConstraint > 0) then
             allocate (this%NotConstraintSiteIds(this%NNotConstraint), STAT = stat)
@@ -1620,6 +1584,69 @@ contains
       end do
 
     end subroutine FindEdgeFrom
+
+
+    subroutine constructUnitPerConstraint()
+
+        integer :: siteCounter, sideID, iConstrainedSite
+        type(TUnit), pointer :: newUnit
+        logical :: found
+
+        siteCounter = 0
+        do iConstraint = 1, this%nConstraints
+
+            newUnit => this%Unit(iConstraint)
+
+            call Construct(newUnit, .true., nSitesOfConstraint(iConstraint))
+
+            do iConstrainedSite = 1, nSitesOfConstraint(iConstraint)
+
+                sideID = newUnit%SiteIds(iConstrainedSite)
+
+                this%ConstraintSiteIds(iConstrainedSite + siteCounter) = sideID
+                call binar_search(this%SiteMIEnm%SiteId, sideID, found, index )
+
+                if (found) then
+                    newUnit%NMIEnm = newUnit%NMIEnm + 1
+                    newUnit%SiteMIEnm(newUnit%NMIEnm) = this%SiteMIEnm(index)
+                    this%SiteMIEnm(index)%UnitNumber = iConstraint
+                end if
+
+                if  ( .not. found .and. this%NCharge > 0) then
+                    call binar_search(this%SiteCharge%SiteId, sideID, found, index )
+                    if (found) then
+                        newUnit%NCharge = newUnit%NCharge + 1
+                        newUnit%SiteCharge(newUnit%NCharge) = this%SiteCharge(index)
+                        this%SiteCharge(index)%UnitNumber = iConstraint
+                    end if
+                end if
+
+                if  ( .not. found .and. this%NDipole > 0) then
+                    call binar_search(this%SiteDipole%SiteId, sideID, found, index )
+                    if (found) then
+                        newUnit%NDipole = newUnit%NDipole + 1
+                        newUnit%SiteDipole(newUnit%NDipole) = this%SiteDipole(index)
+                        this%SiteDipole(index)%UnitNumber = iConstraint
+                    end if
+                end if
+
+                if  ( .not. found .and. this%NQuadrupole > 0) then
+                    call binar_search(this%SiteQuadrupole%SiteId, sideID, found, index )
+                    if (found) then
+                        newUnit%NQuadrupole = newUnit%NQuadrupole + 1
+                        newUnit%SiteQuadrupole(newUnit%NQuadrupole) = this%SiteQuadrupole(index)
+                        this%SiteQuadrupole(index)%UnitNumber = iConstraint
+                    end if
+                end if
+
+            end do
+
+            siteCounter = siteCounter + nSitesOfConstraint(iConstraint)
+
+        end do
+
+    end subroutine constructUnitPerConstraint
+
 
   end subroutine TMolecule_Construct
 
