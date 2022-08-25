@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testsuite>
+	<tools4ms2version>0.0.319</tools4ms2version>
+	<caseRepositoryHash>2ce31fc9f733770c62190fad2ad8a62c76f91a9f</caseRepositoryHash>
+	<caseList>
+<!-- 		<case name="pentan_1" file="pentan_1.xml" />
+		<case name="pentan_2" file="pentan_2.xml" />
+		<case name="pentan_3" file="pentan_3.xml" />
+		<case name="pentan_4" file="pentan_4.xml" />
+		<case name="pentan_5" file="pentan_5.xml" />
+		<case name="pentan_6" file="pentan_6.xml" />
+		<case name="pentan_7" file="pentan_7.xml" />
+		<case name="pentan_8" file="pentan_8.xml" />
+		<case name="pentan_9" file="pentan_9.xml" />
+		<case name="pentan_10" file="pentan_10.xml" />
+		<case name="pentan_11" file="pentan_11.xml" /> -->
+		<case name="propanol" file="propanol.xml" />
+	</caseList>
+</testsuite>
