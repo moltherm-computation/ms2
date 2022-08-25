@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>propanol_NPT.par</parFile>
+	<name>propanol_constraints</name>
+	<compilerOption>
+		<name>COMPILER</name>
+		<value>INTEL</value>
+	</compilerOption>
+	<reference>
+		<file>propanol_NPT_1.rav</file>
+	</reference>
+	<reference>
+		<file>propanol_NPT_1.res</file>
+	</reference>
+	<reference>
+		<file>propanol_NPT_1.run</file>
+	</reference>
+	<reference>
+		<file>propanol_NPT_1.vim</file>
+	</reference>
+	<reference>
+		<file>propanol_NPT.rst</file>
+	</reference>
+	<reference>
+		<file>propanol.pm.nrm</file>
+	</reference>
+</testcase>
