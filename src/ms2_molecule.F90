@@ -2868,29 +2868,6 @@ contains
       call Error('At leas one site of a given dihedral potential has to be of another unit')
       write (str, '(i10)') j
       call Error('Uncorrect sites for angle' // str)
-    !  this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
-    !  this%DihedralCount(Dihedral%UnitId2)=this%DihedralCount(Dihedral%UnitId2)-1
-    !  this%DihedralCount(Dihedral%UnitId3)=this%DihedralCount(Dihedral%UnitId3)-1
-    !  this%DihedralCount(Dihedral%UnitId4)=this%DihedralCount(Dihedral%UnitId4)-1
-    !  Dihedral%SiteId1  = this%IdfDihedral(this%NDihedral)%SiteId1
-    !  Dihedral%SiteId2  = this%IdfDihedral(this%NDihedral)%SiteId2
-    !  Dihedral%SiteId3  = this%IdfDihedral(this%NDihedral)%SiteId3
-    !  Dihedral%SiteId4  = this%IdfDihedral(this%NDihedral)%SiteId4
-    !  Dihedral%UnitId1  = this%IdfDihedral(this%NDihedral)%UnitId1
-    !  Dihedral%UnitId2  = this%IdfDihedral(this%NDihedral)%UnitId2
-    !  Dihedral%UnitId3  = this%IdfDihedral(this%NDihedral)%UnitId3
-    !  Dihedral%UnitId4  = this%IdfDihedral(this%NDihedral)%UnitId4
-    !  Dihedral%orientation1 = this%IdfDihedral(this%NDihedral)%orientation1
-    !  Dihedral%orientation2 = this%IdfDihedral(this%NDihedral)%orientation2
-    !  Dihedral%ForConst = this%IdfDihedral(this%NDihedral)%ForConst
-    !  Dihedral%gamma    = this%IdfDihedral(this%NDihedral)%gamma
-    !  Dihedral%multi    = this%IdfDihedral(this%NDihedral)%multi
-    !  if (LJEl14 .and. (Dihedral%multi .gt. 0)) then
-    !    Dihedral%ScaleLJ14    = this%IdfDihedral(this%NDihedral)%ScaleLJ14
-    !    Dihedral%ScaleEl14    = this%IdfDihedral(this%NDihedral)%ScaleEl14
-    !  end if
-    !  j = j - 1 !the procedure of Dihedral definition will be repeated for the same Dihedral angle
-    !  this%NDihedral = this%NDihedral - 1
     else !
       if (Dihedral%UnitId1==Dihedral%UnitId2) then
         this%DihedralCount(Dihedral%UnitId1)=this%DihedralCount(Dihedral%UnitId1)-1
