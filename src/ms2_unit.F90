@@ -1,12 +1,17 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM MS2 Version 1.1 v11            !
-!  (c) 2001 by Sergey Lishchuk, ITT                            !
-!  (c) 2005 by Bernhard Eckl, ITT                              !
-!  (c) 2007 by Ekaterina Elts, ITT                              !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  (c) 2014 by TU Kaiserslautern                               !
+!      P.O. Box 67653                                          !
+!      67653 Kaiserslautern                                    !
 !==============================================================!
-!  Module ms2_unit                                             !
-!  Contains TUnit object                                       !
+!  Program ms2                                                 !
+!  This file contains the main routine                         !
 !==============================================================!
+
+!****************************************************************
+!* Updates and auxiliary routines are available from            *   
+!* http://www.ms-2.de                                           *   
+!****************************************************************
 
 #ifndef ARCH
 #define ARCH    0
@@ -57,7 +62,6 @@ module ms2_unit
     real(RK) :: MOI(3)
 
     ! matrix of rotation - initial orientation of units in molecular-fixed system
-!     real(RK) :: Rotation(3,3)
     real(RK) :: Q0(4)
 
     ! 12-6 Lennard-Jones sites
@@ -168,7 +172,7 @@ contains
       if ( this%isConstraint ) then
           call FileReadParameter( this%NSites, iounit_potmod, IdConstraint_NSites, .false. )
           call FileReadParameter_IOBuffer( iounit_potmod, IdConstraint_SiteIds )
-          read( IOBuffer, * ),this%SiteIds
+          read( IOBuffer, * ), this%SiteIds
 
           ! Read number of rotation axes
           call FileReadParameter( stype, iounit_potmod, IdConstraint_NDFRot, .false. )

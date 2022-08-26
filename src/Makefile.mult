@@ -1,9 +1,13 @@
 #
 # Makefile for ms2
 #
-PROGS =	ms2_global.F90 \
+SOURCES = \
+	ms2_global.F90 \
+	ms2_stopwatch.F90 \
 	ms2_accumulator.F90 \
 	ms2_site.F90 \
+        ms2_idf.F90 \
+        ms2_unit.F90 \
 	ms2_molecule.F90 \
 	ms2_component.F90 \
 	ms2_potential.F90 \
@@ -33,184 +37,469 @@ generic:
 	f90 -DARCH=0 -DFORTRAN=90 -DMPI_VER=0 \
 	\
 	\
-	-o ms2 $(PROGS)
+	-o ms2 $(SOURCES)
+
+pgf_dbg:
+	@echo "Compiling using PGF DBG..."
+	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF -V \
+	-g -Mdwarf2 -r8 \
+	-o ms2.pgf_dbg $(SOURCES)
+	rm -f *.o *.mod
 
 pgf:
 	@echo "Compiling using PGF90..."
-	@pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
+	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF -V \
 	-fastsse -r8 -Bstatic \
-	-o ms2.linux $(PROGS)
-	@rm -f *.o *.mod
+	-o ms2.pgf $(SOURCES)
+	rm -f *.o *.mod
+	#
 
 pgf_sp:
 	@echo "Compiling using PGF90..."
-	@pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF -DSINGLEPRECISION \
+	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF -DSINGLEPRECISION -V \
 	-fastsse -r4 -Bstatic \
-	-o ms2.sp $(PROGS)
-	@rm -f *.o *.mod
+	-o ms2.pgf.sp $(SOURCES)
+	rm -f *.o *.mod
 
 pgf-64:
 	@echo "Compiling using PGF90-64..."
-	@pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
+	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF -V \
 	-fastsse -r8 -tp amd64 \
-	-o ms2.linux-64 $(PROGS)
-	@rm -f *.o *.mod
+	-o ms2.pgf-64 $(SOURCES)
+	rm -f *.o *.mod
+
+pgf_mpi_dbg:
+	@echo "Compiling using MPI with PGF..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
+	-g -r8 -C \
+	-o ms2mpi.pgf_dbg $(SOURCES)
+	rm -f *.o *.mod
 
 pgf_mpi:
 	@echo "Compiling using MPI_PGF90..."
-	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
-	-fastsse -r8 -R/opt/openmpi-1.1.1/arch/lib \
-	-o ms2mpi.linux $(PROGS)
-	@rm -f *.o *.mod
-
-pgf_debug:
-	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
-	-g -Mdwarf2 -r8 \
-	-o ms2dbg $(PROGS)
-	@rm -f *.o *.mod
-
-pgf_mpi_debug:
 	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
-	-g -r8 -C \
-	-o ms2mpidbg $(PROGS)
-	@rm -f *.o *.mod
+	-fastsse -r8 -R/opt/openmpi-1.1.1/arch/lib \
+	-o ms2mpi.pgf $(SOURCES)
+	rm -f *.o *.mod
+
+pgf_mpi_omp:
+	@echo "Compiling using MPI_OMP_PGF90..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DENABLE_OMP -DMPI_VER=1 -D_PGF \
+	-fastsse -mp -r8 -R/opt/openmpi-1.1.1/arch/lib \
+	-o ms2mpiomp.pgf $(SOURCES)
+	rm -f *.o *.mod
+
+gfortran_dbg:
+	@echo "Compiling debug version using GFORTRAN..."
+	#                                          -DTRANS=1
+	gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 \
+	-g -O0 -fdefault-real-8 -Wall -Wextra -fbounds-check \
+	-o ms2.gfortran_dbg $(SOURCES)
+	# extensions to Fortran95 are needed to e.g. get command line arguments
+	# -pedantic -std=f95
+	rm -f *.o *.mod
 
 gfortran:
 	@echo "Compiling using GFORTRAN..."
-	@gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 \
-	-O3 -fdefault-real-8 -static \
-	-o ms2.gfortran $(PROGS)
-	@rm -f *.o *.mod
+	gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 \
+	-O2 -fdefault-real-8 -static -mtune=generic \
+	-o ms2.gfortran $(SOURCES)
+	# -O3 -march=native -mtune=native
+	# -msse5
+	# -march,-mtune (-mcpu) see "man gcc", e.g. i686,core2,barcelona
+	rm -f *.o *.mod
+	
+gfortran_coverage:
+	@echo "Compiling using GFORTRAN..."
+	gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 \
+	-O2 -fdefault-real-8 -static -mtune=generic --coverage \
+	-o ms2.gfortran_coverage $(SOURCES)
+	# -O3 -march=native -mtune=native
+	# -msse5
+	# -march,-mtune (-mcpu) see "man gcc", e.g. i686,core2,barcelona
+	rm -f *.o *.mod
+
+gfortran_steereo:
+	@echo "Compiling using GFORTRAN with Steereo support"
+	gfortran -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -DMS2_STEEREO\
+	-O3 -fdefault-real-8 \
+	-lSteereo \
+	-o ms2.gfortran_steereo $(SOURCES)
+	rm -f *.o *.mod
+
+gfortran_steereo_mpi:
+	@echo "Compiling using GFORTRAN with Steereo and MPI support"
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -DMS2_STEEREO\
+	-O3 -fdefault-real-8 \
+	-lSteereo \
+	-o ms2.gfortran_steereo_mpi $(SOURCES)
+	rm -f *.o *.mod
+
+gfortran_mpi_dbg:
+	@echo "Compiling debug version using MPI_GFORTRAN..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
+	-g -O0 -fdefault-real-8  -Wall \
+	-o ms2mpi.gfortran_dbg $(SOURCES)
+	rm -f *.o *.mod
 
 gfortran_mpi:
 	@echo "Compiling using MPI_GFORTRAN..."
-	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
-	-O3 -fdefault-real-8 -static \
-	-o ms2mpi.gfortran $(PROGS)
-	@rm -f *.o *.mod
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
+	-O3 -fdefault-real-8 \
+	-o ms2mpi.gfortran $(SOURCES)
+	rm -f *.o *.mod
 
-alpha:
-	@f95 -DARCH=1 -DFORTRAN=95 -DMPI_VER=0 \
-	-version \
-	-fast -r8 -arch host -tune host -pipeline -transform_loops \
-	-o ms2.alpha $(PROGS)
-	@rm -f *.mod
+gfortran_mpi_omp:
+	@echo "Compiling using MPI_OMP_GFORTRAN..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DENABLE_OMP -DMPI_VER=1 \
+	-O3 -fopenmp -fdefault-real-8 \
+	-o ms2mpiomp.gfortran $(SOURCES)
+	rm -f *.o *.mod
 
-alpha_dbg:
-	@f95 -DARCH=1 -DFORTRAN=95 -DMPI_VER=0 \
-	-version \
-	-g -r8 \
-	-o ms2.alpha $(PROGS)
-	@rm -f *.mod
+gfortran_coverage_mpi:
+	@echo "Compiling using MPI_GFORTRAN..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
+	-O3 -fdefault-real-8 --coverage \
+	-o ms2mpi.gfortran_coverage $(SOURCES)
+	rm -f *.o *.mod
 
-mozart:
+ifort_dbg:
+	@echo "Compiling debug version using IFORT..."
+	ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -V -fpp \
+	-g -r8 -O0 -warn all -check all -debug all \
+	-o ms2.ifort_dbg $(SOURCES)
+	rm -f *.o *.mod *.il
+
+ifort:
 	@echo "Compiling using IFORT..."
-	@ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp \
-	-O3 -ipo -Bdynamic -r8 -vec_report0 \
-	-o ms2 $(PROGS)
-	@rm -f *.o *.mod *.il
+	ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -V -fpp \
+	-r8 -fast -vec_report0 \
+	-o ms2.ifort $(SOURCES)
+	# options to try with v10.x: -xT (for IntelCore2), -xS
+	rm -f *.o *.mod *.il
 
-mozart_mpi:
+ifort_dbg_trans:
+	@echo "Compiling trans debug version using IFORT..."
+	ifort -DARCH=2 -DTRANS=1 -DFORTRAN=90 -DMPI_VER=0 -V -fpp \
+	-g -r8 -O0 -warn all -check all -debug all \
+	-o ms2.ifort_dbg_trans $(SOURCES)
+	rm -f *.o *.mod *.il
+
+ifort_trans:
+	@echo "Compiling trans version using IFORT..."
+	ifort -DARCH=2 -DTRANS=1 -DFORTRAN=90 -DMPI_VER=0 -V -fpp \
+	-r8 -fast -vec_report0 \
+	-o ms2.ifort_trans $(SOURCES)
+	rm -f *.o *.mod *.il
+
+ifort_mpi_dbg:
+	@echo "Compiling mpi debug version using MPI_IFORT..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-g -r8 -O0 -warn all -check all -debug all \
+	-o ms2mpi.ifort_dbg $(SOURCES)
+	rm -f *.o *.mod *.il
+
+ifort_mpi:
 	@echo "Compiling using MPI_IFORT..."
-	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
-	-O3 -ipo -Bdynamic -r8 -vec_report0 \
-	-o ms2mpi $(PROGS)
-	@rm -f *.o *.mod *.il
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-r8 -O3 -ipo -vec_report0 \
+	-o ms2mpi.ifort $(SOURCES)
+	# options to try with v10.x: -xP (for IntelCore), -xT (IntelCore2), -xS; v11: -xHost
+	rm -f *.o *.mod *.il
 
-cacau:
-	@echo "Compiling using IFORT..."
-	@ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp \
-	-O3 -ipo -r8 -vec_report0 \
-	-o ms2 $(PROGS)
-	@rm -f *.o *.mod *.il
+ifort_mpi_trans:
+	@echo "Compiling mpi trans version using MPI_IFORT..."
+	mpif90 -DARCH=2 -DTRANS=1 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-r8 -O3 -ipo -vec_report0 \
+	-o ms2mpi.ifort_trans $(SOURCES)
+	# options to try with v10.x: -xP (for IntelCore), -xT (IntelCore2), -xS; v11: -xHost
+	rm -f *.o *.mod *.il
 
-cacau_mpi:
+ifort_mpi_omp:
+	@echo "Compiling using MPI_OMP_IFORT..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DENABLE_OMP -DMPI_VER=1 -fpp \
+	-r8 -O3 -openmp -ipo -vec_report0 \
+	-o ms2mpiomp.ifort $(SOURCES)
+	# options to try with v10.x: -xP (for IntelCore), -xT (IntelCore2), -xS; v11: -xHost
+	rm -f *.o *.mod *.il
+
+ifort_impi_dbg:
+	@echo "Compiling debug version using MPI_IFORT..."
+	mpiifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-g -r8 -O0 -warn all -check all -debug all \
+	-o ms2impi.ifort_dbg $(SOURCES)
+	rm -f *.o *.mod *.il
+
+ifort_impi:
 	@echo "Compiling using MPI_IFORT..."
-	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
-	-O3 -ipo -r8 -vec_report0 \
-	-o ms2mpi $(PROGS)
-	@rm -f *.o *.mod *.il
+	mpiifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-r8 -O3 -ipo -vec_report0 \
+	-o ms2impi.ifort $(SOURCES)
+	rm -f *.o *.mod *.il
 
-strider:
-	@echo "Compiling using PGF90..."
-	@pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
-	-fastsse -Mipa=fast,inline,safe -tp k8-64 -r8 -Minform=severe \
-	-o ms2 $(PROGS)
-	@rm -f *.o *.mod *.ipo
-	@rm -f -r Extract.dir
+ifort_impi_trans:
+	@echo "Compiling using MPI_IFORT..."
+	mpiifort -DARCH=2 -DTRANS1 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-r8 -O3 -ipo -vec_report0 \
+	-o ms2impi.ifort $(SOURCES)
+	rm -f *.o *.mod *.il
 
-strider_mpi:
-	@echo "Compiling using MPI_PGF90..."
-	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
-	-fastsse -Mipa=fast,inline,safe -tp k8-64 -r8 -Minform=severe \
-	-o ms2mpi $(PROGS)
-	@rm -f *.o *.mod *.ipo
-	@rm -f -r Extract.dir
+ifort_papi:
+	@echo "Compiling with PAPI support using IFORT..."
+	ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -DUSE_PAPI -fpp \
+	-r8 -O3 -vec_report0 \
+	-lpapi \
+	-o ms2.ifort_papi $(SOURCES)
+	# -I<papi-path>/include -L<papi-path>/lib
+	rm -f *.o *.mod *.il
+
+
+sun:
+	@echo "Compiling using SUN Fortran..."
+	# f95, sunf95, sunf90, f90: symbolic links to f90
+	f95 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -V -v \
+	-fast -r8const -Bstatic -ftrap=%none -xcrossfile \
+	-o ms2.sun $(SOURCES)
+	# -xprefetch -xlinkopt=2 -xvector=simd -unroll=4
+	#
+	# -fast: -xtarget=native -O5 -depend -libmil -fsimple=2 -dalign -xlibmopt ...
+	# use -dryrun/-v to check used options
+	# follow -fast with -xtarget (setting -xarch, -xchip, -xcache) to specify the target:
+	# -xtarget=native|generic|pentium4|opteron|woodcrest|penryn|nehalem|...
+	# -stackvar -xvector=lib,simd
+	# -O4, -r8/-dbl: f77 only?, -xtypemap=real:64,double:64,integer:64
+	# -xipo and -xipo_archive should have no effect, since all sources are given in $(SOURCES)?
+	# http://docs.sun.com/app/docs/doc/819-5263/aevcv?a=view
+	rm -f *.o *.mod
+
+sun_dbg:
+	@echo "Compiling debug version using SUN Fortran..."
+	sunf95 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -V -v -w4 \
+	-g -r8const -xcheck=%all -Xlist -ftrap=%all -fpover -C -u -ansi \
+	-o ms2dbg.sun $(PROGS)
+	# -xs -xdebugformat={dwarf|stabs}, -fnonstd=-fns -ftrap=common
+	rm -f *.o *.mod
+
+
+pathscale:
+	@echo "Compiling using PathScale Fortran..."
+	pathf95 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -v \
+	-intrinsic=PGI -Ofast -r8 -static \
+	-o ms2.path $(SOURCES)
+	rm -f *.o *.mod
+
+
+vt_mpi:
+	@echo "Compiling using VampirTrace with MPI..."
+	# -fdefault-real-8/-r8
+	vtf90 -vt:f90 mpif90 -vt:inst manual -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 \
+	-O2 -g \
+	-o ms2mpi.vt $(SOURCES)
+	rm -f *.o *.mod *.il
+
+
+nehalem:
+	@echo "Compiling for SSE4.2 using IFORT..."
+	ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp \
+	-r8 -fast -xSSE4.2 -vec_report0 \
+	-o ms2 $(SOURCES)
+	rm -f *.o *.mod *.il
+
+nehalem_mpi_omp:
+	@echo "Compiling for SSE4.2 using MPI_IFORT..."
+	mpif90 -openmp -DENABLE_OMP -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-r8 -O3 -ipo -xSSE4.2 -vec_report0 \
+	-o ms2mpiomp $(SOURCES)
+	rm -f *.o *.mod *.il
+
+
+nehalem_mpi:
+	@echo "Compiling for SSE4.2 using MPI_IFORT..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-r8 -O3 -ipo -xSSE4.2 -vec_report0 \
+	-o ms2mpi $(SOURCES)
+	rm -f *.o *.mod *.il
+
+xt5:
+	@echo "Compiling on XT5(m)..."
+	ftn -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
+	-default64 \
+	-o ms2mpi $(SOURCES)
+	rm -f *.o *.mod
+
+xt5pgi_seq:
+	@echo "Compiling on XT5(m)..."
+	ftn -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
+	-fastsse -r8 \
+	-o ms2.seq $(SOURCES)
+	rm -f *.o *.mod
+
+xt5pgi:
+	@echo "Compiling on XT5(m)..."
+	ftn -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
+	-fastsse -r8 \
+	-o ms2 $(SOURCES)
+	rm -f *.o *.mod
+
+xt5pgi_omp:
+	@echo "Compiling on XT5(m)..."
+	ftn -mp=nonuma -DENABLE_OMP -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
+	-fastsse -r8 \
+	-o ms2mpiomp $(SOURCES)
+	rm -f *.o *.mod
 
 jump:
 	xlf90 -qsuffix=f=f90:cpp=F90 \
 	-WF,-DARCH=0,-DFORTRAN=90,-DMPI_VER=0 \
 	-O5 \
-	-o ms2 $(PROGS)
+	-o ms2 $(SOURCES)
 
 jump_mpi:
 	mpxlf90 -qsuffix=f=f90:cpp=F90 \
 	-WF,-DARCH=0,-DFORTRAN=90,-DMPI_VER=1 \
 	-O5 \
-	-o ms2mpi $(PROGS)
-
-sx:
-	sxf90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=0 \
-	-C hopt -pi auto -sx8 \
-	-Wf'-pvctl vchg' \
-	-o ms2 $(PROGS)
-
-sx_mpi:
-	sxmpif90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=1 \
-	-C hopt -pi auto -sx8 \
-	-Wf'-pvctl vchg' \
-	-o ms2mpi $(PROGS)
-
-xc1:
-	@echo "Compiling using IFORT..."
-	@ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp \
-	-fast -r8 -vec-report0 \
-	-o ms2 $(PROGS)
-	@rm -f *.o *.mod *.il
-
-xc1_mpi:
-	@echo "Compiling using MPI_IFORT..."
-	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
-	-O3 -ipo -Bdynamic -r8 -vec-report0 \
-	-o ms2mpi $(PROGS)
-	@rm -f *.o *.mod *.il
+	-o ms2mpi $(SOURCES)
 
 leo: gfortran
 	@mv ms2.gfortran ms2.leo
 #	@echo "Compiling using PGF90..."
-#	@pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
+#	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
 #	-fastsse -r8 -tp amd64 \
-#	-o ms2.leo $(PROGS)
-#	@rm -f *.o *.mod
+#	-o ms2.leo $(SOURCES)
+#	rm -f *.o *.mod
 
 leo_mpi: gfortran_mpi
 	@mv ms2mpi.gfortran ms2mpi.leo
 #	@echo "Compiling using MPI_PGF90..."
-#	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
+#	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
 #	-fastsse -r8 -tp amd64 \
-#	-o ms2mpi.leo $(PROGS)
-#	@rm -f *.o *.mod
+#	-o ms2mpi.leo $(SOURCES)
+#	rm -f *.o *.mod
+
+
+# ancient
+
+sx:
+	sxf90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=0 \
+	-C hopt -pi auto \
+	-Wf'-pvctl vchg loopfusion loopchg outerstrip outerunroll' \
+	-o ms2 $(SOURCES)
+	# -sx8, -sx8r, -sx9
+	rm -f *.mod
+
+sx_dbg:
+	sxf90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=0 \
+	-g -EP -ftrace \
+	-o ms2_dbg $(SOURCES)
+	# loop-level profiler: -loopprof
+	# -adv off
+	rm -f *.mod
+
+sx_mpi:
+	sxmpif90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=1 \
+	-C hopt -pi auto \
+	-Wf'-pvctl vchg' \
+	-o ms2mpi $(SOURCES)
+	rm -f *.mod
+
+sx_mpi_dbg:
+	sxmpif90 -Ep -DARCH=3 -DFORTRAN=90 -DMPI_VER=1 \
+	-g -EP \
+	-o ms2mpi_dbg $(SOURCES)
+	rm -f *.mod
 
 xc2:
 	@echo "Compiling using PGF90-64..."
-	@pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
+	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
 	-fastsse -r8 -tp amd64 \
-	-o ms2 $(PROGS)
-	@rm -f *.o *.mod
+	-o ms2 $(SOURCES)
+	rm -f *.o *.mod
 
 xc2_mpi:
 	@echo "Compiling using MPI_PGF90..."
-	@mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
 	-fastsse -r8 -tp amd64 \
-	-o ms2mpi $(PROGS)
-	@rm -f *.o *.mod
+	-o ms2mpi $(SOURCES)
+	rm -f *.o *.mod
+
+xc1:
+	@echo "Compiling using IFORT..."
+	ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp \
+	-fast -r8 -vec-report0 \
+	-o ms2 $(SOURCES)
+	rm -f *.o *.mod *.il
+
+xc1_mpi:
+	@echo "Compiling using MPI_IFORT..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-O3 -ipo -Bdynamic -r8 -vec-report0 \
+	-o ms2mpi $(SOURCES)
+	rm -f *.o *.mod *.il
+
+
+
+alpha:
+	f95 -DARCH=1 -DFORTRAN=95 -DMPI_VER=0 \
+	-version \
+	-fast -r8 -arch host -tune host -pipeline -transform_loops \
+	-o ms2.alpha $(SOURCES)
+	rm -f *.mod
+
+alpha_dbg:
+	f95 -DARCH=1 -DFORTRAN=95 -DMPI_VER=0 \
+	-version \
+	-g -r8 \
+	-o ms2.alpha $(SOURCES)
+	rm -f *.mod
+
+mozart:
+	@echo "Compiling using IFORT..."
+	ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp \
+	-O3 -ipo -Bdynamic -r8 -vec_report0 \
+	-o ms2 $(SOURCES)
+	rm -f *.o *.mod *.il
+
+mozart_mpi:
+	@echo "Compiling using MPI_IFORT..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-O3 -ipo -Bdynamic -r8 -vec_report0 \
+	-o ms2mpi $(SOURCES)
+	rm -f *.o *.mod *.il
+
+cacau:
+	@echo "Compiling using IFORT..."
+	ifort -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp \
+	-O3 -ipo -r8 -vec_report0 \
+	-o ms2 $(SOURCES)
+	rm -f *.o *.mod *.il
+
+cacau_mpi:
+	@echo "Compiling using MPI_IFORT..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -fpp \
+	-O3 -ipo -r8 -vec_report0 \
+	-o ms2mpi $(SOURCES)
+	rm -f *.o *.mod *.il
+
+strider:
+	@echo "Compiling using PGF90..."
+	pgf90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF \
+	-fastsse -Mipa=fast,inline,safe -tp k8-64 -r8 -Minform=severe \
+	-o ms2 $(SOURCES)
+	rm -f *.o *.mod *.ipo
+	rm -f -r Extract.dir
+
+strider_mpi:
+	@echo "Compiling using MPI_PGF90..."
+	mpif90 -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF \
+	-fastsse -Mipa=fast,inline,safe -tp k8-64 -r8 -Minform=severe \
+	-o ms2mpi $(SOURCES)
+	rm -f *.o *.mod *.ipo
+	rm -f -r Extract.dir
+
+lcov:
+	lcov --directory . --base-directory . --capture --output-file MS2.info
+	genhtml --output-director ../lcov/ MS2.info
+
+lcov-clean:
+	lcov --directory . --base-directory .  --zerocounters
+

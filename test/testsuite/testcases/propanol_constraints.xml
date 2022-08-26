@@ -22,7 +22,7 @@
 	<reference>
 		<file>propanol_NPT.rst</file>
 	</reference>
-	<reference>
+<!-- 	<reference>
 		<file>propanol.pm.nrm</file>
-	</reference>
+	</reference> -->
 </testcase>

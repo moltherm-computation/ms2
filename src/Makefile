@@ -1,26 +1,38 @@
 ########################################
 # Makefile for ms2
 ########################################
-#MPI=1
-ifneq ($(MPI),)
+COMPILER = GNU
+#CONFIG = makefiles/$(COMPILER).mk
+include $(CONFIG)
+TARGET    = RELEASE
+MPI       = 0
+OMP       = 0
+PROG      = ms2
+TRANS     = 0
+ifeq ($(MPI),1)
   F90 = mpif90
-  CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=1 -D_PGF -DCONSTR=0
-  PROG =  ms2mpi
-else
-ifneq ($(ABL),)
-  F90 = pgf90 
-  CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -D_PGF -DCONSTR=0 -DABL 
-  PROG =  ms2abl
+  CPPFLAGS += -DMPI_VER=1
+  PROG     :=  $(PROG)_$(COMPILER)_mpi
 else
   F90 = ifort 
   CPPFLAGS = -DARCH=2 -DFORTRAN=90 -DMPI_VER=0 -fpp -check noarg_temp_created 
   PROG =  ms2_INTEL
 endif
+
+F90FLAGS = $(F90FLAGS_$(TARGET))
+LDFLAGS  = $(LDFLAGS_$(TARGET))
+
+ifeq ($(OMP),1)
+CPPFLAGS += -DENABLE_OMP
+F90FLAGS += $(OMPFLAGS)
+LDFLAGS  += $(OMPFLAGS)
+PROG     := $(PROG)_omp
 endif
-F90FLAGS = -g -C
-LDFLAGS = -L/usr/lib
-INCL    = -I/usr/include
-#INCL    = -I/opt/mathlibs/fft-3.1.3/libbench2
+
+ifeq ($(TRANS),1)
+CPPFLAGS += -DTRANS
+PROG     := $(PROG)_trans
+endif
 
 SRCS =  ms2.F90 \
         ms2_stopwatch.F90 \
@@ -48,7 +60,7 @@ default: all
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(F90) $(LDFLAGS) $(INCL) -o $@ $(OBJS) -lfftw3 -lm 
+	$(F90) $(LDFLAGS) -o $@ $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(MODS)
@@ -76,9 +88,13 @@ ms2_molecule.mod: ms2_site.mod ms2_unit.mod ms2_idf.mod ms2_global.mod
 
 ms2_unit.mod: ms2_site.mod ms2_global.mod
 
+ms2_unit.mod: ms2_site.mod ms2_global.mod
+
 ms2_site.mod: ms2_global.mod
 
 ms2_idf.mod:  ms2_global.mod
+
+ms2_interaction.mod: ms2_potential.mod ms2_component.mod ms2_global.mod
 
 ms2_interaction.mod: ms2_potential.mod ms2_component.mod ms2_global.mod 
 
