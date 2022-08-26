@@ -450,7 +450,7 @@ contains
 &     this%Mue(:) = matmul( this%Mue(:), rotation(:, :) )
  
     ! Calculate inverse of rotation matrix - from body coordinate to space axes
-    Rot2(:,:) = transpose(rotation)
+    Rot2(:,:) = rotation
 
 
     ! Implemented according to Bronstein et al. 2008, Revision 7
@@ -492,7 +492,6 @@ contains
     this%Q0(2) = qu2
     this%Q0(3) = qu3
     this%Q0(4) = qu4
-
 
 
   contains

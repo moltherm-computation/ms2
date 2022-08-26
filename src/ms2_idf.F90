@@ -283,6 +283,11 @@ end subroutine TIdfAngle_Construct
     ! Declare arguments
     type(TIdfDihedral) :: this
 
+    ! Declare local variables
+    integer           :: i
+    integer           :: stat
+    character(2)      :: integ
+
     ! Read site parameters
     call FileReadParameter_IOBuffer( iounit_potmod, IdDihedral_Sites )
     read( IOBuffer, * ) this%SiteId1, this%SiteId2, this%SiteId3, this%SiteId4
