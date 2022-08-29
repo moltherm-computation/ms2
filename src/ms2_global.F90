@@ -13,7 +13,11 @@
 !* http://www.ms-2.de                                           *   
 !****************************************************************
 
+#ifndef ARCH
+#define ARCH    0
 #define FORTRAN 90
+#define MPI_VER 0
+#endif
 
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_global.F90...'
@@ -34,6 +38,10 @@
 # else
 #  define __GNUC_VERSION__ (__GNUC__ * 10000 + __GNUC_MINOR__ * 100)
 # endif
+#endif
+
+#ifndef TRANS
+#define TRANS 0
 #endif
 
 #ifndef OSMOP
@@ -261,7 +269,7 @@ module ms2_global
   character(*), parameter :: IdIntegratorType              = 'Integrator'
   character(*), parameter :: IdTimeStep                    = 'TimeStep'
   character(*), parameter :: IdAcceptance                  = 'Acceptance'
-  character(*), parameter :: IdNStepsMCOR                  = 'MCORSteps'
+  character(*), parameter :: IdNStepsMC                    = 'MCORSteps'
   character(*), parameter :: IdNStepsrigEmin               = 'rigEminSteps'
   character(*), parameter :: IdNStepsflexEmin              = 'flexEminSteps'
   character(*), parameter :: IdNStepsV                     = 'NVTSteps'
@@ -428,7 +436,6 @@ module ms2_global
   character(*), parameter :: IdDihedral_nmax               = 'nmax'
   character(*), parameter :: IdDihedral_ForConst           = 'ForConst'
   character(*), parameter :: IdDihedral_gamma0             = 'gamma0'
-  character(*), parameter :: IdDihedral_n                  = 'n'
   character(*), parameter :: IdDihedral_ScaleLJ14          = 'ScaleLJ14'
   character(*), parameter :: IdDihedral_ScaleEl14          = 'ScaleEl14'
   character(*), parameter :: IdNFluct                      = 'NFluct'
@@ -628,7 +635,7 @@ module ms2_global
   integer :: NSteps
 
   ! Number of MC overlap reduction steps
-  integer :: NStepsMCOR
+  integer :: NStepsMC
 
   ! Number of NVT equilibration time steps
   integer :: NStepsV
@@ -983,7 +990,7 @@ module ms2_global
 #endif
   
   ! change current directory
-#if defined _PGF || defined __PGI
+#if defined _PGF
   integer, external :: chdir
 !#elif defined
   !external chdir
@@ -994,7 +1001,7 @@ module ms2_global
 #endif
 
   ! User name from console
-#if ARCH == 1 || defined _PGF || defined __PGI
+#if ARCH == 1 || defined _PGF
   character(256), external :: getlog
 #elif ARCH == 2 || ARCH==3
   external getlog
@@ -1289,7 +1296,7 @@ contains
       i = scan(buffer, FileSep, .true.)
       if( i>0 ) then
         ! path includes directory
-#if defined __INTEL_COMPILER || defined _PGF || defined __PGI || defined __PATHSCALE__ 
+#if defined __INTEL_COMPILER || defined _PGF || defined __PATHSCALE__ 
         stat = chdir( buffer(:max(i-1,1)) )
 #elif defined _CRAYFTN
         call PXFCHDIR( buffer(:max(i-1,1)), 0, stat)
@@ -1407,7 +1414,7 @@ contains
     write( IOBuffer, '("Compiler version     : GNU gfortran", I6)' ) __GNUC_VERSION__
 #elif defined __INTEL_COMPILER
     write( IOBuffer, '("Compiler version     : INTEL ", I4, ", build ", I8)' ) __INTEL_COMPILER, __INTEL_COMPILER_BUILD_DATE
-#elif defined __PGI || defined _PGF
+#elif defined __PGI
     write( IOBuffer, '("Compiler version     : PGI pgf")' )
 #elif defined __SUNPRO_F95
     write( IOBuffer, '("Compiler version     : SUN studio sunf95 ", A)' ) MACRODEF_TO_STRING(__SUNPRO_F95)
@@ -1456,7 +1463,7 @@ contains
 #if ARCH == 1  || defined _CRAYFTN
     call getenv( 'HOSTNAME', hostname )
 #elif ARCH == 2 || ARCH == 3
-#if defined _PGF || defined __PGI || defined __GNUC__ || defined __PATHSCALE__ || defined __SUNPRO_F90 || ARCH == 3
+#if defined _PGF || defined __GNUC__ || defined __PATHSCALE__ || defined __SUNPRO_F90 || ARCH == 3
     i = hostnm( hostname )
 #else
     i = hostnam( hostname )
@@ -1465,7 +1472,7 @@ contains
 #endif
 #ifdef _CRAYFTN
    username = 'Getlog is not supported'
-#elif ARCH == 1 || defined _PGF || defined __PGI
+#elif ARCH == 1 || defined _PGF
     username = getlog()
 #elif ARCH == 2 || ARCH == 3
     call getlog( username )
@@ -2990,7 +2997,9 @@ contains
     real(RK) :: time_elapsed
     real(RK), save :: first_time
     logical, save :: FirstCAll =.TRUE.
+#endif
 
+#ifdef SMUC 
     if (FirstCAll)then
        first_time = MPI_WTIME()
        FirstCall = .FALSE.
