@@ -13,15 +13,7 @@
 !* http://www.ms-2.de                                           *   
 !****************************************************************
 
-#ifndef ARCH
-#define ARCH    0
 #define FORTRAN 90
-#define MPI_VER 0
-#endif
-
-#ifndef TRANS
-#define TRANS 0
-#endif
 
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_global.F90...'
@@ -54,16 +46,6 @@ module ms2_global
 #ifdef __INTEL_COMPILER
   use IFPORT
 #endif
-
-
-!#if MPI_VER
-!  use mpi
-!#endif
-
-!#ifdef ENABLE_OMP
-!  use omp_lib
-!#endif
-
 
 
 !==============================================================!
@@ -172,6 +154,9 @@ module ms2_global
   ! Extension of visualisation file.
   character(*), parameter :: VisualFileExtension = '.vim'
 
+  ! Extension of visualisation of h-bonding file.
+  character(*), parameter :: VisualHBFileExtension = '.hbvim'
+
   ! Extension of normalized potential model file
   character(*), parameter :: NormalizedPotModExtension = '.nrm'
 
@@ -186,6 +171,9 @@ module ms2_global
 
   ! Extension fo result correlation fucntion
   character(*), parameter :: ResultTransportExtension = '.rtr'
+
+  ! Extension of DCP file
+  character(*), parameter :: DCPFileExtension = '.dcp'
 
   ! Marker within a result file for each ensemble data
   character(*), parameter :: RstEnsembleMarker = 'ENSEMBLE'
@@ -224,13 +212,16 @@ module ms2_global
   integer, parameter :: iounit_rdf       = iounit_start + 10
   integer, parameter :: iounit_thermoint = iounit_start + 11
   integer, parameter :: iounit_rescf     = iounit_start + 12
+  integer, parameter :: iounit_visualHB  = iounit_start + 13
+  integer, parameter :: iounit_dcp       = iounit_start + 14
+
 #if MPI_VER > 0
   integer            :: iounit_result_parallel = iounit_start + 6
   integer            :: iounit_runave_parallel = iounit_start + 7
 #endif
 
   ! Define number of output files for each ensemble
-  integer, parameter :: FilesPerEnsemble = iounit_rescf - iounit_result + 1
+  integer, parameter :: FilesPerEnsemble = iounit_dcp - iounit_result + 1
 
   ! Define maximum length of input/output buffer string
   integer, parameter :: IOBufferLength = 1024
@@ -277,6 +268,8 @@ module ms2_global
   character(*), parameter :: IdVisualUpdateFrequency       = 'VisualFreq'
   character(*), parameter :: IdRDFUpdateFrequency          = 'RDFFreq'
   character(*), parameter :: IdRDFNumberShells             = 'NumShells'
+  character(*), parameter :: IdNBinsDen                    = 'NumDenBins'
+  character(*), parameter :: IdWallForce                   = 'Wallforce'
   character(*), parameter :: IdCutoffMode                  = 'CutoffMode'
   character(*), parameter :: IdLongRange                   = 'LongRange'
   character(*), parameter :: IdKappa                       = 'Kappa'
@@ -311,6 +304,8 @@ module ms2_global
   character(*), parameter :: IdPotModFileName              = 'PotModel'
   character(*), parameter :: IdFraction                    = 'MolarFract:MoleFract'
   character(*), parameter :: IdChemPotMethod               = 'ChemPotMethod'
+  character(*), parameter :: IdPermeability                = 'Permeability'
+  character(*), parameter :: IdNHBonds                     = 'NHBondCriteria'
   character(*), parameter :: IdGradInsInit                 = 'GISteps'
   character(*), parameter :: IdWeightFactors               = 'WeightFactors'
   character(*), parameter :: IdNTest                       = 'NTest'
@@ -405,7 +400,7 @@ module ms2_global
   character(*), parameter :: IdQuadrupole_shield           = 'shielding'
   ! Internal degrees of freedom
   character(*), parameter :: IdConstraint_NSites           = 'Constraint'
-  character(*), parameter :: IdConstraint_SiteIds          = 'SiteIds'
+  character(*), parameter :: IdConstraint_SiteIds          = 'SiteIDs'
   character(*), parameter :: IdConstraint_NDFRot           = 'NRotAxes'
   character(*), parameter :: IdConstraint_Mass             = 'TotalMass'
   character(*), parameter :: IdConstraint_MOI1             = 'InertMomX'
@@ -467,6 +462,10 @@ module ms2_global
   real(RK), parameter :: DegreesInRadian = 180._RK / Pi
   real(RK)            :: DebyesInSI
   real(RK)            :: BuckinghamsInSI
+  real(RK)            :: kForceOsmoticPressure
+
+  ! Upper value of the standard deviation of the velocity distribution for the force cricteria used in GE + MD Simulations
+  real(RK), parameter :: root8PIplus1 = sqrt(8._RK / PI + 1._RK)  !rootkB8PIplus1 = sqrt((8._RK / PI + 1._RK) * kBoltzmann)
 
   ! Version of the parameter file
   real(RK) :: parVersionNr
@@ -663,6 +662,23 @@ module ms2_global
   ! Current number of blocks
   integer :: NBlocks
 
+#if TRANS == 1
+  ! Maximum number of blocks CF
+  integer :: NBlocksMaxCF
+
+  ! Frequency of updating result file CF
+  integer :: BlockSizeCF
+
+  ! Maximum number of block sizes for error calculation CF
+  integer :: NBlockSizesMaxCF
+
+  ! Number of block sizes for error calculation CF
+  integer :: NBlockSizesCF
+
+  ! Current number of blocks CF
+  integer :: NBlocksCF
+#endif
+
   ! Frequency of updating final result file
   integer :: ErrorsUpdateFrequency
 
@@ -674,16 +690,13 @@ module ms2_global
   
   ! Number of RDF shells
   integer :: RDFNumberShells
-  
+
+  ! Number of density profile bins
+  integer :: NBinsDen
+
   ! Common equilibration flag for MC. Determines whether one shared 
   ! equilibration is performed
   logical :: CommonEqui
-
-  ! Calculate the radial distribution function
-  integer :: CallsToRDF = 0
-  
-  !RDF
-  real(RK) :: RDFRho, RDFRhoLocal
 
  ! Frequency of updating log file
   integer, parameter :: LogUpdateFrequency = 1000
@@ -744,7 +757,9 @@ module ms2_global
   logical, parameter :: TerminateProgram = .false.
 #endif
 
-
+  integer, parameter :: IdErrorCodeBase = b'1000000000000000'   !=32768
+  ! e.g. 10000 would be better to read for pure addition, but
+  ! bits might code error type, origin (module&function),...
 
 !==============================================================!
 !  Global procedure interfaces                                 !
@@ -1124,10 +1139,10 @@ contains
     integer                                    :: mpiversion, mpisubversion
     character*(MPI_MAX_PROCESSOR_NAME)         :: procname
     integer                                    :: procnamelen
-    character*(MPI_MAX_PROCESSOR_NAME),pointer :: procnames(:)
+    character*(MPI_MAX_PROCESSOR_NAME),pointer, contiguous :: procnames(:)
     integer                                    :: hostrank = MPI_PROC_NULL
     integer                                    :: iorank = MPI_PROC_NULL
-    integer,pointer                            :: ioranks(:)
+    integer,pointer, contiguous                :: ioranks(:)
     logical                                    :: flag
 #endif
 #ifdef ENABLE_OMP
@@ -1379,6 +1394,34 @@ contains
     write( IOBuffer, '("Compiler version     : unknown")' )
 #endif
     call LogWrite
+
+    write( IOBuffer, '("Compiler flags       :")' )
+    call LogWriteNoAdvance
+#if MPI_VER > 0
+    write( IOBuffer, '(" MPI=1")' )
+    call LogWriteNoAdvance
+#endif
+#if TRANS == 1
+    write( IOBuffer, '(" TRANS=1")' )
+    call LogWriteNoAdvance
+#endif
+#if HBOND == 1
+    write( IOBuffer, '(" HBOND=1")' )
+    call LogWriteNoAdvance
+#endif
+#if OSMOP == 1
+    write( IOBuffer, '(" OSMOP=1")' )
+    call LogWriteNoAdvance
+#endif
+#if OSMOP == 2
+    write( IOBuffer, '(" OSMOP=2")' )
+    call LogWriteNoAdvance
+#endif
+    ! new compiler flags should be added
+    ! include target, omp and precision???
+    write( IOBuffer, '(" ")' )
+    call LogWrite
+
     write( IOBuffer, '("Compile time         : ", A)' ) CompileTime
     call LogWrite
     write( IOBuffer, '("Real Kind            :", I2)' ) RK
@@ -1588,7 +1631,7 @@ contains
 !  Subroutine Global_Error                                     !
 !==============================================================!
 
-  subroutine Global_Error( ErrorString )
+  subroutine Global_Error( ErrorString, ErrorCode )
 
     implicit none
 
@@ -1599,8 +1642,12 @@ contains
 
     ! Declare arguments
     character(*), intent(in), optional :: ErrorString
+    integer, intent(in), optional      :: ErrorCode
 
-    ! Output error message
+    ! Declare local variables 
+    integer :: GlobalErrorCode = IdErrorCodeBase
+
+    ! Output error message (might not show up in the MPI version if not initiated by NRootProc!)
     call LogWriteBlank
     if( present( ErrorString ) ) then
       IOBuffer = 'ERROR: '// trim( ErrorString )
@@ -1610,10 +1657,15 @@ contains
     if( RootProc ) print *, trim( IOBuffer )
     call LogWrite
 
+    if( present( ErrorCode ) ) then
+      GlobalErrorCode=IdErrorCodeBase+ErrorCode
+      !GlobalErrorCode=ior(IdErrorCodeBase,ErrorCode)
+    end if
+
     call LogWriteBlank
     write( IOBuffer, '(72("*"))')
     call LogWrite
-    write( IOBuffer, '("Program terminated with Error")' )
+    write( IOBuffer, '("Program terminated with Error (",I5,")")' ) GlobalErrorCode
     call LogWriteTime
     write( IOBuffer, '(72("*"))')
     call LogWrite
@@ -1623,9 +1675,14 @@ contains
 
     ! Abort program
 #if MPI_VER > 0
-    call MPI_Abort( MPI_COMM_WORLD, 4, ierror )
+    ! ErrorCode will be used (at least) by MPI...
+    call MPI_Abort( MPI_COMM_WORLD, GlobalErrorCode, ierror )
 #endif
-    stop
+    !    GlobalErrorCode is not a constant and therefore not accepted by older Fortran versions :-( ...
+    stop IdErrorCodeBase
+    !error stop IdErrorCodeBase ! this is an error, so error stop might be favorable
+    !stop 4     ! very old Fortran versions only support char (0-255)
+    ! should check for Fortran2008+ solution...
 
   end subroutine Global_Error
 

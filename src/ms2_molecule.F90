@@ -42,7 +42,7 @@ module ms2_molecule
   type TMolecule
 
     ! Geometry of molecule
-    logical :: isElongated
+    logical :: isElongated, hasIntraLJEl
 
     ! Number of degrees of freedom
     integer :: NDFRot, NDF
@@ -55,19 +55,19 @@ module ms2_molecule
 
     ! 12-6 Lennard-Jones sites
     integer :: NLJ126
-    type(TSiteLJ126), pointer :: SiteLJ126(:)
+    type(TSiteLJ126), pointer, contiguous :: SiteLJ126(:)
 
     ! Coulomb sites
     integer :: NCharge
-    type(TSiteCharge), pointer :: SiteCharge(:)
+    type(TSiteCharge), pointer, contiguous :: SiteCharge(:)
 
     ! Dipole sites
     integer :: NDipole
-    type(TSiteDipole), pointer :: SiteDipole(:)
+    type(TSiteDipole), pointer, contiguous :: SiteDipole(:)
 
     ! Quadrupole sites
     integer :: NQuadrupole
-    type(TSiteQuadrupole), pointer :: SiteQuadrupole(:)
+    type(TSiteQuadrupole), pointer, contiguous :: SiteQuadrupole(:)
 
     ! All sites
     integer :: NSite
@@ -84,36 +84,36 @@ module ms2_molecule
 
     ! Bond for internal degree of freedom
     integer :: NBond
-    type(TIdfBond), pointer ::IdfBond(:)
+    type(TIdfBond), pointer, contiguous ::IdfBond(:)
 
     ! Angle for internal degree of freedom
     integer :: NAngle
-    type(TIdfAngle), pointer ::IdfAngle(:)
+    type(TIdfAngle), pointer, contiguous ::IdfAngle(:)
 
     ! Dihedral for internal degree of freedom
     integer :: NDihedral
-    type(TIdfDihedral), pointer ::IdfDihedral(:)
+    type(TIdfDihedral), pointer, contiguous ::IdfDihedral(:)
 
     ! Constraint for internal degree of freedom
     integer :: NConstraint
     integer :: NNotConstraint
 
     ! Units of molecule
-    integer, pointer :: NUnit
+    integer, pointer :: NUnit ! Michael Sch. pointer needed?
     integer :: NEUnit         ! number of elongated Units
-    type(TUnit), pointer ::Unit(:)
+    type(TUnit), pointer, contiguous ::Unit(:)
     
     ! File name for potential model
     character(FileNameLength) :: PotModFileName
     
     ! Bonded Units (IDF-connected)
-    integer,pointer      :: BondCount(:)
-    integer,pointer      :: BoPartner(:,:)
-    integer,pointer      :: AngleCount(:)
-    integer,pointer      :: AnglePartner(:,:)
-    integer,pointer      :: DihedralCount(:)
-    integer,pointer      :: DihedralPartner(:,:)
-    integer, allocatable :: BondedUnits(:, :)
+    integer,pointer, contiguous :: BondCount(:)
+    integer,pointer, contiguous :: BoPartner(:,:)
+    integer,pointer, contiguous :: AngleCount(:)
+    integer,pointer, contiguous :: AnglePartner(:,:)
+    integer,pointer, contiguous :: DihedralCount(:)
+    integer,pointer, contiguous :: DihedralPartner(:,:)
+    integer, allocatable :: BondedUnits(:, :)! Michael Sch. make allocatables contiguous?
 
     ! For intramolecular 1-4, 1-5 nonbonded interactions
      integer, allocatable :: Int14(:, :)
@@ -217,7 +217,7 @@ contains
 
     ! Declare local variables
     integer       :: i, j
-    integer       :: ntypes
+    integer       :: ntypes, npossPartners
     character(16) :: stype
     integer       :: stat
     real(RK)      :: scalegeo, scalesig, scaleeps, scaleest
