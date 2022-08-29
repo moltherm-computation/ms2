@@ -1,5 +1,5 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
 !  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
@@ -42,7 +42,8 @@ module ms2_site
     integer           :: SiteId
     integer           :: UnitNumber
     real(RK),pointer  :: r(:)
-    real(RK)          :: sig, eps, mass
+    real(RK)          :: sig, eps
+    real(RK)          :: mass
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2
@@ -51,7 +52,7 @@ module ms2_site
     real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
     real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
-    integer, pointer, contiguous  :: RDFSum(:)
+    integer, pointer, contiguous          :: RDFSum(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
@@ -98,7 +99,9 @@ module ms2_site
     integer           :: SiteId
     integer           :: UnitNumber
     real(RK),pointer  :: r(:)
-    real(RK)          :: e, mass, shield
+    real(RK)          :: e
+    real(RK)          :: mass
+    real(RK)          :: shield
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2
@@ -154,7 +157,9 @@ module ms2_site
     integer           :: SiteId
     integer           :: UnitNumber
     real(RK),pointer  :: r(:), or(:)
-    real(RK)          :: D, mass, shield
+    real(RK)          :: D
+    real(RK)          :: mass
+    real(RK)          :: shield
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2
@@ -213,7 +218,9 @@ module ms2_site
     integer           :: SiteId
     integer           :: UnitNumber
     real(RK),pointer  :: r(:), or(:)
-    real(RK)          :: Q, mass, shield
+    real(RK)          :: Q
+    real(RK)          :: mass
+    real(RK)          :: shield
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2
@@ -389,7 +396,7 @@ contains
     call AllocationError( stat, 'particles', np )
     allocate( this%RY( np ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-    allocate( this%RZ( np ), STAT = stat )
+    allocate( this%RZ( np ), STAT = stat )    
     call AllocationError( stat, 'particles', np )
     if( RDFUpdateFrequency > 0 ) then
       allocate( this%RDFSum(RDFNumberShells+10), STAT = stat )

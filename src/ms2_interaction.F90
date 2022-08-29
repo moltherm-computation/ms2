@@ -1,5 +1,5 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0 + IDF          !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 2.0                !
 !  (c) 2014 by TU Kaiserslautern                               !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
@@ -130,14 +130,14 @@ module ms2_interaction
     ! Cutoff correction to LJ-interaction
     real(RK) :: EPotCorrLJ
 
-    ! Flag for reaction field(s)
+    ! Flag for reaction field
     logical :: ReactionField
 
     ! Extended reaction field
     real(RK) :: DebyeLen
 
     ! (2*eps-1)/(2*eps+1)
-    real(RK) :: RFConst2, RFConst3
+    real(RK) :: RFConst2
 
     ! Same component + w/o intramolecular nonbonded interactions
     logical :: SameComponent
@@ -150,7 +150,6 @@ module ms2_interaction
 
     ! Ewald Summation
     real(RK) :: Kappa
-    real(RK) :: RFConstant
     real(RK) :: lad1,lad2
     
     ! IDF
@@ -229,12 +228,6 @@ module ms2_interaction
     module procedure TInteraction_CalcPartners1
   end interface
   
-!   interface CalcCutoffPartnersIntra
-!     module procedure TInteraction_CalcPartnersIntra
-!     module procedure TInteraction_CalcPartnersIntraMol
-!     module procedure TInteraction_CalcPartnersIntra1
-!   end interface
-
   interface CalcCutoffPartnersTest
     module procedure TInteraction_CalcPartnersTest
   end interface
@@ -277,23 +270,21 @@ contains
     integer :: stat
     real    :: fac
 
-    ! RFConstant2
-    if (LongRange .eq. RField) then
-      this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
-
-    else
+    ! RFConst2
+    if (LongRange .eq. ExtRField) then
       fac = this%DebyeLen*RCutoffDipoleDipole
       this%RFConst2 = - 2._RK / RCutoffDipoleDipole**3 &
 &                     * ( (RFEpsilon - 1._RK)*(1._RK+fac)+ 0.5*RFEpsilon*(fac)**2 )   &
 &                     / ( (2._RK * RFEpsilon+1._RK)*(1._RK+fac) + RFEpsilon*(fac)**2 )
-
-      this%RFConst3 = -3._RK / RCutoffDipoleDipole * RFEpsilon*(1._RK+fac+0.5*(fac)**2) &
-&                     / ( (2._RK * RFEpsilon + 1._RK)*(1+fac) + RFEpsilon*(fac)**2 )
-      this%RFConstant=RCutoffDipoleDipole
+    else
+      this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
     end if
 
     ! Set SameComponent flag
     this%SameComponent = i1 == i2
+    if ( this%SameComponent .and. Component1%Molecule%hasIntraLJEl) then
+      this%includeIntraLJEl = .true.
+    end if
 
     ! Set number of particles
     this%NPart1 => Component1%NPart
@@ -360,6 +351,12 @@ contains
     this%PX2 => Component2%P0(:, 1,:)
     this%PY2 => Component2%P0(:, 2,:)
     this%PZ2 => Component2%P0(:, 3,:)
+!    write(*,*) "after PX1 ",LOC(this%PX1)
+!    write(*,*) "after PY1 ",LOC(this%PY1)
+!    write(*,*) "after PZ1 ",LOC(this%PZ1)
+!    write(*,*) "after PX2 ",LOC(this%PX2)
+!    write(*,*) "after PY2 ",LOC(this%PY2)
+!    write(*,*) "after PZ2 ",LOC(this%PZ2)
 
     ! Total dipole moments of molecules for reaction field
     this%MueX1 => Component1%MueX(:,:)
@@ -806,9 +803,6 @@ contains
     nullify( this%EPot1 )
     nullify( this%EPotNew )
     nullify( this%EPotMol )
-    !nullify( this%EPotBond)
-    !nullify( this%EPot1Bond)
-    !nullify( this%EPotBondNew)
     nullify( this%EPotAngle)
     nullify( this%EPot1Angle)
     nullify( this%EPotAngleNew)
@@ -839,8 +833,7 @@ contains
     
 
     ! Calculate dimension of arrays
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. &
-  &     SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       N1 = this%NPartMax*this%NUnitMax
       N2 = this%NPartMax*this%NUnitMax
 
@@ -895,14 +888,14 @@ contains
     end if
 
     if( SimulationType .eq. SecondVirialCoeff ) then
+      allocate( this%d2EpotdV21(N2), STAT = stat )
+      call AllocationError( stat, 'particles', N2 )
       allocate( this%EPot1(N2), STAT = stat )
       call AllocationError( stat, 'units*particles', this%NPartMax )
       if ( this%OptPressure ) then
         allocate( this%Virial1(N2), STAT = stat )
         call AllocationError( stat, 'units*particles', this%NPartMax )
       end if
-      allocate( this%d2EpotdV21(N2), STAT = stat )
-      call AllocationError( stat, 'particles', N2 )
 
       allocate( this%MayerFFunction(NSteps), STAT = stat )
       call AllocationError( stat, 'Mayer f-function' )
@@ -1080,164 +1073,6 @@ contains
     
  end subroutine TInteraction_RDF
 
-
-!==============================================================!
-!  Subroutine TInteraction_MDEnergy                            !
-!==============================================================!
-
-  subroutine TInteraction_MDEnergy( this, selected, NUnitX, F, E, EIntra, EBond, EAngle, EDihedral, BoxLength, CompIdent )
-
-    implicit none
-
-    ! Declare arguments
-    type(TInteraction)       :: this
-    integer, intent(in)      :: selected
-    integer, intent(in)      :: NUnitX
-    real(RK), intent(in out) :: F(3,NUnitX)
-    real(RK), intent(in out) :: E
-    real(RK), intent(in out) :: EIntra
-    real(RK), intent(in out) :: EBond
-    real(RK), intent(in out) :: EAngle
-    real(RK), intent(in out) :: EDihedral
-    real(RK), intent(in)     :: BoxLength
-    logical, intent(in)      :: CompIdent
-
-    ! Declare local variables
-    integer        :: i, j, k, jk, unit1
-    real(RK)       :: EBonded
-
-    call CalcCutoffPartners( this, selected )
-
-    ! use MC Energy-Routine instad? possible?
-    ! Calculate Lennard-Jones forces
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
-        call Energy( this%PotLJ126LJ126( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-    end do
-    ! Calculate point charge forces
-    do i = 1, this%N1Charge
-      if ( .not. this%ReactionField ) then
-        do j = 1, this%N2Charge
-          call Energy( this%PotChargeCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, this%Kappa, CompIdent )
-        end do
-      else
-        do j = 1, this%N2Charge
-          call Energy( this%PotChargeCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-        end do
-      end if
-      do j = 1, this%N2Dipole
-        call Energy( this%PotChargeDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-      do j = 1, this%N2Quadrupole
-        call Energy( this%PotChargeQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-    end do
-    ! Calculate dipolar forces
-    do i = 1, this%N1Dipole
-      do j = 1, this%N2Charge
-        call Energy( this%PotDipoleCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-      do j = 1, this%N2Dipole
-        call Energy( this%PotDipoleDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-      do j = 1, this%N2Quadrupole
-        call Energy( this%PotDipoleQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-    end do
-    ! Calculate quadrupolar forces
-    do i = 1, this%N1Quadrupole
-      do j = 1, this%N2Charge
-        call Energy( this%PotQuadrupoleCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-      do j = 1, this%N2Dipole
-        call Energy( this%PotQuadrupoleDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-      do j = 1, this%N2Quadrupole
-        call Energy( this%PotQuadrupoleQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
-      end do
-    end do
-
-    ! Inner Degrees of Freedom
-    if ( UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1 ) then
-      if (.not. Shake > 0) then
-        do i = 1, this%NBond
-          call Energy( this%PotBond(i), selected, NUnitX, F(:,:), EBond, BoxLength)
-        end do
-      end if
-      do i = 1, this%NAngle
-        call Energy( this%PotAngle(i), selected, NUnitX, F(:,:), EAngle, BoxLength)
-      end do
-      do i = 1, this%NDihedral
-        call Energy( this%PotDihedral(i), selected, NUnitX, F(:,:), EDihedral, BoxLength)
-      end do
-      EBonded = EBond + EAngle + EDihedral
-      EIntra = EIntra + EBonded
-      E = E + EBonded
-    end if
-
-    ! Explicit reaction field contribution ! needs to be modified for ExtRF (Michael Sch.)
-    if ( this%ReactionField .and. LongRange .eq. RField) then
-      do i = 1, this%NUnit1
-        unit1 = (selected-1)*this%NUnit1+i
-
-          do k = 1, this%NInCutoff(unit1)
-            j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
-            if (mod(j,this%NUnit2)==0) then
-              jk = INT(j/this%NUnit2) !number of molecule,to which this unit correspond
-              j = this%NUnit2 ! number of unit in molecule
-            else
-              jk = INT(j/this%NUnit2)+1
-              j = mod(j,this%NUnit2)
-            end if
-            E = E + this%RFConst2 * ( this%MueX1(selected, i) * this%MueX2(jk,j) &
-&                 + this%MueY1(selected, i) * this%MueY2(jk,j) + this%MueZ1(selected, i) * this%MueZ2(jk,j) )
-          end do
-      end do
-    end if
-
- end subroutine TInteraction_MDEnergy
-
-
-!==============================================================!
-!  Subroutine TInteraction_WholeMDEnergy                       !
-!==============================================================!
-
-  subroutine TInteraction_WholeMDEnergy( this, NUnitX, F, E, EIntra, EBond, EAngle, EDihedral, BoxLength, CompIdent )
-
-    implicit none
-
-    ! Declare arguments
-    type(TInteraction)       :: this
-    integer, intent(in)      :: NUnitX
-    real(RK), intent(in out) :: F(3,NUnitX)
-    real(RK), intent(in out) :: E
-    real(RK), intent(in out) :: EIntra
-    real(RK), intent(in out) :: EBond
-    real(RK), intent(in out) :: EAngle
-    real(RK), intent(in out) :: EDihedral
-    real(RK), intent(in)     :: BoxLength
-    logical, intent(in)      :: CompIdent
-
-    ! Declare local variables
-    integer      :: i, i0, i1
-
-    ! Cutoffpartners not calculated anew (is done in force, chempot)
-    ! for special endeavors should be done manually and problem specific
-
-#if MPI_VER > 0
-    i0 = this%NPart10
-    i1 = this%NPart12
-#else
-    i0 = 1
-    i1 = this%NPart1
-#endif
-    do i = i0, i1
-      call MDEnergy( this, i, NUnitX, F(:,:), E, EIntra, EBond, EAngle, EDihedral, BoxLength, CompIdent )
-    end do
-
- end subroutine TInteraction_WholeMDEnergy
- 
 
 !==============================================================!
 !  Subroutine TInteraction_Force                               !
@@ -1842,7 +1677,6 @@ contains
           mueYi = MueY1(i, u)
           mueZi = MueZ1(i, u)
           do k = 1, this%NInCutoff(iu)
-!            intra = this%Intra(k, iu)
             j = this%CutoffPartner(k, iu)
             u2 = mod (j, nu2)
             if (u2 == 0) then
@@ -1889,7 +1723,8 @@ contains
     type(TPotQuadrupoleCharge), pointer     :: pqc
     type(TPotQuadrupoleDipole), pointer     :: pqd
     type(TPotQuadrupoleQuadrupole), pointer :: pqq
-    real(RK), pointer, contiguous :: EPot(:), Virial(:)
+    real(RK), pointer, contiguous :: EPot(:)
+    real(RK), pointer, contiguous :: Virial(:)
     real(RK), pointer, contiguous :: d2EpotdV2(:)
     real(RK)          :: EPotLocal
     real(RK)          :: VirialLocal
@@ -1900,8 +1735,8 @@ contains
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer :: PX2(:, :), PY2(:, :), PZ2(:, :)
     real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
-    real(RK), pointer, contiguous :: PX2(:, :), PY2(:, :), PZ2(:, :)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: OXi, OYi, OZi
@@ -1929,6 +1764,10 @@ contains
     logical           :: SameComponent
     logical           :: OptPressure
 
+    ! Zero energy
+    EPot => this%EPot1
+    EPot(:) = 0._RK
+    
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
       call CalcCutoffPartners( this, np, nu )
@@ -1939,7 +1778,6 @@ contains
 
     ! Assign local variables
     SameComponent = this%SameComponent
-    EPot => this%EPot1
     unit1=this%NUnit1*(np-1)+nu ! Global number of unit
     OptPressure = this%OptPressure
     if ( OptPressure ) then
@@ -1964,9 +1802,6 @@ contains
 
     ! d2Epot/dV2
     d2EpotdV2(:) = 0._RK
-
-    ! Zero energy
-    EPot(:) = 0._RK
 
     if ( OptPressure ) then
       ! Zero virial
@@ -2038,8 +1873,7 @@ contains
               end if
               Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-              d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * &
-&                          (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ
+              d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx2 LJ
               d2EpotdV2(j) = d2EpotdV2(j) + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
             end if
           end do
@@ -2173,7 +2007,7 @@ contains
                   RijInv2  =  RijInv*RijInv
                   Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
                   sitecorr = (RXij*PXij+RYij*PYij+RZij*PZij)*RijInv2
-                  d2EpotdV2Local = EPotLocal * (3._RK * sitecorr*sitecorr - Plen2*RijInv2)*Third*Third !xxxx1 CC
+                d2EpotdV2Local = EPotLocal * (3._RK * sitecorr*sitecorr - Plen2*RijInv2)*Third*Third !xxxx2 CC
                 end if
                 EPot(j) = EPot(j) + EPotLocal
                 if ( OptPressure ) then
@@ -2184,7 +2018,7 @@ contains
             end do
           end do
         end if ! ReactionField - Ewald-Summation
-
+!
         do s2 = 1, this%N2Dipole
           pcd => this%PotChargeDipole(s1, s2)
           Epsilon = pcd%Epsilon
@@ -2983,11 +2817,9 @@ contains
             RXi = RX1(np)
             RYi = RY1(np)
             RZi = RZ1(np)
-            !PXi = PX1(np, nu) !changed: Michael Sch.
-            !PYi = PY1(np, nu)
-            !PZi = PZ1(np, nu)
             do k = 1, this%NInCutoff(unit1)
               j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+!!!!!!!!!!!!!!!!!!!!!!!!!
               ! choose only units, to which our Site2 correspond
               nu2 = pcc%Site2%UnitNumber
               if ( mod(j-nu2, this%NUnit2)==0) then
@@ -3032,9 +2864,6 @@ contains
             RXi = RX1(np)
             RYi = RY1(np)
             RZi = RZ1(np)
-            !PXi = PX1(np, nu) !changed: Michael Sch.
-            !PYi = PY1(np, nu)
-            !PZi = PZ1(np, nu)
             do k = 1, this%NInCutoff(unit1)
               j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
               ! choose only units, to which our Site2 correspond
@@ -3054,16 +2883,16 @@ contains
                 muexi = (RXij)*q
                 mueyi = (RYij)*q
                 muezi = (RZij)*q
-                EPot(j) = EPot(j) +this%RFConst2 * ( muexi * this%MueX1(np,nu) + mueyi * this%MueY1(np,nu) + &
-&                                       muezi * this%MueZ1(np,nu) )
+                EPot(j) = EPot(j) +this%RFConst2 * ( muexi * this%MueX1(np,nu) + mueyi * this%MueY1(np,nu) + muezi * this%MueZ1(np,nu) )
               end if
             end do
 
+! This part seems to do nothing, therefore it has been commented out.
         !  else if ( (this%N1Charge .eq. 1) .and. (this%N2Charge .eq. 1) ) then 
         !    pcc => this%PotChargeCharge(1, 1)
         !    Epsilon = pcc%Epsilon
         !    RShieldSquared = pcc%RShieldSquared
-
+!
         !  ! Assign pointers to site positions
         !    RX1 => pcc%Site1%RX
         !    RY1 => pcc%Site1%RY
@@ -3071,20 +2900,15 @@ contains
         !    RX2 => pcc%Site2%RX
         !    RY2 => pcc%Site2%RY
         !    RZ2 => pcc%Site2%RZ
-        !    do k = 1, this%NInCutoff(unit1)
-        !      j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
-        !      ! choose only units, to which our Site2 correspond
-        !      nu2 = pcc%Site2%UnitNumber
-        !      if ( mod(j-nu2, this%NUnit2)==0) then
-        !        jk  = CEILING(real(j)/this%NUnit2)
-        !        RXij = RX2(jk)-RX1(np)
-        !        RYij = RY2(jk)-RY1(np)
-        !        RZij = RZ2(jk)-RZ1(np)
+!            do k = 1, this%NInCutoff(np)
+!              j = this%CutoffPartner(k, np)
+!              RXij = RX2(j)-RX1(np)
+!              RYij = RY2(j)-RY1(np)
+!              RZij = RZ2(j)-RZ1(np)
         !        RXij = (RXij - anint(RXij))*BoxLength
         !        RYij = (RYij - anint(RYij))*BoxLength
         !        RZij = (RZij - anint(RZij))*BoxLength
         !        Rij = (RXij**2+RYij**2+RZij**2)
-        !      end if
         !    end do
           end if
         end if 
@@ -3155,16 +2979,13 @@ contains
             end if
             Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-            d2EpotdV2(jk) = d2EpotdV2(jk) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * &
-&                        (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxxss LJ
+            d2EpotdV2(jk) = d2EpotdV2(jk) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxxss2 LJ
             d2EpotdV2(jk) = d2EpotdV2(jk) + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
           end do
         end do
       end do
 
-!!!!!!!!!!!!!!!!!!!!!!
       ! No point charges allowed with site-site cutoff
-!!!!!!!!!!!!!!!!!!!!!!
 
       ! Calculate dipolar energy
       do s1 = this%UnitDP1(nu), this%UnitDP1(nu+1) - 1
@@ -3585,6 +3406,762 @@ contains
 end subroutine TInteraction_Energy
 
 
+
+!==============================================================!
+!  Subroutine TInteraction_UpdateBoxLength                     !
+!==============================================================!
+
+  subroutine TInteraction_UpdateBoxLength( this, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction)   :: this
+    real(RK), intent(in) :: BoxLength
+
+    ! Declare local variables
+    integer :: i, j
+
+    ! Update constants
+    this%RCutoffSquaredScaled = this%RCutoffSquared / BoxLength**2
+
+    ! Update BoxLength in Potentials
+    do i = 1, this%N1LJ126
+      do j = 1, this%N2LJ126
+        call UpdateBoxLength( this%PotLJ126LJ126( i, j ), BoxLength )
+      end do
+    end do
+
+  end subroutine TInteraction_UpdateBoxLength
+
+
+
+!==============================================================!
+!  Subroutine TInteraction_CalcPartners                        !
+!==============================================================!
+
+  subroutine TInteraction_CalcPartners( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction) :: this
+
+    ! Declare local variables
+    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK)          :: PX1d(this%NPart1*this%NUnit1)
+    real(RK)          :: PY1d(this%NPart1*this%NUnit1)
+    real(RK)          :: PZ1d(this%NPart1*this%NUnit1)
+    real(RK)          :: PX2d(this%NPart2*this%NUnit2)
+    real(RK)          :: PY2d(this%NPart2*this%NUnit2)
+    real(RK)          :: PZ2d(this%NPart2*this%NUnit2)
+    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
+    real(RK)          :: RijSquared
+    real(RK)          :: RCutoff
+    integer           :: i, j, N, N2, NInCutoff
+    integer           :: NU, NU2
+    integer           :: k, l, m, o
+ 
+    ! Set cutoff radius
+    RCutoff = this%RCutoffSquaredScaled
+    N = this%NPart1
+    this%NInCutoff(:) = 0
+    NU = this%NUnit1
+    N2 = this%NPart2
+    NU2 = this%NUnit2
+
+!$OMP PARALLEL PRIVATE(PX1, PY1, PZ1, PX2, PY2, PZ2, i, j, k, l, m, o, NInCutoff, RijSquared,PXi, PYi, PZi, PXij, PYij, PZij)
+    ! Assign local pointers
+    PX1 => this%PX1
+    PY1 => this%PY1
+    PZ1 => this%PZ1
+    do i=1, N
+      do k=1, NU
+        j = (i-1)*NU+k
+        PX1d(j) = PX1(i, k)
+        PY1d(j) = PY1(i, k)
+        PZ1d(j) = PZ1(i, k)
+      end do
+    end do
+    if ( this%SameComponent ) then
+      PX2d = PX1d
+      PY2d = PY1d
+      PZ2d = PZ1d
+    else
+      ! Assigning second local pointer
+      PX2 => this%PX2
+      PY2 => this%PY2
+      PZ2 => this%PZ2
+      do i=1, N2
+        do k=1, NU2
+          j=(i-1)*NU2+k
+          PX2d(j) = PX2(i, k)
+          PY2d(j) = PY2(i, k)
+          PZ2d(j) = PZ2(i, k)
+        end do
+      end do
+    end if
+
+    ! Calculate partners within cutoff sphere
+    if( this%SameComponent ) then
+      do k = 1, NU
+#if MPI_VER > 0
+        if( this%NPart10 <= (N+1)/2 ) then
+          if( this%NPart12 > (N+1)/2 ) then
+!$OMP DO        
+            do i = this%NPart10, (N+1) / 2
+#else
+!$OMP DO        
+        do i = 1, (N+1) / 2
+#endif
+          m = k+(i-1)*NU
+          PXi = PX1d(m)
+          PYi = PY1d(m)
+          PZi = PZ1d(m)
+          NInCutoff = this%NInCutoff(m)
+          do l = 1, NU
+            do j = i + 1, (N/2) + i
+              o = l+(j-1)*NU
+              PXij = PXi - PX2d(o)
+              PYij = PYi - PY2d(o)
+              PZij = PZi - PZ2d(o)
+              PXij = PXij - anint( PXij )
+              PYij = PYij - anint( PYij )
+              PZij = PZij - anint( PZij )
+              RijSquared = PXij**2 + PYij**2 + PZij**2
+
+              if( RijSquared < RCutoff ) then
+                NInCutoff = NInCutoff + 1
+                this%CutoffPartner(NInCutoff, m) = o
+              end if
+            end do
+          end do
+          this%NInCutoff(m) = NInCutoff
+        end do
+!$OMP END DO      
+
+!$OMP DO
+#if MPI_VER > 0
+            do i = (N+1) / 2 + 1, this%NPart12
+#else
+        do i = (N+1) / 2 + 1, N
+#endif
+          m = k+(i-1)*NU
+          PXi = PX1d(m)
+          PYi = PY1d(m)
+          PZi = PZ1d(m)
+          NInCutoff = this%NInCutoff(m)
+          do l = 1, NU
+            do j = 1, i - N/2 - 1
+              o = l+(j-1)*NU
+              PXij = PXi - PX2d(o)
+              PYij = PYi - PY2d(o)
+              PZij = PZi - PZ2d(o)
+              PXij = PXij - anint( PXij )
+              PYij = PYij - anint( PYij )
+              PZij = PZij - anint( PZij )
+              RijSquared = PXij**2 + PYij**2 + PZij**2
+              if( RijSquared < RCutoff ) then
+                NInCutoff = NInCutoff + 1
+                this%CutoffPartner(NInCutoff, m) = o
+              end if
+            end do
+            do j = i + 1, N
+              o = l+(j-1)*NU
+              PXij = PXi - PX2d(o)
+              PYij = PYi - PY2d(o)
+              PZij = PZi - PZ2d(o)
+              PXij = PXij - anint( PXij )
+              PYij = PYij - anint( PYij )
+              PZij = PZij - anint( PZij )
+              RijSquared = PXij**2 + PYij**2 + PZij**2
+              if( RijSquared < RCutoff ) then
+                NInCutoff = NInCutoff + 1
+                this%CutoffPartner(NInCutoff, m) = o
+              end if
+            end do
+          end do
+          this%NInCutoff(m) = NInCutoff
+        end do
+!$OMP END DO      
+
+#if MPI_VER > 0
+          else
+  !$OMP DO         
+            do i = this%NPart10, this%NPart12
+              m = k+(i-1)*NU
+              PXi = PX1d(m)
+              PYi = PY1d(m)
+              PZi = PZ1d(m)
+              NInCutoff = this%NInCutoff(m)
+              do l = 1, NU
+                do j = i + 1, N/2 + i
+                  o = l+(j-1)*NU
+                  PXij = PXi - PX2d(o)
+                  PYij = PYi - PY2d(o)
+                  PZij = PZi - PZ2d(o)
+                  PXij = PXij - anint( PXij )
+                  PYij = PYij - anint( PYij )
+                  PZij = PZij - anint( PZij )
+                  RijSquared = PXij**2 + PYij**2 + PZij**2
+
+                  if( RijSquared < RCutoff ) then
+                    NInCutoff = NInCutoff + 1
+                    this%CutoffPartner(NInCutoff, m) = o
+                  end if
+                end do
+              end do
+              this%NInCutoff(m) = NInCutoff
+            end do
+  !$OMP END DO          
+          end if
+
+        else
+  !$OMP DO       
+          do i = this%NPart10, this%NPart12
+            m = k+(i-1)*NU
+            PXi = PX1d(m)
+            PYi = PY1d(m)
+            PZi = PZ1d(m)
+            NInCutoff = this%NInCutoff(m)
+            do l = 1, NU
+              do j = 1, i - N/2 - 1
+                o = l+(j-1)*NU
+                PXij = PXi - PX2d(o)
+                PYij = PYi - PY2d(o)
+                PZij = PZi - PZ2d(o)
+                PXij = PXij - anint( PXij )
+                PYij = PYij - anint( PYij )
+                PZij = PZij - anint( PZij )
+                RijSquared = PXij**2 + PYij**2 + PZij**2
+
+                if( RijSquared < RCutoff ) then
+                  NInCutoff = NInCutoff + 1
+                  this%CutoffPartner(NInCutoff, m) = o
+                end if
+              end do
+              do j = i + 1, N
+                o = l+(j-1)*NU
+                PXij = PXi - PX2d(o)
+                PYij = PYi - PY2d(o)
+                PZij = PZi - PZ2d(o)
+                PXij = PXij - anint( PXij )
+                PYij = PYij - anint( PYij )
+                PZij = PZij - anint( PZij )
+                RijSquared = PXij**2 + PYij**2 + PZij**2
+                if( RijSquared < RCutoff ) then
+                  NInCutoff = NInCutoff + 1
+                  this%CutoffPartner(NInCutoff, m) = o
+                end if
+              end do
+            end do
+            this%NInCutoff(m) = NInCutoff
+          end do
+  !$OMP END DO        
+          
+        end if
+#endif
+      end do
+    else
+
+!$OMP DO      
+#if MPI_VER > 0
+      do i = (this%NPart10-1)*NU+1, this%NPart12*NU
+#else
+      do i = 1, N*NU
+#endif
+        PXi = PX1d(i)
+        PYi = PY1d(i)
+        PZi = PZ1d(i)
+        NInCutoff = this%NInCutoff(i)
+        do j = 1, N2*NU2
+          PXij = PXi - PX2d(j)
+          PYij = PYi - PY2d(j)
+          PZij = PZi - PZ2d(j)
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+          RijSquared = PXij**2 + PYij**2 + PZij**2
+
+          if( RijSquared < RCutoff ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner(NInCutoff, i) = j
+          end if
+        end do
+        this%NInCutoff(i) = NInCutoff
+      end do
+!$OMP END DO      
+    end if
+!$OMP END PARALLEL
+  end subroutine TInteraction_CalcPartners
+
+
+!==============================================================!
+!  Subroutine TInteraction_CalcPartners1                       !
+!==============================================================!
+
+  subroutine TInteraction_CalcPartners1( this, np, nu )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction)  :: this
+    integer, intent(in) :: np
+    integer, intent(in) :: nu
+
+    ! Declare local variables
+    real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
+    real(RK)          :: PX2d(this%NPart2*this%NUnit2)
+    real(RK)          :: PY2d(this%NPart2*this%NUnit2)
+    real(RK)          :: PZ2d(this%NPart2*this%NUnit2)
+    real(RK)          :: RijSquared
+    real(RK)          :: RCutoff
+    integer           :: j, NInCutoff
+    integer           :: i, k, NU2, N2, unit1, nup
+
+    ! Set cutoff radius
+    RCutoff = this%RCutoffSquaredScaled
+
+    ! Assigning local variables
+    N2    = this%NPart2
+    NU2   = this%NUnit2
+    unit1 = (np-1)*this%NUnit1 + nu
+
+    ! Assign local pointers
+    PX2 => this%PX2
+    PY2 => this%PY2
+    PZ2 => this%PZ2
+    do i=1, N2
+      do k=1, NU2
+        nup = (i-1)*NU2 + k
+        PX2d(nup)=PX2(i,k)
+        PY2d(nup)=PY2(i,k)
+        PZ2d(nup)=PZ2(i,k)
+       end do
+     end do
+
+    ! Calculate partners within cutoff sphere
+    PXi = this%PX1(np, nu)
+    PYi = this%PY1(np, nu)
+    PZi = this%PZ1(np, nu)
+    NInCutoff = 0
+#if MPI_VER > 0
+    do j = (this%NPart20-1)*this%NUnit2+1, this%NPart22*this%NUnit2
+#else
+    do j = 1, N2*NU2
+#endif
+      k = CEILING(real(j)/NU2)
+      if( this%SameComponent .and. k == np ) cycle
+      PXij = PXi - PX2d(j)
+      PYij = PYi - PY2d(j)
+      PZij = PZi - PZ2d(j)
+      PXij = PXij - anint( PXij )
+      PYij = PYij - anint( PYij )
+      PZij = PZij - anint( PZij )
+      RijSquared = PXij**2 + PYij**2 + PZij**2
+      if( RijSquared < RCutoff ) then
+        NInCutoff = NInCutoff + 1
+        this%CutoffPartner(NInCutoff, unit1) = j
+      end if
+    end do
+    this%NInCutoff(unit1) = NInCutoff
+
+  end subroutine TInteraction_CalcPartners1
+
+
+!==============================================================!
+!  Subroutine TInteraction_CalcPartnersTest                    !
+!==============================================================!
+
+  subroutine TInteraction_CalcPartnersTest( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction) :: this
+
+    ! Declare local variables
+    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
+    real(RK)          :: RijSquared
+    real(RK)          :: RCutoff
+    integer           :: i, j, NInCutoff, k, l, m, n
+
+    ! Set cutoff radius
+    RCutoff = this%RCutoffSquaredScaled
+
+    ! Assign local variables
+    this%NInCutoff(:) = 0
+
+    ! Assign local pointers
+    PX1 => this%PX1Test
+    PY1 => this%PY1Test
+    PZ1 => this%PZ1Test
+    PX2 => this%PX2
+    PY2 => this%PY2
+    PZ2 => this%PZ2
+!$OMP PARALLEL DEFAULT(SHARED) &
+!$OMP PRIVATE(NInCutoff, PXi, PYi, PZi, PXij, PYij, PZij,RijSquared)
+    ! Calculate partners within cutoff sphere
+!$OMP DO
+    do k = 1, this%NUnit1
+#if MPI_VER > 0
+      do i = this%NTest10, this%NTest12
+#else
+      do i = 1, this%NTest1
+#endif
+        m = (i-1)*this%NUnit1+k
+        PXi = PX1(i,k)
+        PYi = PY1(i,k)
+        PZi = PZ1(i,k)
+        NInCutoff = 0
+
+        do l = 1, this%NUnit2
+          do j = 1, this%NPart2
+            n = (j-1)*this%NUnit2+l
+            PXij = PXi - PX2(j,l)
+            PYij = PYi - PY2(j,l)
+            PZij = PZi - PZ2(j,l)
+            PXij = PXij - anint( PXij )
+            PYij = PYij - anint( PYij )
+            PZij = PZij - anint( PZij )
+            RijSquared = PXij**2 + PYij**2 + PZij**2
+
+            if( RijSquared < RCutoff ) then
+              NInCutoff = NInCutoff + 1
+              this%CutoffPartner(NInCutoff, m) = n
+            end if
+          end do
+        end do
+        this%NInCutoff(m) = NInCutoff
+      end do
+    end do
+!$OMP END DO
+!$OMP END PARALLEL
+  end subroutine TInteraction_CalcPartnersTest
+
+
+!==============================================================!
+!  Subroutine TInteraction_CalcPartnersRDF                     !
+!==============================================================!
+
+  subroutine TInteraction_CalcPartnersRDF( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction) :: this
+
+    ! Declare local variables
+    real(RK), pointer :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK)          :: PX1d(this%NPart1*this%NUnit1)
+    real(RK)          :: PY1d(this%NPart1*this%NUnit1)
+    real(RK)          :: PZ1d(this%NPart1*this%NUnit1)
+    real(RK)          :: PX2d(this%NPart2*this%NUnit2)
+    real(RK)          :: PY2d(this%NPart2*this%NUnit2)
+    real(RK)          :: PZ2d(this%NPart2*this%NUnit2)
+    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
+    real(RK)          :: RijSquared
+    real(RK)          :: RCutoff
+    integer           :: i, j, N, N2, NInCutoff
+    integer           :: NU, NU2, ik, NNU, NUm, k, m
+
+    ! Set cutoff radius
+    RCutoff = this%RCutoffSquaredScaled
+    N = this%NPart1
+    this%NInCutoff(:) = 0
+    NU = this%NUnit1
+    N2 = this%NPart2
+    NU2 = this%NUnit2
+
+    ! Assign local pointers
+    PX1 => this%PX1
+    PY1 => this%PY1
+    PZ1 => this%PZ1
+    do i=1, N
+      do k=1, NU
+        ik = (i-1)*NU+k
+        PX1d(ik) = PX1(i, k)
+        PY1d(ik) = PY1(i, k)
+        PZ1d(ik) = PZ1(i, k)
+      end do
+    end do
+
+    if ( this%SameComponent ) then
+      PX2d = PX1d
+      PY2d = PY1d
+      PZ2d = PZ1d
+    else
+      ! Assigning second local pointer
+      PX2 => this%PX2
+      PY2 => this%PY2
+      PZ2 => this%PZ2
+      do i=1, N2
+        do k=1, NU2
+          ik=(i-1)*NU2+k
+          PX2d(ik) = PX2(i, k)
+          PY2d(ik) = PY2(i, k)
+          PZ2d(ik) = PZ2(i, k)
+        end do
+      end do
+    end if
+
+    ! Calculate partners within cutoff sphere
+    NNU=N*NU
+    if( this%SameComponent ) then
+
+      do i = 1, (NNU+1) / 2
+
+        PXi = PX1d(i)
+        PYi = PY1d(i)
+        PZi = PZ1d(i)
+        NInCutoff = this%NInCutoff(i)
+        m = CEILING(real(i)/NU)
+        NUm=NU*m
+        do j = NUm+1, (NNU/2) + i ! without intramolecular interaction
+          PXij = PXi - PX2d(j)
+          PYij = PYi - PY2d(j)
+          PZij = PZi - PZ2d(j)
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+          RijSquared = PXij**2 + PYij**2 + PZij**2
+
+          if( RijSquared < RCutoff ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner(NInCutoff, i) = j
+          end if
+        end do
+        this%NInCutoff(i) = NInCutoff
+      end do
+
+      do i = (NNU+1) / 2 + 1, NNU
+
+        PXi = PX1d(i)
+        PYi = PY1d(i)
+        PZi = PZ1d(i)
+        NInCutoff = this%NInCutoff(i)
+        m = CEILING(real(i)/NU)
+        do j = 1, i - NNU/2 - 1 ! richtig!
+          PXij = PXi - PX2d(j)
+          PYij = PYi - PY2d(j)
+          PZij = PZi - PZ2d(j)
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+          RijSquared = PXij**2 + PYij**2 + PZij**2
+
+          if( RijSquared < RCutoff ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner(NInCutoff, i) = j
+          end if
+        end do
+
+        do j = m*NU+1, NNU
+          PXij = PXi - PX2d(j)
+          PYij = PYi - PY2d(j)
+          PZij = PZi - PZ2d(j)
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+          RijSquared = PXij**2 + PYij**2 + PZij**2
+          if( RijSquared < RCutoff ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner(NInCutoff, i) = j
+          end if
+        end do
+        this%NInCutoff(i) = NInCutoff
+      end do
+
+    else
+      N2 = this%NPart2
+
+      do i = 1, N*NU
+
+        PXi = PX1d(i)
+        PYi = PY1d(i)
+        PZi = PZ1d(i)
+        NInCutoff = this%NInCutoff(i)
+        do j = 1, N2*NU2
+          PXij = PXi - PX2d(j)
+          PYij = PYi - PY2d(j)
+          PZij = PZi - PZ2d(j)
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+          RijSquared = PXij**2 + PYij**2 + PZij**2
+          if( RijSquared < RCutoff ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner(NInCutoff, i) = j
+          end if
+        end do
+        this%NInCutoff(i) = NInCutoff
+      end do
+    end if
+
+  end subroutine TInteraction_CalcPartnersRDF
+
+
+!==============================================================!
+!  Subroutine TInteraction_MDEnergy                            !
+!==============================================================!
+
+  subroutine TInteraction_MDEnergy( this, selected, NUnitX, F, E, EIntra, EBond, EAngle, EDihedral, BoxLength, CompIdent )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction)       :: this
+    integer, intent(in)      :: selected
+    integer, intent(in)      :: NUnitX
+    real(RK), intent(in out) :: F(3,NUnitX)
+    real(RK), intent(in out) :: E
+    real(RK), intent(in out) :: EIntra
+    real(RK), intent(in out) :: EBond
+    real(RK), intent(in out) :: EAngle
+    real(RK), intent(in out) :: EDihedral
+    real(RK), intent(in)     :: BoxLength
+    logical, intent(in)      :: CompIdent
+
+    ! Declare local variables
+    integer        :: i, j, k, jk, unit1
+    real(RK)       :: EBonded
+
+    call CalcCutoffPartners( this, selected )
+
+    ! use MC Energy-Routine instad? possible?
+    ! Calculate Lennard-Jones forces
+    do i = 1, this%N1LJ126
+      do j = 1, this%N2LJ126
+        call Energy( this%PotLJ126LJ126( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+    end do
+    ! Calculate point charge forces
+    do i = 1, this%N1Charge
+      if ( .not. this%ReactionField ) then
+        do j = 1, this%N2Charge
+          call Energy( this%PotChargeCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, this%Kappa, CompIdent )
+        end do
+      else
+        do j = 1, this%N2Charge
+          call Energy( this%PotChargeCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+        end do
+      end if
+      do j = 1, this%N2Dipole
+        call Energy( this%PotChargeDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+      do j = 1, this%N2Quadrupole
+        call Energy( this%PotChargeQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+    end do
+    ! Calculate dipolar forces
+    do i = 1, this%N1Dipole
+      do j = 1, this%N2Charge
+        call Energy( this%PotDipoleCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+      do j = 1, this%N2Dipole
+        call Energy( this%PotDipoleDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+      do j = 1, this%N2Quadrupole
+        call Energy( this%PotDipoleQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+    end do
+    ! Calculate quadrupolar forces
+    do i = 1, this%N1Quadrupole
+      do j = 1, this%N2Charge
+        call Energy( this%PotQuadrupoleCharge( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+      do j = 1, this%N2Dipole
+        call Energy( this%PotQuadrupoleDipole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+      do j = 1, this%N2Quadrupole
+        call Energy( this%PotQuadrupoleQuadrupole( i, j ), selected, NUnitX, F(:,:), E, EIntra, BoxLength, CompIdent )
+      end do
+    end do
+
+    ! Inner Degrees of Freedom
+    if ( UseIntDegFreed .and. this%SameComponent .and. this%NUnit1>1 ) then
+      if (.not. Shake > 0) then
+        do i = 1, this%NBond
+          call Energy( this%PotBond(i), selected, NUnitX, F(:,:), EBond, BoxLength)
+        end do
+      end if
+      do i = 1, this%NAngle
+        call Energy( this%PotAngle(i), selected, NUnitX, F(:,:), EAngle, BoxLength)
+      end do
+      do i = 1, this%NDihedral
+        call Energy( this%PotDihedral(i), selected, NUnitX, F(:,:), EDihedral, BoxLength)
+      end do
+      EBonded = EBond + EAngle + EDihedral
+      EIntra = EIntra + EBonded
+      E = E + EBonded
+    end if
+
+    ! Explicit reaction field contribution ! needs to be modified for ExtRF (Michael Sch.)
+    if ( this%ReactionField .and. LongRange .eq. RField) then
+      do i = 1, this%NUnit1
+        unit1 = (selected-1)*this%NUnit1+i
+
+          do k = 1, this%NInCutoff(unit1)
+            j = this%CutoffPartner(k, unit1) ! j - global number of unit-partner
+            if (mod(j,this%NUnit2)==0) then
+              jk = INT(j/this%NUnit2) !number of molecule,to which this unit correspond
+              j = this%NUnit2 ! number of unit in molecule
+            else
+              jk = INT(j/this%NUnit2)+1
+              j = mod(j,this%NUnit2)
+            end if
+            E = E + this%RFConst2 * ( this%MueX1(selected, i) * this%MueX2(jk,j) &
+&                 + this%MueY1(selected, i) * this%MueY2(jk,j) + this%MueZ1(selected, i) * this%MueZ2(jk,j) )
+          end do
+      end do
+    end if
+
+ end subroutine TInteraction_MDEnergy
+
+
+!==============================================================!
+!  Subroutine TInteraction_WholeMDEnergy                       !
+!==============================================================!
+
+  subroutine TInteraction_WholeMDEnergy( this, NUnitX, F, E, EIntra, EBond, EAngle, EDihedral, BoxLength, CompIdent )
+
+    implicit none
+
+    ! Declare arguments
+    type(TInteraction)       :: this
+    integer, intent(in)      :: NUnitX
+    real(RK), intent(in out) :: F(3,NUnitX)
+    real(RK), intent(in out) :: E
+    real(RK), intent(in out) :: EIntra
+    real(RK), intent(in out) :: EBond
+    real(RK), intent(in out) :: EAngle
+    real(RK), intent(in out) :: EDihedral
+    real(RK), intent(in)     :: BoxLength
+    logical, intent(in)      :: CompIdent
+
+    ! Declare local variables
+    integer      :: i, i0, i1
+
+    ! Cutoffpartners not calculated anew (is done in force, chempot)
+    ! for special endeavors should be done manually and problem specific
+
+#if MPI_VER > 0
+    i0 = this%NPart10
+    i1 = this%NPart12
+#else
+    i0 = 1
+    i1 = this%NPart1
+#endif
+    do i = i0, i1
+      call MDEnergy( this, i, NUnitX, F(:,:), E, EIntra, EBond, EAngle, EDihedral, BoxLength, CompIdent )
+    end do
+
+ end subroutine TInteraction_WholeMDEnergy
+
+
+
 !==============================================================!
 !  Subroutine TInteraction_IntraEnergy                         !
 !==============================================================!
@@ -3619,7 +4196,7 @@ end subroutine TInteraction_Energy
     real(RK)          :: BoxLengthThird
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
 !     real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:)
-    real(RK), pointer, contiguous :: PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
@@ -3691,8 +4268,8 @@ end subroutine TInteraction_Energy
     PY2 => this%PY2
     PZ2 => this%PZ2
 
-  !!! Michael Sch.: if clause to skip nonbonded interactions if intraLJEL=off here
-  if (IntraLJEL) then
+  !!! Michael Sch.: if clause to skip nonbonded interactions if component has none
+  if (this%includeIntraLJEl) then
 
     ! Initialization Ewald Summation
     if ( .not. this%ReactionField ) then
@@ -3706,8 +4283,9 @@ end subroutine TInteraction_Energy
 
       ! Calculate Lennard-Jones energy
       do s1 = this%UnitLJ1(nu), this%UnitLJ1(nu+1) - 1
-        do k=1, this%NInCutoff(nu)
-          j = this%CutoffPartner(k, nu) ! j - global number of unit
+        do j=1, this%NUnit2 ! Michael Sch.: changed
+!         do k=1, this%NInCutoff(nu)
+!           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitLJ2(j), this%UnitLJ2(j+1) - 1
 
             ! Set site specific variables
@@ -3785,8 +4363,9 @@ end subroutine TInteraction_Energy
 
       ! Calculate point charge energy
       do s1 = this%UnitC1(nu), this%UnitC1(nu+1) - 1
-        do k=1, this%NInCutoff(nu)
-          j = this%CutoffPartner(k, nu) ! j - global number of unit
+        do j=1, this%NUnit2 ! Michael Sch.: changed
+!         do k=1, this%NInCutoff(nu)
+!           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
             pcc => this%PotChargeCharge(s1, s2)
 
@@ -4093,8 +4672,9 @@ end subroutine TInteraction_Energy
 
       ! Calculate dipolar energy
       do s1 = this%UnitDP1(nu), this%UnitDP1(nu+1) - 1
-        do k=1, this%NInCutoff(nu)
-          j = this%CutoffPartner(k, nu) ! j - global number of unit
+        do j=1, this%NUnit2 ! Michael Sch.: changed
+!         do k=1, this%NInCutoff(nu)
+!           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
             pdc => this%PotDipoleCharge(s1, s2)
 
@@ -4385,8 +4965,9 @@ end subroutine TInteraction_Energy
 
       ! Calculate quadrupolar energy
       do s1 = this%UnitQP1(nu), this%UnitQP1(nu+1) - 1
-        do k=1, this%NInCutoff(nu)
-          j = this%CutoffPartner(k, nu) ! j - global number of unit
+        do j=1, this%NUnit2 ! Michael Sch.: changed
+!         do k=1, this%NInCutoff(nu)
+!           j = this%CutoffPartner(k, nu) ! j - global number of unit
           do s2 = this%UnitC2(j), this%UnitC2(j+1) - 1
             pqc => this%PotQuadrupoleCharge(s1, s2)
 
@@ -5312,8 +5893,9 @@ end subroutine TInteraction_Energy
         end if
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RSquared
-        d2EpotdV2Local = d2EpotdV2Local - R * 2._RK * F0 * dR * (sitecorr * sitecorr - Plen2/RSquared)*Third*Third !xxxx Bond
-        d2EpotdV2Local = d2EpotdV2Local + RSquared * 2._RK * F0 * sitecorr * sitecorr *Third*Third
+        d2EpotdV2Local = RSquared * 2._RK * F0 * sitecorr * sitecorr *Third*Third !xxxx Bond
+        d2EpotdV2Local = d2EpotdV2Local - R * 2._RK * F0 * dR * (sitecorr * sitecorr - Plen2/RSquared)*Third*Third
+        d2EpotdV2(unit2) = d2EpotdV2(unit2) + d2EpotdV2Local
       end do ! bonds
 
       ! Angle Interaction
@@ -5506,283 +6088,6 @@ end subroutine TInteraction_Energy
 
 
 !==============================================================!
-!  Subroutine TInteraction_UpdateBoxLength                     !
-!==============================================================!
-
-  subroutine TInteraction_UpdateBoxLength( this, BoxLength )
-
-    implicit none
-
-    ! Declare arguments
-    type(TInteraction)   :: this
-    real(RK), intent(in) :: BoxLength
-
-    ! Declare local variables
-    integer :: i, j
-
-    ! Update constants
-    this%RCutoffSquaredScaled = this%RCutoffSquared / BoxLength**2
-
-    ! Update BoxLength in Potentials
-    do i = 1, this%N1LJ126
-      do j = 1, this%N2LJ126
-        call UpdateBoxLength( this%PotLJ126LJ126( i, j ), BoxLength )
-      end do
-    end do
-
-  end subroutine TInteraction_UpdateBoxLength
-
-
-
-!==============================================================!
-!  Subroutine TInteraction_CalcPartners                        !
-!==============================================================!
-
-  subroutine TInteraction_CalcPartners( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TInteraction) :: this
-
-    ! Declare local variables
-    real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
-    real(RK)          :: PX1d(this%NPart1*this%NUnit1)
-    real(RK)          :: PY1d(this%NPart1*this%NUnit1)
-    real(RK)          :: PZ1d(this%NPart1*this%NUnit1)
-    real(RK)          :: PX2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PY2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PZ2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
-    real(RK)          :: RijSquared
-    real(RK)          :: RCutoff
-    integer           :: i, j, N, N2, NInCutoff, ik, NNU, NUm
-    integer           :: NU, NU2
-    integer           :: k, l, m, o
- 
-    ! Set cutoff radius
-    RCutoff = this%RCutoffSquaredScaled
-    N = this%NPart1
-    this%NInCutoff(:) = 0
-    NU = this%NUnit1
-    N2 = this%NPart2
-    NU2 = this%NUnit2
-
-!$OMP PARALLEL PRIVATE(PX1, PY1, PZ1, PX2, PY2, PZ2, i, j, k, l, m, o, NInCutoff, RijSquared,PXi, PYi, PZi, PXij, PYij, PZij)
-    ! Assign local pointers
-    PX1 => this%PX1
-    PY1 => this%PY1
-    PZ1 => this%PZ1
-    do i=1, N
-      do k=1, NU
-        j = (i-1)*NU+k
-        PX1d(j) = PX1(i, k)
-        PY1d(j) = PY1(i, k)
-        PZ1d(j) = PZ1(i, k)
-      end do
-    end do
-    if ( this%SameComponent ) then
-      PX2d = PX1d
-      PY2d = PY1d
-      PZ2d = PZ1d
-    else
-      ! Assigning second local pointer
-      PX2 => this%PX2
-      PY2 => this%PY2
-      PZ2 => this%PZ2
-      do i=1, N2
-        do k=1, NU2
-          j=(i-1)*NU2+k
-          PX2d(j) = PX2(i, k)
-          PY2d(j) = PY2(i, k)
-          PZ2d(j) = PZ2(i, k)
-        end do
-      end do
-    end if
-
-    ! Calculate partners within cutoff sphere
-    NNU=N*NU
-    if( this%SameComponent ) then
-#if MPI_VER > 0
-      if( this%NPart10*NU <= (NNU+1)/2 ) then
-        if( this%NPart12*NU > (NNU+1)/2 ) then
-!$OMP DO        
-          do i = (this%NPart10-1)*NU+1, (NNU+1) / 2
-#else
-!$OMP DO        
-      do i = 1, (NNU+1) / 2
-#endif
-        PXi = PX1d(i)
-        PYi = PY1d(i)
-        PZi = PZ1d(i)
-        NInCutoff = this%NInCutoff(i)
-        m = CEILING(real(i)/NU)
-        NUm=NU*m
-        do j = NUm+1, (NNU/2) + i ! without intramolecular interaction
-          PXij = PXi - PX2d(j)
-          PYij = PYi - PY2d(j)
-          PZij = PZi - PZ2d(j)
-          PXij = PXij - anint( PXij )
-          PYij = PYij - anint( PYij )
-          PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
-
-          if( RijSquared < RCutoff ) then
-            NInCutoff = NInCutoff + 1
-            this%CutoffPartner(NInCutoff, i) = j
-          end if
-        end do
-        this%NInCutoff(i) = NInCutoff
-      end do
-!$OMP END DO      
-
-!$OMP DO
-#if MPI_VER > 0
-          do i = (NNU+1) / 2 + 1, this%NPart12*NU
-#else
-      do i = (NNU+1) / 2 + 1, NNU
-#endif
-        PXi = PX1d(i)
-        PYi = PY1d(i)
-        PZi = PZ1d(i)
-        NInCutoff = this%NInCutoff(i)
-        m = CEILING(real(i)/NU)
-        do j = 1, i - NNU/2 - 1
-          PXij = PXi - PX2d(j)
-          PYij = PYi - PY2d(j)
-          PZij = PZi - PZ2d(j)
-          PXij = PXij - anint( PXij )
-          PYij = PYij - anint( PYij )
-          PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
-
-          if( RijSquared < RCutoff ) then
-            NInCutoff = NInCutoff + 1
-            this%CutoffPartner(NInCutoff, i) = j
-          end if
-        end do
-        do j = m*NU+1, NNU
-          PXij = PXi - PX2d(j)
-          PYij = PYi - PY2d(j)
-          PZij = PZi - PZ2d(j)
-          PXij = PXij - anint( PXij )
-          PYij = PYij - anint( PYij )
-          PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
-
-          if( RijSquared < RCutoff ) then
-            NInCutoff = NInCutoff + 1
-            this%CutoffPartner(NInCutoff, i) = j
-          end if
-        end do
-        this%NInCutoff(i) = NInCutoff
-      end do
-!$OMP END DO      
-
-#if MPI_VER > 0
-        else
-!$OMP DO         
-          do i = (this%NPart10-1)*NU+1, this%NPart12*NU
-            PXi = PX1d(i)
-            PYi = PY1d(i)
-            PZi = PZ1d(i)
-            NInCutoff = this%NInCutoff(i)
-            m = CEILING(real(i)/NU)
-            do j = m*NU + 1, N*NU/2 + i
-              PXij = PXi - PX2d(j)
-              PYij = PYi - PY2d(j)
-              PZij = PZi - PZ2d(j)
-              PXij = PXij - anint( PXij )
-              PYij = PYij - anint( PYij )
-              PZij = PZij - anint( PZij )
-              RijSquared = PXij**2 + PYij**2 + PZij**2
-              if( RijSquared < RCutoff ) then
-                NInCutoff = NInCutoff + 1
-                this%CutoffPartner(NInCutoff, i) = j
-              end if
-            end do
-            this%NInCutoff(i) = NInCutoff
-          end do
-!$OMP END DO          
-        end if
-
-      else
-!$OMP DO       
-        do i = (this%NPart10-1)*NU+1, this%NPart12*NU
-          PXi = PX1d(i)
-          PYi = PY1d(i)
-          PZi = PZ1d(i)
-          NInCutoff = this%NInCutoff(i)
-          m = CEILING(real(i)/NU)
-          do j = 1, i - N*NU/2 - 1
-            PXij = PXi - PX2d(j)
-            PYij = PYi - PY2d(j)
-            PZij = PZi - PZ2d(j)
-            PXij = PXij - anint( PXij )
-            PYij = PYij - anint( PYij )
-            PZij = PZij - anint( PZij )
-            RijSquared = PXij**2 + PYij**2 + PZij**2
-
-            if( RijSquared < RCutoff ) then
-              NInCutoff = NInCutoff + 1
-              this%CutoffPartner(NInCutoff, i) = j
-            end if
-          end do
-          do j = m*NU + 1, N*NU
-            PXij = PXi - PX2d(j)
-            PYij = PYi - PY2d(j)
-            PZij = PZi - PZ2d(j)
-            PXij = PXij - anint( PXij )
-            PYij = PYij - anint( PYij )
-            PZij = PZij - anint( PZij )
-            RijSquared = PXij**2 + PYij**2 + PZij**2
-            if( RijSquared < RCutoff ) then
-              NInCutoff = NInCutoff + 1
-              this%CutoffPartner(NInCutoff, i) = j
-            end if
-          end do
-          this%NInCutoff(i) = NInCutoff
-        end do
-!$OMP END DO        
-        
-      end if
-#endif
-    else
-      N2 = this%NPart2
-
-!$OMP DO      
-#if MPI_VER > 0
-      do i = (this%NPart10-1)*NU+1, this%NPart12*NU
-#else
-      do i = 1, N*NU
-#endif
-        PXi = PX1d(i)
-        PYi = PY1d(i)
-        PZi = PZ1d(i)
-        NInCutoff = this%NInCutoff(i)
-        do j = 1, N2*NU2
-          PXij = PXi - PX2d(j)
-          PYij = PYi - PY2d(j)
-          PZij = PZi - PZ2d(j)
-          PXij = PXij - anint( PXij )
-          PYij = PYij - anint( PYij )
-          PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
-
-          if( RijSquared < RCutoff ) then
-            NInCutoff = NInCutoff + 1
-            this%CutoffPartner(NInCutoff, i) = j
-          end if
-        end do
-        this%NInCutoff(i) = NInCutoff
-      end do
-!$OMP END DO      
-    end if
-!$OMP END PARALLEL
-  end subroutine TInteraction_CalcPartners
-
-
-!==============================================================!
 !  Subroutine TInteraction_CalcPartnersMol                     !
 !==============================================================!
 
@@ -5795,7 +6100,7 @@ end subroutine TInteraction_Energy
     integer, intent(in) :: np
 
     ! Declare local variables
-    real(RK), pointer, contiguous :: PX2(:,:), PY2(:,:), PZ2(:,:)
+    real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
     real(RK)          :: PX1d(this%NUnit1), PY1d(this%NUnit1), PZ1d(this%NUnit1)
     real(RK)          :: PX2d(this%NPart2*this%NUnit2)
     real(RK)          :: PY2d(this%NPart2*this%NUnit2)
@@ -5867,487 +6172,6 @@ end subroutine TInteraction_Energy
     end do
 
   end subroutine TInteraction_CalcPartnersMol
-
-
-!==============================================================!
-!  Subroutine TInteraction_CalcPartners1                       !
-!==============================================================!
-
-  subroutine TInteraction_CalcPartners1( this, np, nu )
-
-    implicit none
-
-    ! Declare arguments
-    type(TInteraction)  :: this
-    integer, intent(in) :: np
-    integer, intent(in) :: nu
-
-    ! Declare local variables
-    real(RK), pointer, contiguous :: PX2(:,:), PY2(:,:), PZ2(:,:)
-    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
-    real(RK)          :: PX2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PY2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PZ2d(this%NPart2*this%NUnit2)
-    real(RK)          :: RijSquared
-    real(RK)          :: RCutoff
-    integer           :: i, j, k, NInCutoff
-    integer           :: NU2, N2, unit1, nup
-
-    ! Assigning local variables
-    RCutoff = this%RCutoffSquaredScaled
-    N2    = this%NPart2
-    NU2   = this%NUnit2
-    unit1 = (np-1)*this%NUnit1 + nu
-
-    ! Assign local pointers
-    PX2 => this%PX2
-    PY2 => this%PY2
-    PZ2 => this%PZ2
-    do i=1, N2
-      do k=1, NU2
-        nup = (i-1)*NU2 + k
-        PX2d(nup)=PX2(i,k)
-        PY2d(nup)=PY2(i,k)
-        PZ2d(nup)=PZ2(i,k)
-       end do
-     end do
-
-    ! Calculate partners within cutoff sphere
-    PXi = this%PX1(np, nu)
-    PYi = this%PY1(np, nu)
-    PZi = this%PZ1(np, nu)
-    NInCutoff = 0
-#if MPI_VER > 0
-    do j = (this%NPart20-1)*this%NUnit2+1, this%NPart22*this%NUnit2
-#else
-    do j = 1, N2*NU2
-#endif
-      k = CEILING(real(j)/NU2)
-      if( this%SameComponent .and. k == np ) cycle
-      PXij = PXi - PX2d(j)
-      PYij = PYi - PY2d(j)
-      PZij = PZi - PZ2d(j)
-      PXij = PXij - anint( PXij )
-      PYij = PYij - anint( PYij )
-      PZij = PZij - anint( PZij )
-      RijSquared = PXij**2 + PYij**2 + PZij**2
-      if( RijSquared < RCutoff ) then
-        NInCutoff = NInCutoff + 1
-        this%CutoffPartner(NInCutoff, unit1) = j
-      end if
-    end do
-    this%NInCutoff(unit1) = NInCutoff
-
-  end subroutine TInteraction_CalcPartners1
-
-
-! !==============================================================!
-! !  Subroutine TInteraction_CalcPartnersIntra                   !
-! !==============================================================!
-! 
-!   subroutine TInteraction_CalcPartnersIntra( this )
-! 
-!     implicit none
-! 
-!     ! Declare arguments
-!     type(TInteraction)  :: this
-! 
-!     ! Declare local variables
-!     real(RK)        :: PXij, PYij, PZij
-!     real(RK)        :: PX(this%NPart2*this%NUnit2)
-!     real(RK)        :: PY(this%NPart2*this%NUnit2)
-!     real(RK)        :: PZ(this%NPart2*this%NUnit2)
-!     real(RK)        :: RijSquared, RCutoff
-!     integer         :: i, j, NInCutoff, k, l
-!     integer         :: N, NU, NNU, unit1, nup
-! 
-!     ! Set cutoff radius
-!     RCutoff = this%RCutoffSquaredScaled
-!     NU = this%NUnit2
-!     N = this%NPart2
-! 
-!     do i = 1, N
-!       do j = 1, NU
-!         k = (i-1)*NU + j
-!         PX(k)=this%PX2(i,j)
-!         PY(k)=this%PY2(i,j)
-!         PZ(k)=this%PZ2(i,j)
-!       end do
-!     end do
-! 
-!     ! Calculate partners within cutoff sphere
-! #if MPI_VER > 0
-!     do i = this%NPart10, this%NPart12
-! #else
-!     do i = 1, N
-! #endif
-!       nup = (i-1)*NU
-!       do j = 1, NU
-!         unit1 = nup + j
-!         NInCutoff = 0
-!         do l = 1, NU
-!           if (j .eq. l) cycle
-!           k = nup + l
-!           PXij = PX(unit1) - PX(k)
-!           PYij = PY(unit1) - PY(k)
-!           PZij = PZ(unit1) - PZ(k)
-!           PXij = PXij - anint( PXij )
-!           PYij = PYij - anint( PYij )
-!           PZij = PZij - anint( PZij )
-!           RijSquared = PXij**2 + PYij**2 + PZij**2
-!           if( RijSquared < RCutoff ) then
-!             NInCutoff = NInCutoff + 1
-!             this%CutoffPartner(NInCutoff, unit1) = k
-!           end if
-!         end do
-!         this%NInCutoff(unit1) = NInCutoff
-!       end do
-!     end do
-! 
-!   end subroutine TInteraction_CalcPartnersIntra
-! 
-! 
-! !==============================================================!
-! !  Subroutine TInteraction_CalcPartnersIntraMol                !
-! !==============================================================!
-! 
-!   subroutine TInteraction_CalcPartnersIntraMol( this, np )
-! 
-!     implicit none
-! 
-!     ! Declare arguments
-!     type(TInteraction)  :: this
-!     integer, intent(in) :: np
-! 
-!     ! Declare local variables
-!     real(RK)          :: PXij, PYij, PZij
-!     real(RK)          :: PX(this%NUnit2), PY(this%NUnit2), PZ(this%NUnit2)
-!     real(RK)          :: RijSquared, RCutoff
-!     integer           :: i, j, nup, unit1, NInCutoff, k, NUnit
-! 
-!     ! Set cutoff radius
-!     RCutoff = this%RCutoffSquaredScaled
-!     NUnit = this%NUnit2
-!     nup = (np-1)*NUnit
-! 
-!     do k=1, NUnit
-!       PX(k)=this%PX2(np,k)
-!       PY(k)=this%PY2(np,k)
-!       PZ(k)=this%PZ2(np,k)
-!     end do
-! 
-!     ! Calculate partners within cutoff sphere
-!     do i = 1, NUnit
-!       unit1 = nup+i
-!       NInCutoff = 0
-!       do j = 1, NUnit
-!         k = nup + j
-!         if (i .eq. j) cycle
-!         PXij = PX(i) - PX(j)
-!         PYij = PY(i) - PY(j)
-!         PZij = PZ(i) - PZ(j)
-!         PXij = PXij - anint( PXij )
-!         PYij = PYij - anint( PYij )
-!         PZij = PZij - anint( PZij )
-!         RijSquared = PXij**2 + PYij**2 + PZij**2
-!         if( RijSquared < RCutoff ) then
-!           NInCutoff = NInCutoff + 1
-!           this%CutoffPartner(NInCutoff, unit1) = k
-!         end if
-!       end do
-!       this%NInCutoff(unit1) = NInCutoff
-!     end do
-! 
-!   end subroutine TInteraction_CalcPartnersIntraMol
-! 
-! 
-! !==============================================================!
-! !  Subroutine TInteraction_CalcPartnersIntra1                  !
-! !==============================================================!
-! 
-!   subroutine TInteraction_CalcPartnersIntra1( this, np, nu )
-! 
-!     implicit none
-! 
-!     ! Declare arguments
-!     type(TInteraction)  :: this
-!     integer, intent(in) :: np
-!     integer, intent(in) :: nu
-! 
-!     ! Declare local variables
-!     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
-!     real(RK)          :: PX2d(this%NUnit2), PY2d(this%NUnit2), PZ2d(this%NUnit2)
-!     real(RK)          :: RijSquared
-!     real(RK)          :: RCutoff
-!     integer           :: j, NInCutoff, k, NUnit2, unit1
-! 
-!     ! Set cutoff radius
-!     RCutoff = this%RCutoffSquaredScaled
-!     NUnit2 = this%NUnit2
-!     unit1 = (np-1)*NUnit2+nu
-! 
-!     do k=1, NUnit2
-!       PX2d(k)=this%PX2(np,k)
-!       PY2d(k)=this%PY2(np,k)
-!       PZ2d(k)=this%PZ2(np,k)
-!     end do
-!     PXi = PX2d(nu)
-!     PYi = PY2d(nu)
-!     PZi = PZ2d(nu)
-! 
-!     ! Calculate partners within cutoff sphere
-!     NInCutoff = 0
-!     do j = 1, NUnit2
-!       if( nu .eq. j ) cycle
-!       k = (np-1)*NUnit2+j
-!       PXij = PXi - PX2d(j)
-!       PYij = PYi - PY2d(j)
-!       PZij = PZi - PZ2d(j)
-!       PXij = PXij - anint( PXij )
-!       PYij = PYij - anint( PYij )
-!       PZij = PZij - anint( PZij )
-!       RijSquared = PXij**2 + PYij**2 + PZij**2
-!       if( RijSquared < RCutoff ) then
-!         NInCutoff = NInCutoff + 1
-!         this%CutoffPartner(NInCutoff, unit1) = k
-!       end if
-!     end do
-!     this%NInCutoff(unit1) = NInCutoff
-! 
-!   end subroutine TInteraction_CalcPartnersIntra1
-
-
-!==============================================================!
-!  Subroutine TInteraction_CalcPartnersRDF                     !
-!==============================================================!
-
-  subroutine TInteraction_CalcPartnersRDF( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TInteraction) :: this
-
-    ! Declare local variables
-    real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
-    real(RK)          :: PX1d(this%NPart1*this%NUnit1)
-    real(RK)          :: PY1d(this%NPart1*this%NUnit1)
-    real(RK)          :: PZ1d(this%NPart1*this%NUnit1)
-    real(RK)          :: PX2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PY2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PZ2d(this%NPart2*this%NUnit2)
-    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
-    real(RK)          :: RijSquared
-    real(RK)          :: RCutoff
-    integer           :: i, j, N, N2, NInCutoff, ik, NNU, NUm
-    integer           :: NU, NU2
-    integer           :: k, m
-
-    ! Set cutoff radius
-    RCutoff = this%RCutoffSquaredScaled
-    N = this%NPart1
-    this%NInCutoff(:) = 0
-    NU = this%NUnit1
-    N2 = this%NPart2
-    NU2 = this%NUnit2
-
-    ! Assign local pointers
-    PX1 => this%PX1
-    PY1 => this%PY1
-    PZ1 => this%PZ1
-    do i=1, N
-      do k=1, NU
-        ik = (i-1)*NU+k
-        PX1d(ik) = PX1(i, k)
-        PY1d(ik) = PY1(i, k)
-        PZ1d(ik) = PZ1(i, k)
-      end do
-    end do
-
-    if ( this%SameComponent ) then
-      PX2d = PX1d
-      PY2d = PY1d
-      PZ2d = PZ1d
-    else
-      ! Assigning second local pointer
-      PX2 => this%PX2
-      PY2 => this%PY2
-      PZ2 => this%PZ2
-      do i=1, N2
-        do k=1, NU2
-          ik=(i-1)*NU2+k
-          PX2d(ik) = PX2(i, k)
-          PY2d(ik) = PY2(i, k)
-          PZ2d(ik) = PZ2(i, k)
-        end do
-      end do
-    end if
-
-    ! Calculate partners within cutoff sphere
-    NNU=N*NU
-    if( this%SameComponent ) then
-
-      do i = 1, (NNU+1) / 2
-
-        PXi = PX1d(i)
-        PYi = PY1d(i)
-        PZi = PZ1d(i)
-        NInCutoff = this%NInCutoff(i)
-        m = CEILING(real(i)/NU)
-        NUm=NU*m
-        do j = NUm+1, (NNU/2) + i ! without intramolecular interaction
-          PXij = PXi - PX2d(j)
-          PYij = PYi - PY2d(j)
-          PZij = PZi - PZ2d(j)
-          PXij = PXij - anint( PXij )
-          PYij = PYij - anint( PYij )
-          PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
-
-          if( RijSquared < RCutoff ) then
-            NInCutoff = NInCutoff + 1
-            this%CutoffPartner(NInCutoff, i) = j
-          end if
-        end do
-        this%NInCutoff(i) = NInCutoff
-      end do
-
-      do i = (NNU+1) / 2 + 1, NNU
-
-        PXi = PX1d(i)
-        PYi = PY1d(i)
-        PZi = PZ1d(i)
-        NInCutoff = this%NInCutoff(i)
-        m = CEILING(real(i)/NU)
-        do j = 1, i - NNU/2 - 1 ! richtig!
-          PXij = PXi - PX2d(j)
-          PYij = PYi - PY2d(j)
-          PZij = PZi - PZ2d(j)
-          PXij = PXij - anint( PXij )
-          PYij = PYij - anint( PYij )
-          PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
-
-          if( RijSquared < RCutoff ) then
-            NInCutoff = NInCutoff + 1
-            this%CutoffPartner(NInCutoff, i) = j
-          end if
-        end do
-
-        do j = m*NU+1, NNU
-          PXij = PXi - PX2d(j)
-          PYij = PYi - PY2d(j)
-          PZij = PZi - PZ2d(j)
-          PXij = PXij - anint( PXij )
-          PYij = PYij - anint( PYij )
-          PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
-          if( RijSquared < RCutoff ) then
-            NInCutoff = NInCutoff + 1
-            this%CutoffPartner(NInCutoff, i) = j
-          end if
-        end do
-        this%NInCutoff(i) = NInCutoff
-      end do
-
-    else
-      N2 = this%NPart2
-
-      do i = 1, N*NU
-
-        PXi = PX1d(i)
-        PYi = PY1d(i)
-        PZi = PZ1d(i)
-        NInCutoff = this%NInCutoff(i)
-        do j = 1, N2*NU2
-          PXij = PXi - PX2d(j)
-          PYij = PYi - PY2d(j)
-          PZij = PZi - PZ2d(j)
-          PXij = PXij - anint( PXij )
-          PYij = PYij - anint( PYij )
-          PZij = PZij - anint( PZij )
-          RijSquared = PXij**2 + PYij**2 + PZij**2
-          if( RijSquared < RCutoff ) then
-            NInCutoff = NInCutoff + 1
-            this%CutoffPartner(NInCutoff, i) = j
-          end if
-        end do
-        this%NInCutoff(i) = NInCutoff
-      end do
-    end if
-
-  end subroutine TInteraction_CalcPartnersRDF
-
-
-!==============================================================!
-!  Subroutine TInteraction_CalcPartnersTest                    !
-!==============================================================!
-
-  subroutine TInteraction_CalcPartnersTest( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TInteraction) :: this
-
-    ! Declare local variables
-    real(RK), pointer, contiguous :: PX1(:,:), PY1(:,:), PZ1(:,:), PX2(:,:), PY2(:,:), PZ2(:,:)
-    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
-    real(RK)          :: RijSquared, RCutoff
-    integer           :: i, j, NInCutoff, k, l, m, n
-
-    ! Set cutoff radius
-    RCutoff = this%RCutoffSquaredScaled
-
-    ! Assign local variables
-    this%NInCutoff(:) = 0
-
-    ! Assign local pointers
-    PX1 => this%PX1Test
-    PY1 => this%PY1Test
-    PZ1 => this%PZ1Test
-    PX2 => this%PX2
-    PY2 => this%PY2
-    PZ2 => this%PZ2
-!$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP PRIVATE(NInCutoff, PXi, PYi, PZi, PXij, PYij, PZij,RijSquared)
-    ! Calculate partners within cutoff sphere
-!$OMP DO
-    do k = 1, this%NUnit1
-#if MPI_VER > 0
-      do i = this%NTest10, this%NTest12
-#else
-      do i = 1, this%NTest1
-#endif
-        m = (i-1)*this%NUnit1+k
-        PXi = PX1(i,k)
-        PYi = PY1(i,k)
-        PZi = PZ1(i,k)
-        NInCutoff = 0
-
-        do l = 1, this%NUnit2
-          do j = 1, this%NPart2
-            n = (j-1)*this%NUnit2+l
-            PXij = PXi - PX2(j,l)
-            PYij = PYi - PY2(j,l)
-            PZij = PZi - PZ2(j,l)
-            PXij = PXij - anint( PXij )
-            PYij = PYij - anint( PYij )
-            PZij = PZij - anint( PZij )
-            RijSquared = PXij**2 + PYij**2 + PZij**2
-
-            if( RijSquared < RCutoff ) then
-              NInCutoff = NInCutoff + 1
-              this%CutoffPartner(NInCutoff, m) = n
-            end if
-          end do
-        end do
-        this%NInCutoff(m) = NInCutoff
-      end do
-    end do
-!$OMP END DO
-!$OMP END PARALLEL
-  end subroutine TInteraction_CalcPartnersTest
 
 
 end module ms2_interaction

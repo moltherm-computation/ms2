@@ -1,7 +1,10 @@
+
+.settings
 .cproject
 .project
 
-src/*.o
-src/*.mod
 
-.settings
+ms2_GNU*
+
+**/*.o
+**/*.mod
