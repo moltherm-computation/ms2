@@ -4493,15 +4493,14 @@ loop:do l = 1, NPartInCell
       if(ConstantTemperature .or. NVTEquilibration) then
         Reference=this%RefTemperature
       else if (EnsembleType .eq. EnsembleTypeNVE ) then
-        Reference=2._RK * (this%RefHamiltonian*this%NPart - this%Epot) / real (this%NDF-this%constrNDF, RK)
+        Reference= 2._RK * (this%RefHamiltonian*this%NPart - this%Epot) / real (this%NDF-this%constrNDF, RK)
       else if (EnsembleType .eq. EnsembleTypeNPH .and. .not. NVTEquilibration ) then
-        Reference=2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK)
+        Reference= 2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK) 
       end if
 
       ! Rescale velocities
       if( rescale ) then
-        scale = sqrt( Reference / this%Temperature )
-
+      scale = sqrt( Reference / this%Temperature )
         do i = 1, this%NComponents
           pc => this%Component(i)
           np = pc%NPart
@@ -10052,11 +10051,11 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       USelf    = this%USelbstTerm
       UIntra   = this%UIntra
       this%qgrida_old = this%qgrida
-      call chargegrid_min( this, nc,np )
+      call chargegrid_min ( this, nc,np )
       this%NPart = this%NPart - 1
       this%NUnitTotal = this%NUnitTotal - pc%Molecule%NUnit
       this%Component(nc)%NPart = this%Component(nc)%NPart - 1
-      call PMESelfTermMC( this )
+      call PMESelfTermMC ( this )
 ! For further use of the following code
       this%NPart = this%NPart + 1
       this%NUnitTotal = this%NUnitTotal + pc%Molecule%NUnit
@@ -10353,6 +10352,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         ! Update rotational displacement
         if(( AccRateRot .gt. AccUpperLimit ) .and. ( pc%DispRot .lt. DispMolRotUppLimit )) then
           pc%DispRot = pc%DispRot * 1.05_RK
+
         else if(( AccRateRot .lt. AccLowerLimit ) .and. ( pc%DispRot .gt. DispMolRotLowLimit )) then
           pc%DispRot = pc%DispRot * 0.95_RK
         end if
@@ -10390,7 +10390,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           pc%DispMolRot = pc%DispMolRot * 0.95_RK
         end if
       end if
-
     end do
 
     if( ConstantPressure .and. .not. NVTEquilibration ) then
@@ -10671,10 +10670,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileAppend( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
       end if
 #endif
-
 #if TRANS ==1
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       call FileAppend( this%iounit_rescf, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultTransportExtension )
+
 #endif
 
     else
@@ -10689,7 +10688,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           write( IOBuffer, '(I16)' ) this%EnsembleNumber
           call FileRewrite_parallel( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
         end if
-      else
+     else
         ! Open result file
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileRewrite( this%iounit_result, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
@@ -10700,8 +10699,9 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
           write( IOBuffer, '(I16)' ) this%EnsembleNumber
           call FileRewrite( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
         end if
-      endif
+     endif
 #else
+
       ! Open result file
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
       call FileRewrite( this%iounit_result, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ResultFileExtension )
@@ -10713,7 +10713,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileRewrite( this%iounit_runave, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RunAveFileExtension )
       end if
 #endif
-
 #if  TRANS == 1
       ! Open result file for correlation function
       write( IOBuffer, '(I16)' ) this%EnsembleNumber
@@ -10724,6 +10723,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     end if
 
   end subroutine TEnsemble_ResultOpen
+
 
 
 !==============================================================!
@@ -11307,7 +11307,6 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
         call FileWriteNoAdvance( this%iounit_result )
         call FileWriteNoAdvance( this%iounit_runave )
 
-
         ! Enthalpy
         write( IOBuffer, '("        ENTLP")' )
         call FileWriteNoAdvance( this%iounit_result )
@@ -11654,13 +11653,14 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
     else
        call Update( this%SumEnthalpySquared, ( this%EPot / real( this%NPart, RK ) + &
 &                this%Pressure / this%Density )**2 )
+   
        call Update( this%SumEnthalpyV, ( this%EPotInter / real( this%NPart, RK ) + &
 &                this%Pressure / this%Density  ) / this%Density )
     end if
     call Update( this%SumVolumeSquared, 1._RK / this%Density**2 )
 
     ! 3.) Derived sums
-    if( ConstantPressure ) then  ! MichaelGE: fix Enthalpy
+    if( ConstantPressure ) then
 
       call Update( this%SumBetaT, real( this%NPart, RK ) / this%RefTemperature &
 &                * ( this%SumVolumeSquared%Average / this%SumVolume%Average - this%SumVolume%Average ) )
@@ -11678,9 +11678,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 
     else
 
-      call Update( this%SumdUdV,  (this%NPart / this%RefTemperature &
+      call Update( this%SumdUdV, (this%NPart / this%RefTemperature &
 &                * ( this%SumVirial%Average * this%SumEPot%Average - this%SumEPotVirial%Average )&
 &                + this%SumVirial%Average ) / 3._RK / this%Volume0 )
+
       call Update( this%SumCV, real( this%NPart, RK ) / this%RefTemperature**2 &
 &                * ( this%SumEPotSquared%Average - this%SumEPot%Average**2 ) )
     endif
@@ -11704,10 +11705,10 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
       Ud2UdV2 = this%SumEPotd2EpotdV2%Average
 
       A10res =  Beta*U/Numb
-      A01res =  (Numb-this%constrNDF/3._RK)/Numb - Beta*specv*dUdV ! 1._RK-Beta*specv*dUdV
+      A01res =  (Numb-this%constrNDF/3._RK)/Numb - Beta*specv*dUdV
       A20res =  Beta2*(U*U-U2)/Numb
       A11res =  specv*(-Beta*dUdV + Beta2*UdUdV - Beta2*U*dUdV)
-      A02res =  Numb*specv2*(Beta*d2UdV2 - Beta2*dUdV2 + Beta2*dUdV**2) + 2._RK*specv*Beta*dUdV - (Numb-this%constrNDF/3._RK)/Numb !Numb*specv2*(Beta*d2UdV2 - Beta2*dUdV2 + Beta2*dUdV**2) + 2._RK*specv*Beta*dUdV - 1._RK
+      A02res =  Numb*specv2*(Beta*d2UdV2 - Beta2*dUdV2 + Beta2*dUdV**2) + 2._RK*specv*Beta*dUdV - (Numb-this%constrNDF/3._RK)/Numb
       A30res =  Beta3*(U3 -3._RK*U*U2 + 2._RK*U**3)/Numb
       A21res =  specv*( Beta2*( 2._RK*UdUdV - 2._RK*U*dUdV) + Beta3*(U2*dUdV - U2dUdV + 2._RK*U*UdUdV - 2._RK*U**2*dUdV) )
       A12res =  Numb*specv2*Beta3*( UdUdV2 + 2._RK*U*dUdV**2 - U*dUdV2 - 2._RK*UdUdV*dUdV)+&
@@ -13272,7 +13273,7 @@ end subroutine TEnsemble_ScaleInteractionThermoInt
 #endif
 
 #if MPI_VER > 0
-    ! Abortion of simulation run due to wall-time Constraints
+! Abortion of simulation run in Karlsruhe
     call time_left(time_limit)
 #endif
 

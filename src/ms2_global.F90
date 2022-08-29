@@ -1478,7 +1478,6 @@ contains
     write( IOBuffer, '(72("-"))')
     call LogWrite
 
-
     write( IOBuffer, '("Parallelization:")' )
     call LogWrite
 
@@ -1550,18 +1549,18 @@ contains
 #if ARCH == 1 || ARCH == 2
 #ifdef _CRAYFTN
 #elif defined  __GNUC__
-    call signal( 1, IgnoreSignal )             ! Ignore SIGHUP
-    call signal( 2, SetTerminateProgram )      ! Catch SIGINT
-    call signal( 3, SetTerminateProgram )      ! Catch SIGQUIT
-    call signal( 15, SetTerminateProgram )     ! Catch SIGTERM
+    call signal( 1, IgnoreSignal )	! Ignore SIGHUP
+    call signal( 2, SetTerminateProgram )	! Catch SIGINT
+    call signal( 3, SetTerminateProgram )	! Catch SIGQUIT
+    call signal( 15, SetTerminateProgram )	! Catch SIGTERM
 #else
-    i = signal( 1, SetTerminateProgram, 1 )    ! Ignore SIGHUP (HangUP)
-    i = signal( 2, SetTerminateProgram, -1 )   ! Catch SIGINT (INTerrupt)
-    i = signal( 3, SetTerminateProgram, -1 )   ! Catch SIGQUIT (QUIT)
-    i = signal( 15, SetTerminateProgram, -1 )  ! Catch SIGTERM (TERMinate)
+    i = signal( 1, SetTerminateProgram, 1 )	! Ignore SIGHUP (HangUP)
+    i = signal( 2, SetTerminateProgram, -1 )	! Catch SIGINT (INTerrupt)
+    i = signal( 3, SetTerminateProgram, -1 )	! Catch SIGQUIT (QUIT)
+    i = signal( 15, SetTerminateProgram, -1 )	! Catch SIGTERM (TERMinate)
 #endif
 #elif ARCH == 3
-    i = signal( 15, SetTerminateProgram )      ! Catch SIGTERM
+    i = signal( 15, SetTerminateProgram )	! Catch SIGTERM
 #endif
     write( IOBuffer, '(72("-"))')
     call LogWrite
@@ -1614,9 +1613,10 @@ contains
     call LogWriteTime
     write( IOBuffer, '(72("*"))')
     call LogWrite
-
+    
     ! Close log file
     call LogClose
+
 
     ! Finalize MPI
 #if MPI_VER > 0
@@ -1666,9 +1666,9 @@ contains
 
     ! Declare arguments
     character(*), intent(in), optional :: ErrorString
-    integer, intent(in), optional      :: ErrorCode
+    integer, intent(in), optional :: ErrorCode
     integer :: GlobalErrorCode = IdErrorCodeBase
-
+    
     ! Output error message (might not show up in the MPI version if not initiated by NRootProc!)
     call LogWriteBlank
     if( present( ErrorString ) ) then
@@ -1691,7 +1691,7 @@ contains
     call LogWriteTime
     write( IOBuffer, '(72("*"))')
     call LogWrite
-
+    
     ! Close log file
     call LogClose
 
@@ -1702,11 +1702,12 @@ contains
 #endif
     !    GlobalErrorCode is not a constant and therefore not accepted by older Fortran versions :-( ...
     stop IdErrorCodeBase
-    !error stop IdErrorCodeBase ! this is an error, so error stop might be favorable
-    !stop 4     ! very old Fortran versions only support char (0-255)
+    !error stop IdErrorCodeBase	! this is an error, so error stop might be favorable
+    !stop 4	! very old Fortran versions only support char (0-255)
     ! should check for Fortran2008+ solution...
 
   end subroutine Global_Error
+
 
 
 !==============================================================!
@@ -1762,10 +1763,11 @@ contains
 
     ! Declare local variables
     character(FileNameLength) :: filename
-
+    
     ! Check for root process
     if( .not. RootProc ) return
 
+  
     ! using <OutputNameTag>.log, if only one communicator exists date_and_time
     ! and   <OutputNameTag>_<CommId>.log for several
     ! could be extended to <OutputNameTag>_<Phase>.<CommId>.log, for multiple communicator splits/phases
@@ -1782,14 +1784,15 @@ contains
       write( IOBuffer, '("ms2 logfile ",A," reopened")' ) trim(filename)
     else
       call FileRewrite( iounit_log, trim(filename) )
-       write( IOBuffer, '("ms2 logfile ",A," created")' ) trim(filename)
+      write( IOBuffer, '("ms2 logfile ",A," created")' ) trim(filename)
     endif
 #if MPI_VER > 0
     write( IOBuffer(len_trim(IOBuffer)+1:), '(" by PE",I0)' ) NProc_W
 #endif
+
     call LogWriteTime
     !call LogWriteBlank
-
+      
   end subroutine Global_LogOpen
 
 
@@ -1809,6 +1812,7 @@ contains
     call FileClose( iounit_log )
 
   end subroutine Global_LogClose
+
 
 
 !==============================================================!
@@ -1831,7 +1835,6 @@ contains
 #endif
 
   end subroutine Global_LogWrite
-
 
 ! #if MPI_VER > 0
 ! !==============================================================!
@@ -1976,9 +1979,9 @@ contains
 !==============================================================!
 !  Subroutine Global_FileClose_parallel                        !
 !==============================================================!
- 
+
   subroutine Global_FileClose_parallel( iounit )
- 
+
     implicit none
 
     ! Declare arguments
@@ -1987,8 +1990,8 @@ contains
     call MPI_File_Close(iounit, ierror)
 
     if( RootProc )then 
-      write( IOBuffer, '("File <", A, "> closed")' )"*.run or *.rav" 
-      call LogWrite
+        write( IOBuffer, '("File <", A, "> closed")' )"*.run or *.rav"  
+        call LogWrite
     endif
 
   end subroutine Global_FileClose_parallel
@@ -2024,7 +2027,6 @@ contains
     end if
 
   end subroutine Global_FileRewrite_parallel
-
 
 !==============================================================!
 !  Subroutine Global_FileAppend_parallel                       !
@@ -2072,7 +2074,6 @@ contains
 
   end subroutine Global_FileAppend_parallel
 
-
 !==============================================================!
 !  Subroutine Global_FileWriteNoAdvance_parallel               !
 !==============================================================!
@@ -2086,7 +2087,8 @@ contains
     integer, intent(in) :: iounit
 
     ! Write contents of buffer to file
-    call MPI_File_write(iounit, IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER ,status, ierror)
+    call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER ,status, ierror)
+
 
   end subroutine Global_FileWriteNoAdvance_parallel
 
@@ -2115,6 +2117,7 @@ contains
     open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
 
   end subroutine Global_FileRewrite
+
 
 
 !==============================================================!
@@ -2152,6 +2155,7 @@ contains
   end subroutine Global_FileAppend
 
 
+
 !==============================================================!
 !  Subroutine Global_FileClose                                 !
 !==============================================================!
@@ -2187,6 +2191,7 @@ contains
   end subroutine Global_FileClose
 
 
+
 !==============================================================!
 !  Subroutine Global_FileWrite                                 !
 !==============================================================!
@@ -2208,6 +2213,7 @@ contains
   end subroutine Global_FileWrite
 
 
+
 !==============================================================!
 !  Subroutine Global_FileWriteNoAdvance                        !
 !==============================================================!
@@ -2226,6 +2232,7 @@ contains
     write( iounit, '(A)', advance = 'NO' ) trim( IOBuffer )
 
   end subroutine Global_FileWriteNoAdvance
+
 
 
 !==============================================================!
@@ -2592,6 +2599,7 @@ contains
   end subroutine Global_FileReadParameter_RKdim1
 
 
+
 !==============================================================!
 !  Subroutine Global_FileWriteParameter                        !
 !==============================================================!
@@ -2611,6 +2619,7 @@ contains
     write( iounit, '(A, T12, "=", A)' ) trim( parameter ), trim( IOBuffer )
 
   end subroutine Global_FileWriteParameter
+
 
 
 !==============================================================!
@@ -2647,6 +2656,7 @@ contains
   end subroutine Global_Randomize
 
 
+
 !==============================================================!
 !  Function Global_Irnd                                        !
 !==============================================================!
@@ -2674,6 +2684,7 @@ contains
     iharvest = 1 + ishft(int(range, RK) * ior(iand(IM, ieor(ix, iy)), 1), -31)
 
   end function Global_Irnd
+
 
 
 !==============================================================!
@@ -2783,7 +2794,6 @@ contains
 
   end function Global_String_TrimR
 
-
 !==============================================================!
 !  Function Global_String_TrimL                                !
 !==============================================================!
@@ -2815,7 +2825,6 @@ contains
     end if
 
   end function Global_String_TrimL
-
 
 !==============================================================!
 !  Function Global_String_TrimLR                               !
@@ -2953,7 +2962,6 @@ contains
 
   end function Global_GetProcRange
 
-
 !==============================================================!
 !  Subroutine Write Restart File when more writing time needed !
 !==============================================================!
@@ -2969,12 +2977,11 @@ contains
     real(RK) :: time_remaining
     real(RK) :: cputime,max_cpu_time
     integer  :: time_limit
-
+    
 !     integer  :: ierror
 #ifdef __INTEL_COMPILER
     integer  :: err
 #endif
-
 #ifdef KARLS
     character*10 string_max_time
 #endif
@@ -2989,7 +2996,8 @@ contains
        FirstCall = .FALSE.
     end if
     time_elapsed = MPI_WTIME() - first_time
-#else
+
+#else 
 ! Get CPU time consumed by each task and compute the maximum value
     call cpu_time(cputime)
 #endif
@@ -3001,7 +3009,6 @@ contains
 ! Convert to integer
     read(string_max_time,*) max_time
 #endif
-
 #ifdef ITWM
 ! getenv WALLTIME
     call getenv('WALLTIME',string_max_time)
@@ -3010,6 +3017,7 @@ contains
 #endif
 
 ! Compute the remaining CPU time
+
 #ifdef SMUC
     time_remaining = max_time - real(time_elapsed)/60.
 #else
