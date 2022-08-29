@@ -682,7 +682,7 @@ contains
          this%BondCount(1:this%NUnit)=0  ! Zero arrays
          do j = 1, this%NBond
            !if (j<=this%NBond) then
-             call FindBondR(this,this%IdfBond(j), j) 
+             !call FindBondR(this,this%IdfBond(j), j)
              ! Number of bonds can change in this procedure!
            !else
            !  exit
@@ -694,7 +694,7 @@ contains
          this%AngleCount(1:this%NUnit)=0  ! Zero arrays
          do j = 1, this%NAngle
            !if (j<=this%NAngle) then
-             call FindAngle(this,this%IdfAngle(j), j) 
+             !call FindAngle(this,this%IdfAngle(j), j)
            !  ! Number of angles can change in this procedure!
            !else
            !  exit

@@ -155,12 +155,15 @@ contains
     ! Read site parameters
     call FileReadParameter_IOBuffer( iounit_potmod, IdBond_Sites )
     read( IOBuffer, * ) this%SiteId1, this%SiteId2
+    call FileReadParameter( this%R0, iounit_potmod, IdBond_R0, .false.)
     call FileReadParameter( this%ForConst, iounit_potmod, IdBond_ForConst, .false.)
 
     ! Convert to SI units
+    this%R0 = this%R0 * Angstroem
     this%ForConst = this%ForConst * kBoltzmann
 
     ! Convert to derived units
+    this%R0 = this%R0 / UnitLength
     this%ForConst = this%ForConst / UnitEnergy
 
 
@@ -222,12 +225,14 @@ end subroutine TIdfBond_Construct
     ! Read site parameters
     call FileReadParameter_IOBuffer( iounit_potmod, IdAngle_Sites )
     read( IOBuffer, * ) this%SiteId1, this%SiteId2, this%SiteId3
+    call FileReadParameter( this%Angle0, iounit_potmod, IdAngle_Angle0, .false.)
     call FileReadParameter( this%ForConst, iounit_potmod, IdAngle_ForConst, .false.)
 
     ! Convert to SI units
     this%ForConst = this%ForConst * kBoltzmann
 
     ! Convert to derived units
+    this%Angle0 = this%Angle0*Pi/180
     this%ForConst = this%ForConst / UnitEnergy
 
 end subroutine TIdfAngle_Construct
@@ -265,7 +270,8 @@ end subroutine TIdfAngle_Construct
 
     write( IOBuffer, '(3I3)' ) this%SiteId1, this%SiteId2, this%SiteId3
     call FileWriteParameter( iounit_normal, IdAngle_Sites )
-    write( IOBuffer, '(G20.10)' ) this%Angle0
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
+&     this%Angle0*180/PI, this%Angle0
     call FileWriteParameter( iounit_normal, IdAngle_Angle0 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &     this%ForConst * UnitEnergy / kBoltzmann, this%ForConst

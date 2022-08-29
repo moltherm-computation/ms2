@@ -22,4 +22,7 @@
 	<reference>
 		<file>pentan_NPT.rst</file>
 	</reference>
+	<reference>
+		<file>pentan_NPT.pentan.nrm</file>
+	</reference>
 </testcase>
