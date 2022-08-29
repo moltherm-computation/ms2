@@ -703,7 +703,7 @@ contains
          this%DihedralCount(1:this%NUnit)=0
          do j = 1, this%NDihedral
            !if (j<=this%NDihedral) then
-             call FindDihedral(this,this%IdfDihedral(j), j) 
+             !call FindDihedral(this,this%IdfDihedral(j), j) 
              ! Number of angles can change in this procedure!
            !else
            !  exit
