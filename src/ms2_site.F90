@@ -155,9 +155,9 @@ module ms2_site
     integer           :: UnitNumber
     real(RK),pointer  :: r(:), or(:)
     real(RK)          :: D, mass, shield
+    integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2
-    integer, pointer  :: NPartMax, NPart, NTest
     real(RK), pointer, contiguous :: RX(:), RY(:), RZ(:)
     real(RK), pointer, contiguous :: OX(:), OY(:), OZ(:)
     real(RK), pointer, contiguous :: FX(:), FY(:), FZ(:)

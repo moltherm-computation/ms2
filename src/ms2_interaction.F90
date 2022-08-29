@@ -4696,7 +4696,7 @@ end subroutine TInteraction_Energy
       end do! s1-cycle
 
       ! Explicit reaction field contribution
-      if ( (this%ReactionField) .or. (LongRange .eq. ExtRField) ) then
+      if ( this%ReactionField ) then
         if ( LongRange .eq. RField) then    ! Normal ReactionField
           RFConst2 = this%RFConst2
           MueX2 => this%MueX2
