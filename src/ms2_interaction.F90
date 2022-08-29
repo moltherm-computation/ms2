@@ -5977,9 +5977,7 @@ end subroutine TInteraction_Energy
         u2 = pto%Unit2 ! unit2 of dihedral
         u3 = pto%Unit3 ! unit3 of dihedral
         u4 = pto%Unit4 ! unit4 of dihedral
-        multi = pto%multi
-        gamma = pto%gamma
-        ForConst = pto%ForConst
+        nmax = pto%nmax
 
         ! Assign pointers to site positions
         RXi=pto%Dihedral%RX1(np)
@@ -5996,8 +5994,8 @@ end subroutine TInteraction_Energy
         RZl=pto%Dihedral%RZ4(np)
 
         if (nmax .eq. 0) then
-          earg = 1._RK + cos(-pto%gamma)
-          EPotAdd = earg * pto%ForConst
+          earg = 1._RK + cos(-pto%gamma0(1))
+          EPotAdd = earg * pto%ForConst(1)
         else
           ! Calculate vectors IJ, JK, KL
           ax = (RXj - RXi)
