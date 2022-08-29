@@ -309,8 +309,8 @@ end subroutine TIdfAngle_Construct
     ! Read site parameters
     call FileReadParameter_IOBuffer( iounit_potmod, IdDihedral_Sites )
     read( IOBuffer, * ) this%SiteId1, this%SiteId2, this%SiteId3, this%SiteId4
-    call FileReadParameter( this%ForConst, iounit_potmod, IdDihedral_PotBarrier, .false.)
-    call FileReadParameter( this%gamma, iounit_potmod, IdDihedral_gamma, .false. )
+    call FileReadParameter( this%ForConst, iounit_potmod, IdDihedral_ForConst, .false.)
+    call FileReadParameter( this%gamma, iounit_potmod, IdDihedral_gamma0, .false. )
     call FileReadParameter( this%multi, iounit_potmod, IdDihedral_n, .false. )
     
     if (LJEl14 .and. (this%multi .gt. 0)) then
@@ -362,9 +362,9 @@ end subroutine TIdfDihedral_Construct
     call FileWriteParameter( iounit_normal, IdDihedral_Sites )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &     this%ForConst * UnitEnergy / kBoltzmann, this%ForConst
-    call FileWriteParameter( iounit_normal, IdDihedral_PotBarrier)
+    call FileWriteParameter( iounit_normal, IdDihedral_ForConst)
     write( IOBuffer, '(G20.10)' ) this%gamma
-    call FileWriteParameter( iounit_normal, IdDihedral_gamma )
+    call FileWriteParameter( iounit_normal, IdDihedral_gamma0 )
     write( IOBuffer, '(G20.10)' ) this%multi
     call FileWriteParameter( iounit_normal, IdDihedral_n )
     if (LJEl14 .and. (this%multi .gt. 0)) then
