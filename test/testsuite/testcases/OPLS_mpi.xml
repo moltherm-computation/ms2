@@ -15,6 +15,5 @@
 	</reference>
 	<reference>
 		<file>C4H10_OPLS_p3T2_Ring.rst</file>
-		<relativeTolerance>1e-6</relativeTolerance>
 	</reference>
 </testcase>

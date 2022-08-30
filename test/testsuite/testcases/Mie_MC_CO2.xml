@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>NpT.par</parFile>
+	<name>Mie_MC_CO2</name>
+	<np>2</np>
+	<reference>
+		<file>NpT.rst</file>
+	</reference>
+	<reference>
+		<file>NpT_1.run</file>
+	</reference>
+	<reference>
+		<file>NpT_1.res</file>
+	</reference>
+	<reference>
+		<file>NpT_1.rav</file>
+	</reference>
+</testcase>

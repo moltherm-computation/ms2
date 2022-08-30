@@ -5,7 +5,6 @@
 	<name>MC_xA040_NPH</name>
 	<reference>
 		<file>MC_xA040_NPH.rst</file>
-		<relativeTolerance>1e-6</relativeTolerance>
 	</reference>
 	<reference>
 		<file>MC_xA040_NPH_1.res</file>

@@ -6,14 +6,12 @@
 	<name>pentan_NPT</name>
 	<reference>
 		<file>pentan_NPT.rst</file>
-		<relativeTolerance>4e-5</relativeTolerance>
 	</reference>
 	<reference>
 		<file>pentan_NPT_1.rav</file>
 	</reference>
 	<reference>
 		<file>pentan_NPT_1.res</file>
-		<relativeTolerance>1e-6</relativeTolerance>
 	</reference>
 	<reference>
 		<file>pentan_NPT_1.run</file>
