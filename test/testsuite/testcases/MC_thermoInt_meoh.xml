@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<name>MC_thermoInt_meoh</name>
+	<parFile>MC_thermoInt_meoh.par</parFile>
+	<np>2</np>
+	<reference>
+		<file>MC_thermoInt_meoh_1.res</file>
+	</reference>
+	<reference>
+		<file>MC_thermoInt_meoh_1.run</file>
+	</reference>
+	<reference>
+		<file>MC_thermoInt_meoh_1.thi</file>
+	</reference>
+	<reference>
+		<file>MC_thermoInt_meoh.rst</file>
+	</reference>
+</testcase>

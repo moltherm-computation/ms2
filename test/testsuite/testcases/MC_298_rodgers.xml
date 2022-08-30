@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_298_rodgers.par</parFile>
+	<name>MC_298_rodgers</name>
+	<np>2</np>
+	<reference>
+		<file>MC_298_rodgers.rst</file>
+		<relativeTolerance>1e-6</relativeTolerance>
+	</reference>
+	<reference>
+		<file>MC_298_rodgers_1.res</file>
+		<relativeTolerance>1e-6</relativeTolerance>
+	</reference>
+</testcase>

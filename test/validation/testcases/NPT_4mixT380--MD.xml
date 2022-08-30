@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>NPT_4mixT380--MD.par</parFile>
+	<name>NPT_4mixT380--MD</name>
+	<np>40</np>
+	<walltime>3-05:15:00</walltime>
+	<reference>
+		<file>NPT_4mixT380--MD_1.res</file>
+		<relativeTolerance>
+			<pressure>4e-3</pressure>
+			<temperature>6e-8</temperature>
+			<concentration>5e-5</concentration>
+			<potentialEnergy>4e-6</potentialEnergy>
+			<enthalpy>4e-6</enthalpy>
+		</relativeTolerance>
+	</reference>
+</testcase>

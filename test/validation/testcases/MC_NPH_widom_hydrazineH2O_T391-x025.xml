@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_NPH_widom_hydrazineH2O_T391-x025.par</parFile>
+	<name>MC_NPH_widom_hydrazineH2O_T391-x025</name>
+	<np>40</np>
+	<walltime>2-12:36:41</walltime>
+	<reference>
+		<file>MC_NPH_widom_hydrazineH2O_T391-x025_1.res</file>
+		<relativeTolerance>
+			<temperature>8e-4</temperature>
+			<concentration>4e-4</concentration>
+			<potentialEnergy>3e-4</potentialEnergy>
+			<enthalpy>3e-4</enthalpy>
+		</relativeTolerance>
+	</reference>
+</testcase>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_NPH_thermoint_meoh.par</parFile>
+	<name>MC_NPH_thermoint_meoh</name>
+	<np>40</np>
+	<walltime>18:00:00</walltime>
+	<reference>
+		<file>MC_NPH_thermoint_meoh_1.res</file>
+		<relativeTolerance>
+			<temperature>7e-4</temperature>
+			<concentration>9e-5</concentration>
+			<potentialEnergy>3e-4</potentialEnergy>
+			<enthalpy>2.5e-4</enthalpy>
+		</relativeTolerance>
+	</reference>
+</testcase>
