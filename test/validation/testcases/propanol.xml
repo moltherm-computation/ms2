@@ -7,6 +7,7 @@
 		<name>COMPILER</name>
 		<value>INTEL</value>
 	</compilerOption>
+	<np>4</np>
 	<reference>
 		<file>propanol_NPT_1.res</file>
 	</reference>
