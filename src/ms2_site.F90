@@ -51,7 +51,7 @@ module ms2_site
     real(RK), pointer, contiguous :: FX(:), FY(:), FZ(:)
     real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
     real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
-    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
+    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
     integer, pointer, contiguous          :: RDFSum(:)
 
 #if  TRANS == 1
@@ -98,7 +98,7 @@ module ms2_site
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK)          :: r(3)
+    real(RK),pointer  :: r(:)
     real(RK)          :: e
     real(RK)          :: mass
     real(RK)          :: shield
@@ -109,7 +109,7 @@ module ms2_site
     real(RK), pointer, contiguous :: FX(:), FY(:), FZ(:)
     real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
     real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
-    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
+    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
@@ -170,7 +170,7 @@ module ms2_site
     real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
     real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer, contiguous :: OXTest(:), OYTest(:), OZTest(:)
-    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
+    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
@@ -231,7 +231,7 @@ module ms2_site
     real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
     real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer, contiguous :: OXTest(:), OYTest(:), OZTest(:)
-    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
+    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
@@ -630,11 +630,18 @@ contains
 
     ! Declare arguments
     type(TSiteCharge) :: this
+    
+    ! Declare local variables
+    integer          :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
       call FileReadParameter( this%SiteId, iounit_potmod, IdCharge_SiteId, .false. )
     end if
+    
+    nullify ( this%r )
+    allocate( this%r( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
 
     call FileReadParameter( this%r(1), iounit_potmod, IdCharge_r1, .false. )
     call FileReadParameter( this%r(2), iounit_potmod, IdCharge_r2, .false. )
@@ -957,11 +964,19 @@ contains
 
     ! Declare local variables
     real(RK) :: theta, phi
+    integer  :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
         call FileReadParameter( this%SiteId, iounit_potmod, IdDipole_SiteId, .false. )
     end if
+
+    nullify ( this%r )
+    allocate( this%r( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
+    nullify ( this%or )
+    allocate( this%or( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
 
     call FileReadParameter( this%r(1), iounit_potmod, IdDipole_r1, .false. )
     call FileReadParameter( this%r(2), iounit_potmod, IdDipole_r2, .false. )
@@ -1363,11 +1378,19 @@ contains
 
     ! Declare local variables
     real(RK) :: theta, phi
+    integer  :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
         call FileReadParameter( this%SiteId, iounit_potmod, IdQuadrupole_SiteId, .false. )
     end if
+
+    nullify ( this%r )
+    allocate( this%r( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
+    nullify ( this%or )
+    allocate( this%or( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
 
     call FileReadParameter( this%r(1), iounit_potmod, IdQuadrupole_r1, .false. )
     call FileReadParameter( this%r(2), iounit_potmod, IdQuadrupole_r2, .false. )

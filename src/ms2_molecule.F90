@@ -213,21 +213,22 @@ contains
     integer, intent(in)      :: fluctstate
 
     ! Declare local variables
-    integer       :: i, j
+    integer       :: i, j, iUnit
     integer       :: ntypes
     character(16) :: stype
     integer       :: stat
     real(RK)      :: scalegeo, scalesig, scaleeps, scaleest
     integer       :: npossPartners
-    real(RK) :: moi(3, 3), rotation(3, 3)
-
+    real(RK) :: moi(3, 3), rotation(3, 3), Rot2(3, 3)
+    real(RK) :: qu1,qu2,qu3,qu4,quinv
+    real(RK) :: T,S,SInv
     ! Inner Degrees of Freedom
     integer       :: k, index, index1, index2
     integer       :: nidftypes  !number of internal degree of freedom types
     character(16) :: sidftype  !type of internal degree of freedom
     integer                :: ncs        ! number of all constraint sites
     integer, allocatable   :: ncspu(:)   ! number of constraint sites pro unit
-    logical                :: ok, ok1, LJ1, LJ2, same
+    logical                :: ok, ok1, LJ1, LJ2, same, disoriented
     logical                :: charge1, charge2, dipole1, dipole2, quadrupole1, quadrupole2
     integer                :: cc, cd, cq, dc, dd, dq, qc, qd, qq, lj
     integer                :: Site1, Site2, Site3, Site4
@@ -248,7 +249,7 @@ contains
     integer                :: Charge1Id, Charge2Id
     integer                :: Dipole1Id, Dipole2Id
     integer                :: Quadrupole1Id, Quadrupole2Id
-
+    type(TUnit), pointer :: unit
     ! Nullify pointers.
     nullify( this%SiteLJ126 )
     nullify( this%SiteCharge )
