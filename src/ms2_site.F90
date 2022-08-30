@@ -51,7 +51,7 @@ module ms2_site
     real(RK), pointer, contiguous :: FX(:), FY(:), FZ(:)
     real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
     real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
-    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
+    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
     integer, pointer, contiguous          :: RDFSum(:)
 
 #if  TRANS == 1
@@ -109,7 +109,7 @@ module ms2_site
     real(RK), pointer, contiguous :: FX(:), FY(:), FZ(:)
     real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
     real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
-    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
+    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
@@ -170,7 +170,7 @@ module ms2_site
     real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
     real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer, contiguous :: OXTest(:), OYTest(:), OZTest(:)
-    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
+    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
@@ -231,7 +231,7 @@ module ms2_site
     real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
     real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
     real(RK), pointer, contiguous :: OXTest(:), OYTest(:), OZTest(:)
-    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
+    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
 
 #if  TRANS == 1
     !TRANSPORT_start
