@@ -34,17 +34,16 @@ module ms2_site
 
 
 !==============================================================!
-!  Type TSiteMIEnm                                             !
+!  Type TSiteLJ126                                             !
 !==============================================================!
 
-  type TSiteMIEnm
+  type TSiteLJ126
 
     integer           :: SiteId
     integer           :: UnitNumber
     real(RK),pointer  :: r(:)
     real(RK)          :: sig, eps
     real(RK)          :: mass
-	real(RK)          :: mie_n, mie_m
     integer, pointer  :: NPartMax, NPart, NTest
     integer, pointer  :: NPart0, NPart1, NPart2
     integer, pointer  :: NTest0, NTest1, NTest2
@@ -57,37 +56,37 @@ module ms2_site
 
 #if  TRANS == 1
     !TRANSPORT_start
-    real(RK), pointer, contiguous :: vsMIEx(:) , vsMIEy(:), vsMIEz(:)
-    real(RK), pointer, contiguous :: vsuMIEx(:), vsuMIEy(:), vsuMIEz(:)
-    real(RK), pointer, contiguous :: vbMIEx(:) , vbMIEy(:), vbMIEz(:)
-    real(RK), pointer, contiguous :: cMIEx(:)  , cMIEy(:),  cMIEz(:)
-    real(RK), pointer, contiguous :: tuMIEx(:),  tuMIEy(:),  tuMIEz(:)
-    real(RK), pointer, contiguous :: tlMIEx(:),  tlMIEy(:),  tlMIEz(:)
-    real(RK), pointer, contiguous :: tdMIEx(:),  tdMIEy(:),  tdMIEz(:)
+    real(RK), pointer, contiguous :: vsLJx(:) , vsLJy(:), vsLJz(:)
+    real(RK), pointer, contiguous :: vsuLJx(:), vsuLJy(:), vsuLJz(:)
+    real(RK), pointer, contiguous :: vbLJx(:) , vbLJy(:), vbLJz(:)
+    real(RK), pointer, contiguous :: cLJx(:)  , cLJy(:),  cLJz(:)
+    real(RK), pointer, contiguous :: tuLJx(:),  tuLJy(:),  tuLJz(:)
+    real(RK), pointer, contiguous :: tlLJx(:),  tlLJy(:),  tlLJz(:)
+    real(RK), pointer, contiguous :: tdLJx(:),  tdLJy(:),  tdLJz(:)
     real(RK), pointer, contiguous :: Qm0r(:,:,:)
 !TRANSPORT_END
 #endif
 
-  end type TSiteMIEnm
+  end type TSiteLJ126
 
   interface Construct
-    module procedure TSiteMIEnm_Construct
+    module procedure TSiteLJ126_Construct
   end interface
 
   interface Destruct
-    module procedure TSiteMIEnm_Destruct
+    module procedure TSiteLJ126_Destruct
   end interface
 
   interface Allocate
-    module procedure TSiteMIEnm_Allocate
+    module procedure TSiteLJ126_Allocate
   end interface
 
   interface Deallocate
-    module procedure TSiteMIEnm_Deallocate
+    module procedure TSiteLJ126_Deallocate
   end interface
 
   interface Save
-    module procedure TSiteMIEnm_Save
+    module procedure TSiteLJ126_Save
   end interface
 
 
@@ -274,47 +273,34 @@ contains
 
 
 !==============================================================!
-!  Subroutine TSiteMIEnm_Construct                             !
+!  Subroutine TSiteLJ126_Construct                             !
 !==============================================================!
 
-  subroutine TSiteMIEnm_Construct( this )
+  subroutine TSiteLJ126_Construct( this )
 
     implicit none
 
     ! Declare arguments
-    type(TSiteMIEnm) :: this
+    type(TSiteLJ126) :: this
     
     ! Declare local variables
     integer          :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
-        call FileReadParameter( this%SiteId, iounit_potmod, IdMIE_SiteId, .false. )
+        call FileReadParameter( this%SiteId, iounit_potmod, IdLJ126_SiteId, .false. )
     end if
     
     nullify ( this%r )
     allocate( this%r( 3 ), STAT = stat )
     call AllocationError( stat, 'coordinates', 3 )
 
-      select case( LJorMIE )
-      case( 'MIE' ) !Case: Mie-Potential
-	     call FileReadParameter( this%mie_n, iounit_potmod, IdMIE_n, .false. ) !read parameters n and m for mie-potential
-	     call FileReadParameter( this%mie_m, iounit_potmod, IdMIE_m, .false. )
-            if ( this%mie_n == 4._RK) this%mie_n = 3.99999_RK !to avoid poles in the correction functions
-            if ( this%mie_m == 4._RK) this%mie_m = 3.99999_RK
-            if ( this%mie_n == 5._RK) this%mie_n = 4.99999_RK
-            if ( this%mie_m == 5._RK) this%mie_m = 4.99999_RK
-	  case( 'LJ' )    !Case: LJ126-Potential
-	     this%mie_n = 12._RK
-		 this%mie_m = 6._RK
-      end select  
-    call FileReadParameter( this%r(1), iounit_potmod, IdMIEnm_r1, .false. )
-    call FileReadParameter( this%r(2), iounit_potmod, IdMIEnm_r2, .false. )
-    call FileReadParameter( this%r(3), iounit_potmod, IdMIEnm_r3, .false. )
-    call FileReadParameter( this%sig, iounit_potmod, IdMIEnm_sig, .false. )
-    call FileReadParameter( this%eps, iounit_potmod, IdMIEnm_eps, .false. )
-    call FileReadParameter( this%mass, iounit_potmod, IdMIEnm_mass, .false. )
-
+    call FileReadParameter( this%r(1), iounit_potmod, IdLJ126_r1, .false. )
+    call FileReadParameter( this%r(2), iounit_potmod, IdLJ126_r2, .false. )
+    call FileReadParameter( this%r(3), iounit_potmod, IdLJ126_r3, .false. )
+    call FileReadParameter( this%sig, iounit_potmod, IdLJ126_sig, .false. )
+    call FileReadParameter( this%eps, iounit_potmod, IdLJ126_eps, .false. )
+    call FileReadParameter( this%mass, iounit_potmod, IdLJ126_mass, .false. )
 
     ! Convert to SI units
     this%r(:) = this%r(:) * Angstroem
@@ -328,36 +314,36 @@ contains
     this%eps = this%eps / UnitEnergy
     this%mass = this%mass / UnitMass
 
-  end subroutine TSiteMIEnm_Construct
+  end subroutine TSiteLJ126_Construct
 
 
 !==============================================================!
-!  Subroutine TSiteMIEnm_Destruct                              !
+!  Subroutine TSiteLJ126_Destruct                              !
 !==============================================================!
 
-  subroutine TSiteMIEnm_Destruct( this )
+  subroutine TSiteLJ126_Destruct( this )
 
     implicit none
 
     ! Declare arguments
-    type(TSiteMIEnm) :: this
+    type(TSiteLJ126) :: this
 
     ! Destroy site
     continue
 
-  end subroutine TSiteMIEnm_Destruct
+  end subroutine TSiteLJ126_Destruct
 
 
 !==============================================================!
-!  Subroutine TSiteMIEnm_Allocate                              !
+!  Subroutine TSiteLJ126_Allocate                              !
 !==============================================================!
 
-  subroutine TSiteMIEnm_Allocate( this )
+  subroutine TSiteLJ126_Allocate( this )
 
     implicit none
 
     ! Declare arguments
-    type(TSiteMIEnm) :: this
+    type(TSiteLJ126) :: this
 
     ! Declare local variables
     integer :: np, nt
@@ -381,27 +367,27 @@ contains
 
 #if  TRANS == 1
     !TRANSPORT_start
-    nullify( this%vsMIEx )
-    nullify( this%vsMIEy )
-    nullify( this%vsMIEz )
-    nullify( this%vsuMIEx )
-    nullify( this%vsuMIEy )
-    nullify( this%vsuMIEz )
-    nullify( this%vbMIEx )
-    nullify( this%vbMIEy )
-    nullify( this%vbMIEz )
-    nullify( this%cMIEx )
-    nullify( this%cMIEy )
-    nullify( this%cMIEz )
-    nullify( this%tuMIEx )
-    nullify( this%tuMIEy )
-    nullify( this%tuMIEz )
-    nullify( this%tlMIEx )
-    nullify( this%tlMIEy )
-    nullify( this%tlMIEz )
-    nullify( this%tdMIEx )
-    nullify( this%tdMIEy )
-    nullify( this%tdMIEz )
+    nullify( this%vsLJx )
+    nullify( this%vsLJy )
+    nullify( this%vsLJz )
+    nullify( this%vsuLJx )
+    nullify( this%vsuLJy )
+    nullify( this%vsuLJz )
+    nullify( this%vbLJx )
+    nullify( this%vbLJy )
+    nullify( this%vbLJz )
+    nullify( this%cLJx )
+    nullify( this%cLJy )
+    nullify( this%cLJz )
+    nullify( this%tuLJx )
+    nullify( this%tuLJy )
+    nullify( this%tuLJz )
+    nullify( this%tlLJx )
+    nullify( this%tlLJy )
+    nullify( this%tlLJz )
+    nullify( this%tdLJx )
+    nullify( this%tdLJy )
+    nullify( this%tdLJz )
 !TRANSPORT_END
 #endif
 
@@ -428,47 +414,47 @@ contains
 
 #if  TRANS == 1
 !TRANSPORT_start
-      allocate( this%vsMIEx( np ), STAT = stat )
+      allocate( this%vsLJx( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%vsMIEy( np ), STAT = stat )
+      allocate( this%vsLJy( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%vsMIEz( np ), STAT = stat )
+      allocate( this%vsLJz( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%vsuMIEx( np ), STAT = stat )
+      allocate( this%vsuLJx( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%vsuMIEy( np ), STAT = stat )
+      allocate( this%vsuLJy( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%vsuMIEz( np ), STAT = stat )
+      allocate( this%vsuLJz( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%vbMIEx( np ), STAT = stat )
+      allocate( this%vbLJx( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%vbMIEy( np ), STAT = stat )
+      allocate( this%vbLJy( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%vbMIEz( np ), STAT = stat )
+      allocate( this%vbLJz( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%cMIEx( np ), STAT = stat )
+      allocate( this%cLJx( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%cMIEy( np ), STAT = stat )
+      allocate( this%cLJy( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%cMIEz( np ), STAT = stat )
+      allocate( this%cLJz( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%tuMIEx( np ), STAT = stat )
+      allocate( this%tuLJx( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%tuMIEy( np ), STAT = stat )
+      allocate( this%tuLJy( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%tuMIEz( np ), STAT = stat )
+      allocate( this%tuLJz( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%tlMIEx( np ), STAT = stat )
+      allocate( this%tlLJx( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%tlMIEy( np ), STAT = stat )
+      allocate( this%tlLJy( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%tlMIEz( np ), STAT = stat )
+      allocate( this%tlLJz( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%tdMIEx( np ), STAT = stat )
+      allocate( this%tdLJx( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%tdMIEy( np ), STAT = stat )
+      allocate( this%tdLJy( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
-      allocate( this%tdMIEz( np ), STAT = stat )
+      allocate( this%tdLJz( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
 !TRANSPORT_END
 #endif
@@ -483,20 +469,20 @@ contains
       call AllocationError( stat, 'test particles', nt )
     end if
 
-  end subroutine TSiteMIEnm_Allocate
+  end subroutine TSiteLJ126_Allocate
 
 
 
 !==============================================================!
-!  Subroutine TSiteMIEnm_Deallocate                            !
+!  Subroutine TSiteLJ126_Deallocate                            !
 !==============================================================!
 
-  subroutine TSiteMIEnm_Deallocate( this )
+  subroutine TSiteLJ126_Deallocate( this )
 
     implicit none
 
     ! Declare arguments
-    type(TSiteMIEnm) :: this
+    type(TSiteLJ126) :: this
 
     ! Deallocate arrays
     if( associated( this%RX ) ) then
@@ -532,110 +518,105 @@ contains
 
 #if  TRANS == 1
     !TRANSPORT_start
-    if( associated( this%vsMIEx ) ) then
-      deallocate( this%vsMIEx )
+    if( associated( this%vsLJx ) ) then
+      deallocate( this%vsLJx )
     end if
-    if( associated( this%vsMIEy ) ) then
-      deallocate( this%vsMIEy )
+    if( associated( this%vsLJy ) ) then
+      deallocate( this%vsLJy )
     end if
-    if( associated( this%vsMIEz ) ) then
-      deallocate( this%vsMIEz )
+    if( associated( this%vsLJz ) ) then
+      deallocate( this%vsLJz )
     end if
-    if( associated( this%vsuMIEx ) ) then
-      deallocate( this%vsuMIEx )
+    if( associated( this%vsuLJx ) ) then
+      deallocate( this%vsuLJx )
     end if
-    if( associated( this%vsuMIEy ) ) then
-      deallocate( this%vsuMIEy )
+    if( associated( this%vsuLJy ) ) then
+      deallocate( this%vsuLJy )
     end if
-    if( associated( this%vsuMIEz ) ) then
-      deallocate( this%vsuMIEz )
+    if( associated( this%vsuLJz ) ) then
+      deallocate( this%vsuLJz )
     end if
-    if( associated( this%vbMIEx ) ) then
-     deallocate( this%vbMIEx )
+    if( associated( this%vbLJx ) ) then
+     deallocate( this%vbLJx )
     end if
-    if( associated( this%vbMIEy ) ) then
-      deallocate( this%vbMIEy )
+    if( associated( this%vbLJy ) ) then
+      deallocate( this%vbLJy )
     end if
-    if( associated( this%vbMIEz ) ) then
-      deallocate( this%vbMIEz )
+    if( associated( this%vbLJz ) ) then
+      deallocate( this%vbLJz )
     end if
-    if( associated( this%cMIEx ) ) then
-      deallocate( this%cMIEx )
+    if( associated( this%cLJx ) ) then
+      deallocate( this%cLJx )
     end if
-    if( associated( this%cMIEy ) ) then
-      deallocate( this%cMIEy )
+    if( associated( this%cLJy ) ) then
+      deallocate( this%cLJy )
     end if
-    if( associated( this%cMIEz ) ) then
-      deallocate( this%cMIEz )
+    if( associated( this%cLJz ) ) then
+      deallocate( this%cLJz )
     end if
-    if( associated( this%tuMIEx ) ) then
-      deallocate( this%tuMIEx )
+    if( associated( this%tuLJx ) ) then
+      deallocate( this%tuLJx )
     end if
-    if( associated( this%tuMIEy ) ) then
-      deallocate( this%tuMIEy )
+    if( associated( this%tuLJy ) ) then
+      deallocate( this%tuLJy )
     end if
-    if( associated( this%tuMIEz ) ) then
-      deallocate( this%tuMIEz )
+    if( associated( this%tuLJz ) ) then
+      deallocate( this%tuLJz )
     end if
-    if( associated( this%tlMIEx ) ) then
-      deallocate( this%tlMIEx )
+    if( associated( this%tlLJx ) ) then
+      deallocate( this%tlLJx )
     end if
-    if( associated( this%tlMIEy ) ) then
-      deallocate( this%tlMIEy )
+    if( associated( this%tlLJy ) ) then
+      deallocate( this%tlLJy )
     end if
-    if( associated( this%tlMIEz ) ) then
-      deallocate( this%tlMIEz )
+    if( associated( this%tlLJz ) ) then
+      deallocate( this%tlLJz )
     end if
-    if( associated( this%tdMIEx ) ) then
-      deallocate( this%tdMIEx )
+    if( associated( this%tdLJx ) ) then
+      deallocate( this%tdLJx )
     end if
-    if( associated( this%tdMIEy ) ) then
-      deallocate( this%tdMIEy )
+    if( associated( this%tdLJy ) ) then
+      deallocate( this%tdLJy )
     end if
-    if( associated( this%tdMIEz ) ) then
-      deallocate( this%tdMIEz )
+    if( associated( this%tdLJz ) ) then
+      deallocate( this%tdLJz )
     end if
 !TRANSPORT_END
 #endif
-  end subroutine TSiteMIEnm_Deallocate
+  end subroutine TSiteLJ126_Deallocate
 
 
 
 !==============================================================!
-!  Subroutine TSiteMIEnm_Save                                  !
+!  Subroutine TSiteLJ126_Save                                  !
 !==============================================================!
 
-  subroutine TSiteMIEnm_Save( this )
+  subroutine TSiteLJ126_Save( this )
 
     implicit none
 
     ! Declare arguments
-    type(TSiteMIEnm) :: this
+    type(TSiteLJ126) :: this
 
     ! Save site parameters
     if( UseIntDegFreed ) then 
         write( IOBuffer, '(I3)' ) this%SiteId
-        call FileWriteParameter( iounit_normal, IdMIE_SiteId )
+        call FileWriteParameter( iounit_normal, IdLJ126_SiteId )
     end if
-	write( IOBuffer, '(G20.10, T32, "# : ", G20.10)' ) this%mie_n 
-    call FileWriteParameter( iounit_normal, IdMIE_n )
-	write( IOBuffer, '(G20.10, T32, "# : ", G20.10)' ) this%mie_n 
-    call FileWriteParameter( iounit_normal, IdMIE_m )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(1) * UnitLength / Angstroem, this%r(1)
-    call FileWriteParameter( iounit_normal, IdMIEnm_r1 )
+    call FileWriteParameter( iounit_normal, IdLJ126_r1 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(2) * UnitLength / Angstroem, this%r(2)
-    call FileWriteParameter( iounit_normal, IdMIEnm_r2 )
+    call FileWriteParameter( iounit_normal, IdLJ126_r2 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(3) * UnitLength / Angstroem, this%r(3)
-    call FileWriteParameter( iounit_normal, IdMIEnm_r3 )
+    call FileWriteParameter( iounit_normal, IdLJ126_r3 )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%sig * UnitLength / Angstroem, this%sig
-    call FileWriteParameter( iounit_normal, IdMIEnm_sig )
+    call FileWriteParameter( iounit_normal, IdLJ126_sig )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%eps * UnitEnergy / kBoltzmann, this%eps
-    call FileWriteParameter( iounit_normal, IdMIEnm_eps )
+    call FileWriteParameter( iounit_normal, IdLJ126_eps )
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%mass * UnitMass * 1000._RK * NAvogadro, this%mass
-    call FileWriteParameter( iounit_normal, IdMIEnm_mass )
+    call FileWriteParameter( iounit_normal, IdLJ126_mass )
 
-
-  end subroutine TSiteMIEnm_Save
+  end subroutine TSiteLJ126_Save
 
 
 

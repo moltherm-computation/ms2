@@ -335,7 +335,7 @@ module ms2_global
   character(*), parameter :: IdScaleSigma                  = 'eta'
   character(*), parameter :: IdScaleEpsilon                = 'xi'
   character(*), parameter :: IdRCutoffCOM                  = 'Cutoff'
-  character(*), parameter :: IdRCutoffMIEnmMIEnm           = 'CutoffMIE'
+  character(*), parameter :: IdRCutoffLJ126LJ126           = 'CutoffLJ'
   character(*), parameter :: IdRCutoffDipoleDipole         = 'CutoffDD'
   character(*), parameter :: IdRCutoffDipoleQuadrupole     = 'CutoffDQ'
   character(*), parameter :: IdRCutoffQuadrupoleQuadrupole = 'CutoffQQ'
@@ -371,9 +371,9 @@ module ms2_global
   ! Define identifiers used in potential model file
   character(*), parameter :: IdSite_ntypes                 = 'NSiteTypes'
   character(*), parameter :: IdIdf_ntypes                  = 'NIdfTypes'
-  character(*), parameter :: IdSite_stype                  = 'SiteType' !Mie-Potential or LJ126
+  character(*), parameter :: IdSite_stype                  = 'SiteType'
   character(*), parameter :: IdIdf_stype                   = 'IdfType'
-  character(*), parameter :: IdSite_NMIEnm                 = 'NSites' !Mie-Potential or LJ126
+  character(*), parameter :: IdSite_NLJ126                 = 'NSites'
   character(*), parameter :: IdSite_NCharge                = 'NSites'
   character(*), parameter :: IdSite_NDipole                = 'NSites'
   character(*), parameter :: IdSite_NQuadrupole            = 'NSites'
@@ -386,15 +386,13 @@ module ms2_global
   character(*), parameter :: IdSite_MOI1                   = 'InertMomX'
   character(*), parameter :: IdSite_MOI2                   = 'InertMomY'
   character(*), parameter :: IdSite_MOI3                   = 'InertMomZ'
-  character(*), parameter :: IdMIE_SiteId                  = 'SiteID'
-  character(*), parameter :: IdMIE_n					   = 'MIE_n'
-  character(*), parameter :: IdMIE_m					   = 'MIE_m' 
-  character(*), parameter :: IdMIEnm_r1                    = 'x'
-  character(*), parameter :: IdMIEnm_r2                    = 'y'
-  character(*), parameter :: IdMIEnm_r3                    = 'z'
-  character(*), parameter :: IdMIEnm_sig                   = 'sigma'
-  character(*), parameter :: IdMIEnm_eps                   = 'epsilon'
-  character(*), parameter :: IdMIEnm_mass                  = 'mass'
+  character(*), parameter :: IdLJ126_SiteId                = 'SiteID'
+  character(*), parameter :: IdLJ126_r1                    = 'x'
+  character(*), parameter :: IdLJ126_r2                    = 'y'
+  character(*), parameter :: IdLJ126_r3                    = 'z'
+  character(*), parameter :: IdLJ126_sig                   = 'sigma'
+  character(*), parameter :: IdLJ126_eps                   = 'epsilon'
+  character(*), parameter :: IdLJ126_mass                  = 'mass'
   character(*), parameter :: IdCharge_SiteId               = 'SiteID'
   character(*), parameter :: IdCharge_r1                   = 'x'
   character(*), parameter :: IdCharge_r2                   = 'y'
@@ -481,7 +479,6 @@ module ms2_global
   real(RK), parameter :: Third = 1._RK / 3._RK
   real(RK), parameter :: FourThird = 4._RK / 3._RK
   real(RK), parameter :: FiveThird = 5._RK / 3._RK
-  real(RK), parameter :: Ninth = 1._RK / 9._RK
 
   ! General physical constants
   real(RK), parameter :: NAvogadro = 6.022137E23_RK
@@ -496,7 +493,6 @@ module ms2_global
   real(RK)            :: BuckinghamsInSI
   real(RK)            :: kForceOsmoticPressure 
   
-  
   ! Version of the parameter file
   real(RK) :: parVersionNr
   
@@ -506,9 +502,6 @@ module ms2_global
   
   ! Use reduced units for temperature, pressure, density
   logical :: UseReducedUnits
-  
-  ! LJ126 or Mie-Potential
-  character(16) :: LJorMIE
 
   ! Basic reduced units
   real(RK) :: UnitLength
@@ -1046,6 +1039,15 @@ contains
     end if
   end subroutine Global_printUsage
   
+!==============================================================!
+  
+#if ARCH == 3
+  function new_line( c  ) result(newline)
+    implicit none
+    character :: c,newline
+    newline = achar(10) 
+  end function new_line
+#endif
 
 !==============================================================!
 

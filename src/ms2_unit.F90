@@ -65,8 +65,8 @@ module ms2_unit
     real(RK) :: Q0(4)
 
     ! 12-6 Lennard-Jones sites
-    integer :: NMIEnm
-    type(TSiteMIEnm), pointer, contiguous :: SiteMIEnm(:)
+    integer :: NLJ126
+    type(TSiteLJ126), pointer, contiguous :: SiteLJ126(:)
 
     ! Coulomb sites
     integer :: NCharge
@@ -132,21 +132,21 @@ contains
 
     ! Nullify pointers.
 
-    nullify( this%SiteMIEnm )
+    nullify( this%SiteLJ126 )
     nullify( this%SiteCharge )
     nullify( this%SiteDipole )
     nullify( this%SiteQuadrupole )
 
     ! Zero number of sites
 
-    this%NMIEnm = 0
+    this%NLJ126 = 0
     this%NCharge = 0
     this%NDipole = 0
     this%NQuadrupole = 0
 
     allocate (this%SiteIds(this%NSites), STAT = stat)
     call AllocationError( stat, 'constraints', this%NSites )
-    allocate (this%SiteMIEnm(this%NSites), STAT = stat)
+    allocate (this%SiteLJ126(this%NSites), STAT = stat)
     call AllocationError( stat, 'unitLJ', this%NSites )
     allocate (this%SiteCharge(this%NSites), STAT = stat)
     call AllocationError( stat, 'unitCharge', this%NSites )
@@ -199,11 +199,11 @@ contains
     integer :: i
 
     ! Deallocate arrays
-    if( associated( this%SiteMIEnm ) ) then
-      do i = 1, this%NMIEnm
-        call Destruct( this%SiteMIEnm(i) )
+    if( associated( this%SiteLJ126 ) ) then
+      do i = 1, this%NLJ126
+        call Destruct( this%SiteLJ126(i) )
       end do
-      deallocate( this%SiteMIEnm )
+      deallocate( this%SiteLJ126 )
     end if
     if( associated( this%SiteCharge ) ) then
       do i = 1, this%NCharge
@@ -293,9 +293,9 @@ contains
     ! Calculate mass of Unit and COM position
     this%Mass = 0._RK
     r(:) = 0._RK
-    do i = 1, this%NMIEnm
-      this%Mass = this%Mass + this%SiteMIEnm(i)%mass
-      r(:) = r(:) + this%SiteMIEnm(i)%mass * this%SiteMIEnm(i)%r(:)
+    do i = 1, this%NLJ126
+      this%Mass = this%Mass + this%SiteLJ126(i)%mass
+      r(:) = r(:) + this%SiteLJ126(i)%mass * this%SiteLJ126(i)%r(:)
     end do
     do i = 1, this%NCharge
       this%Mass = this%Mass + this%SiteCharge(i)%mass
@@ -312,9 +312,9 @@ contains
     r(:) = r(:) / this%Mass
     this%P0(:) = r(:) ! position of COM of unit in molecule-fixed system
     ! Move COM to zero
-    do i = 1, this%NMIEnm
+    do i = 1, this%NLJ126
       do j = 1, 3
-        this%SiteMIEnm(i)%r(j) = this%SiteMIEnm(i)%r(j) - r(j)
+        this%SiteLJ126(i)%r(j) = this%SiteLJ126(i)%r(j) - r(j)
       end do
     end do
     do i = 1, this%NCharge
