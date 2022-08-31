@@ -127,22 +127,13 @@ contains
     this%NTotalSum = 0
 
     ! Allocate arrays
-    !DC EDIT- rework to preserv functionality while agreeing with FORTRAN standard on unambiguous evaluation order of "if" statement
-    if (present(trans)) then
-      if (trans .eqv. .true.) then
-        call Allocate( this, trans )
-        return
-      end if
+    if (present(trans) .and. trans .eqv. .true.) then
+      call Allocate( this, trans )
+    elseif (present(kbi) .and. kbi) then
+      call Allocate( this, trans, kbi )
+    else
+      call Allocate( this )
     end if
-    if (present(kbi)) then
-      if (kbi .eqv. .true.) then
-        call Allocate( this, trans, kbi )
-        return
-      end if 
-    end if
-
-    call Allocate( this )
-    
 
   end subroutine TAccumulator_Construct
 
@@ -186,19 +177,10 @@ contains
     integer :: stat, i
 
     i = NBlocksMax
-    !DC EDIT- rework to preserv functionality while agreeing with FORTRAN standard on unambiguous evaluation order of "if" statement
 #if TRANS == 1
-    if (present(trans)) then
-      if (trans .eqv. .true.) then
-        i = NBlocksMaxCF
-      end if
-    end if
+    if (present(trans) .and. trans) i = NBlocksMaxCF
 #endif
-    if (present(kbi)) then
-      if (kbi .eqv. .true.) then
-        i = NBlocksMaxKBI
-      end if
-    end if
+    if (present(kbi) .and. kbi) i = NBlocksMaxKBI
         
     ! Allocate arrays
     allocate( this%BlockSum( i ), STAT = stat )
@@ -296,13 +278,10 @@ contains
       k = NBlocksCF
     end if
 #endif
-    !DC EDIT- rework to preserv functionality while agreeing with FORTRAN standard on unambiguous evaluation order of "if" statement
-    if (present(kbi)) then
-      if (kbi .eqv. .true.) then
+    if (present(kbi) .and. kbi) then
         i = Step
         j = BlockSizeKBI
         k = NBlocksKBI
-      end if
     end if
 
     ! Update sums and calculate average
@@ -361,21 +340,15 @@ contains
 
     m = NBlockSizes
     n = NBlocks
-    !DC EDIT- rework to preserv functionality while agreeing with FORTRAN standard on unambiguous evaluation order of "if" statement
 #if TRANS == 1
-    if (present(trans)) then
-      if (trans .eqv. .true.) then
-        m = NBlockSizesCF
-        n = NBlocksCF
-      end if
+    if (present(trans) .and. trans) then
+      m = NBlockSizesCF
+      n = NBlocksCF
     end if
-
 #endif
-    if (present(kbi)) then
-      if (kbi .eqv. .true.) then
+    if (present(kbi) .and. kbi) then
         m = NBlockSizesKBI
         n = NBlocksKBI
-      end if
     end if
 
 #if TRANS == 1
@@ -594,18 +567,10 @@ contains
 
     j = NBlocks
 #if TRANS == 1
-    !DC EDIT- rework to preserv functionality while agreeing with FORTRAN standard on unambiguous evaluation order of "if" statement
-    if (present(trans)) then
-      if (trans .eqv. .true.) then
-        j = NBlocksCF         
-      end if
-    end if
+    if (present(trans) .and. trans) j = NBlocksCF
 #endif
-    if (present(kbi) ) then
-      if (kbi .eqv. .true.) then
-         j = NBlocksKBI
-      end if
-    end if
+    if (present(kbi) .and. kbi) j = NBlocksKBI
+
     ! Save contents to restart file
     write( iounit_restart, '(I10)' ) j
     if( j > 0 ) write( iounit_restart, '(ES20.12E3, ";", I10)' ) &

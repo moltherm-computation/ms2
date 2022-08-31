@@ -81,9 +81,6 @@ module ms2_global
   integer :: MPI_RK
 #endif
 
-  ! Identifier for MC overlaps
-   logical :: MCOverlapDetected
-
   ! limits
   real(RK)            :: limits_RK_MAX
   real(RK)            :: exp_arg_max  != log(limits_RK_MAX)
@@ -173,15 +170,6 @@ module ms2_global
   ! Extension of visualisation file.
   character(*), parameter :: VisualFileExtension = '.vim'
 
-  !DC NOTE- Extension of cluster related visualisation file.
-  character(*), parameter :: VisualCCFileExtension = '.cvim'
-  
-  !DC NOTE- Extension of cluster criteria info file.
-  character(*), parameter :: CCFileExtension = '.clust'
-
-  !DC NOTE- Extension of cluster criteria grid position file.
-  character(*), parameter :: GridFileExtension = '.grid'
-  
   ! Extension of visualisation of h-bonding file.
   character(*), parameter :: VisualHBFileExtension = '.hbvim'
 
@@ -194,20 +182,13 @@ module ms2_global
   ! Extension of RDF file 
   character(*), parameter :: RDFFileExtension = '.rdf'
   
-  ! Extension of ODF file 
-  character(*), parameter :: ODFFileExtension = '.odf'
-
   ! Extension of KBI file (Kirkwood-Buff Integration)
   character(*), parameter :: KBIrdfFileExtension = '.kbirdf'
-  character(*), parameter :: KBIravFileExtension = '.kbirav'
   character(*), parameter :: KBIrunFileExtension = '.kbirun'
   
   ! Extension of alpha2 file (displacement correlation function)
   character(*), parameter :: ALPHA2ravFileExtension = '.a2rav'
   
-  !EinsteinCoef data extension
-  character(*), parameter :: EinsteinCoefFileExtension = '.ecoef'
-
   ! Extension of ThermoInt filename
   character(*), parameter :: ThermoIntFileExtension = '.thi'
 
@@ -257,14 +238,9 @@ module ms2_global
   integer, parameter :: iounit_visualHB  = iounit_start + 13
   integer, parameter :: iounit_dcp       = iounit_start + 14
   integer, parameter :: iounit_kbirdf    = iounit_start + 15
-  integer, parameter :: iounit_kbirav    = iounit_start + 16
   integer, parameter :: iounit_kbirun    = iounit_start + 16
   integer, parameter :: iounit_a2rav     = iounit_start + 17
   integer, parameter :: iounit_proc      = iounit_start + 18
-  integer, parameter :: iounit_ecoef     = iounit_start + 19   !EinsteinCoef
-  integer, parameter :: iounit_ccpos     = iounit_start + 20 !DC TODO - this should be changed appropriate to the other output files
-  integer, parameter :: iounit_cc        = iounit_start + 21 !DC TODO - this should be changed appropriate to the other output files
-  integer, parameter :: iounit_ccgrid    = iounit_start + 22 !DC TODO - this should be changed appropriate to the other output files
 
 #if MPI_VER > 0
   integer            :: iounit_result_parallel = iounit_start + 6
@@ -321,18 +297,12 @@ module ms2_global
   character(*), parameter :: IdVisualUpdateFrequency       = 'VisualFreq'
   character(*), parameter :: IdRDFUpdateFrequency          = 'RDFFreq'
   character(*), parameter :: IdRDFNumberShells             = 'NumShells'
-  character(*), parameter :: IdnR                          = 'NumShellsODF'
-  character(*), parameter :: IdnPhi                        = 'nPhiODF'
-  character(*), parameter :: IdnGamma                      = 'nGammaODF'
-  character(*), parameter :: IdODFUpdateFrequency          = 'ODFRecordingFreq'
-  character(*), parameter :: IdODFOutputFrequency          = 'ODFOutputFreq'
   character(*), parameter :: IdKBIUpdateFrequency          = 'KBIFreq' !Kirkwood-Buff Integration
   character(*), parameter :: IdKBINumberShells             = 'KBINumShells'
   character(*), parameter :: IdKBIResetFrequency           = 'KBIResetFreq' 
   character(*), parameter :: IdALPHA2UpdateFrequency       = 'ALPHA2Freq' !Alpha2 correlation function
   character(*), parameter :: IdALPHA2Length                = 'ALPHA2Length'
   character(*), parameter :: IdALPHA2Shift                 = 'ALPHA2Shift' 
-  character(*), parameter :: IdEinsteinCoefCalc            = 'EinsteinCoefCalc' !EinsteinCoef
   character(*), parameter :: IdNBinsDen                    = 'NumDenBins'
   character(*), parameter :: IdWallForce                   = 'Wallforce'
   character(*), parameter :: IdCutoffMode                  = 'CutoffMode'
@@ -371,16 +341,6 @@ module ms2_global
   character(*), parameter :: IdChemPotMethod               = 'ChemPotMethod'
   character(*), parameter :: IdPermeability                = 'Permeability'
   character(*), parameter :: IdNHBonds                     = 'NHBondCriteria'
-
-  !DC NOTE- cluster criteria relevant global Id
-  character(*), parameter :: IdIsClusterCriteria           = 'ClusterIsCriteria'  
-  character(*), parameter :: IdCCUpdateFrequency           = 'ClusterCriteriaFreq'  
-  character(*), parameter :: IdCcrittype                   = 'ClusterCriteriaType'  
-  character(*), parameter :: IdCcritdist                   = 'ClusterCriteriaDistance'  
-  character(*), parameter :: IdCcount                      = 'ClusterMoleculeCount'  
-  character(*), parameter :: IdCmax                        = 'ClusterMaximumAllowed'  
-  character(*), parameter :: IdIsCvim                      = 'ClusterIsCvim'  
-
   !Koester
   character(*), parameter :: IdGradInsInit                 = 'GISteps'
   character(*), parameter :: IdWeightFactors               = 'WeightFactors'
@@ -668,10 +628,6 @@ module ms2_global
   integer, parameter :: WFMethodGuess  = 2
   integer, parameter :: WFMethodOptSet = 3
 
-  integer, parameter :: CCritTypeVapor  = 0  
-  integer, parameter :: CCritTypeGridvap = 2
-  integer, parameter :: CCritTypeGridliq = 3
-
   ! MD time step
   real(RK) :: TimeStep, TimeStep2
   real(RK) :: TimeStepSquared, TimeStepSquared2, TimeStepSquaredInv2
@@ -801,29 +757,11 @@ module ms2_global
   ! Frequency of updating visualisation file
   integer :: VisualUpdateFrequency
 
-  !DC NOTE- Frequency of updating visualisation file
-  integer :: VisualCCUpdateFrequency
-
   ! Frequency of updating RDF file
   integer :: RDFUpdateFrequency
   
   ! Number of RDF shells
   integer :: RDFNumberShells
-  
-  ! Number of ODF shells
-  integer :: nR
-  
-  ! Discretisation of angle phi for ODF
-  integer :: nPhi
-  
-  ! Discretisation of angle gamma12 for ODF
-  integer :: nGamma
-  
-  ! Frequency of updating ODF file
-  integer :: ODFUpdateFrequency
-  
-  ! Frequency of creating ODF output files
-  integer :: ODFOutputFrequency  
   
   ! Frequency of updating KBI file
   integer :: KBIUpdateFrequency
@@ -833,9 +771,6 @@ module ms2_global
   integer :: ALPHA2Length
   integer :: ALPHA2Shift
   
-  !EinsteinCoef variables
-  logical :: EinsteinCoefCalc
-
   ! Number of KBI shells
   integer :: KBINumberShells
   integer :: KBINumberShellsMax
@@ -908,7 +843,6 @@ module ms2_global
 #else
   logical, parameter :: TerminateProgram = .false.
 #endif
-  integer :: TerminateStatus = 0
 
   integer, parameter :: IdErrorCodeBase = b'1000000000000000'   !=32768
   ! e.g. 10000 would be better to read for pure addition, but
