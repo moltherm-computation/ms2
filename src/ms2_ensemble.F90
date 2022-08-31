@@ -34,7 +34,16 @@
 !DEC$ MESSAGE:'Compiling ms2_ensemble.F90...'
 #endif
 
+!#if MPI_VER>1
+! #define MPI_USE_MODULE
+!#endif
+
 module ms2_ensemble
+
+#if MPI_VER > 0 && defined(MPI_USE_MODULE)
+  use mpi
+  !use mpi_f08
+#endif
 
   use ms2_accumulator
   use ms2_component
@@ -352,6 +361,30 @@ module ms2_ensemble
       type(TAccumulator) :: SumHmUm3dUdV2
     !end if
 
+    ! Grand Canonical and MuVT
+    type(TAccumulator) :: SumNPart2
+    type(TAccumulator) :: SumNPart3
+    type(TAccumulator) :: SumEPotTot
+    type(TAccumulator) :: SumEPot2Tot
+    type(TAccumulator) :: SumdEPotdVTot
+    type(TAccumulator) :: SumdEPotdV2Tot
+    type(TAccumulator) :: SumUdEPotdVTot
+    type(TAccumulator) :: Sumd2EPotdV2Tot
+    type(TAccumulator) :: SumNPartEPot
+    type(TAccumulator) :: SumNPart2EPot
+    type(TAccumulator) :: SumNPartEpot2
+    type(TAccumulator) :: SumNPartdEpotdV
+    type(TAccumulator) :: SumGammaV
+    type(TAccumulator) :: SumJ100
+    type(TAccumulator) :: SumJ200
+    type(TAccumulator) :: SumJ001
+    type(TAccumulator) :: SumJ002
+    type(TAccumulator) :: SumJ020
+    type(TAccumulator) :: SumJ101
+    type(TAccumulator) :: SumJ010
+    type(TAccumulator) :: SumJ110
+    type(TAccumulator) :: SumJ011
+
     ! 2.) Combined sums
     type(TAccumulator) :: SumEPotSquared
     type(TAccumulator) :: SumEPotV
@@ -504,19 +537,6 @@ module ms2_ensemble
     type(TAccumulator) :: SumTotalDipoleMoment
     type(TAccumulator) :: SumTotalDipoleMomentSquared
     type(TAccumulator) :: SumDielectricConstant
-
-#if CONSTR > 0
-   integer         :: NCons
-   integer,pointer, contiguous :: Cons1Comp(:)
-   integer,pointer, contiguous :: Cons2Comp(:)
-   integer,pointer, contiguous :: Cons1(:)
-   integer,pointer, contiguous :: Cons2(:)
-   real(RK),pointer, contiguous:: ConsR(:)
-   real(RK),pointer, contiguous:: FCons(:)
-   real(RK),pointer, contiguous:: UCons(:)
-   logical         :: consup
-#endif
-
 
 #if HBOND > 0
    integer          :: NHBondCrit
@@ -1104,12 +1124,6 @@ module ms2_ensemble
 
 #endif
 
-#if CONSTR > 0
-  interface Constraints
-    module procedure TEnsemble_Constraints
-  end interface
-#endif
-
 #if HBOND > 0
   interface HBonding
     module procedure TEnsemble_HBonding
@@ -1131,7 +1145,7 @@ contains
 
     ! Include MPI header
 #if HBOND > 0
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 #endif
@@ -1144,7 +1158,7 @@ contains
     integer :: i, j
     integer :: stat
     character( IOBufferLength ) :: str
-
+    real(RK) :: EPot, d2EdV2, Virial
     integer :: counter
 
     ! Allocate simulation box length
@@ -1165,9 +1179,9 @@ contains
     this%EnsembleNumber = ne
     if (EnsembleType .eq. EnsembleTypeNPTSVC) then
     EnsembleNum = ne
-    end if  
+    end if
     call LogWriteBlank
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
     write( IOBuffer, '(T14, "Reading parameters of ensemble", I3)' ) this%EnsembleNumber
     call LogWrite
@@ -1344,30 +1358,6 @@ contains
       call LogWrite
     end if
 
-    ! Read optional pressure calculation
-    this%OptPressure = .true.
-    if( SimulationType .eq. MonteCarlo ) then
-      call FileReadParameter( str, iounit_params , IdOptPressure, .false., "no" )
-      select case( str )
-        case( 'YES', 'Yes', 'yes' )
-          this%OptPressure = .true.
-          write( IOBuffer, '("Pressure calculation: ",T30, A)' ) trim( str )
-          call LogWrite
-        case( 'NO', 'No', 'no')
-          this%OptPressure = .false.
-          write( IOBuffer, '("Pressure calculation: ",T30, A)' ) trim( str )
-          call LogWrite
-        case default
-          call Error( 'Select yes/no for calculation of pressure '// ProgramFileName//ConfigFileExtension )
-      end select
-
-      if ( .not. ConstantPressure .and. .not. this%OptPressure) then
-          this%OptPressure = .true.
-          write( IOBuffer, '("Pressure Calculation in NVT, NVE and GE necessary: Logical CalcPressure is set to yes")' )
-          call LogWrite
-      end if
-    end if
-
     ! Read calculation of residence time
     this%ResidenceTime = .false.
     if( SimulationType .eq. MolecularDynamics ) then
@@ -1432,11 +1422,12 @@ contains
 
     ! Read initial number of particles in ensemble
     call FileReadParameter( this%NPart, iounit_params , IdNPart, .false. )
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
+    & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
 
       this%NPartInitial = this%NPart
-      this%NPartLBound = int( real( this%NPart, RK ) / 1.2_RK )
-      this%NPartUBound = int( real( this%NPart, RK ) * 1.2_RK )
+      this%NPartLBound = int( real( this%NPart, RK ) / 1.3_RK )
+      this%NPartUBound = int( real( this%NPart, RK ) * 1.3_RK )
 
     end if
 
@@ -1854,68 +1845,6 @@ contains
 
 #endif
 
-#if CONSTR > 0
-    write( IOBuffer, '("CONSTRAINED DYNAMICS")' )
-    call LogWrite
-
-    call FileReadParameter( iounit_params , IdNCons )
-    read( IOBuffer, * ) this%NCons
-    write( IOBuffer, '("Number of Constrained Molecules:", I3)' ) this%NCons
-    call LogWrite
-
-    allocate( this%Cons1Comp( this%NCons), STAT = stat )
-       if(stat >0) write(*,*) 'Allocation Error Cons1Comp'
-    allocate( this%Cons2Comp( this%NCons), STAT = stat )
-       if(stat >0) write(*,*) 'Allocation Error Cons2Comp'
-    allocate( this%Cons1( this%NCons), STAT = stat )
-           if(stat >0) write(*,*) 'Allocation Error Cons1'
-    allocate( this%Cons2( this%NCons), STAT = stat )
-         if(stat >0) write(*,*) 'Allocation Error Cons2'
-    allocate( this%ConsR( this%NCons), STAT = stat )
-         if(stat >0) write(*,*) 'Allocation Error ConsR'
-    allocate( this%FCons( this%NCons), STAT = stat )
-         if(stat >0) write(*,*) 'Allocation Error FCons'
-    allocate( this%UCons( this%NCons), STAT = stat )
-         if(stat >0) write(*,*) 'Allocation Error UCons'
-
-   DO i=1,this%NCons,1
-    call FileReadParameter( iounit_params , IdCons1Comp )
-    read( IOBuffer, * ) this%Cons1Comp(i)
-    write( IOBuffer, '("Constrained Mol Typ 1:", I3)' ) this%Cons1Comp(i)
-    call LogWrite
-
-    call FileReadParameter( iounit_params , IdCons1 )
-    read( IOBuffer, * ) this%Cons1(i)
-    write( IOBuffer, '("Constrained Mol 1:", I3)' ) this%Cons1(i)
-    call LogWrite
-
-    call FileReadParameter( iounit_params , IdCons2Comp )
-    read( IOBuffer, * ) this%Cons2Comp(i)
-    write( IOBuffer, '("Constrained Mol Typ 2:", I3)' ) this%Cons2Comp(i)
-    call LogWrite
-
-    call FileReadParameter( iounit_params , IdCons2 )
-    read( IOBuffer, * ) this%Cons2(i)
-    write( IOBuffer, '("Constrained Mol 2:", I3)' ) this%Cons2(i)
-    call LogWrite
-
-    call FileReadParameter( iounit_params , IdConsR )
-    read( IOBuffer, * ) this%ConsR(i)
-    write( IOBuffer, '("Constrained Mol Distance:", F6.3)' ) this%ConsR(i)
-    call LogWrite
-
-    this%ConsR(i) = this%ConsR(i) * Angstroem
-    this%ConsR(i) = this%ConsR(i) / UnitLength
-! Use only squared!
-    this%ConsR(i) = this%ConsR(i) * this%ConsR(i)
-
-   END DO
-
-! REduce the number of degrees of freedom in the system
-    this%NDF = this%NDF - this%NCons
-
-#endif
-
     ! Create potentials
     call CreatePotentials( this )
 
@@ -2124,6 +2053,7 @@ contains
 
         ! Convert unit coordinates to atom positions
         call Unit2Atom( this )
+        ! Set potential energy
 
         ! Set all potential energy matrices
         call Energy( this, this%EPot )
@@ -2196,7 +2126,7 @@ contains
 
     write( IOBuffer, '(T15, "Reading ensemble ", I3, " successful")') this%EnsembleNumber
     call LogWrite
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
 
   if (this%isCCSimulation .eqv. .true.) then
@@ -2291,7 +2221,7 @@ contains
     ! Set number of ensemble
     this%EnsembleNumber = ne
     call LogWriteBlank
-    write( IOBuffer, '(72(1H-))')
+    write( IOBuffer, '(72("-"))')
     call LogWrite
     write( IOBuffer, '(T14, "Reading parameters of ensemble", I3)' ) this%EnsembleNumber
     call LogWrite
@@ -2691,7 +2621,7 @@ contains
       do i = 1, this%NRealComponents
         this%Component(i)%NEinstein = this%NCorr / this%NSpanCF
       end do
-    end if  
+    end if
 #endif
 
   end subroutine TEnsemble_CreateComponents
@@ -2753,7 +2683,6 @@ contains
     if( SimulationType .eq. SecondVirialCoeff ) then
       do i = 1, this%NComponents, 2
         do j = i + 1, this%NComponents, 2
-          this%Interaction(i,j)%OptPressure = this%OptPressure
           call Construct(this%Interaction(i, j), i, j, &
 &           this%Component(i), this%Component(j), &
 &           this%RCutoffMIEnmMIEnm, &
@@ -3008,8 +2937,33 @@ contains
       end do
 #endif
 
-      if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+      if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
+      & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
         call Construct( this%SumNPart, .false. )
+        if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
+          call Construct( this%SumNPart2, .false. )
+          call Construct( this%SumNPart3, .false. )
+          call Construct( this%SumEPotTot, .false. )
+          call Construct( this%SumEPot2Tot, .false. )
+          call Construct( this%SumdEPotdVTot, .false. )
+          call Construct( this%SumdEPotdV2Tot, .false. )
+          call Construct( this%SumUdEPotdVTot, .false. )
+          call Construct( this%Sumd2EPotdV2Tot, .false. )
+          call Construct( this%SumNPartEPot, .false. )
+          call Construct( this%SumNPartEPot2, .false. )
+          call Construct( this%SumNPart2EPot, .false. )
+          call Construct( this%SumNPartdEpotdV, .false. )
+          call Construct( this%SumJ100, .true. )
+          call Construct( this%SumJ200, .true. )
+          call Construct( this%SumJ020, .true. )
+          call Construct( this%SumJ001, .true. )
+          call Construct( this%SumJ002, .true. )
+          call Construct( this%SumJ101, .true. )
+          call Construct( this%SumJ010, .true. )
+          call Construct( this%SumJ110, .true. )
+          call Construct( this%SumJ011, .true. )
+          call Construct( this%SumGammaV, .true. )
+        end if
       end if
 
       ! 2.) Combined sums
@@ -3092,21 +3046,21 @@ contains
 #if  TRANS == 1
     ! Transport properties
     if( this%CorrfunMode ) then
-      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then      
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
         do i = 1, this%NComponents
           call Construct( this%Sumself_i(i),  .false., .true. )
         end do
            call Construct( this%SumVisco_s, .false., .true. )
-      end if  
+      end if
 
       if (this%NComponents .gt. 1) then
-        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then      
+        if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
           do i = 1, this%NComponents
             do j = 1, this%NComponents
               call Construct( this%SumOnsager(i,j), .false., .true. )
             end do
           end do
-        end if  
+        end if
 
         do i = 1, this%NComponents
           call Construct( this%SumSoret(i), .false., .true. )
@@ -3227,8 +3181,33 @@ contains
       end do
 #endif
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
+    & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumNPart )
+      if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
+        call Destruct( this%SumNPart2 )
+        call Destruct( this%SumNPart3 )
+        call Destruct( this%SumEPotTot )
+        call Destruct( this%SumEPot2Tot )
+        call Destruct( this%SumdEPotdVTot )
+        call Destruct( this%SumdEPotdV2Tot )
+        call Destruct( this%SumUdEPotdVTot )
+        call Destruct( this%Sumd2EPotdV2Tot )
+        call Destruct( this%SumNPartEPot )
+        call Destruct( this%SumNPartEPot2 )
+        call Destruct( this%SumNPart2EPot )
+        call Destruct( this%SumNPartdEpotdV )
+        call Destruct( this%SumJ100 )
+        call Destruct( this%SumJ200 )
+        call Destruct( this%SumJ020 )
+        call Destruct( this%SumJ001 )
+        call Destruct( this%SumJ002 )
+        call Destruct( this%SumJ101 )
+        call Destruct( this%SumJ010 )
+        call Destruct( this%SumJ110 )
+        call Destruct( this%SumJ011 )
+        call Destruct( this%SumGammaV )
+      end if
     end if
 
     ! 2.) Combined sums
@@ -3310,26 +3289,26 @@ contains
 #if  TRANS == 1
 
     if( this%CorrfunMode ) then
-       if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then     
+       if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
           do i = 1, this%NComponents
             call Destruct( this%Sumself_i(i) )
           end do
           call Destruct( this%SumVisco_s )
-       end if 
+       end if
 
        if (this%NComponents .gt. 1) then
-          if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then     
+          if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
             do i = 1, this%NComponents
               do j = 1, this%NComponents
                 call Destruct( this%SumOnsager(i,j) )
               end do
             end do
-          end if  
+          end if
           do i = 1, this%NComponents
             call Destruct( this%SumSoret(i) )
           end do
        end if
-  
+
       call Destruct( this%SumVisco_b )
       call Destruct( this%SumConduct )
       call Destruct( this%SumEConduct )
@@ -3398,7 +3377,8 @@ contains
     if( this%NPart < NPartInCell ) this%NPart = NPartInCell
 
     ! Set maximum number of particles
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
+    & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       this%NPartMax = 2 * this%NPart
 ! Max. number of particles of component i in a fluctuating state
       this%NPartMaxFluct = 1
@@ -3744,7 +3724,7 @@ contains
       nullify( this%EinsteinShear)
       nullify( this%EinsteinShearAve)
       nullify( this%EinsteinShearInt)
-    end if  
+    end if
 #endif
 
 
@@ -3785,13 +3765,13 @@ contains
       allocate( this%dTDF(3, (this%NRealComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
       call AllocationError( stat, 'dTDF' )
       allocate( this%TDF0(3, (this%NRealComponents-1)**2), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf; Number of TDF values
-      call AllocationError( stat, 'TDF0' )    
+      call AllocationError( stat, 'TDF0' )
       allocate( this%partialmolV(3, this%NRealComponents), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf
       call AllocationError( stat, 'partialmolV' )
       allocate( this%partialmolV0(3, this%NRealComponents), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf
       call AllocationError( stat, 'partialmolV0' )
       allocate( this%dpartialmolV(3, this%NRealComponents), STAT = stat ) !3 Methods:1RDF,2:RDFvdV,3:RDFvdVshf
-      call AllocationError( stat, 'dpartialmolV' )    
+      call AllocationError( stat, 'dpartialmolV' )
       allocate( this%SumKBIGij1(this%NRealComponents*(this%NRealComponents+1)/2), STAT = stat )
       call AllocationError( stat, 'Sum KBI Gij1', this%NRealComponents )
       allocate( this%SumKBIGij2(this%NRealComponents*(this%NRealComponents+1)/2), STAT = stat )
@@ -3873,7 +3853,7 @@ contains
     end if
 
     ! Allocate components
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. &
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA .or. &
 &       SimulationType .eq. Gibbs .or. SimulationType .eq. SecondVirialCoeff ) then
 
        do i = 1, this%NComponents
@@ -3954,19 +3934,19 @@ contains
     ! Allocate correlation fucntions
      if( this%CorrfunMode ) then
 
-       if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then     
+       if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
          allocate( this%cf_vs(this%NCorr), STAT = stat )
          call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
 
          allocate( this%average_cf_vs(this%NCorr), STAT = stat )
          call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
-    
+
          allocate( this%cf_d( this%NComponents, this%NCorr), STAT = stat )
          call AllocationError( stat, 'self_diffusion', this%NCorr )
 
          allocate( this%average_cf_d( this%NComponents, this%NCorr), STAT = stat )
          call AllocationError( stat, 'self_diffusion', this%NCorr )
-     
+
          allocate( this%lamda( NComp2, this%NCorr ), STAT = stat )
          call AllocationError( stat, 'onsager_coefficient', this%NCorr )
 
@@ -4086,7 +4066,7 @@ contains
 
         allocate( this%SumOnsager(this%NComponents,this%NComponents), STAT = stat  )
         call AllocationError( stat, 'SumOnsager', this%NComponents )
-      end if  
+      end if
 
       allocate( this%soret(NC), STAT = stat )
       call AllocationError( stat, 'Soret', this%NComponents )
@@ -4104,7 +4084,7 @@ contains
          allocate( this%velcompZ(NC, this%NCorr), STAT = stat )
          call AllocationError( stat, 'thermal_diffusion', this%NCorr )
       end if
-            
+
       !Einsteincoef allocate
       if ((TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
           allocate( this%EinsteinDSelfAcc(this%NComponents), STAT = stat  )
@@ -4140,7 +4120,7 @@ contains
         this%lamda(:,:)     = 0._RK
         this%cf_vs(:)       = 0._RK
 
-        this%average_cf_d(:,:)     = 0._RK 
+        this%average_cf_d(:,:)     = 0._RK
         this%average_lamda(:,:)    = 0._RK
         this%average_cf_vs(:)      = 0._RK
 
@@ -4304,15 +4284,15 @@ contains
     if( associated( this%TDF0 ) ) then
       deallocate( this%TDF0 )
     end if
-    
+
     if( associated( this%partialmolV ) ) then
       deallocate( this%partialmolV )
     end if
-    
+
     if( associated( this%partialmolV0 ) ) then
       deallocate( this%partialmolV0 )
     end if
-    
+
     if( associated( this%dpartialmolV ) ) then
       deallocate( this%dpartialmolV )
     end if
@@ -4344,7 +4324,7 @@ contains
     if( associated( this%alpha2tempstep ) ) then
       deallocate( this%alpha2tempstep )
     end if
-    
+
     if( KBIUpdateFrequency > 0 ) then
         if( associated( this%SumKBIGij1 ) ) then
           deallocate( this%SumKBIGij1 )
@@ -5276,7 +5256,7 @@ xloop:do i = 1, NCells1dim(1)
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
 
@@ -5382,6 +5362,8 @@ xloop:do i = 1, NCells1dim(1)
 
     ! Declare arguments
     type(TEnsemble) :: this
+
+    real(RK) :: EPot, d2EdV2, Virial
 
     ! Calculate new initial density
     this%RefDensity = this%RefDensity * real( this%NPart, RK ) / real( this%NPartInitial, RK )
@@ -5496,10 +5478,6 @@ loop5:  do nc = 1, this%NComponents
     end if
     call Correct( this )
 
-#if CONSTR > 0
-    call Constraints(this)
-#endif
-
    if(.not. Equilibration) then
    end if
 
@@ -5530,10 +5508,10 @@ loop5:  do nc = 1, this%NComponents
 #endif
 
   !DC NOTE- proceed only when it is relevatn CC simulation, it is not Equlibration and is the propper timestep for evaluation
-  if ((this%isCCSimulation .eqv. .true.) .and. &
-  &   (this%isStopSimulation .eqv. .false.) .and. &
-  &   (Equilibration .eqv. .false.) .and. &
-  &   (mod( Step, this%CCFrequency ) .eq. 0) ) then
+  if ((      this%isCCSimulation  ) .and. &
+  &   (.not. this%isStopSimulation) .and. &
+  &   (.not. Equilibration        ) .and. &
+  &   (mod( Step, this%CCFrequency) .eq. 0) ) then
 
     !DC DEBUG - validating that the conditions are fulfulled as prescribed
     ! write (*, '("isCCSim: ", L3, " isStopSim: ",L3, " isEquil: ",L3)') this%isCCSimulation, this%isStopSimulation, Equilibration
