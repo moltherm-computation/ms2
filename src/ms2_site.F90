@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 3.0                !
-!  (c) 2017 by TU Kaiserslautern / U Paderborn                 !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 4.0                !
+!  (c) 2020 by TU Kaiserslautern / TU Berlin                   !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -9,8 +9,8 @@
 !==============================================================!
 
 !****************************************************************
-!* Updates and auxiliary routines are available from            *   
-!* http://www.ms-2.de                                           *   
+!* Updates and auxiliary routines are available from            *
+!* http://www.ms-2.de                                           *
 !****************************************************************
 
 #ifndef ARCH
@@ -88,6 +88,63 @@ module ms2_site
 
   interface Save
     module procedure TSiteMIEnm_Save
+  end interface
+
+
+!==============================================================!
+!  Type TSiteTT68                                              !
+!==============================================================!
+
+  type TSiteTT68
+
+    real(RK)          :: r(3)
+    real(RK)          :: tt_a, tt_b
+    real(RK)          :: alph
+    real(RK)          :: c6, c8
+    real(RK)          :: mass
+    real(RK)          :: shield
+    integer, pointer  :: NPartMax, NPart, NTest
+    integer, pointer  :: NPart0, NPart1, NPart2
+    real(RK), pointer, contiguous :: RX(:), RY(:), RZ(:)
+    real(RK), pointer, contiguous :: FX(:), FY(:), FZ(:)
+    real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
+    real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
+    real(RK), pointer :: PXTest(:), PYTest(:), PZTest(:)
+    integer, pointer, contiguous  :: RDFSum(:)
+
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer, contiguous :: vsTTx(:), vsTTy(:), vsTTz(:)
+    real(RK), pointer, contiguous :: vsuTTx(:), vsuTTy(:), vsuTTz(:)
+    real(RK), pointer, contiguous :: vbTTx(:), vbTTy(:), vbTTz(:)
+    real(RK), pointer, contiguous :: cTTx(:), cTTy(:),  cTTz(:)
+    real(RK), pointer, contiguous :: tuTTx(:),  tuTTy(:),  tuTTz(:)
+    real(RK), pointer, contiguous :: tlTTx(:),  tlTTy(:),  tlTTz(:)
+    real(RK), pointer, contiguous :: tdTTx(:),  tdTTy(:),  tdTTz(:)
+    real(RK), pointer, contiguous :: Q0r(:,:,:)
+!TRANSPORT_END
+#endif
+
+end type TSiteTT68
+
+  interface Construct
+    module procedure TSiteTT68_Construct
+  end interface
+
+  interface Destruct
+    module procedure TSiteTT68_Destruct
+  end interface
+
+  interface Allocate
+    module procedure TSiteTT68_Allocate
+  end interface
+
+  interface Deallocate
+    module procedure TSiteTT68_Deallocate
+  end interface
+
+  interface Save
+    module procedure TSiteTT68_Save
   end interface
 
 
@@ -287,6 +344,7 @@ contains
     ! Declare local variables
     integer          :: stat
 
+
     ! Read site parameters
     if( UseIntDegFreed ) then
         call FileReadParameter( this%SiteId, iounit_potmod, IdMIE_SiteId, .false. )
@@ -307,7 +365,7 @@ contains
       case( 'LJ' )    !Case: LJ126-Potential
          this%mie_n = 12._RK
          this%mie_m = 6._RK
-      end select  
+      end select
     call FileReadParameter( this%r(1), iounit_potmod, IdMIEnm_r1, .false. )
     call FileReadParameter( this%r(2), iounit_potmod, IdMIEnm_r2, .false. )
     call FileReadParameter( this%r(3), iounit_potmod, IdMIEnm_r3, .false. )
@@ -410,14 +468,14 @@ contains
     call AllocationError( stat, 'particles', np )
     allocate( this%RY( np ), STAT = stat )
     call AllocationError( stat, 'particles', np )
-    allocate( this%RZ( np ), STAT = stat )    
+    allocate( this%RZ( np ), STAT = stat )
     call AllocationError( stat, 'particles', np )
     if( RDFUpdateFrequency > 0 ) then
       allocate( this%RDFSum(RDFNumberShells+10), STAT = stat )
       call AllocationError( stat, 'RDFSum', RDFNumberShells+10 )
-    endif     
-    
-    call AllocationError( stat, 'particles', np )    
+    endif
+
+    call AllocationError( stat, 'particles', np )
     if( SimulationType .eq. MolecularDynamics ) then
       allocate( this%FX( np ), STAT = stat )
       call AllocationError( stat, 'particles', np )
@@ -510,7 +568,7 @@ contains
     end if
     if( associated( this%RDFSum ) ) then
       deallocate( this%RDFSum )
-    end if    
+    end if
     if( associated( this%FX ) ) then
       deallocate( this%FX )
     end if
@@ -617,7 +675,7 @@ contains
         write( IOBuffer, '(I3)' ) this%SiteId
         call FileWriteParameter( iounit_normal, IdMIE_SiteId )
     end if
-    write( IOBuffer, '(G20.10, T32, "# : ", G20.10)' ) this%mie_n 
+    write( IOBuffer, '(G20.10, T32, "# : ", G20.10)' ) this%mie_n
     call FileWriteParameter( iounit_normal, IdMIE_n )
     write( IOBuffer, '(G20.10, T32, "# : ", G20.10)' ) this%mie_m
     call FileWriteParameter( iounit_normal, IdMIE_m )
@@ -636,6 +694,360 @@ contains
 
 
   end subroutine TSiteMIEnm_Save
+
+
+
+!==============================================================!
+!  Subroutine TSiteTT68_Construct                              !
+!==============================================================!
+
+  subroutine TSiteTT68_Construct( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSiteTT68) :: this
+
+    ! Read site parameters
+    call FileReadParameter( this%r(1), iounit_potmod, IdTT68_r1, .false. )
+    call FileReadParameter( this%r(2), iounit_potmod, IdTT68_r2, .false. )
+    call FileReadParameter( this%r(3), iounit_potmod, IdTT68_r3, .false. )
+    call FileReadParameter( this%tt_a, iounit_potmod, IdTT68_A, .false. )
+    call FileReadParameter( this%tt_b, iounit_potmod, IdTT68_b, .false. )
+    call FileReadParameter( this%alph, iounit_potmod, IdTT68_alpha, .false. )
+    call FileReadParameter( this%c6, iounit_potmod, IdTT68_C6, .false. )
+    call FileReadParameter( this%c8, iounit_potmod, IdTT68_C8, .false. )
+    call FileReadParameter( this%mass, iounit_potmod, IdTT68_mass, .false. )
+    call FileReadParameter( this%shield, iounit_potmod, IdTT68_shield, .false. )
+
+    ! Convert to SI units
+    this%r(:) = this%r(:) * Angstroem
+    this%tt_a = this%tt_a * kBoltzmann
+    this%tt_b = this%tt_b / Angstroem
+    this%alph = this%alph / Angstroem
+    this%c6 = this%c6 * kBoltzmann * Angstroem**6
+    this%c8 = this%c8 * kBoltzmann * Angstroem**8
+    this%mass = this%mass * .001_RK / NAvogadro
+    this%shield = this%shield * Angstroem
+
+    ! Convert to derived units
+    this%r(:) = this%r(:) / UnitLength
+    this%tt_a = this%tt_a / UnitEnergy
+    this%tt_b = this%tt_b * UnitLength
+    this%alph = this%alph * UnitLength
+    this%c6 = this%c6 / ( UnitEnergy * UnitVolume**2 )
+    this%c8 = this%c8 / ( UnitEnergy * UnitVolume**2 * UnitLength**2)
+    this%mass = this%mass / UnitMass
+    this%shield = this%shield / UnitLength
+
+  end subroutine TSiteTT68_Construct
+
+
+
+!==============================================================!
+!  Subroutine TSiteTT68_Destruct                               !
+!==============================================================!
+
+  subroutine TSiteTT68_Destruct( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSiteTT68) :: this
+
+    ! Destroy site
+    continue
+
+  end subroutine TSiteTT68_Destruct
+
+
+
+!==============================================================!
+!  Subroutine TSiteTT68_Allocate                               !
+!==============================================================!
+
+  subroutine TSiteTT68_Allocate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSiteTT68) :: this
+
+    ! Declare local variables
+    integer :: np, nt
+    integer :: stat
+
+    ! Assign local variables
+    np = this%NPartMax
+    nt = this%NTest
+
+    ! Nullify pointers
+    nullify( this%RX )
+    nullify( this%RY )
+    nullify( this%RZ )
+    nullify( this%FX )
+    nullify( this%FY )
+    nullify( this%FZ )
+    nullify( this%RXTest )
+    nullify( this%RYTest )
+    nullify( this%RZTest )
+    nullify( this%RDFSum )
+
+#if  TRANS == 1
+    !TRANSPORT_start
+    nullify( this%vsTTx )
+    nullify( this%vsTTy )
+    nullify( this%vsTTz )
+    nullify( this%vsuTTx )
+    nullify( this%vsuTTy )
+    nullify( this%vsuTTz )
+    nullify( this%vbTTx )
+    nullify( this%vbTTy )
+    nullify( this%vbTTz )
+    nullify( this%cTTx )
+    nullify( this%cTTy )
+    nullify( this%cTTz )
+    nullify( this%tuTTx )
+    nullify( this%tuTTy )
+    nullify( this%tuTTz )
+    nullify( this%tlTTx )
+    nullify( this%tlTTy )
+    nullify( this%tlTTz )
+    nullify( this%tdTTx )
+    nullify( this%tdTTy )
+    nullify( this%tdTTz )
+!TRANSPORT_END
+#endif
+
+    ! Allocate arrays
+    allocate( this%RX( np ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+    allocate( this%RY( np ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+    allocate( this%RZ( np ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+    if( RDFUpdateFrequency > 0 ) then
+      allocate( this%RDFSum(RDFNumberShells+10), STAT = stat )
+      call AllocationError( stat, 'RDFSum', RDFNumberShells+10 )
+    endif
+
+    if( SimulationType .eq. MolecularDynamics ) then
+      allocate( this%FX( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%FY( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%FZ( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+
+#if  TRANS == 1
+!TRANSPORT_start
+      allocate( this%vsTTx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsTTy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsTTz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuTTx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuTTy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuTTz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbTTx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbTTy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbTTz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cTTx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cTTy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cTTz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuTTx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuTTy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuTTz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlTTx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlTTy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlTTz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdTTx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdTTy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdTTz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+!TRANSPORT_END
+#endif
+    end if
+
+    if( nt > 0 ) then
+      allocate( this%RXTest( nt ), STAT = stat )
+      call AllocationError( stat, 'test particles', nt )
+      allocate( this%RYTest( nt ), STAT = stat )
+      call AllocationError( stat, 'test particles', nt )
+      allocate( this%RZTest( nt ), STAT = stat )
+      call AllocationError( stat, 'test particles', nt )
+    end if
+
+  end subroutine TSiteTT68_Allocate
+
+
+
+!==============================================================!
+!  Subroutine TSiteTT68_Deallocate                             !
+!==============================================================!
+
+  subroutine TSiteTT68_Deallocate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSiteTT68) :: this
+
+    ! Deallocate arrays
+    if( associated( this%RX ) ) then
+      deallocate( this%RX )
+    end if
+    if( associated( this%RY ) ) then
+      deallocate( this%RY )
+    end if
+    if( associated( this%RZ ) ) then
+      deallocate( this%RZ )
+    end if
+    if( associated( this%RDFSum ) ) then
+      deallocate( this%RDFSum )
+    end if
+    if( associated( this%FX ) ) then
+      deallocate( this%FX )
+    end if
+    if( associated( this%FY ) ) then
+      deallocate( this%FY )
+    end if
+    if( associated( this%FZ ) ) then
+      deallocate( this%FZ )
+    end if
+    if( associated( this%RXTest ) ) then
+      deallocate( this%RXTest )
+    end if
+    if( associated( this%RYTest ) ) then
+      deallocate( this%RYTest )
+    end if
+    if( associated( this%RZTest ) ) then
+      deallocate( this%RZTest )
+    end if
+
+#if  TRANS == 1
+    !TRANSPORT_start
+    if( associated( this%vsTTx ) ) then
+      deallocate( this%vsTTx )
+    end if
+    if( associated( this%vsTTy ) ) then
+      deallocate( this%vsTTy )
+    end if
+    if( associated( this%vsTTz ) ) then
+      deallocate( this%vsTTz )
+    end if
+    if( associated( this%vsuTTx ) ) then
+      deallocate( this%vsuTTx )
+    end if
+    if( associated( this%vsuTTy ) ) then
+      deallocate( this%vsuTTy )
+    end if
+    if( associated( this%vsuTTz ) ) then
+      deallocate( this%vsuTTz )
+    end if
+    if( associated( this%vbTTx ) ) then
+     deallocate( this%vbTTx )
+    end if
+    if( associated( this%vbTTy ) ) then
+      deallocate( this%vbTTy )
+    end if
+    if( associated( this%vbTTz ) ) then
+      deallocate( this%vbTTz )
+    end if
+    if( associated( this%cTTx ) ) then
+      deallocate( this%cTTx )
+    end if
+    if( associated( this%cTTy ) ) then
+      deallocate( this%cTTy )
+    end if
+    if( associated( this%cTTz ) ) then
+      deallocate( this%cTTz )
+    end if
+    if( associated( this%tuTTx ) ) then
+      deallocate( this%tuTTx )
+    end if
+    if( associated( this%tuTTy ) ) then
+      deallocate( this%tuTTy )
+    end if
+    if( associated( this%tuTTz ) ) then
+      deallocate( this%tuTTz )
+    end if
+    if( associated( this%tlTTx ) ) then
+      deallocate( this%tlTTx )
+    end if
+    if( associated( this%tlTTy ) ) then
+      deallocate( this%tlTTy )
+    end if
+    if( associated( this%tlTTz ) ) then
+      deallocate( this%tlTTz )
+    end if
+    if( associated( this%tdTTx ) ) then
+      deallocate( this%tdTTx )
+    end if
+    if( associated( this%tdTTy ) ) then
+      deallocate( this%tdTTy )
+    end if
+    if( associated( this%tdTTz ) ) then
+      deallocate( this%tdTTz )
+    end if
+!TRANSPORT_END
+#endif
+  end subroutine TSiteTT68_Deallocate
+
+
+
+!==============================================================!
+!  Subroutine TSiteTT68_Save                                   !
+!==============================================================!
+
+  subroutine TSiteTT68_Save( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSiteTT68) :: this
+
+    ! Save site parameters
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(1) * UnitLength / Angstroem, this%r(1)
+    call FileWriteParameter( iounit_normal, IdTT68_r1 )
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(2) * UnitLength / Angstroem, this%r(2)
+    call FileWriteParameter( iounit_normal, IdTT68_r2 )
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%r(3) * UnitLength / Angstroem, this%r(3)
+    call FileWriteParameter( iounit_normal, IdTT68_r3 )
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%tt_a * UnitEnergy / kBoltzmann, this%tt_a
+    call FileWriteParameter( iounit_normal, IdTT68_A )
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%tt_b * Angstroem / UnitLength, this%tt_b
+    call FileWriteParameter( iounit_normal, IdTT68_b )
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%alph * Angstroem / UnitLength, this%alph
+    call FileWriteParameter( iounit_normal, IdTT68_alpha )
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%c6 * UnitEnergy * UnitVolume**2 / ( kBoltzmann * Angstroem**6 ), this%c6
+    call FileWriteParameter( iounit_normal, IdTT68_C6 )
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%c8 * UnitEnergy * UnitVolume**2 * UnitLength**2 / ( kBoltzmann * Angstroem**8 ), this%c8
+    call FileWriteParameter( iounit_normal, IdTT68_C8 )
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%mass * UnitMass * 1000._RK * NAvogadro, this%mass
+    call FileWriteParameter( iounit_normal, IdTT68_mass )
+    write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) this%shield * UnitLength / Angstroem, this%shield
+    call FileWriteParameter( iounit_normal, IdTT68_shield )
+
+  end subroutine TSiteTT68_Save
 
 
 

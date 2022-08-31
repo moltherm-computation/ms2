@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>NPTSVC_N2_O2_MC.par</parFile>
+	<name>NPTSVC_N2_O2_MC</name>
+	<np>3</np>
+	<reference>
+		<file>NPTSVC_N2_O2_MC.rst</file>
+	</reference>
+	<reference>
+		<file>NPTSVC_N2_O2_MC_1.run</file>
+	</reference>
+	<reference>
+		<file>NPTSVC_N2_O2_MC_1.res</file>
+	</reference>
+	<reference>
+		<file>NPTSVC_N2_O2_MC_1.rav</file>
+	</reference>
+</testcase>
