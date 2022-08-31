@@ -4,7 +4,7 @@
 	<parFile>isoC4H10_OPLSAmb_p3T2_Ring.par</parFile>
 	<name>isoC4H10_OPLSAmb_p3T2_Ring</name>
 	<np>40</np>
-	<walltime>16:20:00</walltime>
+	<walltime>17:17:17</walltime>
 	<reference>
 		<file>isoC4H10_OPLSAmb_p3T2_Ring_1.res</file>
 	</reference>

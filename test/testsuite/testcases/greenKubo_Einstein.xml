@@ -36,6 +36,7 @@
 	</reference>
 	<reference>
 		<file>2500_All_128_2.kbirav</file>
+		<relativeTolerance>7e-4</relativeTolerance>
 	</reference>
 	<reference>
 		<file>2500_All_128_2.kbirdf</file>
@@ -60,6 +61,7 @@
 	</reference>
 	<reference>
 		<file>2500_All_128_3.kbirav</file>
+		<relativeTolerance>7e-4</relativeTolerance>
 	</reference>
 	<reference>
 		<file>2500_All_128_3.kbirdf</file>
