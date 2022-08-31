@@ -727,32 +727,30 @@ contains
     if( (CutoffMode .eq. CenterofMass) .and. (tau > 1E-10_RK) ) then
       if( (tau1 > 1E-10_RK) .and. (tau2 > 1E-10_RK) ) then
 
-        this%EPotCorr = Pi8 * this%Epsilon * &
-&         ( TISSu(-6, RCutoff, this%Sigma**2, tau1, tau2) &
-&         - TISSu(-3, RCutoff, this%Sigma**2, tau1, tau2) )
+        this%EPotCorr = Pi2mie_a * this%Epsilon * &
+&         ( TISSu(-this%Mie_nHalf, RCutoff, this%Sigma**2._RK, tau1, tau2) &
+&         - TISSu(-this%Mie_mHalf, RCutoff, this%Sigma**2._RK, tau1, tau2) )
 
-        this%VirialCorr = Piminus83 * this%Epsilon * &
-&         ( TISSp(-6, RCutoff, this%Sigma**2, tau1, tau2) &
-&         - TISSp(-3, RCutoff, this%Sigma**2, tau1, tau2) )
+        this%VirialCorr = Piminus23mie_a * this%Epsilon * &
+&         ( TISSp(-this%Mie_nHalf, RCutoff, this%Sigma**2._RK, tau1, tau2) &
+&         - TISSp(-this%Mie_mHalf, RCutoff, this%Sigma**2._RK, tau1, tau2) )
 
-        this%d2EpotdV2Corr = Pi89 * this%Epsilon * &
-&         ( TISSd2EpotdV2(-6, RCutoff, this%Sigma**2, tau1, tau2) &
-&         - TISSd2EpotdV2(-3, RCutoff, this%Sigma**2, tau1, tau2) )
-
+        this%d2EpotdV2Corr = Pi29mie_a * this%Epsilon * &
+&         ( TISSd2EpotdV2(-this%Mie_nHalf, RCutoff, this%Sigma**2._RK, tau1, tau2) &
+&         - TISSd2EpotdV2(-this%Mie_mHalf, RCutoff, this%Sigma**2._RK, tau1, tau2) )
 
       else
-        this%EPotCorr = Pi8 * this%Epsilon * &
-&         ( TICSu(-6, RCutoff, this%Sigma**2, tau) &
-&         - TICSu(-3, RCutoff, this%Sigma**2, tau) )
+        this%EPotCorr = Pi2mie_a * this%Epsilon * &
+&         ( TICSu(-this%Mie_nHalf, RCutoff, this%Sigma**2._RK, tau) &
+&         - TICSu(-this%Mie_mHalf, RCutoff, this%Sigma**2._RK, tau) )
 
-        this%VirialCorr = Piminus83 * this%Epsilon * &
-&         ( TICSp(-6, RCutoff, this%Sigma**2, tau) &
-&         - TICSp(-3, RCutoff, this%Sigma**2, tau) )
+        this%VirialCorr = Piminus23mie_a * this%Epsilon * &
+&         ( TICSp(-this%Mie_nHalf, RCutoff, this%Sigma**2._RK, tau) &
+&         - TICSp(-this%Mie_mHalf, RCutoff, this%Sigma**2._RK, tau) )
 
-        this%d2EpotdV2Corr = Pi89 * this%Epsilon * &
-&         ( TICSd2EpotdV2(-6, RCutoff, this%Sigma**2, tau) &
-&         - TICSd2EpotdV2(-3, RCutoff, this%Sigma**2, tau) )
-
+        this%d2EpotdV2Corr = Pi29mie_a * this%Epsilon * &
+&         ( TICSd2EpotdV2(-this%Mie_nHalf, RCutoff, this%Sigma**2._RK, tau) &
+&         - TICSd2EpotdV2(-this%Mie_mHalf, RCutoff, this%Sigma**2._RK, tau) )
 
       endif
     else ! Site-site cutoff or both sites in center of mass
@@ -762,7 +760,7 @@ contains
 
       this%VirialCorr = Pi329 * this%Epsilon * (RCutoff9Inv - 1.5_RK * RCutoff3Inv)
 
-      this%d2EpotdV2Corr = Pi89 * this%Epsilon *  ( TICCd2EpotdV2(-6, RCutoff, this%Sigma**2) - TICCd2EpotdV2(-3, RCutoff, this%Sigma**2) )
+      this%d2EpotdV2Corr = Pi89 * this%Epsilon *  ( TICCd2EpotdV2(-this%Mie_nHalf, RCutoff, this%Sigma**2) - TICCd2EpotdV2(-this%Mie_mHalf, RCutoff, this%Sigma**2) )
 
     end if
     this%EPotTestCorr = 2._RK * this%EPotCorr
@@ -773,7 +771,7 @@ contains
     real(RK) function TISSu( n, rc, sigma2, tau1, tau2 )
 
       ! Declare arguments
-      integer, intent(in)  :: n
+      real(RK), intent(in) :: n
       real(RK), intent(in) :: rc, sigma2, tau1, tau2
 
       ! Declare local variables
@@ -783,14 +781,14 @@ contains
       tauMinus = abs( tau1 - tau2 )
 
       ! Calculate angle averaged partial integral
-      TISSu = - ( (rc+tauPlus)**(2*n+4) - (rc+tauMinus)**(2*n+4) &
-&             - (rc-tauMinus)**(2*n+4) + (rc-tauPlus)**(2*n+4) ) * rc &
+      TISSu = - ( (rc+tauPlus)**(2._RK*n+4._RK) - (rc+tauMinus)**(2._RK*n+4._RK) &
+&             - (rc-tauMinus)**(2._RK*n+4._RK) + (rc-tauPlus)**(2._RK*n+4._RK) ) * rc &
 &             / ( 8._RK * sigma2**n * tau1 * tau2 &
-&             * (n+1) * (2*n+3) * (2*n+4) ) &
-&             + ( (rc+tauPlus)**(2*n+5) - (rc+tauMinus)**(2*n+5) &
-&             - (rc-tauMinus)**(2*n+5) + (rc-tauPlus)**(2*n+5) ) &
+&             * (n+1._RK) * (2._RK*n+3._RK) * (2._RK*n+4._RK) ) &
+&             + ( (rc+tauPlus)**(2._RK*n+5._RK) - (rc+tauMinus)**(2._RK*n+5._RK) &
+&             - (rc-tauMinus)**(2._RK*n+5._RK) + (rc-tauPlus)**(2._RK*n+5._RK) ) &
 &             / ( 8._RK * sigma2**n * tau1 * tau2 &
-&             * (n+1) * (2*n+3) * (2*n+4) * (2*n+5) )
+&             * (n+1._RK) * (2._RK*n+3._RK) * (2._RK*n+4._RK) * (2._RK*n+5._RK) )
 
     end function TISSu
 
@@ -799,14 +797,14 @@ contains
     real(RK) function TICSu( n, rc, sigma2, tau )
 
       ! Declare arguments
-      integer, intent(in)  :: n
+      real(RK), intent(in) :: n
       real(RK), intent(in) :: rc, sigma2, tau
 
       ! Calculate angle averaged partial integral
-      TICSu = - ( (rc+tau)**(2*n+3) - (rc-tau)**(2*n+3) ) * rc &
-&             / ( 4._RK * sigma2**n * tau * (n+1) * (2*n+3) ) &
-&             + ( (rc+tau)**(2*n+4) - (rc-tau)**(2*n+4) ) &
-&             / ( 4._RK * sigma2**n * tau * (n+1) * (2*n+3) * (2*n+4) )
+      TICSu = - ( (rc+tau)**(2._RK*n+3._RK) - (rc-tau)**(2._RK*n+3._RK) ) * rc &
+&             / ( 4._RK * sigma2**n * tau * (n+1._RK) * (2._RK*n+3._RK) ) &
+&             + ( (rc+tau)**(2._RK*n+4._RK) - (rc-tau)**(2._RK*n+4._RK) ) &
+&             / ( 4._RK * sigma2**n * tau * (n+1._RK) * (2._RK*n+3._RK) * (2._RK*n+4._RK) )
 
     end function TICSu
 
@@ -815,11 +813,11 @@ contains
     real(RK) function TICCu( n, rc, sigma2 )
 
       ! Declare arguments
-      integer, intent(in)  :: n
+      real(RK), intent(in) :: n
       real(RK), intent(in) :: rc, sigma2
 
       ! Calculate angle averaged partial integral
-      TICCu = - ( rc**(2*n+3) ) / ( sigma2**n * (2*n+3) )
+      TICCu = - ( rc**(2._RK*n+3._RK) ) / ( sigma2**n * (2._RK*n+3._RK) )
 
     end function TICCu
 
@@ -828,7 +826,7 @@ contains
     real(RK) function TISSp( n, rc, sigma2, tau1, tau2 )
 
       ! Declare arguments
-      integer, intent(in)  :: n
+      real(RK), intent(in) :: n
       real(RK), intent(in) :: rc, sigma2, tau1, tau2
 
       ! Declare local variables
@@ -838,9 +836,9 @@ contains
       tauMinus = abs( tau1 - tau2 )
 
       ! Calculate angle averaged partial integral
-      TISSp = - ( (rc+tauPlus)**(2*n+3) - (rc+tauMinus)**(2*n+3) &
-&             - (rc-tauMinus)**(2*n+3) + (rc-tauPlus)**(2*n+3) ) * rc**2 &
-&             / ( 8._RK * sigma2**n * tau1 * tau2 * (n+1) * (2*n+3) ) &
+      TISSp = - ( (rc+tauPlus)**(2._RK*n+3._RK) - (rc+tauMinus)**(2._RK*n+3._RK) &
+&             - (rc-tauMinus)**(2._RK*n+3._RK) + (rc-tauPlus)**(2._RK*n+3._RK) ) * rc**2._RK &
+&             / ( 8._RK * sigma2**n * tau1 * tau2 * (n+1._RK) * (2._RK*n+3._RK) ) &
 &             - 3._RK * TISSu(n,rc,sigma2,tau1,tau2)
 
     end function TISSp
@@ -850,12 +848,12 @@ contains
     real(RK) function TICSp( n, rc, sigma2, tau )
 
       ! Declare arguments
-      integer, intent(in)  :: n
+      real(RK), intent(in) :: n
       real(RK), intent(in) :: rc, sigma2, tau
 
       ! Calculate angle averaged partial integral
-      TICSp = - ( (rc+tau)**(2*n+2) - (rc-tau)**(2*n+2) ) * rc**2 &
-&             / ( 4._RK * sigma2**n * tau * (n+1) ) &
+      TICSp = - ( (rc+tau)**(2._RK*n+2._RK) - (rc-tau)**(2._RK*n+2._RK) ) * rc**2._RK &
+&             / ( 4._RK * sigma2**n * tau * (n+1._RK) ) &
 &             - 3._RK * TICSu(n,rc,sigma2,tau)
 
     end function TICSp
@@ -864,7 +862,7 @@ contains
     real(RK) function TICCp( n, rc, sigma2 )
 
       ! Declare arguments
-      integer, intent(in)  :: n
+      real(RK), intent(in) :: n
       real(RK), intent(in) :: rc, sigma2
 
       ! Calculate angle averaged partial integral
@@ -876,7 +874,7 @@ contains
     real(RK) function TISSd2EpotdV2( n, rc, sigma2, tau1, tau2 )
 
       ! Declare arguments
-      integer, intent(in)  :: n
+      real(RK), intent(in) :: n
       real(RK), intent(in) :: rc, sigma2, tau1, tau2
 
       ! Declare local variables
@@ -926,7 +924,7 @@ contains
     real(RK) function TICSd2EpotdV2( n, rc, sigma2, tau )
 
       ! Declare arguments
-      integer, intent(in)  :: n
+      real(RK), intent(in) :: n
       real(RK), intent(in) :: rc, sigma2, tau
 
       ! Declare local variables
@@ -958,13 +956,13 @@ contains
     real(RK) function TICCd2EpotdV2( n, rc, sigma2 )
 
       ! Declare arguments
-      integer, intent(in)  :: n
+      real(RK), intent(in) :: n
       real(RK), intent(in) :: rc, sigma2
 
       ! Declare local variables
       real(RK) :: A, AN
 
-      A = rc**(3+2*n)
+      A = rc**(3._RK+2._RK*n)
 
       AN = 2._RK*n*(2._RK*n-1._RK)/(3._RK+2._RK*n)
 
@@ -977,7 +975,7 @@ contains
     real(RK) function TISSuAbl( n, rc, sigma2, tau1, tau2 )
 
       ! Declare arguments
-      integer, intent(in)  :: n
+      real(RK), intent(in) :: n
       real(RK), intent(in) :: rc, sigma2, tau1, tau2
 
       ! Declare local variables
@@ -987,21 +985,21 @@ contains
       tauMinus = abs( tau1 - tau2 )
 
       ! Calculate angle averaged partial integral
-      TISSuAbl = - ( (rc+tauPlus)**(2*n+4) - (rc+tauMinus)**(2*n+4) &
-&                - (rc-tauMinus)**(2*n+4) + (rc-tauPlus)**(2*n+4) ) * rc * (-2*n) &
-&                / ( 8._RK * sigma2**(n+1) * tau1 * tau2 &
-&                * (n+1) * (2*n+3) * (2*n+4) ) &
-&                + ( (rc+tauPlus)**(2*n+5) - (rc+tauMinus)**(2*n+5) &
-&                - (rc-tauMinus)**(2*n+5) + (rc-tauPlus)**(2*n+5) ) * (-2*n)&
-&                / ( 8._RK * sigma2**(n+1) * tau1 * tau2 &
-&                * (n+1) * (2*n+3) * (2*n+4) * (2*n+5) )
+      TISSuAbl = - ( (rc+tauPlus)**(2._RK*n+4._RK) - (rc+tauMinus)**(2._RK*n+4._RK) &
+&                - (rc-tauMinus)**(2._RK*n+4._RK) + (rc-tauPlus)**(2._RK*n+4._RK) ) * rc * (-2._RK*n) &
+&                / ( 8._RK * sigma2**(n+1._RK) * tau1 * tau2 &
+&                * (n+1._RK) * (2._RK*n+3._RK) * (2._RK*n+4._RK) ) &
+&                + ( (rc+tauPlus)**(2._RK*n+5._RK) - (rc+tauMinus)**(2._RK*n+5._RK) &
+&                - (rc-tauMinus)**(2._RK*n+5._RK) + (rc-tauPlus)**(2._RK*n+5._RK) ) * (-2._RK*n)&
+&                / ( 8._RK * sigma2**(n+1._RK) * tau1 * tau2 &
+&                * (n+1._RK) * (2._RK*n+3._RK) * (2._RK*n+4._RK) * (2._RK*n+5._RK) )
 
     end function TISSuAbl
 
     real(RK) function TISSpAbl( n, rc, sigma2, tau1, tau2 )
 
       ! Declare arguments
-      integer, intent(in)  :: n
+      real(RK), intent(in) :: n
       real(RK), intent(in) :: rc, sigma2, tau1, tau2
 
       ! Declare local variables
@@ -1011,9 +1009,9 @@ contains
       tauMinus = abs( tau1 - tau2 )
 
       ! Calculate angle averaged partial integral
-      TISSpAbl = - ( (rc+tauPlus)**(2*n+3) - (rc+tauMinus)**(2*n+3) &
-&                - (rc-tauMinus)**(2*n+3) + (rc-tauPlus)**(2*n+3) ) *rc**2 * (-2*n)&
-&                / ( 8._RK * sigma2**(n+1) * tau1 * tau2 * (n+1) * (2*n+3) ) &
+      TISSpAbl = - ( (rc+tauPlus)**(2._RK*n+3._RK) - (rc+tauMinus)**(2._RK*n+3._RK) &
+&                - (rc-tauMinus)**(2._RK*n+3._RK) + (rc-tauPlus)**(2._RK*n+3._RK) ) *rc**2._RK * (-2._RK*n)&
+&                / ( 8._RK * sigma2**(n+1._RK) * tau1 * tau2 * (n+1._RK) * (2._RK*n+3._RK) ) &
 &                - 3._RK * TISSuAbl(n,rc,sigma2,tau1,tau2)
 
     end function TISSpAbl
@@ -1065,6 +1063,7 @@ contains
     real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
     real(RK)          :: SigmaSquared
     real(RK)          :: EpsilonMie_a, EpsilonMie_aF
+	real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
     real(RK)          :: RCutoffSquared
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
@@ -1072,11 +1071,11 @@ contains
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: FXij, FYij, FZij, Fij
-    real(RK)          :: RijSquared, RijSquaredInv, Rij6Inv
+    real(RK)          :: RijSquared, RijSquaredInv, RijMie_nInv, RijMie_mInv
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
     real(RK)          :: EPotLocalIntra, VirialLocalIntra
     real(RK)          :: EPotLocalInter, VirialLocalInter
-    real(RK)          :: d2EpotdV2Local, sitecorr, Plen2
+    real(RK)          :: d2EpotdV2Local, sitecorr
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
     real(RK)          :: forceTempZ(1:this%Site2%NPart)
@@ -1131,8 +1130,14 @@ contains
     VirialLocalInter = 0._RK
     d2EpotdV2Local= 0._RK
     SigmaSquared = this%SigmaSquared
-    EpsilonMie_a = this%EpsilonMie_a
+	EpsilonMie_a = this%EpsilonMie_a
     EpsilonMie_aF = this%EpsilonMie_aF
+	Mie_n = this%Mie_n
+	Mie_m = this%Mie_m
+	Mie_n1 = Mie_n+1._RK
+	Mie_m1 = Mie_m+1._RK
+	Mie_nHalf = this%Mie_nHalf
+	Mie_mHalf = this%Mie_mHalf
     RCutoffSquared = this%RCutoffSquaredScaled
 	
 #if MPI_VER > 0
@@ -1217,13 +1222,16 @@ loop1:  do k = 1, this%NInCutoff(unit)
             PXij = PXij - anint( PXij )
             PYij = PYij - anint( PYij )
             PZij = PZij - anint( PZij )
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             RijSquaredInv = SigmaSquared / RijSquared
-            Rij6Inv = RijSquaredInv**3
-            EPotLocal1 = Rij6Inv * (Rij6Inv - 1._RK)
+            RijMie_nInv = RijSquaredInv**Mie_nHalf
+		    RijMie_mInv = RijSquaredInv**Mie_mHalf
+            Mie_nRijMie_n = Mie_n * RijMie_nInv
+		    Mie_mRijMie_m = Mie_m * RijMie_mInv
+            EPotLocal1 = RijMie_nInv - RijMie_mInv
             EPotLocal = EPotLocal + EPotLocal1
             EPotLocalInter = EPotLocalInter + EPotLocal1
-            Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+            Fij = EpsilonMie_aF * RijSquaredInv**3 * (RijSquaredInv**3 - .5_RK) * RijSquaredInv
             FXij = Fij * RXij
             FYij = Fij * RYij
             FZij = Fij * RZij
@@ -1255,10 +1263,9 @@ loop2:    do m=1,NBinsDen
              end do
           end if
 #endif
-          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ
-          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * RijSquaredInv**3 * (12._RK*RijSquaredInv**3  -  6._RK) * (sitecorr * sitecorr - (PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared)*Third*Third !xxxx LJ
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * RijSquaredInv**3 * (156._RK*RijSquaredInv**3 - 42._RK) *  sitecorr * sitecorr*Third*Third
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -1284,20 +1291,18 @@ loop2:    do m=1,NBinsDen
           PYij = PYij - anint( PYij )
           PZij = PZij - anint( PZij )
           RijSquaredInv = SigmaSquared / ( RXij**2 + RYij**2 + RZij**2 )
-          Rij6Inv = RijSquaredInv**3
-          EPotLocal1 = Rij6Inv * (Rij6Inv - 1._RK) * coeff
+          EPotLocal1 = RijSquaredInv**3 * (RijSquaredInv**3 - 1._RK) * coeff
           EPotLocal = EPotLocal + EPotLocal1
           EPotLocalIntra = EPotLocalIntra + EPotLocal1
-          Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv*coeff
+          Fij = EpsilonMie_aF * RijSquaredInv**3 * (RijSquaredInv**3 - .5_RK) * RijSquaredInv*coeff
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
           VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
           VirialLocalIntra = VirialLocalIntra + (PXij * FXij + PYij * FYij + PZij * FZij)
-          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ
-          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * RijSquaredInv**3 * (12._RK*(RijSquaredInv**3)  -  6._RK) * (sitecorr * sitecorr - (PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared)*Third*Third !xxxx LJ
+          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * (RijSquaredInv**3) * (156._RK*(RijSquaredInv**3) - 42._RK) *  sitecorr * sitecorr*Third*Third
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -1356,22 +1361,24 @@ loop3:  do j = j0, j1
           RXij = RXij - anint( RXij )
           RYij = RYij - anint( RYij )
           RZij = RZij - anint( RZij )
-          RijSquared = RXij**2 + RYij**2 + RZij**2
+          RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           if( RijSquared >= RCutoffSquared ) cycle loop3
           RijSquaredInv = SigmaSquared / RijSquared
-          Rij6Inv = RijSquaredInv**3
-          EPotLocal = EPotLocal + (Rij6Inv * (Rij6Inv - 1._RK))
-          EPotLocalInter = EPotLocalInter + (Rij6Inv * (Rij6Inv - 1._RK))
-          Fij = EpsilonMie_aF * Rij6Inv * (Rij6Inv - .5_RK) * RijSquaredInv
+          RijMie_nInv = RijSquaredInv**Mie_nHalf
+		  RijMie_mInv = RijSquaredInv**Mie_mHalf
+          Mie_nRijMie_n = Mie_n * RijMie_nInv
+		  Mie_mRijMie_m = Mie_m * RijMie_mInv
+          EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
+          EPotLocalInter = EPotLocalInter + ((RijSquaredInv**3) * ((RijSquaredInv**3) - 1._RK))
+          Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
           VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
           VirialLocalInter = VirialLocalInter + (PXij * FXij + PYij * FYij + PZij * FZij)
-          Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (12._RK*Rij6Inv  -  6._RK) * (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ SS
-          d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Rij6Inv * (156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr*Third*Third
+		  d2EpotdV2Local = d2EpotdV2Local + EpsilonMie_a * Ninth * ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
+		                   + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)	  
           FXi = FXi + FXij
           FYi = FYi + FYij
           FZi = FZi + FZij
@@ -2573,13 +2580,10 @@ loop1:do k = 1, this%NInCutoff(unit)
           PXij = (PXij - anint( PXij )) * BoxLength
           PYij = (PYij - anint( PYij )) * BoxLength
           PZij = (PZij - anint( PZij )) * BoxLength
-          Rij2   = RXij**2 + RYij**2 + RZij**2
-#if ARCH == 3
-          RijInv = rsqrt( Rij2 )
-#else
+          Rij2   = RXij*RXij + RYij*RYij + RZij*RZij
+
           RijInv = 1._RK / sqrt( Rij2 )
 
-#endif
           eX = RXij * RijInv
           eY = RYij * RijInv
           eZ = RZij * RijInv
@@ -2616,7 +2620,7 @@ loop2:  do m=1,NBinsDen
           VirialLocalInter = VirialLocalInter + (EPotLocal1 * RijInv * (eX * PXij + eY * PYij + eZ * PZij))
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (RXij * PXij + RYij * PYij + RZij * PZij)*RijInv*RijInv
-          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 * (3._RK*sitecorr*sitecorr - Plen2*RijInv*RijInv)*Third*Third !XXXX CC
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 * (3._RK*sitecorr*sitecorr - Plen2*RijInv*RijInv)*Ninth !XXXX CC
           FXij = EPotLocal1 * RijInv * eX
           FYij = EPotLocal1 * RijInv * eY
           FZij = EPotLocal1 * RijInv * eZ
@@ -4487,7 +4491,7 @@ loop1:do k = 1, this%NInCutoff(unit)
           OXj = OX2(jk)
           OYj = OY2(jk)
           OZj = OZ2(jk)
-          RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+          RijSquaredInv = 1._RK / ( RXij*RXij + RYij*RYij + RZij*RZij )
           RijInv = sqrt( RijSquaredInv )
           eX = RXij * RijInv                                                      ! Einheitsabstandvektor nach Price
           eY = RYij * RijInv
@@ -4531,7 +4535,7 @@ loop2:  do m=1,NBinsDen
           VirialLocalInter = VirialLocalInter + (FXij * PXij + FYij * PYij + FZij * PZij)     ! F2*R_COM_Price; stimmt so
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
-          d2EpotdV2Local = d2EpotdV2Local + Epsilon1 * CosTheta*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third   !xxxx2 CD
+          d2EpotdV2Local = d2EpotdV2Local + Epsilon1 * CosTheta*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Ninth   !xxxx2 CD
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -5640,7 +5644,7 @@ loop1:do k = 1, this%NInCutoff(unit)
           OXj = OX2(jk)                                                            ! Orientierungsvektor Quadrupol
           OYj = OY2(jk)
           OZj = OZ2(jk)
-          RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+          RijSquaredInv = 1._RK / ( RXij*RXij + RYij*RYij + RZij*RZij )
           RijInv = sqrt( RijSquaredInv )
           eX = RXij * RijInv                                                      ! Normierter Abstandsvektor
           eY = RYij * RijInv
@@ -5685,7 +5689,7 @@ loop2:  do m=1,NBinsDen
         VirialLocalInter = VirialLocalInter + (FXij * PXij + FYij * PYij + FZij * PZij)
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
-        d2EpotdV2Local = d2EpotdV2Local + Epsilon1 * ( CosTheta * CosTheta - Third )*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third   !xxxx3 CQ
+        d2EpotdV2Local = d2EpotdV2Local + Epsilon1*(CosTheta*CosTheta-Third)*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Ninth   !xxxx3 CQ
 
         FXi    = FXi    + FXij
         FYi    = FYi    + FYij
@@ -6796,7 +6800,7 @@ loop1:do k = 1, this%NInCutoff(unit)
           PXij = (PXij - anint( PXij )) * BoxLength
           PYij = (PYij - anint( PYij )) * BoxLength
           PZij = (PZij - anint( PZij )) * BoxLength
-          RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+          RijSquaredInv = 1._RK / ( RXij*RXij + RYij*RYij + RZij*RZij )
           RijInv = sqrt( RijSquaredInv )
           eX = RXij * RijInv
           eY = RYij * RijInv
@@ -6840,7 +6844,7 @@ loop2:  do m=1,NBinsDen
           VirialLocalInter = VirialLocalInter + (FXij * PXij + FYij * PYij + FZij * PZij)
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
-          d2EpotdV2Local = d2EpotdV2Local - Epsilon1*CosTheta*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Third*Third          !xxxx4  DC
+          d2EpotdV2Local = d2EpotdV2Local - Epsilon1*CosTheta*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Ninth          !xxxx4  DC
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
           FZi    = FZi    + FZij
@@ -7961,11 +7965,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
             OYj = OY2(jk)
             OZj = OZ2(jk)
 
-#if ARCH == 3
-            RijInv = rsqrt( RXij**2 + RYij**2 + RZij**2 )
-#else
-            RijInv = 1._RK / sqrt( RXij**2 + RYij**2 + RZij**2 )
-#endif
+            RijInv = 1._RK / sqrt( RXij*RXij + RYij*RYij + RZij*RZij )
+
             eX = RXij * RijInv
             eY = RYij * RijInv
             eZ = RZij * RijInv
@@ -8015,7 +8016,7 @@ loop2:    do m=1,NBinsDen
             VirialLocalInter = VirialLocalInter + (FXij * PXij + FYij * PYij + FZij * PZij)
             Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
-            d2EpotdV2Local = d2EpotdV2Local + Rij3Inv*Tmp*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv*RijInv)*Third*Third         !xxxx5   DD
+            d2EpotdV2Local = d2EpotdV2Local + Rij3Inv*Tmp*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv*RijInv)*Ninth         !xxxx5   DD
 
             FXi    = FXi    + FXij
             FYi    = FYi    + FYij
@@ -8160,17 +8161,14 @@ loop3:  do j = j0, j1
           RXij = (RXij - anint( RXij )) * BoxLength
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
-          RijSquared = RXij**2 + RYij**2 + RZij**2
+          RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           if( RijSquared >= RCutoffSquared ) cycle loop3
           OXj = OX2(j)
           OYj = OY2(j)
           OZj = OZ2(j)
 
-#if ARCH == 3
-          RijInv = rsqrt( RijSquared )
-#else
           RijInv = 1._RK / sqrt( RijSquared )
-#endif
+
           eX = RXij * RijInv
           eY = RYij * RijInv
           eZ = RZij * RijInv
@@ -8194,7 +8192,7 @@ loop3:  do j = j0, j1
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
-          d2EpotdV2Local = d2EpotdV2Local + Rij3Inv*Tmp*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv*RijInv)*Third*Third         !xxxx5   DD ss
+          d2EpotdV2Local = d2EpotdV2Local + Rij3Inv*Tmp*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv*RijInv)*Ninth         !xxxx5   DD ss
 
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
@@ -9553,13 +9551,8 @@ loop1:  do k = 1, this%NInCutoff(unit)
             OXj = OX2(jk)
             OYj = OY2(jk)
             OZj = OZ2(jk)
-            RijSquared = RXij**2 + RYij**2 + RZij**2
-
-#if ARCH == 3
-            RijInv = rsqrt( RijSquared )
-#else
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             RijInv = 1._RK / sqrt( RijSquared )
-#endif
             eX = RXij * RijInv
             eY = RYij * RijInv
             eZ = RZij * RijInv
@@ -9613,7 +9606,7 @@ loop2:    do m=1,NBinsDen
             VirialLocalInter = VirialLocalInter + (FXij * PXij + FYij * PYij + FZij * PZij)
             Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
-            d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 *(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx6   DQ
+            d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 *(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Ninth    !xxxx6   DQ
 
             FXi    = FXi    + FXij
             FYi    = FYi    + FYij
@@ -9762,17 +9755,13 @@ loop3:  do j = j0, j1
           RXij = (RXij - anint( RXij )) * BoxLength
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
-          RijSquared = RXij**2 + RYij**2 + RZij**2
+          RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           if( RijSquared >= RCutoffSquared ) cycle loop3
           OXj = OX2(j)
           OYj = OY2(j)
           OZj = OZ2(j)
 
-#if ARCH == 3
-          RijInv = rsqrt( RijSquared )
-#else
           RijInv = 1._RK / sqrt( RijSquared )
-#endif
           eX = RXij * RijInv
           eY = RYij * RijInv
           eZ = RZij * RijInv
@@ -9799,7 +9788,7 @@ loop3:  do j = j0, j1
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
-          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 *(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx6   DQ ss
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1 *(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Ninth    !xxxx6   DQ ss
 
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
@@ -11132,7 +11121,7 @@ loop1:do k = 1, this%NInCutoff(unit)
           PXij = (PXij - anint( PXij )) * BoxLength
           PYij = (PYij - anint( PYij )) * BoxLength
           PZij = (PZij - anint( PZij )) * BoxLength
-          RijSquaredInv = 1._RK / ( RXij**2 + RYij**2 + RZij**2 )
+          RijSquaredInv = 1._RK / ( RXij*RXij + RYij*RYij + RZij*RZij )
           RijInv = sqrt( RijSquaredInv )
           eX = - RXij * RijInv                          ! Normierter Abstandsvektor nach Price
           eY = - RYij * RijInv
@@ -11178,7 +11167,7 @@ loop2:  do m=1,NBinsDen
           VirialLocalInter = VirialLocalInter - (FXij * PXij - FYij * PYij - FZij * PZij)
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
-          d2EpotdV2Local = d2EpotdV2Local + Epsilon1 * ( CosTheta * CosTheta - Third )*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Third*Third    !xxxx7  QC
+          d2EpotdV2Local = d2EpotdV2Local + Epsilon1 * ( CosTheta * CosTheta - Third )*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Ninth    !xxxx7  QC
 
           FXi    = FXi    - FXij
           FYi    = FYi    - FYij
@@ -12320,15 +12309,11 @@ loop1:  do k = 1, this%NInCutoff(unit)
             PXij = (PXij - anint( PXij )) * BoxLength
             PYij = (PYij - anint( PYij )) * BoxLength
             PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             OXj = OX2(jk)
             OYj = OY2(jk)
             OZj = OZ2(jk)
-#if ARCH == 3
-            RijInv = rsqrt( RijSquared )
-#else
             RijInv = 1._RK / sqrt( RijSquared )
-#endif
             eX = RXij * RijInv
             eY = RYij * RijInv
             eZ = RZij * RijInv
@@ -12382,7 +12367,7 @@ loop2:    do m=1,NBinsDen
             VirialLocalInter = VirialLocalInter + (FXij * PXij + FYij * PYij + FZij * PZij)
             Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
-            d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx8   QD
+            d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Ninth    !xxxx8   QD
 
             FXi    = FXi    + FXij
             FYi    = FYi    + FYij
@@ -12537,17 +12522,13 @@ loop3:  do j = j0, j1
           RXij = (RXij - anint( RXij )) * BoxLength
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
-          RijSquared = RXij**2 + RYij**2 + RZij**2
+          RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           if( RijSquared >= RCutoffSquared ) cycle loop3
           OXj = OX2(j)
           OYj = OY2(j)
           OZj = OZ2(j)
 
-#if ARCH == 3
-          RijInv = rsqrt( RijSquared )
-#else
           RijInv = 1._RK / sqrt( RijSquared )
-#endif
           eX = RXij * RijInv
           eY = RYij * RijInv
           eZ = RZij * RijInv
@@ -12574,7 +12555,7 @@ loop3:  do j = j0, j1
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
-          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Third*Third    !xxxx8   QD ss
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv*RijInv)*Ninth    !xxxx8   QD ss
 
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
@@ -13955,16 +13936,12 @@ loop1:  do k = 1, this%NInCutoff(unit)
             PXij = (PXij - anint( PXij )) * BoxLength
             PYij = (PYij - anint( PYij )) * BoxLength
             PZij = (PZij - anint( PZij )) * BoxLength
-            RijSquared = RXij**2 + RYij**2 + RZij**2
+            RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             OXj = OX2(jk)
             OYj = OY2(jk)
             OZj = OZ2(jk)
 
-#if ARCH == 3
-            RijInv = rsqrt( RijSquared )
-#else
             RijInv = 1._RK / sqrt( RijSquared )
-#endif
             eX = RXij * RijInv
             eY = RYij * RijInv
             eZ = RZij * RijInv
@@ -14028,7 +14005,7 @@ loop2:    do m=1,NBinsDen
             VirialLocalInter = VirialLocalInter + (FXij * PXij + FYij * PYij + FZij * PZij)
             Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
-            d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv*RijInv)*Third*Third      !xxxx9  QQ
+            d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv*RijInv)*Ninth      !xxxx9  QQ
 
             FXi    = FXi    + FXij
             FYi    = FYi    + FYij
@@ -14199,17 +14176,13 @@ loop3:  do j = j0, j1
           RXij = (RXij - anint( RXij )) * BoxLength
           RYij = (RYij - anint( RYij )) * BoxLength
           RZij = (RZij - anint( RZij )) * BoxLength
-          RijSquared = RXij**2 + RYij**2 + RZij**2
+          RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           if( RijSquared >= RCutoffSquared ) cycle loop3
           OXj = OX2(j)
           OYj = OY2(j)
           OZj = OZ2(j)
 
-#if ARCH == 3
-          RijInv = rsqrt( RijSquared )
-#else
           RijInv = 1._RK / sqrt( RijSquared )
-#endif
           eX = RXij * RijInv
           eY = RYij * RijInv
           eZ = RZij * RijInv
@@ -14250,7 +14223,7 @@ loop3:  do j = j0, j1
 
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv*RijInv
-          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv*RijInv)*Third*Third      !xxxx9  QQ ss
+          d2EpotdV2Local = d2EpotdV2Local + EPotLocal1*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv*RijInv)*Ninth     !xxxx9  QQ ss
 
           FXi    = FXi    + FXij
           FYi    = FYi    + FYij
