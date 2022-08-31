@@ -7,7 +7,6 @@
 	<compilerOption>HBOND</compilerOption>
 	<reference>
 		<file>MD_leap_hydrazineH2O_T391-x025_hbond.rst</file>
-		<relativeTolerance>2e-11</relativeTolerance>
 	</reference>
 	<reference>
 		<file>MD_leap_hydrazineH2O_T391-x025_hbond_1.res</file>

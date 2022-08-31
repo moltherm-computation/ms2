@@ -6,10 +6,11 @@
 	<np>2</np>
 	<reference>
 		<file>MC_thermoInt_meoh_1.res</file>
+		<relativeTolerance>1e-100</relativeTolerance>
 	</reference>
-	<reference>
+<!-- 	<reference>
 		<file>MC_thermoInt_meoh_1.run</file>
-	</reference>
+	</reference> -->
 	<reference>
 		<file>MC_thermoInt_meoh_1.thi</file>
 	</reference>

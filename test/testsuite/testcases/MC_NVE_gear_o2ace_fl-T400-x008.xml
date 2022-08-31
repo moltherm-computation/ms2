@@ -10,9 +10,9 @@
 	<reference>
 		<file>MC_NVE_gear_o2ace_fl-T400-x008_1.res</file>
 	</reference>
-	<reference>
+<!-- 	<reference>
 		<file>MC_NVE_gear_o2ace_fl-T400-x008_1.rav</file>
-	</reference>
+	</reference> -->
 	<reference>
 		<file>MC_NVE_gear_o2ace_fl-T400-x008_1.vim</file>
 	</reference>

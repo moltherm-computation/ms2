@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>einsteinCoef_trans_24DAT.par</parFile>
+	<name>einsteinCoef_trans_24DAT</name>
+	<np>3</np>
+	<compilerOption>
+		<name>TRANS</name>
+	</compilerOption>
+	<reference>
+		<file>einsteinCoef_trans_24DAT_1.res</file>
+	</reference>
+	<reference>
+		<file>einsteinCoef_trans_24DAT_1.rtr</file>
+	</reference>
+	<reference>
+		<file>einsteinCoef_trans_24DAT.rst</file>
+	</reference>
+	<reference>
+		<file>einsteinCoef_trans_24DAT_1.run</file>
+	</reference>
+	<reference>
+		<file>einsteinCoef_trans_24DAT_1.rav</file>
+	</reference>
+	<reference>
+		<file>einsteinCoef_trans_24DAT_1.ecoef</file>
+	</reference>
+</testcase>
