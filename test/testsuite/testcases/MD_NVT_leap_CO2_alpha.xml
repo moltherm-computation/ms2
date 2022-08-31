@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MD_NVT_leap_CO2_alpha.par</parFile>
+	<name>MD_NVT_leap_CO2_alpha</name>
+	<np>3</np>
+	<reference>
+		<file>MD_NVT_leap_CO2_alpha_1.res</file>
+	</reference>
+	<reference>
+		<file>MD_NVT_leap_CO2_alpha_1.a2rav</file>
+	</reference>
+	<reference>
+		<file>MD_NVT_leap_CO2_alpha_1.rav</file>
+	</reference>
+	<reference>
+		<file>MD_NVT_leap_CO2_alpha_1.run</file>
+	</reference>
+	<reference>
+		<file>MD_NVT_leap_CO2_alpha.rst</file>
+	</reference>
+</testcase>

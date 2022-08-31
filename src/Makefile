@@ -2,6 +2,8 @@
 # Makefile for ms2
 ########################################
 #
+#---------------------------------------
+#           see makefile/<COMPILER>.mk
 COMPILER ?= GNU
 #
 TARGET   ?= RELEASE
@@ -13,6 +15,7 @@ SPME     ?= 0
 MPI      ?= 0
 OMP      ?= 0
 SP       ?= 0
+#---------------------------------------
 #
 PROG     = ms2
 PROG     :=  $(PROG)_$(COMPILER)
@@ -144,14 +147,16 @@ endif
 
 clean:
 	rm -f $(OBJS) $(MODS)
+	#rm -f *.optrpt
 
 .SUFFIXES: .F90 .mod .o
+
 ifeq ($(COMPILER),$(filter $(COMPILER), INTEL CRAYintel))
 ifeq ($(TARGET),RELEASE)
 # reduce optimization level from standard for Intel O3 to O2
 # to prevent error 'segmentation violation signal raised'
 ms2_component.mod ms2_component.o: ms2_molecule.mod ms2_site.mod \
-                                   ms2_accumulator.mod ms2_global.mod
+                                   ms2_accumulator.mod ms2_global.mod math_types.mod
 	$(F90) $(CPPFLAGS) $(F90FLAGS) -O2 -c ms2_component.F90
 endif
 endif
@@ -185,7 +190,7 @@ ms2_idf.mod:  ms2_global.mod
 
 ms2_interaction.mod: ms2_potential.mod ms2_component.mod ms2_global.mod
 
-ms2_potential.mod: ms2_site.mod ms2_idf.mod ms2_global.mod ms2_molecule.mod  math_types.mod
+ms2_potential.mod: ms2_site.mod ms2_idf.mod ms2_global.mod  ms2_molecule.mod math_types.mod
 
 ms2_accumulator.mod: ms2_global.mod
 
