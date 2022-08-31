@@ -9,8 +9,8 @@
 !==============================================================!
 
 !****************************************************************
-!* Updates and auxiliary routines are available from            *   
-!* http://www.ms-2.de                                           *   
+!* Updates and auxiliary routines are available from            *
+!* http://www.ms-2.de                                           *
 !****************************************************************
 
 !#define USE_PRINTPROCSTATUS
@@ -200,11 +200,10 @@ module ms2_global
   ! Extension of KBI file (Kirkwood-Buff Integration)
   character(*), parameter :: KBIrdfFileExtension = '.kbirdf'
   character(*), parameter :: KBIravFileExtension = '.kbirav'
-  character(*), parameter :: KBIrunFileExtension = '.kbirun'
   
   ! Extension of alpha2 file (displacement correlation function)
   character(*), parameter :: ALPHA2ravFileExtension = '.a2rav'
-  
+
   !EinsteinCoef data extension
   character(*), parameter :: EinsteinCoefFileExtension = '.ecoef'
 
@@ -258,7 +257,6 @@ module ms2_global
   integer, parameter :: iounit_dcp       = iounit_start + 14
   integer, parameter :: iounit_kbirdf    = iounit_start + 15
   integer, parameter :: iounit_kbirav    = iounit_start + 16
-  integer, parameter :: iounit_kbirun    = iounit_start + 16
   integer, parameter :: iounit_a2rav     = iounit_start + 17
   integer, parameter :: iounit_proc      = iounit_start + 18
   integer, parameter :: iounit_ecoef     = iounit_start + 19   !EinsteinCoef
@@ -509,7 +507,7 @@ module ms2_global
   character(*), parameter :: IdCons2                       = 'Constr2'
   character(*), parameter :: IdConsR                       = 'ConstrDist'
 #endif
-  character(*), parameter :: IdOptPressure                 = 'OptPressure'
+  character(*), parameter :: IdOptPressure                 = 'CalcPressure'
   character(*), parameter :: IdCommonEqui                  = 'CommonEqui'
 
 ! Calculation of residence times
@@ -832,7 +830,7 @@ module ms2_global
   integer :: ALPHA2UpdateFrequency
   integer :: ALPHA2Length
   integer :: ALPHA2Shift
-  
+
   !EinsteinCoef variables
   logical :: EinsteinCoefCalc
 
@@ -897,7 +895,7 @@ module ms2_global
 
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
   ! Flag for catched terminate signal
-  logical :: TerminateProgram
+  logical :: TerminateProgram = .false.
 
 ! PGF compiler version < 6.0 seems to need this
 ! #if defined _PGF || defined __PGI
@@ -1257,7 +1255,10 @@ contains
     call MPI_Comm_size( Communicator_R, NProcs_R, ierror )
     call MPI_Comm_rank( Communicator_R, NProc_R, ierror )
     NRootProc_R = 0
-    RootProc_R = NProc_R == NRootProc_R
+    RootProc_R = NProc_R == NRootProc_R ! =RootProc_W
+
+    !write(IOBuffer, '("after MPI_Comm_Split: NProc_W RootProc_W=",I6,L2," NProc RootProc=",I6,L2," NProc_R RootProc_R=",I6,L2)') NProc_W, RootProc_W, NProc,RootProc, NProc_R,RootProc_R
+    !call LogWrite
 
   end subroutine Global_SplitCommunicator
 
@@ -1983,14 +1984,14 @@ contains
 !     ! Declare local variables
 !     integer, intent(in), optional      :: rank
 !     
-!     integer             :: status(MPI_STATUS_SIZE)
+!     integer             :: mpistatus(MPI_STATUS_SIZE)
 ! 
 !     
 !     if( present( rank ) .and. (rank .ne. NRootProc) ) then
 !       ! transfer IOBuffer to NRootProc
 !       call MPI_Sendrecv( IOBuffer, IOBufferLength, MPI_CHARACTER, NRootProc, mpimsgtag_log, &
 ! &                        IOBuffer, IOBufferLength, MPI_CHARACTER, rank,      mpimsgtag_log, &
-! &                        Communicator, status, ierror)
+! &                        Communicator, mpistatus, ierror)
 !       !call MPI_Barrier( Communicator, ierror )
 !     endif
 !     ! execute LogWrite on NRootProc
@@ -2217,11 +2218,11 @@ contains
     implicit none
     include 'mpif.h'
     ! Declare arguments
-    integer             :: status(MPI_STATUS_SIZE)
+    integer             :: mpistatus(MPI_STATUS_SIZE)
     integer, intent(in) :: iounit
 
     ! Write contents of buffer to file
-    call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER ,status, ierror)
+    call MPI_File_write(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)
 
 
   end subroutine Global_FileWriteNoAdvance_parallel
