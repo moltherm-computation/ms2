@@ -33,16 +33,7 @@
 
 #include "mathMacros.F90"
 
-!#if MPI_VER>1
-! #define MPI_USE_MODULE
-!#endif
-
 module ms2_component
-
-#if MPI_VER > 0 && defined(MPI_USE_MODULE)
-  use mpi
-  !use mpi_f08
-#endif
 
   use ms2_accumulator
   use ms2_global
@@ -523,6 +514,12 @@ module ms2_component
     module procedure TComponent_RestartRead
   end interface
 
+#if CONSTR > 0
+  interface CorrectGear_Constraint
+    module procedure TComponent_CorrectGear_Constraint
+  end interface
+#endif
+
 #if  TRANS == 1
 !TRANSPORT_start
   interface ForceTransport
@@ -544,7 +541,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -582,7 +579,7 @@ contains
     call FileReadParameter( this%PotModFileName, iounit_params , IdPotModFileName, .false. )
 
     ! Read mole fraction of this component
-    write( IOBuffer, '(72("-"))')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
     write( IOBuffer, '(T13, "Reading component", I3," for ensemble")') comp
     call LogWrite
@@ -638,13 +635,6 @@ contains
 &         trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
         call LogWrite
       end if
-
-    else if( EnsembleType .eq. EnsembleTypeMUVT ) then
-      ! Read chemical potential
-      call FileReadParameter( this%ChemPot0, iounit_params , IdChemPot, .false. )
-      write( IOBuffer,'("Reduced ChemPot0 of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
-      &       trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
-      call LogWrite
 
     else
       ! Read method for calculation of chemical potential
@@ -864,7 +854,7 @@ contains
 
     write( IOBuffer, '(T8, "Reading component", I3," for ensemble successful")') comp
     call LogWrite
-    write( IOBuffer, '(72("-"))')
+    write( IOBuffer, '(72(1H-))')
     call LogWrite
 
   end subroutine TComponent_Construct
@@ -1237,7 +1227,7 @@ contains
       call Construct( this%SumHM, .true. )
     end select
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Construct( this%SumFraction, .false. )
     end if
 
@@ -1294,7 +1284,7 @@ contains
       call Destruct( this%SumHM )
     end select
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumFraction )
     end if
 
@@ -2838,8 +2828,8 @@ contains
        call Error
      end if
 
-     if ( ((EnsembleType .eq. EnsembleTypeGE) .or. (EnsembleType .eq. EnsembleTypeMUVT) .or. (EnsembleType .eq. EnsembleTypeHA)) .and. (abs(q) .ge. 1e-1) ) then
-       write (ErrorBuffer,'("GrandEquilibrium not possible in a charged system, q=",G16.9)') q
+     if ( ((EnsembleType .eq. EnsembleTypeGE) .or. (EnsembleType .eq. EnsembleTypeHA)) .and. (abs(q) .ge. 1e-1) ) then
+       write (ErrorBuffer,'("GrandEquilibrium not possible in a charged system")') q
        call Error
      end if
 
@@ -3086,7 +3076,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -3721,7 +3711,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -3959,7 +3949,15 @@ contains
 
     end do
 
+    ! Add forces and torques by demand
 #if MPI_VER > 0
+!     do i = 1, i0-1
+!       if ( this%NAdd(i) ) call Atom2Mol1(this,i)
+!     end do
+!     do i = i1, this%NPart
+!       if ( this%NAdd(i) ) call Atom2Mol1(this,i)
+!     end do
+
     ! Reduce forces and torques from all processes
     call MPI_Reduce( this%F(:, :, :), this%FAll(:, :, :), size( this%F ), MPI_RK, MPI_SUM, NRootProc, Communicator, ierror )
     if( this%Molecule%isElongated ) &
@@ -4181,7 +4179,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -4847,7 +4845,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -5503,22 +5501,10 @@ loop1:do i = 1, this%NPart
     integer            :: selected, i
 
     ! Test boundaries of particle arrays
-    if( this%NPart >= this%NPartMax .and. EnsembleType .eq. EnsembleTypeGE ) then
+    if( this%NPart > this%NPartMax ) then
       tooManyParticles = .true.
       return
-    end if
-
-    if( this%NPart >= this%NPartMax .and. EnsembleType .eq. EnsembleTypeMUVT ) then
-      tooManyParticles = .true.
-      return
-    end if
-
-    if( this%NPart > this%NPartMax .and. EnsembleType .ne. EnsembleTypeGE) then
-      tooManyParticles = .true.
-      return
-    end if
-
-    if( this%NPart > this%NPartMax .and. EnsembleType .ne. EnsembleTypeMUVT) then
+    elseif( this%NPart == this%NPartMax .and. EnsembleType .eq. EnsembleTypeGE ) then
       tooManyParticles = .true.
       return
     end if
@@ -5925,7 +5911,7 @@ loop1:do i = 1, this%NPart
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -5953,7 +5939,7 @@ loop1:do i = 1, this%NPart
       ! Centers of mass positions
       do i = 1, np
         do k = 1, nu
-          read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%P0( i, j, k ),j=1,3)
+          read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P0( i, :, k )
         end do
       end do
 
@@ -5976,45 +5962,45 @@ loop1:do i = 1, this%NPart
         ! Centers of mass positions' derivatives
         do i = 1, np
           do k = 1, nu
-            read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%P1( i, j, k),j=1,3)
+            read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P1( i, : , k )
           end do
         end do
 
         do i = 1, np
           do k = 1, nu
-            read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%P2( i, j, k),j=1,3)
+            read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P2( i, : , k )
           end do
         end do
 
         if( IntegratorType .eq. IntegratorTypeGear ) then
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%P3( i, j, k),j=1,3)
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P3( i, :, k )
             end do
           end do
 
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%P4( i, j, k),j=1,3)
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P4( i, :, k )
             end do
           end do
 
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%P5( i, j, k),j=1,3)
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%P5( i, :, k )
             end do
           end do
         end if
 
         if (.not. printIDF) then
             do i = 1, np
-              read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%Disp( i, j ),j=1,3)
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%Disp( i, : )
             end do
 
             if( ALPHA2UpdateFrequency > 0 ) then
               do i = 1, np
                 do j = 0, ALPHA2Length/ALPHA2Shift-1
-                  read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) this%ri0_x(i,j),this%ri0_y(i,j),this%ri0_z(i,j)
+                  read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%ri0_x(i,j),this%ri0_y(i,j),this%ri0_z(i,j)
                 end do
               end do
             end if
@@ -6024,7 +6010,7 @@ loop1:do i = 1, this%NPart
          if( (TransMethod .eq. GKEinstein) .or. (TransMethod .eq. Einstein) ) then
              do i = 1, np
                do j = 0, this%NEinstein-1
-                 read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) this%ri0_E_x(i,j),this%ri0_E_y(i,j),this%ri0_E_z(i,j)
+                 read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%ri0_E_x(i,j),this%ri0_E_y(i,j),this%ri0_E_z(i,j)
                end do
              end do
          end if
@@ -6044,7 +6030,7 @@ loop1:do i = 1, this%NPart
         ! Quaternion parameters
         do i = 1, np
           do k = 1, nu
-            read( iounit_restart, '(4(ES20.12E3, :, 1X))' ) (this%Q0( i, j, k),j=1,4)
+            read( iounit_restart, '(4(ES20.12E3, :, X))' ) this%Q0( i, :, k )
           end do
         end do
 
@@ -6052,26 +6038,26 @@ loop1:do i = 1, this%NPart
           ! Quaternion parameters' derivatives
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(4(ES20.12E3, :, 1X))' ) (this%Q1( i, j, k),j=1,4)
+              read( iounit_restart, '(4(ES20.12E3, :, X))' ) this%Q1( i, :, k )
             end do
           end do
 
           if( IntegratorType .eq. IntegratorTypeGear ) then
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(4(ES20.12E3, :, 1X))' ) (this%Q2( i, j, k),j=1,4)
+                read( iounit_restart, '(4(ES20.12E3, :, X))' ) this%Q2( i, :, k )
               end do
             end do
 
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(4(ES20.12E3, :, 1X))' ) (this%Q3( i, j, k),j=1,4)
+                read( iounit_restart, '(4(ES20.12E3, :, X))' ) this%Q3( i, :, k )
               end do
             end do
 
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(4(ES20.12E3, :, 1X))' ) (this%Q4( i, j, k),j=1,4)
+                read( iounit_restart, '(4(ES20.12E3, :, X))' ) this%Q4( i, :, k )
               end do
             end do
           end if
@@ -6079,32 +6065,32 @@ loop1:do i = 1, this%NPart
           ! Angular velocities and their derivatives
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%W0( i, j, k),j=1,3)
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%W0( i, :, k )
             end do
           end do
 
           do i = 1, np
             do k = 1, nu
-              read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%W1( i, j, k),j=1,3)
+              read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%W1( i, :, k )
             end do
           end do
 
           if( IntegratorType .eq. IntegratorTypeGear ) then
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%W2( i, j, k),j=1,3)
+                read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%W2( i, : , k)
               end do
             end do
 
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%W3( i, j, k),j=1,3)
+                read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%W3( i, : , k)
               end do
             end do
 
             do i = 1, np
               do k = 1, nu
-                read( iounit_restart, '(3(ES20.12E3, :, 1X))' ) (this%W4( i, j, k),j=1,3)
+                read( iounit_restart, '(3(ES20.12E3, :, X))' ) this%W4( i, : , k)
               end do
             end do
 
@@ -6191,7 +6177,7 @@ subroutine TComponent_ForceTransport( this )
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -6274,6 +6260,76 @@ subroutine TComponent_ForceTransport( this )
 
   end subroutine TComponent_ForceTransport
 !TRANSPORT_END
+
+
+#if CONSTR > 0
+!==============================================================!
+!  Subroutine TComponent_CorrectGear                           !
+!==============================================================!
+
+  subroutine TComponent_CorrectGear_Constraint(this,aa,dLogVolumeThird,Forc,drx,dry,drz )
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0
+    include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TComponent)         :: this
+    real(RK),intent(in)      :: dLogVolumeThird
+    integer,intent (in)      :: aa
+    real(RK), intent(in out) :: Forc
+    real(RK),intent(in)      :: drx,dry,drz
+
+    ! Declare local variables
+    real(RK)          :: BoxLength
+    real(RK)          :: Mass
+    real(RK)          :: np
+    real(RK)          :: ff
+    real(RK)          :: Corr0,Corr0ff,Corr1
+    real(RK)          :: dr(3)
+    integer           :: i, j
+
+    ! Assign local variables
+    BoxLength = this%BoxLength
+    Mass = this%Molecule%Mass
+    np = 2
+    dr(1) = drx
+    dr(2) = dry
+    dr(3) = drz
+
+    ! Correct COM positions and their derivatives
+    do j = 1, 3,1
+
+      Corr1 = + dr(j) / Gear20
+      Corr0 = Corr1 + this%P2(aa,j)
+
+      Corr0ff = Corr0
+      if (ConstantPressure .and. .not. NVTEquilibration) Corr0ff = Corr0ff + this%P1(aa,j)*dLogVolumeThird
+
+        ff = Corr0ff * BoxLength* Mass / TimeStepSquared2
+        Forc = Forc + ff
+        this%P0(aa, j) = this%P0(aa, j) + Corr1 * Gear20
+
+        ! Check for conservation of particles in primary cell
+
+#if ARCH == 1
+        if( this%P0(aa, j) < -.5_RK ) then
+          this%P0(aa, j) = this%P0(aa, j) + 1._RK
+        elseif( this%P0(i, j) > .5_RK ) then
+          this%P0(aa, j) = this%P0(aa, j) - 1._RK
+        end if
+#else
+        this%P0(aa, j) = this%P0(aa, j) - anint( this%P0(aa, j) )
+#endif
+        this%P0old(aa, j) = this%P0(aa, j)
+    end do
+
+  end subroutine TComponent_CorrectGear_Constraint
+
+#endif
 
 
 !==============================================================!

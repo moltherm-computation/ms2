@@ -275,7 +275,7 @@ end type TSiteTT68
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK)          :: r(3), or(3)
+    real(RK),pointer  :: r(:), or(:)
     real(RK)          :: Q
     real(RK)          :: mass
     real(RK)          :: shield

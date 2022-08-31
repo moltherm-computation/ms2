@@ -48,9 +48,7 @@
 ! the MPI2 standard requires the support of a mpi module (see 16.2),
 ! but some MPI1 distributions don't offer a Fortran90 binding and won't compile
 ! uncomment the next line, if you have a MPI distribution for MPI>=version 2
-!#if MPI_VER>1
-! #define MPI_USE_MODULE
-!#endif
+!#define MPI_USE_MODULE
 #define STOPWATCH_USE_MPIWTIME
 #endif
 
@@ -78,7 +76,6 @@ module ms2_stopwatch
 
 #ifdef MPI_USE_MODULE
   use mpi
-  !use mpi_f08	! needs to adjust types (e.g. Integer->MPI_Comm etc.)
 #endif
 
   use ms2_global
@@ -95,24 +92,24 @@ module ms2_stopwatch
   integer, parameter :: tag_string_length = 64
 
 
-  !integer, parameter :: CStopwatch_omitDATIME = int(B'1')
+  !integer, parameter :: CStopwatch_omitDATIME = B'1'
   integer, parameter :: CStopwatch_omitDATIME = 1
-  !integer, parameter :: CStopwatch_omitCPUTIME = int(B'10')
+  !integer, parameter :: CStopwatch_omitCPUTIME = B'10'
   integer, parameter :: CStopwatch_omitCPUTIME = 2
-  !integer, parameter :: CStopwatch_omitSYSCLK = int(B'100')
+  !integer, parameter :: CStopwatch_omitSYSCLK = B'100'
   integer, parameter :: CStopwatch_omitSYSCLK = 4
-  !integer, parameter :: CStopwatch_omitETIME = int(B'1000')
+  !integer, parameter :: CStopwatch_omitETIME = B'1000'
   integer, parameter :: CStopwatch_omitETIME = 8
-  !integer, parameter :: CStopwatch_omitPAPI = int(B'10000')
+  !integer, parameter :: CStopwatch_omitPAPI = B'10000'
   integer, parameter :: CStopwatch_omitPAPI = 16
-  !integer, parameter :: CStopwatch_omitMPIWTIME = int(B'100000')
+  !integer, parameter :: CStopwatch_omitMPIWTIME = B'100000'
   integer, parameter :: CStopwatch_omitMPIWTIME = 32
 
-  !integer, parameter :: CStopwatch_doMPIStartBarrier = int(B'100000000')
+  !integer, parameter :: CStopwatch_doMPIStartBarrier = B'100000000'
   integer, parameter :: CStopwatch_doMPIStartBarrier = 256
-  !integer, parameter :: CStopwatch_doMPIStopBarrier = int(B'1000000000')
+  !integer, parameter :: CStopwatch_doMPIStopBarrier = B'1000000000'
   integer, parameter :: CStopwatch_doMPIStopBarrier = 512
-  !integer, parameter :: CStopwatch_doMPIReduce = int(B'10000000000')
+  !integer, parameter :: CStopwatch_doMPIReduce = B'10000000000'
   integer, parameter :: CStopwatch_doMPIReduce = 1024
 
 

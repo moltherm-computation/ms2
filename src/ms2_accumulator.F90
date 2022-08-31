@@ -22,17 +22,7 @@
 !DEC$ MESSAGE:'Compiling ms2_accumulator.F90...'
 #endif
 
-!#if MPI_VER>1
-! #define MPI_USE_MODULE
-!#endif
-
-
 module ms2_accumulator
-
-#if MPI_VER > 0 && defined(MPI_USE_MODULE)
-  use mpi
-  !use mpi_f08
-#endif
 
   use ms2_global
 
@@ -183,7 +173,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -345,7 +335,7 @@ contains
 
     implicit none
     
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
   include 'mpif.h'
 #endif
 
@@ -484,7 +474,7 @@ contains
   subroutine TAccumulator_ErrorGI( this )
 
     implicit none
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
   include 'mpif.h'
 #endif
     ! Declare arguments
@@ -633,7 +623,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -650,7 +640,7 @@ contains
       read( iounit_restart, '(I10)' ) i
       !read( iounit_restart, '(ES20.12E3, X, I10)' ) ( this%BlockSum(j), this%NBlockSum(j), j = 1, i )
       do j = 1, i ! should be equivalent to the previous line, which produced an "input conversion error"
-        read( iounit_restart, '(ES20.12E3, 1X, I10)' ) this%BlockSum(j), this%NBlockSum(j)
+        read( iounit_restart, '(ES20.12E3, X, I10)' ) this%BlockSum(j), this%NBlockSum(j)
       end do
     endif
     

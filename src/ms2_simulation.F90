@@ -31,16 +31,7 @@
 !DEC$ MESSAGE:'Compiling ms2_simulation.F90...'
 #endif
 
-!#if MPI_VER>1
-! #define MPI_USE_MODULE
-!#endif
-
 module ms2_simulation
-
-#if MPI_VER > 0 && defined(MPI_USE_MODULE)
-  use mpi
-  !use mpi_f08
-#endif
 
   use ms2_global
   use ms2_ensemble
@@ -67,8 +58,6 @@ module ms2_simulation
     !integer :: mpireqbcastTerm=MPI_REQUEST_NULL, mpireqmsgTerm=MPI_REQUEST_NULL
     integer :: mpireqbcastTerm=0, mpireqmsgTerm=0
     integer :: TerminateStatus_bcast=0, TerminateStatus_msg=0
-    integer :: TerminateCountdown=0
-    logical :: doneTerminateCountdown=.false.
 #endif
     !
 
@@ -261,7 +250,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -288,7 +277,7 @@ contains
     ! Read configuration file
 #if ARCH == 1 || ARCH == 2 || ARCH == 3
     if( Restart ) then
-      write( IOBuffer, '("Restarting ",A," using ",A,"_*",A," files")' ) &
+      write( IOBuffer, '("Restarting ",A," using ",A,"_*.",A," files")' ) &
 &            trim( ParameterFileName ),trim(OutputNameTag),RestartFileExtension
       call LogWrite
 
@@ -333,20 +322,16 @@ contains
 !    call LogWriteBlank
 
     ! Open parameter file for reading
-    call FileReset( iounit_params, trim(ParameterFileName) )
+    call FileReset( iounit_params, ParameterFileName )
     ! Read parVersionNr
     call FileReadParameter( parVersionNr, iounit_params , IdparVersionNr, .true., 1.0_RK )
-    if ( parVersionNr .lt. 0 ) then
-      write( IOBuffer, '("Remark: No ms2-version given within your parameter file - unable to check")' )
+    write( IOBuffer, '("File created with/for ms2-version: ",T38, F6.3)' ) parVersionNr
+    call LogWrite
+    if ( parVersionNr .lt. ms2VersionNr ) then
+      write( IOBuffer, '("Hint: Your ms2-version is newer than your parameter file, consider updating it.")' )
       call LogWrite
-    else
-      write( IOBuffer, '("File created with/for ms2-version: ",T38, F6.3)' ) parVersionNr
-      call LogWrite
-      if ( parVersionNr .lt. ms2VersionNr ) then
-        write( IOBuffer, '("Hint: Your ms2-version is newer than your parameter file, consider updating it.")' )
-        call LogWrite
-      endif
-    end if
+    endif
+
     call LogWriteBlank
     write( IOBuffer, '(72(1H-))')
     call LogWrite
@@ -607,18 +592,11 @@ contains
         ConstantTemperature = .true.
         ConstantPressure = .true.
         EnsembleTypeString = 'Humid Air'
-
-      case( 'NPTSVC', 'nptsvc' )
+    case( 'NPTSVC', 'nptsvc' )
         EnsembleType = EnsembleTypeNPTSVC
         ConstantTemperature = .true.
         ConstantPressure = .true.
         EnsembleTypeString = 'NpT + SVC'
-
-      case( 'MUVT', 'muvt' )
-        EnsembleType = EnsembleTypeMUVT
-        ConstantTemperature = .true.
-        ConstantPressure = .false.
-        EnsembleTypeString = 'MUVT'
 
       case default
         call Error( trim( str )//' ensemble is not implemented' )
@@ -632,7 +610,7 @@ contains
 &         call Error( trim( SimulationTypeString )//" simulation of " &
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
 
-      if( (EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA) &
+      if( (EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeHA) &
 &         .and. .not. SimulationType .eq. MonteCarlo ) &
 &         call Error( trim( SimulationTypeString )//" simulation of " &
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
@@ -716,11 +694,6 @@ contains
       else if( EnsembleType .eq. EnsembleTypeGE ) then
         call FileReadParameter( NStepsP, iounit_params , IdNStepsMue, .true., 0 )
         write( IOBuffer, '("Number of GE equilibration steps: ",T40, I7)' ) NStepsP
-        call LogWrite
-
-      else if( EnsembleType .eq. EnsembleTypeMUVT ) then
-        call FileReadParameter( NStepsP, iounit_params , IdNStepsMue, .true., 0 )
-        write( IOBuffer, '("Number of MUVT equilibration steps: ",T40, I7)' ) NStepsP
         call LogWrite
 
       else
@@ -1170,14 +1143,11 @@ contains
         
         if ( RootProc) then
           if ( RootProc_R ) then
-            this%TerminateCountdown=NProcs_R    !=NCommunicators
             ! RootProc_W subcommunicator root starts receiving a TerminateStatus message
-            call MPI_Irecv(this%TerminateStatus_msg, 1, MPI_INTEGER, MPI_ANY_SOURCE, mpimsgtag_simTerm, &
-&                          Communicator_R, this%mpireqmsgTerm, ierror)
+            call MPI_Irecv(this%TerminateStatus_msg, 1, MPI_INTEGER, MPI_ANY_SOURCE, mpimsgtag_simTerm, Communicator_R, this%mpireqmsgTerm, ierror)
           else ! (RootProc.and.).not.RootProc_R
             ! non_RootProc_R subcommunicator roots start receiving TerminateStatus broadcast of TerminateStatus before the loop
-            call MPI_Ibcast(this%TerminateStatus_bcast, 1, MPI_INTEGER, NRootProc_R, &
-&                           Communicator_R, this%mpireqbcastTerm, ierror)
+            call MPI_Ibcast(this%TerminateStatus_bcast, 1, MPI_INTEGER, NRootProc_R, Communicator_R, this%mpireqbcastTerm, ierror)
           end if
         end if
       
@@ -1512,7 +1482,7 @@ contains
         deallocate( ArrdBdT )
         deallocate( ArrChemPot )
         deallocate( ArrPartMolVol )
-        !call Destruct( this ) ! known issue in master, see issue #66
+        call Destruct( this )
     endif
   end subroutine TSimulation_Destruct
 
@@ -1574,7 +1544,7 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -1731,7 +1701,7 @@ contains
               endif
 
               if (Equilibration) then
-                if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT) NStepsP = 1
+                if( EnsembleType .eq. EnsembleTypeGE ) NStepsP = 1
                 if( ConstantPressure ) then 
                   if(EnsembleType .eq. EnsembleTypeNPH ) then
                     NStepsH = 1
@@ -1784,6 +1754,10 @@ contains
         if ( (LongRange .eq. Ewald) .or. (LongRange .eq. PME) ) then
           this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
         end if
+
+         ! Set all potential energy matrices
+         call Energy( this%Ensemble(j), this%Ensemble(j)%EPot )
+         call UpdateEnergy( this%Ensemble(j) )
 
       end do
     endif   ! SimulationType .eq. MonteCarlo
@@ -1948,7 +1922,7 @@ eqloop: do
               Equilibration = .false.
 
             else
-              write( IOBuffer, '("GE equilibration ended with too many/too few particles")' )
+              write( IOBuffer, '("GE equilibration ended with too many/too less particles")' )
               call LogWriteTime
               write( IOBuffer, '("Restarting equilibration")' )
               call LogWrite
@@ -1961,32 +1935,6 @@ eqloop: do
 
           else
             write( IOBuffer, '("GE equilibration TERMINATED")' )
-          end if
-          call LogWriteTime
-
-        else if( EnsembleType .eq. EnsembleTypeMUVT ) then
-          StepEnd = NStepsP
-
-          call LogWriteBlank
-          if( Restart ) then
-            write( IOBuffer, '("Resuming MUVT equilibration")' )
-            Restart = .false.
-          else
-            write( IOBuffer, '("Starting MUVT equilibration")' )
-          end if
-
-          call Timer_setTag(RunStepsTimer,"MUVT equilibration")
-          call start_Timer(RunStepsTimer)
-          call logwritestart_Timer(RunStepsTimer)
-          call RunSteps( this, StepStart, StepEnd )
-          call stop_Timer(RunStepsTimer)
-          call logwritestop_Timer(RunStepsTimer)
-
-          if( .not. TerminateProgram ) then
-            write( IOBuffer, '("MUVT equilibration completed")' )
-            Equilibration = .false.
-          else
-            write( IOBuffer, '("MUVT equilibration TERMINATED")' )
           end if
           call LogWriteTime
 
@@ -2013,7 +1961,7 @@ eqloop: do
               write( IOBuffer, '("HA equilibration completed")' )
               Equilibration = .false.
             else
-              write( IOBuffer, '("HA equilibration ended with too many/too few particles")' )
+              write( IOBuffer, '("HA equilibration ended with too many/too less particles")' )
               call LogWriteTime
               write( IOBuffer, '("Restarting equilibration")' )
               call LogWrite
@@ -2028,7 +1976,7 @@ eqloop: do
           end if
           call LogWriteTime
 
-        else if( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) then
+        else if( EnsembleType .eq. EnsembleTypeNPT ) then
           StepEnd = NStepsP
           call LogWriteBlank
           if( Restart ) then
@@ -2106,7 +2054,7 @@ eqloop: do
               Equilibration = .false.
 
             else
-              write( IOBuffer, '("Gibbs equilibration ended with too many/too few particles")' )
+              write( IOBuffer, '("Gibbs equilibration ended with too many/too less particles")' )
               call LogWriteTime
               write( IOBuffer, '("Restarting equilibration")' )
               call LogWrite
@@ -2159,7 +2107,28 @@ eqloop: do
     ! (the equilibration is finished. From now on, every process runs its own simulation etc.)
 #if MPI_VER > 0 
     if (SimulationType .eq. MonteCarlo .and. CommonEqui) then 
-
+      
+      do k = this%firstEnsembleIdx, this%lastEnsembleIdx
+          do i = 1, this%Ensemble(k)%NRealComponents
+            do j = 1, this%Ensemble(k)%NRealComponents
+              pi => this%Ensemble(k)%Interaction(j, i)
+              n1 = pi%NPart1 * pi%NUnit1
+              n2 = pi%NPart2 * pi%NUnit2
+        
+              call MPI_Allreduce( pi%EPot(1:n1, 1:n2), pi%EPotNew(1:n1, 1:n2), n1*n2 , &
+&                  MPI_RK, MPI_SUM, Communicator, ierror )
+              pi%EPot(1:n1, 1:n2) =  pi%EPotNew(1:n1, 1:n2)
+       
+              if ( this%Ensemble(k)%OptPressure ) then
+                call MPI_Allreduce( pi%Virial(1:n1, 1:n2) ,pi%VirialNew(1:n1, 1:n2), n1*n2 , &
+&                    MPI_RK, MPI_SUM, Communicator, ierror )
+                pi%Virial(1:n1, 1:n2)  =  pi%VirialNew(1:n1, 1:n2)
+              endif
+            end do
+          end do
+      end do
+      
+      
       if (multNodes) then
       
         if (RootProc) then
@@ -2231,7 +2200,10 @@ eqloop: do
         if ( (LongRange .eq. Ewald) .or. (LongRange .eq. PME) ) then
           this%Ensemble(j)%NBox1 = ProcRange( this%Ensemble(j)%BoxenAnzahlMax, this%Ensemble(j)%NBox0, this%Ensemble(j)%NBox2 )
         end if
-
+        
+        ! Set all potential energy matrices
+        call Energy( this%Ensemble(j), this%Ensemble(j)%EPot )
+        call UpdateEnergy( this%Ensemble(j) )
       end do
 
 
@@ -2334,11 +2306,10 @@ eqloop: do
 !            end if
 !          end if
           !                             1 irecv is received or pending
-          !do i = 1, this%numMsgTerm_send-max(this%numMsgTerm_recv,1)
-          do i = 1, this%numMsgTerm_send-(this%numMsgTerm_recv+1)
+          do i = 1, this%numMsgTerm_send-max(this%numMsgTerm_recv,1)
             call MPI_Recv(TerminateStatus, 1, MPI_INTEGER, MPI_ANY_SOURCE, mpimsgtag_simTerm, Communicator_R, ierror)
-            if (IAND(TerminateStatus,1).eq.1) TerminateProgram=.true.   !int(b'1')
-            if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.   !int(b'10')
+            if (IAND(TerminateStatus,1).eq.1) TerminateProgram=.true.
+            if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.
           end do
         else ! RootProc.and..not.RootProc_R
           !if ( .not. this%doneMsgTerm .and. NProc_R.eq.1 ) then ! only works if NRootProc_R.ne.1 (NRootProc_R==0)
@@ -2348,13 +2319,11 @@ eqloop: do
 !              call LogWriteTime
               this%TerminateStatus_msg=TerminateStatus
               !    MPI_Bsend should also work and doesn't require the MPI_Wait
-              call MPI_ISend(this%TerminateStatus_msg, 1, MPI_INTEGER, NRootProc_R, mpimsgtag_simTerm, &
-&                            Communicator_R, this%mpireqmsgTerm, ierror)
+              call MPI_ISend(this%TerminateStatus_msg, 1, MPI_INTEGER, NRootProc_R, mpimsgtag_simTerm, Communicator_R, this%mpireqmsgTerm, ierror)
               this%doneMsgTerm=.true.
               this%numMsgTerm_send = this%numMsgTerm_send + 1
           end if
-          call MPI_Reduce(this%numMsgTerm_send, this%numMsgTerm_send, 1, MPI_INTEGER, MPI_SUM, NRootProc_R, &
-&                         Communicator_R, ierror )
+          call MPI_Reduce( this%numMsgTerm_send, this%numMsgTerm_send, 1, MPI_INTEGER, MPI_SUM, NRootProc_R, Communicator_R, ierror )
         end if
         if ( this%doneMsgTerm ) then
           call MPI_Wait(this%mpireqmsgTerm, mpistatus, ierror)
@@ -2382,11 +2351,11 @@ eqloop: do
         end if
       end if    ! RootProc
 
-      if (TerminateProgram) TerminateStatus=IOR(TerminateStatus,1)  !int(b'1')
-      if (tooManyParticles) TerminateStatus=IOR(TerminateStatus,2)  !int(b'10')
+      if (TerminateProgram) TerminateStatus=IOR(TerminateStatus,1)
+      if (tooManyParticles) TerminateStatus=IOR(TerminateStatus,2)
       call MPI_Allreduce( MPI_IN_PLACE, TerminateStatus, 1, MPI_INTEGER, MPI_BOR, MPI_COMM_WORLD, ierror )
-      if (IAND(TerminateStatus,1).eq.1) TerminateProgram=.true. !int(b'1')
-      if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true. !int(b'10')
+      if (IAND(TerminateStatus,1).eq.1) TerminateProgram=.true.
+      if (IAND(TerminateStatus,2).eq.2) tooManyParticles=.true.
     end if  ! NCommunicators > 1
 #endif
 
@@ -2420,7 +2389,7 @@ eqloop: do
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -2484,6 +2453,8 @@ eqloop: do
         NBlockSizesKBI = int( sqrt( real( Step / BlockSizeKBI, RK ) ) )
       end if
       
+      if (mod(Step,1000)==0) then
+end if
       ! Run simulation step
       select case( SimulationType )
       case( MolecularDynamics )
@@ -2524,22 +2495,16 @@ eqloop: do
       call MPI_Allreduce( this%terminate_cc_multiensemble, stop_cc_simulation, 1, MPI_INTEGER, MPI_SUM, Communicator, ierror )
       ! ???
       !DC NOTE- perform the check in MPI context
-!      if ( stop_cc_simulation .ge. this%NEnsembles ) then
-!#ifdef __INTEL_COMPILER
-!        call MPI_Bcast(err,1,MPI_INTEGER,NRootProc,Communicator,ierror)
-!        err = SetTerminateProgram( 1 )
-!#else
-!        call MPI_Bcast(err,1,MPI_INTEGER,NRootProc,Communicator,ierror)
-!        call SetTerminateProgram
-!#endif
-!      end if
-      if ( stop_cc_simulation .gt. this%lastEnsembleIdx - this%firstEnsembleIdx ) then
-        if (NCommunicators > 1) then
-          if (.not. this%doneTerminateCountdown) TerminateStatus=IOR(TerminateStatus,4)  !int(b'100')
-        else
-          TerminateProgram= .true.
-        end if
+      if ( stop_cc_simulation .ge. this%NEnsembles ) then
+#ifdef __INTEL_COMPILER
+        call MPI_Bcast(err,1,MPI_INTEGER,NRootProc,Communicator,ierror)
+        err = SetTerminateProgram( 1 )
+#else
+        call MPI_Bcast(err,1,MPI_INTEGER,NRootProc,Communicator,ierror)
+        call SetTerminateProgram
+#endif
       end if
+
 #else
       !DC NOTE- Single Abortion
       !DC NOTE- perform the check in serial context
@@ -2556,74 +2521,38 @@ eqloop: do
 #if MPI_VER > 0
       if (NCommunicators > 1 ) then
         ! transfer termination information to TerminateStatus, delete the flags and wait for the broadcast...
-        if (TerminateProgram) TerminateStatus=IOR(TerminateStatus,1)  !int(b'1')
-        if (tooManyParticles) TerminateStatus=IOR(TerminateStatus,2)  !int(b'10')
+        if (TerminateProgram) TerminateStatus=IOR(TerminateStatus,1)
+        if (tooManyParticles) TerminateStatus=IOR(TerminateStatus,2)
         ! terminate solely after the terminate broadcast was received
         TerminateProgram= .false.
         tooManyParticles= .false.
         !call MPI_Allreduce( MPI_IN_PLACE, TerminateStatus, 1, MPI_INTEGER, MPI_BOR, Communicator, ierror )
         if ( RootProc ) then
           call MPI_Reduce( MPI_IN_PLACE, TerminateStatus, 1, MPI_INTEGER, MPI_BOR, NRootProc, Communicator, ierror )
-          !if ( .not. this%doneMsgTerm ) then  ! due to TerminateCountdown several messages might be received
+          if ( .not. this%doneMsgTerm ) then
             if ( RootProc_R ) then ! RootProc.and.RootProc_R
-              if (IAND(TerminateStatus,4).eq.4 .and. .not. this%doneTerminateCountdown) then  !int(b'100')
-                this%TerminateCountdown=this%TerminateCountdown-1
-                TerminateStatus=IBCLR(TerminateStatus,2)  !=IEOR(TerminateStatus,int(b'100'))
-                write( IOBuffer, '("PE ",I0,"(W) termination countdown: ",I0," remaining (step ",I0,"/",I0,")")' ) &
-&                      NProc_W, this%TerminateCountdown, Step, StepTotal
-                call LogWriteTime
-                this%doneTerminateCountdown=.true.
-              end if
-              TerminateStatus=IBCLR(TerminateStatus,2)  !=IEOR(TerminateStatus,int(b'100'))
               !    MPI_Iprobe &MPI_Recv afterwards (instead of MPI_Irecv before) should also work
-              do i=1,this%TerminateCountdown
-                call MPI_Test(this%mpireqmsgTerm, this%doneMsgTerm, mpistatus, ierror)
-                if ( this%doneMsgTerm ) then
-!                  write( IOBuffer, '("PE ",I0,"(W) received message with termination status (",B0,") within step ",I0,"/",I0)' ) &
-!&                        NProc_W, this%TerminateStatus_msg, Step, StepTotal
-!                  call LogWriteTime
-                  this%numMsgTerm_recv = this%numMsgTerm_recv + 1
-                  if (IAND(this%TerminateStatus_msg,4).eq.4) then  !int(b'100')
-                    this%TerminateCountdown=this%TerminateCountdown-1
-!                    write( IOBuffer, '("PE ",I0,"(W) received countdown termination message (",I0," to go) within step ",I0,"/",I0)' ) &
-!&                          NProc_W, this%TerminateCountdown, Step, StepTotal
-!                    call LogWriteTime
-                    if(this%TerminateStatus_msg .eq. 4) then  !int(b'100')
-                      this%doneMsgTerm=.false.
-                      call MPI_Irecv(this%TerminateStatus_msg, 1, MPI_INTEGER, MPI_ANY_SOURCE, mpimsgtag_simTerm, &
-&                                    Communicator_R, this%mpireqmsgTerm, ierror)  ! receive again
-                    end if
-                    this%TerminateStatus_msg=IBCLR(this%TerminateStatus_msg,2)
-                  end if
-                  TerminateStatus=IOR(TerminateStatus,this%TerminateStatus_msg)
-                end if
-              end do
-              if (this%TerminateCountdown .le. 0) then
-!                write( IOBuffer, '("PE ",I0,"(W) final termination countdown within step ",I0,"/",I0)' ) &
-!&                      NProc_W, Step, StepTotal
+              call MPI_Test(this%mpireqmsgTerm, this%doneMsgTerm, mpistatus, ierror)
+              if ( this%doneMsgTerm ) then
+!                write( IOBuffer, '("PE ",I0,"(W) received message with termination status (",B0,") within step ",I0,"/",I0)' ) &
+!&                      NProc_W, this%TerminateStatus_msg, Step, StepTotal
 !                call LogWriteTime
-                TerminateStatus=IOR(TerminateStatus,4)  !int(b'100')
+                TerminateStatus=this%TerminateStatus_msg
+                this%doneMsgTerm=.true.
+                this%numMsgTerm_recv = this%numMsgTerm_recv + 1
               end if
             else ! RootProc .and. .not.RootProc_W
-              !if (TerminateStatus /= 0) then
-              if (IAND(TerminateStatus,int(b'11')).gt.0 .or. (IAND(TerminateStatus,4).eq.4 &
-&                 .and. .not. this%doneTerminateCountdown)) then
+              if (TerminateStatus /= 0) then
                  this%TerminateStatus_msg=TerminateStatus
-                write( IOBuffer, '("PE ",I0,"(W) sending message with termination status (",B0,") within step ",I0,"/",I0)' ) &
-&                      NProc_W, this%TerminateStatus_msg, Step, StepTotal
-                call LogWriteTime
-                if (this%doneMsgTerm) call MPI_Wait(this%mpireqmsgTerm, mpistatus, ierror)
-                call MPI_ISend(this%TerminateStatus_msg, 1, MPI_INTEGER, NRootProc_R, mpimsgtag_simTerm, &
-&                              Communicator_R, this%mpireqmsgTerm, ierror)
-                this%numMsgTerm_send = this%numMsgTerm_send + 1
-                if (IAND(TerminateStatus,4).eq.4) then  !int(b'100')
-                  TerminateStatus=IBCLR(TerminateStatus,2)  !=IEOR(TerminateStatus,int(b'100'))
-                  this%doneTerminateCountdown=.true.
-                end if
+!                write( IOBuffer, '("PE ",I0,"(W) sending message with termination status (",B0,") within step ",I0,"/",I0)' ) &
+!&                      NProc_W, this%TerminateStatus_msg, Step, StepTotal
+!                call LogWriteTime
+                call MPI_ISend(this%TerminateStatus_msg, 1, MPI_INTEGER, NRootProc_R, mpimsgtag_simTerm, Communicator_R, this%mpireqmsgTerm, ierror)
                 this%doneMsgTerm=.true.
+                this%numMsgTerm_send = this%numMsgTerm_send + 1
               end if
             end if
-          !end if
+          end if
           if ( .not. this%doneBcastTerm ) then
             if ( RootProc_R ) then ! RootProc.and.RootProc_R
               if (TerminateStatus /= 0) then
@@ -2631,8 +2560,7 @@ eqloop: do
                 write( IOBuffer, '("PE ",I0,"(W) broadcasting termination status (",B0,") within step ",I0,"/",I0)' ) &
 &                      NProc_W, this%TerminateStatus_bcast, Step, StepTotal
                 call LogWriteTime
-                call MPI_Ibcast(this%TerminateStatus_bcast, 1, MPI_INTEGER, NRootProc_R, &
-&                               Communicator_R, this%mpireqbcastTerm, ierror)
+                call MPI_Ibcast(this%TerminateStatus_bcast, 1, MPI_INTEGER, NRootProc_R, Communicator_R, this%mpireqbcastTerm, ierror)
                 this%doneBcastTerm = .true.
               end if
             else ! RootProc.and..not.RootProc_R
@@ -2665,8 +2593,7 @@ eqloop: do
 #endif
 
       if ( TerminateProgram ) then
-        write( IOBuffer, '("terminating program after step ",I0,"/",I0," (",I0," before end)")' ) &
-&                        Step, StepTotal, StepEnd-Step
+        write( IOBuffer, '("terminating program after step ",I0,"/",I0)' ) Step,StepTotal
         call LogWriteTime
         exit !***
       end if
@@ -2688,7 +2615,7 @@ eqloop: do
     implicit none
 
   ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
     ! Declare arguments
@@ -2707,7 +2634,7 @@ eqloop: do
     end do
 
   !DC NOTE- this section facilitates middle level of simulation stop
-  if ((RootProc)) then
+  if ((RootProc .eqv. .true.)) then
       terminate_counter = 0
       do i = this%firstEnsembleIdx, this%lastEnsembleIdx
         if (this%Ensemble(i)%isStopSimulation .eqv. .true.) then
@@ -2789,7 +2716,7 @@ eqloop: do
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -3559,7 +3486,7 @@ eqloop: do
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -3590,11 +3517,9 @@ eqloop: do
         ! Save contents to restart file
         write( iounit_restart, '(A)' ) trim( ParameterFileName )
         write( iounit_restart, '(2I10)' ) Step, StepTotal
-        write( IOBuffer, '("saving restart data at step",I10," /",I10)' ) Step, StepTotal
+        write( IOBuffer, '("saving restart data at step",I10," (of",I10,")")' ) Step, StepTotal
         call LogWrite
         write( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
-        write( IOBuffer, '("still to be done: (NVT)Equilibration ",L2,L2)' ) NVTEquilibration, Equilibration
-        call LogWrite
 
     end if
     
@@ -3627,7 +3552,7 @@ eqloop: do
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+#if MPI_VER > 0
     include 'mpif.h'
 #endif
 
@@ -3657,7 +3582,7 @@ eqloop: do
 #endif
       call FileReset( iounit_restart, trim(RestartFileName) )
 
-      ! Read non-ensemble specific contents from restart file first
+      ! Read non-ensemble specifif contents from restart file first
       read( iounit_restart, '(A128)' ) parfilename
       if (trim(parfilename) /= trim(ParameterFileName)) then
         call LogWriteBlank
@@ -3667,11 +3592,9 @@ eqloop: do
         call LogWriteBlank
       endif
       read( iounit_restart, '(2I10)' ) Step, StepTotal
-      write( IOBuffer, '("restarting at step",I10," /",I10)' ) Step, StepTotal
+      write( IOBuffer, '("restarting at step",I10," (of",I10,")")' ) Step, StepTotal
       call LogWrite
       read( iounit_restart, '(2L5)' ) Equilibration, NVTEquilibration
-      write( IOBuffer, '("run: (NVT)Equilibration ",L2,L2)' ) NVTEquilibration, Equilibration
-      call LogWrite
 
     end if
 
@@ -3715,7 +3638,7 @@ eqloop: do
       ! Close restart file
       call FileClose( iounit_restart )
 
-    write( IOBuffer, '("Finished reading restart file ", A)' ) trim( RestartFileName )
+    write( IOBuffer, '("Finished reading restart file", A)' ) trim( RestartFileName )
     call LogWriteTime
     
  end subroutine TSimulation_RestartRead

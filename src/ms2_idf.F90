@@ -385,8 +385,6 @@ end subroutine TIdfDihedral_Construct
     ! Save site parameters
     write( IOBuffer, '(4I3)' ) this%SiteId1, this%SiteId2, this%SiteId3, this%SiteId4
     call FileWriteParameter( iounit_normal, IdDihedral_Sites )
-    write( IOBuffer, '(G20.10)' ) this%nmax
-    call FileWriteParameter( iounit_normal, IdDihedral_nmax )
     do i= 1,this%nmax+1
       write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &       this%ForConst(i) * UnitEnergy / kBoltzmann, this%ForConst(i)
