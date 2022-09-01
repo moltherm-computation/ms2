@@ -889,6 +889,7 @@ contains
     nullify( this%IntFFunction )
     nullify( this%IntFFunction1 )
     nullify( this%IntFFunction2 )
+    nullify( this%EPotSVC )
 
 
     ! Calculate dimension of arrays
@@ -915,13 +916,13 @@ contains
 
     ! Allocate arrays
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) .or. MCOverlapReduction ) then
+      allocate( this%EPot1Angle(this%NAngle), STAT = stat )
+      call AllocationError( stat, 'Angles', this%NAngle )
 
       allocate( this%EPotAngle(this%NAngle*NP1), STAT = stat )
       call AllocationError( stat, 'Angles', this%NAngle*NP1 )
       allocate( this%EPotAngleNew(this%NAngle*NP1), STAT = stat )
       call AllocationError( stat, 'Angles', this%NAngle*NP1 )
-      allocate( this%EPot1Angle(this%NAngle), STAT = stat )
-      call AllocationError( stat, 'Angles', this%NAngle )
       allocate( this%EPotTo(this%NDihedral*NP1), STAT = stat )
       call AllocationError( stat, 'Dihedral', this%NDihedral*NP1 )
       allocate( this%EPotToNew(this%NDihedral*NP1), STAT = stat )
@@ -3221,6 +3222,7 @@ contains
 
       ! Explicit reaction field contribution
       if ( this%ReactionField  ) then
+        EPotLocal = 0._RK
         if ( LongRange .eq. RField) then    ! Normal ReactionField
                   
           MueX2 => this%MueX2
@@ -4051,7 +4053,7 @@ end subroutine TInteraction_Energy
     integer           :: s1, s2, j, k
 
     ! Zero energy
-!    this%EPotSVC(:)=0._RK
+    this%EPotSVC(:)=0._RK
     EPot => this%EPotSVC
 
     ! Calculate interactions partners within cutoff sphere
