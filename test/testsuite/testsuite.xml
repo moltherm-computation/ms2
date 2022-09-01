@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.297</tools4ms2version>
-	<caseRepositoryHash>05d3499c3a93e9ba76262567d9372fb6904d1b58</caseRepositoryHash>
+	<caseRepositoryHash>9ec2b40cc53643c5f45f2d588309028ad9150cf5</caseRepositoryHash>
 	<caseList>
 <!-- 		<case name="pentan_org" file="pentan_org.xml" /> -->
 		<case name="propanol_constraints" file="propanol_constraints.xml" />
