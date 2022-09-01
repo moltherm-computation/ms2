@@ -69,8 +69,8 @@ module ms2_interaction
     type(TPotDihedral), pointer, contiguous             :: PotDihedral(:)
 
     ! Potential energy
-    real(RK), pointer, contiguous :: EPot(:, :), EPot1(:), EPotNew(:, :)
-    real(RK), pointer, contiguous :: d2EpotdV2(:, :), d2EpotdV21(:), d2EpotdV2New(:, :)
+    real(RK) :: EPot
+    real(RK) :: d2EpotdV2
     real(RK), pointer, contiguous :: EPotTo(:), EPotAngle(:), EPotMol(:,:)!, EPotBond(:)
     real(RK), pointer, contiguous :: EPot1To(:), EPot1Angle(:)!, EPot1Bond(:)
     real(RK), pointer, contiguous :: EPotToNew(:), EPotAngleNew(:)!, EPotBondNew(:)   ! Bond not needed since it's contribution is included in EPotNew
@@ -88,7 +88,7 @@ module ms2_interaction
     integer                               :: ODFErrSum
 
     ! Virial
-    real(RK), pointer, contiguous :: Virial(:, :), Virial1(:), VirialNew(:, :)
+    real(RK) :: Virial
     real(RK), pointer, contiguous :: VirialMol(:,:)
                                     
 
@@ -450,8 +450,7 @@ contains
     call Allocate( this )
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) .or. MCOverlapReduction ) then
       this%EPot = 0._RK
-      this%EPotNew = 0._RK
-      this%VirialNew = 0._RK
+      this%d2EpotdV2 = 0._RK
                                  
       this%Virial = 0._RK
             
@@ -871,9 +870,6 @@ contains
     integer :: NP1, N1, N2, stat
 
     ! Nullify pointers
-    nullify( this%EPot )
-    nullify( this%EPot1 )
-    nullify( this%EPotNew )
     nullify( this%EPotMol )
     nullify( this%EPotAngle)
     nullify( this%EPot1Angle)
@@ -881,9 +877,6 @@ contains
     nullify( this%EPotTo )
     nullify( this%EPot1To )
     nullify( this%EPotToNew)
-    nullify( this%d2EpotdV2 )
-    nullify( this%d2EpotdV21 )
-    nullify( this%d2EpotdV2New )
     nullify( this%KBISum )
     nullify( this%d2EpotdV2Mol )
     nullify( this%NInCutoff )
@@ -922,14 +915,6 @@ contains
 
     ! Allocate arrays
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) .or. MCOverlapReduction ) then
-      allocate( this%EPot(N1, N2), STAT = stat )
-      call AllocationError( stat, 'particles', N1 * N2 )
-      allocate( this%EPot1(N2), STAT = stat )
-      call AllocationError( stat, 'particles', N2 )
-      allocate( this%EPotNew(N1, N2), STAT = stat )
-      call AllocationError( stat, 'particles', N1 * N2 )
-      allocate( this%EPotMol(this%NUnit1,N2), STAT = stat )
-      call AllocationError( stat, 'EPotMol', this%NUnit1*N2 )
 
       allocate( this%EPotAngle(this%NAngle*NP1), STAT = stat )
       call AllocationError( stat, 'Angles', this%NAngle*NP1 )
@@ -943,25 +928,9 @@ contains
       call AllocationError( stat, 'Dihedral', this%NDihedral*NP1 )
       allocate( this%EPot1To(this%NDihedral), STAT = stat )
       call AllocationError( stat, 'Dihedral', this%NDihedral )
-
-      allocate( this%d2EpotdV2(N1, N2), STAT = stat )
-      call AllocationError( stat, 'particles', N1 * N2 )
-      allocate( this%d2EpotdV21(N2), STAT = stat )
-      call AllocationError( stat, 'particles', N2 )
-      allocate( this%d2EpotdV2New(N1, N2), STAT = stat )
-      call AllocationError( stat, 'particles', N1 * N2 )
-      allocate( this%d2EpotdV2Mol(this%NUnit1,N2), STAT = stat )
-      call AllocationError( stat, 'd2EpotdV2Mol', this%NUnit1*N2 )
-
     end if
 
     if( SimulationType .eq. SecondVirialCoeff ) then
-      allocate( this%d2EpotdV21(N2), STAT = stat )
-      call AllocationError( stat, 'particles', N2 )
-      allocate( this%EPot1(N2), STAT = stat )
-      call AllocationError( stat, 'units*particles', this%NPartMax )
-
-
       allocate( this%MayerFFunction(NSteps), STAT = stat )
       call AllocationError( stat, 'Mayer f-function' )
       allocate( this%MayerFFunction1(NSteps), STAT = stat )
@@ -2117,7 +2086,7 @@ contains
 !  Subroutine TInteraction_Energy                              !
 !==============================================================!
 
-  subroutine TInteraction_Energy( this, np, nu, BoxLength )
+  subroutine TInteraction_Energy( this, np, nu, BoxLength, matrixhalf )
 
     implicit none
 
@@ -2125,6 +2094,7 @@ contains
     type(TInteraction)   :: this
     integer, intent(in)  :: np, nu
     real(RK), intent(in) :: BoxLength
+    logical, intent(in), optional :: matrixhalf
 
     ! Declare local variables
     type(TPotMIEnmMIEnm), pointer           :: pmie
@@ -2138,9 +2108,9 @@ contains
     type(TPotQuadrupoleCharge), pointer     :: pqc
     type(TPotQuadrupoleDipole), pointer     :: pqd
     type(TPotQuadrupoleQuadrupole), pointer :: pqq
-    real(RK), pointer, contiguous :: EPot(:)
-    real(RK), pointer, contiguous :: Virial(:)
-    real(RK), pointer, contiguous :: d2EpotdV2(:)
+    real(RK)          :: EPot
+    real(RK)          :: Virial
+    real(RK)          :: d2EpotdV2
     real(RK)          :: EPotLocal
     real(RK)          :: VirialLocal
     real(RK)          :: d2EpotdV2Local
@@ -2185,23 +2155,25 @@ contains
                                     
 
     ! Zero energy
-    this%EPot1(:)=0._RK
-    EPot => this%EPot1
+    EPot=0._RK
+    d2EpotdV2=0._RK
 
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
-      call CalcCutoffPartners( this, np, nu )
+      if (present( matrixhalf )) then 
+        call CalcCutoffPartners( this, np, nu, matrixhalf )
+      else    
+        call CalcCutoffPartners( this, np, nu )
+      end if
     end if
-
-    d2EpotdV2 => this%d2EpotdV21
 
     ! Assign local variables
     SameComponent = this%SameComponent
     unit1=this%NUnit1*(np-1)+nu ! Global number of unit
                                   
                            
-      Virial => this%Virial1
-      VirialLocal = 1E33_RK
+    Virial=0._RK
+    VirialLocal = 1E33_RK
           
     d2EpotdV2Local = 1E33_RK
 
@@ -2217,12 +2189,6 @@ contains
     PX2 => this%PX2
     PY2 => this%PY2
     PZ2 => this%PZ2
-
-    ! d2Epot/dV2
-    d2EpotdV2(:) = 0._RK
-
-      ! Zero virial
-      Virial(:) = 0._RK
 
     ! Initialization Ewald Summation
     if ( .not. this%ReactionField ) then
@@ -2290,16 +2256,16 @@ contains
               RijMie_mInv = RijSquaredInv**Mie_mHalf
               Mie_nRijMie_n = Mie_n * RijMie_nInv
               Mie_mRijMie_m = Mie_m * RijMie_mInv
-              EPot(j) = EPot(j) + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
+              EPot = EPot + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
 
               Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
               FXij = Fij * RXij
               FYij = Fij * RYij
               FZij = Fij * RZij
-              Virial(j) = Virial(j) + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
+              Virial = Virial + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
 
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-              d2EpotdV2(j) = d2EpotdV2(j) + EpsilonMie_a * Ninth * &
+              d2EpotdV2 = d2EpotdV2 + EpsilonMie_a * Ninth * &
 &                            ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
 &                            + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)!xxxx2 MIE
 
@@ -2371,7 +2337,7 @@ contains
             Rep = A * exp( -Alpha * Rij )
             Attr1 = C6 * RijInv6 * F6
             Attr2 = C8 * RijInv6 * RijInv2 * F8
-            EPot(j) = Epot(j) + Rep - Attr1 - Attr2
+            EPot = Epot + Rep - Attr1 - Attr2
 
             AlphaRep = Alpha * Rep
             LongTerm = bRij7 * RijInv6 * RijInv * InvFac8 * ExpMinusbRij
@@ -2384,13 +2350,13 @@ contains
             FXij = Fij * RXij
             FYij = Fij * RYij
             FZij = Fij * RZij
-            Virial(j) = Virial(j) + (PXij * FXij + PYij * FYij + PZij * FZij) * Third
+            Virial = Virial + (PXij * FXij + PYij * FYij + PZij * FZij) * Third
               
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
             d2EpotdRij2 = Alpha * AlphaRep + LongTerm &
 &            * ( (b + 6 * RijInv) * C6times56 + RijInv3 * (bRij3 + 8 * bRij2) * C8 ) &
 &            - ( 42 * Attr1 + 72 * Attr2) * RijInv2
-            d2EpotdV2(j) = d2EpotdV2(j) + Ninth * ( -Fij * (sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) + d2EpotdRij2 * sitecorr*sitecorr) * RijSquared
+            d2EpotdV2 = d2EpotdV2 + Ninth * ( -Fij * (sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) + d2EpotdRij2 * sitecorr*sitecorr) * RijSquared
 
           end do
         end do
@@ -2457,9 +2423,9 @@ contains
 &                               * RijInv * (eX * PXij + eY * PYij + eZ * PZij)
 
               end if
-              EPot(j) = EPot(j) + EPotLocal
+              EPot = EPot + EPotLocal
 
-              Virial(j) = Virial(j) + Third * VirialLocal
+              Virial = Virial + Third * VirialLocal
 
             end if
           end do
@@ -2529,11 +2495,11 @@ contains
                 sitecorr = (RXij*PXij+RYij*PYij+RZij*PZij)*RijInv2
                 d2EpotdV2Local = EPotLocal * (3._RK * sitecorr*sitecorr - Plen2*RijInv2)*Ninth !xxxx2 CC
               end if
-              EPot(j) = EPot(j) + EPotLocal
+              EPot = EPot + EPotLocal
                                      
-              Virial(j) = Virial(j) + Third * VirialLocal
+              Virial = Virial + Third * VirialLocal
                     
-              d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
+              d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
             end if
           end do
         end do
@@ -2609,11 +2575,11 @@ contains
                 sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
                 d2EpotdV2Local = EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Ninth !xxxx2 CD
               end if
-              EPot(j) = EPot(j) + EPotLocal
+              EPot = EPot + EPotLocal
                                      
-              Virial(j) = Virial(j) + Third * VirialLocal
+              Virial = Virial + Third * VirialLocal
                     
-              d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
+              d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
             end if
 
           end do
@@ -2687,11 +2653,11 @@ contains
                 sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
                 d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Ninth !xxxx3 CQ
               end if
-              EPot(j) = EPot(j) + EPotLocal
+              EPot = EPot + EPotLocal
                                      
-                Virial(j) = Virial(j) + Third * VirialLocal
+              Virial = Virial + Third * VirialLocal
                     
-              d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
+              d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
             end if
           end do
         end do
@@ -2768,11 +2734,11 @@ contains
                 sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
                 d2EpotdV2Local = EPotLocal*(8._RK*sitecorr*sitecorr-2._RK*Plen2*RijSquaredInv)*Ninth !xxxx4 DC
               end if
-              EPot(j) = EPot(j) + EPotLocal
+              EPot = EPot + EPotLocal
                                      
-              Virial(j) = Virial(j) + Third * VirialLocal
+              Virial = Virial + Third * VirialLocal
                     
-              d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
+              d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
             end if
           end do
         end do
@@ -2860,11 +2826,11 @@ contains
                 sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
                 d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)*Ninth !xxxx5 DD
               end if
-              EPot(j) = EPot(j) + EPotLocal
+              EPot = EPot + EPotLocal
                                      
-              Virial(j) = Virial(j) + Third * VirialLocal
+              Virial = Virial + Third * VirialLocal
                     
-              d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
+              d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
             end if
           end do
         end do
@@ -2956,11 +2922,11 @@ contains
                 sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
                 d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Ninth !xxxx6 DQ
               end if
-              EPot(j) = EPot(j) + EPotLocal
+              EPot = EPot + EPotLocal
                                      
-              Virial(j) = Virial(j) + Third * VirialLocal
+              Virial = Virial + Third * VirialLocal
                     
-              d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
+              d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
             end if
           end do
         end do
@@ -3040,11 +3006,11 @@ contains
                 sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijSquaredInv
                 d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijSquaredInv)*Ninth !xxxx7 QC
               end if
-              EPot(j) = EPot(j) + EPotLocal
+              EPot = EPot + EPotLocal
                                      
-              Virial(j) = Virial(j) - Third * VirialLocal
+              Virial = Virial - Third * VirialLocal
                     
-              d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
+              d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
             end if
           end do
         end do
@@ -3135,11 +3101,11 @@ contains
                 sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
                 d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Ninth !xxxx8 QD
               end if
-              EPot(j) = EPot(j) + EPotLocal
+              EPot = EPot + EPotLocal
                                      
-              Virial(j) = Virial(j) + Third * VirialLocal
+              Virial = Virial + Third * VirialLocal
                     
-              d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
+              d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
             end if
           end do
         end do
@@ -3243,11 +3209,11 @@ contains
                 sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
                 d2EpotdV2Local = EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)*Ninth !xxxx9 QQ
               end if
-              EPot(j) = EPot(j) + EPotLocal
+              EPot = EPot + EPotLocal
                                      
-              Virial(j) = Virial(j) + Third * VirialLocal
+              Virial = Virial + Third * VirialLocal
                     
-              d2EpotdV2(j) = d2EpotdV2(j) + d2EpotdV2Local
+              d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
             end if
           end do
         end do
@@ -3274,12 +3240,12 @@ contains
               jk = INT(j/this%NUnit2)+1
               nu2 = mod(j,this%NUnit2)
             end if
-            EPot(j) = EPot(j) + this%RFConst2 *  ( mueXi * MueX2(jk,nu2) + mueYi * MueY2(jk,nu2) + mueZi * MueZ2(jk,nu2) )
-
-            Virial(j) = Virial(j) + this%RFConst2 * ( mueXi * MueX2(j, nu2) + mueYi * MueY2(j, nu2) + mueZi * MueZ2(j, nu2) )
+            EPotLocal = EPotLocal +  ( mueXi * MueX2(jk,nu2) + mueYi * MueY2(jk,nu2) + mueZi * MueZ2(jk,nu2) )           
+          end do
+          EPot = EPot + this%RFConst2 * EPotLocal
+          Virial = Virial + this%RFConst2 * EPotLocal
                                                        
                 
-          end do
 
         else         ! Extended ReactionField
           if ( ((this%N1Charge > 1) .and. (this%N2Charge > 1) ) .or. (this%N1Charge+this%N2Charge .eq. 0)) then
@@ -3300,9 +3266,12 @@ contains
                 jk = INT(j/this%NUnit2)+1
                 nu2 = mod(j,this%NUnit2)
               end if
-              EPot(j) = EPot(j) + this%RFConst2 * &
-&                   ( mueXi * MueX2(jk,nu2) + mueYi * MueY2(jk,nu2) + mueZi * MueZ2(jk,nu2) )
+              EPotLocal = EPotLocal + ( mueXi * MueX2(jk,nu2) + mueYi * MueY2(jk,nu2) + mueZi * MueZ2(jk,nu2) )
             end do
+            EPot = EPot + this%RFConst2 * EPotLocal
+            Virial = Virial + this%RFConst2 * EPotLocal
+                                                           
+                  
 
           else if ( (this%N1Charge .eq. 1) .and. (this%N2Charge .ne. 1) ) then
           ! Assign pointers to site positions
@@ -3351,7 +3320,7 @@ contains
                 RXij = (RXij - anint( PXij )) * BoxLength
                 RYij = (RYij - anint( PYij )) * BoxLength
                 RZij = (RZij - anint( PZij )) * BoxLength
-                EPot(j) = EPot(j) -this%RFConst2 * q * ( RXij*MueX2(jk,nu2) + RYij*MueY2(jk,nu2) + RZij*MueZ2(jk,nu2) )
+                EPot = EPot -this%RFConst2 * q * ( RXij*MueX2(jk,nu2) + RYij*MueY2(jk,nu2) + RZij*MueZ2(jk,nu2) )
               end if
             end do
 
@@ -3401,7 +3370,7 @@ contains
                 muexi = (RXij)*q
                 mueyi = (RYij)*q
                 muezi = (RZij)*q
-                EPot(j) = EPot(j) +this%RFConst2 * ( muexi * this%MueX1(np,nu) + mueyi * this%MueY1(np,nu) + muezi * this%MueZ1(np,nu) )
+                EPot = EPot +this%RFConst2 * ( muexi * this%MueX1(np,nu) + mueyi * this%MueY1(np,nu) + muezi * this%MueZ1(np,nu) )
               end if
             end do
 
@@ -3453,6 +3422,7 @@ contains
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
+            if( present(matrixhalf) .and. j > np ) exit
             RXij = RXi - RX2(j)
             RYij = RYi - RY2(j)
             RZij = RZi - RZ2(j)
@@ -3473,16 +3443,16 @@ contains
             Mie_nRijMie_n = Mie_n * RijMie_nInv
             Mie_mRijMie_m = Mie_m * RijMie_mInv
             jk = (j-1)*this%NUnit2 + pmie%Site2%UnitNumber
-            EPot(jk) = EPot(jk) + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
+            EPot = EPot + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
 
             Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
             FXij = Fij * RXij
             FYij = Fij * RYij
             FZij = Fij * RZij
-            Virial(jk) = Virial(jk) + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
+            Virial = Virial + BoxLengthThird * (PXij * FXij + PYij * FYij + PZij * FZij)
 
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-            d2EpotdV2(jk) = d2EpotdV2(jk) + EpsilonMie_a * Ninth * &
+            d2EpotdV2 = d2EpotdV2 + EpsilonMie_a * Ninth * &
 &                          ((Mie_nRijMie_n - Mie_mRijMie_m)*(sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) &
 &                          + (Mie_n1*Mie_nRijMie_n - Mie_m1*Mie_mRijMie_m)*sitecorr*sitecorr)!xxxxss2 MIE
           end do
@@ -3525,6 +3495,7 @@ contains
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
+            if( present(matrixhalf) .and. j > np ) exit
             RXij = RXi - RX2(j)
             RYij = RYi - RY2(j)
             RZij = RZi - RZ2(j)
@@ -3559,7 +3530,7 @@ contains
             Rep = A * exp( -Alpha * Rij )
             Attr1 = C6 * RijInv6 * F6
             Attr2 = C8 * RijInv6 * RijInv2 * F8
-            EPot(j) = Epot(j) + Rep - Attr1 - Attr2
+            EPot = Epot + Rep - Attr1 - Attr2
 
             AlphaRep = Alpha * Rep
             LongTerm = bRij7 * RijInv6 * RijInv * InvFac8 * ExpMinusbRij
@@ -3571,13 +3542,13 @@ contains
             FXij = Fij * RXij
             FYij = Fij * RYij
             FZij = Fij * RZij
-            Virial(j) = Virial(j) + (PXij * FXij + PYij * FYij + PZij * FZij) * Third
+            Virial = Virial + (PXij * FXij + PYij * FYij + PZij * FZij) * Third
 
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
             d2EpotdRij2 = Alpha * AlphaRep + LongTerm &
 &            * ( (b + 6 * RijInv) * C6times56 + RijInv3 * (bRij3 + 8 * bRij2) * C8 ) &
 &            - ( 42 * Attr1 + 72 * Attr2) * RijInv2
-            d2EpotdV2(j) = d2EpotdV2(j) + Ninth * ( -Fij * (sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) + d2EpotdRij2 * sitecorr*sitecorr) * RijSquared
+            d2EpotdV2 = d2EpotdV2 + Ninth * ( -Fij * (sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) + d2EpotdRij2 * sitecorr*sitecorr) * RijSquared
 
           end do
         end do
@@ -3626,6 +3597,7 @@ contains
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
+            if( present(matrixhalf) .and. j > np ) exit
             RXij = RXi - RX2(j)
             RYij = RYi - RY2(j)
             RZij = RZi - RZ2(j)
@@ -3677,11 +3649,11 @@ contains
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
               d2EpotdV2Local = EPotLocal*(15._RK*sitecorr*sitecorr-3._RK*Plen2*RijInv2)*Ninth !xxxxss5 DD
             end if
-            EPot(jk) = EPot(jk) + EPotLocal
+            EPot = EPot + EPotLocal
                                    
-            Virial(jk) = Virial(jk) + Third * VirialLocal
+            Virial = Virial + Third * VirialLocal
                   
-            d2EpotdV2(jk) = d2EpotdV2(jk) + d2EpotdV2Local
+            d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do
         end do
 
@@ -3722,6 +3694,7 @@ contains
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
+            if( present(matrixhalf) .and. j > np ) exit
             RXij = RXi - RX2(j)
             RYij = RYi - RY2(j)
             RZij = RZi - RZ2(j)
@@ -3778,11 +3751,11 @@ contains
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
               d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Ninth !xxxxss6 DQ
             end if
-            EPot(jk) = EPot(jk) + EPotLocal
+            EPot = EPot + EPotLocal
                                    
-            Virial(jk) = Virial(jk) + Third * VirialLocal
+            Virial = Virial + Third * VirialLocal
                   
-            d2EpotdV2(jk) = d2EpotdV2(jk) + d2EpotdV2Local
+            d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do
         end do
       end do
@@ -3826,6 +3799,7 @@ contains
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
+            if( present(matrixhalf) .and. j > np ) exit
             RXij = RXi - RX2(j)
             RYij = RYi - RY2(j)
             RZij = RZi - RZ2(j)
@@ -3883,11 +3857,11 @@ contains
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
               d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)*Ninth !xxxxss8 QD
             end if
-            EPot(jk) = EPot(jk) + EPotLocal
+            EPot = EPot + EPotLocal
                                    
-            Virial(jk) = Virial(jk) + Third * VirialLocal
+            Virial = Virial + Third * VirialLocal
                   
-            d2EpotdV2(jk) = d2EpotdV2(jk) + d2EpotdV2Local
+            d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do
         end do
         do s2 = 1, this%N2Quadrupole
@@ -3927,6 +3901,7 @@ contains
           do j = 1, N
 #endif
             if( this%SameComponent .and. j == np ) cycle
+            if( present(matrixhalf) .and. j > np ) exit
             RXij = RXi - RX2(j)
             RYij = RYi - RY2(j)
             RZij = RZi - RZ2(j)
@@ -3996,18 +3971,20 @@ contains
               sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)*RijInv2
               d2EpotdV2Local = EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)*Ninth !xxxxss9 QQ
             end if
-            EPot(jk) = EPot(jk) + EPotLocal
+            EPot = EPot + EPotLocal
                                    
-            Virial(jk) = Virial(jk) + Third * VirialLocal
+            Virial = Virial + Third * VirialLocal
                   
-            d2EpotdV2(jk) = d2EpotdV2(jk) + d2EpotdV2Local
+            d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do
         end do
       end do
 
     end if
-    this%EPot1 = EPot
+    this%EPot = EPot
+    this%d2EpotdV2 = d2EpotdV2
                            
+    this%Virial = Virial
           
     
 end subroutine TInteraction_Energy
@@ -5268,7 +5245,7 @@ end subroutine TInteraction_EnergySVC
 !  Subroutine TInteraction_CalcPartners1                       !
 !==============================================================!
 
-  subroutine TInteraction_CalcPartners1( this, np, nu )
+  subroutine TInteraction_CalcPartners1( this, np, nu, matrixhalf )
 
     implicit none
 
@@ -5276,6 +5253,7 @@ end subroutine TInteraction_EnergySVC
     type(TInteraction)  :: this
     integer, intent(in) :: np
     integer, intent(in) :: nu
+    logical, intent(in), optional :: matrixhalf
 
     ! Declare local variables
     real(RK), pointer :: PX2(:,:), PY2(:,:), PZ2(:,:)
@@ -5307,6 +5285,7 @@ end subroutine TInteraction_EnergySVC
       do k = 1, this%NUnit2
           !k = CEILING(real(j)/this%NUnit2)
           if( this%SameComponent .and. j == np ) cycle
+          if( present(matrixhalf) .and. j > np ) exit
           PXij = PXi - PX2(j, k)
           PYij = PYi - PY2(j, k)
           PZij = PZi - PZ2(j, k)
@@ -5748,7 +5727,7 @@ end subroutine TInteraction_EnergySVC
     type(TPotBond), pointer                 :: pbo
     type(TPotAngle), pointer                :: pan
     type(TPotDihedral), pointer             :: pto
-    real(RK), pointer, contiguous :: EPot(:), Virial(:), d2EpotdV2(:)
+    real(RK) :: EPot, Virial, d2EpotdV2
     real(RK)          :: SigmaSquared
     real(RK)          :: Epsilon, Epsilon1, Epsilon2, Epsilon4, Epsilon48
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
@@ -5797,15 +5776,15 @@ end subroutine TInteraction_EnergySVC
 
     ! Assign local variables
     SameComponent = this%SameComponent
-    EPot => this%EPot1
+    EPot = 0._RK
 
     ! Zero angle/torison energies (others are set to 0 in Energy-routine)
     this%EPot1Angle(:) = 0._RK
     this%EPot1To(:) = 0._RK
     unit1=this%NUnit1*(np-1)+nu ! Global number of unit
 
-      Virial => this%Virial1
-      VirialLocal = 1E33_RK
+    Virial = 0._RK
+    VirialLocal = 1E33_RK
 
 
     N = this%NPart2
@@ -5816,7 +5795,7 @@ end subroutine TInteraction_EnergySVC
     PYi = this%PY1(np,nu)
     PZi = this%PZ1(np,nu)
 
-    d2EpotdV2 => this%d2EpotdV21
+    d2EpotdV2 = 0._RK
     d2EpotdV2Local = 1E33_RK
 
     ! Assign pointers to COM positions
@@ -5892,7 +5871,7 @@ end subroutine TInteraction_EnergySVC
             EPotLocal = 2._RK*Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK) * coeff
 
             unit2=(np-1)*this%NUnit1+pmie%Site2%UnitNumber ! global number of unit
-            EPot(unit2) = EPot(unit2) + EPotLocal
+            EPot = EPot + EPotLocal
             if ( OptPressure ) then
               PXij = PXij - anint( PXij )
               PYij = PYij - anint( PYij )
@@ -5901,14 +5880,14 @@ end subroutine TInteraction_EnergySVC
               FXij = Fij * RXij
               FYij = Fij * RYij
               FZij = Fij * RZij
-              Virial(unit2) = Virial(unit2) + &
+              Virial = Virial + &
                  (PXij * FXij + PYij * FYij + PZij * FZij) * BoxLengthThird
             end if
             Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-            d2EpotdV2(unit2) = d2EpotdV2(unit2) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * &
+            d2EpotdV2 = d2EpotdV2 + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * &
 &                        (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxx LJ
-            d2EpotdV2(unit2) = d2EpotdV2(unit2) + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
+            d2EpotdV2 = d2EpotdV2 + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
           end do
         end do
       end do
@@ -5988,9 +5967,9 @@ end subroutine TInteraction_EnergySVC
                 end if
                 !global number of unit, this%NUnit1=this%NUnit2 if SameComponent
                 unit2=(np-1)*this%NUnit1+pcc%Site2%UnitNumber
-                EPot(unit2)  = EPot(unit2) + EPotLocal
+                EPot  = EPot + EPotLocal
                 if ( OptPressure ) &
-&                  Virial(unit2)= Virial(unit2) + Third * VirialLocal
+&                  Virial = Virial + Third * VirialLocal
               end if
 ! Reaction Field
             else ! if Reaction Field
@@ -6035,10 +6014,10 @@ end subroutine TInteraction_EnergySVC
                 d2EpotdV2Local = EPotLocal * (3._RK * sitecorr*sitecorr - Plen2*RijInv2)*Third*Third !xxxx1 CC
               end if
               unit2=(np-1)*this%NUnit1+pcc%Site2%UnitNumber! global number of unit
-              EPot(unit2)  = EPot(unit2) + EPotLocal
+              EPot = EPot + EPotLocal
               if ( OptPressure ) &
-&                Virial(unit2)= Virial(unit2) + Third * VirialLocal
-              d2EpotdV2(unit2) = d2EpotdV2(unit2) + d2EpotdV2Local
+&                Virial= Virial + Third * VirialLocal
+              d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
             end if ! ReactionField - Ewald-Summation
           end do !s2-cycle
 
@@ -6121,10 +6100,10 @@ end subroutine TInteraction_EnergySVC
             end if
 
             unit2=(np-1)*this%NUnit1+pcd%Site2%UnitNumber
-            EPot(unit2)  = EPot(unit2) + 2._RK*EPotLocal       ! Uebereinstimmumg mit Price
+            EPot = EPot + 2._RK*EPotLocal       ! Uebereinstimmumg mit Price
             if ( OptPressure ) &
-&              Virial(unit2)= Virial(unit2) + 2._RK*Viriallocal     ! F2*R_COM_Price; stimmt so
-            d2EpotdV2(unit2) = d2EpotdV2(unit2) + d2EpotdV2Local
+&              Virial= Virial + 2._RK*Viriallocal     ! F2*R_COM_Price; stimmt so
+            d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do !s2-cycle
 
           do s2=this%UnitQP2(j), this%UnitQP2(j+1) - 1
@@ -6205,10 +6184,10 @@ end subroutine TInteraction_EnergySVC
             end if
 
             unit2=(np-1)*this%NUnit1+pcq%Site2%UnitNumber
-            EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+            EPot =  + 2._RK*EPotLocal
             if ( OptPressure ) &
-&              Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
-            d2EpotdV2(unit2) = d2EpotdV2(unit2) + d2EpotdV2Local
+&              Virial = Virial + 2._RK*Third * VirialLocal
+            d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do !s2-cycle
         end do ! k-cycle
       end do  !s1-cycle
@@ -6293,10 +6272,10 @@ end subroutine TInteraction_EnergySVC
             end if
 
             unit2=(np-1)*this%NUnit1+pdc%Site2%UnitNumber
-            EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+            EPot = EPot + 2._RK*EPotLocal
             if ( OptPressure ) &
-&              Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
-            d2EpotdV2(unit2) = d2EpotdV2(unit2) + d2EpotdV2Local
+&              Virial = Virial + 2._RK*Third * VirialLocal
+            d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do ! s2-cycle
           do s2 = this%UnitDP2(j), this%UnitDP2(j+1) - 1
             pdd => this%PotDipoleDipole(s1, s2)
@@ -6389,10 +6368,10 @@ end subroutine TInteraction_EnergySVC
             end if
 
             unit2=(np-1)*this%NUnit1+pdd%Site2%UnitNumber! global number of unit
-            EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+            EPot = EPot + 2._RK*EPotLocal
             if ( OptPressure ) &
-&              Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
-            d2EpotdV2(unit2) = d2EpotdV2(unit2) + d2EpotdV2Local
+&              Virial = Virial + 2._RK*Third * VirialLocal
+            d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do !s2-cycle
           do s2=this%UnitQP2(j), this%UnitQP2(j+1) - 1
             pdq => this%PotDipoleQuadrupole(s1, s2)
@@ -6490,10 +6469,10 @@ end subroutine TInteraction_EnergySVC
             end if
 
             unit2=(np-1)*this%NUnit1+pdq%Site2%UnitNumber ! global number of unit
-            EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+            EPot = EPot + 2._RK*EPotLocal
             if ( OptPressure ) &
-&              Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
-            d2EpotdV2(unit2) = d2EpotdV2(unit2) + d2EpotdV2Local
+&              Virial = Virial + 2._RK*Third * VirialLocal
+            d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do !s2-cycle
         end do !k-cycle
       end do !s1-cycle
@@ -6583,10 +6562,10 @@ end subroutine TInteraction_EnergySVC
             end if
 
             unit2=(np-1)*this%NUnit1+pqc%Site2%UnitNumber
-            EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+            EPot = EPot + 2._RK*EPotLocal
             if ( OptPressure ) &
-&              Virial(unit2) = Virial(unit2) - 2._RK*Third * VirialLocal
-            d2EpotdV2(unit2) = d2EpotdV2(unit2) + d2EpotdV2Local
+&              Virial = Virial - 2._RK*Third * VirialLocal
+            d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do !s2-cycle
           do s2 = this%UnitDP2(j), this%UnitDP2(j+1) - 1
             pqd => this%PotQuadrupoleDipole(s1, s2)
@@ -6683,10 +6662,10 @@ end subroutine TInteraction_EnergySVC
               d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxx8 QD
             end if
             unit2=(np-1)*this%NUnit1+pqd%Site2%UnitNumber! global number of unit
-            EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+            EPot = EPot + 2._RK*EPotLocal
             if ( OptPressure ) &
-&             Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
-            d2EpotdV2(unit2) = d2EpotdV2(unit2) + d2EpotdV2Local
+&             Virial = Virial + 2._RK*Third * VirialLocal
+            d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
           end do! s2-cycle
           do s2 = this%UnitQP2(j), this%UnitQP2(j+1) - 1
             pqq => this%PotQuadrupoleQuadrupole(s1, s2)
@@ -6795,10 +6774,10 @@ end subroutine TInteraction_EnergySVC
               d2EpotdV2Local = EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)/9._RK !xxxx9 QQ
             end if
             unit2= (np-1)*this%NUnit1+pqq%Site2%UnitNumber
-            EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+            EPot = EPot + 2._RK*EPotLocal
             if ( OptPressure ) &
-&              Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
-            d2EpotdV2(unit2) = d2EpotdV2(unit2) + 2._RK*d2EpotdV2Local
+&              Virial = Virial + 2._RK*Third * VirialLocal
+            d2EpotdV2 = d2EpotdV2 + 2._RK*d2EpotdV2Local
           end do! s2-cycle
         end do! k-cycle
       end do! s1-cycle
@@ -6816,7 +6795,7 @@ end subroutine TInteraction_EnergySVC
           mueZi = this%MueZ1(np,nu)
           unit1 = (np-1)*this%NUnit1
           do nu2 = 1, this%NUnit1
-            EPot(unit1+nu2) = EPot(unit1+nu2) + RFConst2 &
+            EPot = EPot + RFConst2 &
 &               * ( mueXi * MueX2(np,nu2) + mueYi * MueY2(np,nu2) + mueZi * MueZ2(np,nu2) )
           end do
         else         ! Extended ReactionField
@@ -6877,7 +6856,7 @@ end subroutine TInteraction_EnergySVC
           EPotLocal = 2._RK*Epsilon4 * Rij6Inv * (Rij6Inv - 1._RK) * coeff
 
           unit2=(np-1)*this%NUnit2+pmie%Site2%UnitNumber ! global number of unit
-          EPot(unit2) = EPot(unit2) +  EPotLocal
+          EPot = EPot +  EPotLocal
           if ( OptPressure ) then
             PXij = PXij - anint( RXij )
             PYij = PYij - anint( RYij )
@@ -6886,14 +6865,14 @@ end subroutine TInteraction_EnergySVC
             FXij = Fij * RXij
             FYij = Fij * RYij
             FZij = Fij * RZij
-            Virial(unit2) = Virial(unit2) + &
+            Virial = Virial + &
 &               (PXij * FXij + PYij * FYij + PZij * FZij) * BoxLengthThird
           end if
           Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdV2(unit2) = d2EpotdV2(unit2) + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * &
+          d2EpotdV2 = d2EpotdV2 + Epsilon4 * Rij6Inv *(12._RK *Rij6Inv -  6._RK) * &
 &                        (sitecorr * sitecorr - Plen2/RijSquared)*Third*Third !xxxxss LJ
-          d2EpotdV2(unit2) = d2EpotdV2(unit2) + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
+          d2EpotdV2 = d2EpotdV2 + Epsilon4 * Rij6Inv *(156._RK*Rij6Inv - 42._RK) *  sitecorr * sitecorr *Third*Third
         end do
       end do
 
@@ -6992,10 +6971,10 @@ end subroutine TInteraction_EnergySVC
           end if
 
           unit2=(np-1)*this%NUnit1+pdd%Site2%UnitNumber! global number of unit
-          EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+          EPot = EPot + 2._RK*EPotLocal
           if ( OptPressure ) &
-&            Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
-          d2EpotdV2(unit2) = d2EpotdV2(unit2) + d2EpotdV2Local
+&            Virial = Virial + 2._RK*Third * VirialLocal
+          d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
         end do !s2-cycle
 
         do s2=1, this%N2Quadrupole
@@ -7097,10 +7076,10 @@ end subroutine TInteraction_EnergySVC
           end if
 
           unit2=(np-1)*this%NUnit1+pdq%Site2%UnitNumber ! global number of unit
-          EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+          EPot = EPot + 2._RK*EPotLocal
           if ( OptPressure ) &
-&            Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
-          d2EpotdV2(unit2) = d2EpotdV2(unit2) + d2EpotdV2Local
+&            Virial = Virial + 2._RK*Third * VirialLocal
+          d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
         end do !s2-cycle
       end do !s1-cycle
 
@@ -7202,10 +7181,10 @@ end subroutine TInteraction_EnergySVC
             d2EpotdV2Local = EPotLocal*(24._RK*sitecorr*sitecorr-4._RK*Plen2*RijInv2)/9._RK !xxxxss8 QD
           end if
           unit2=(np-1)*this%NUnit1+pqd%Site2%UnitNumber! global number of unit
-          EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+          EPot = EPot + 2._RK*EPotLocal
           if ( OptPressure ) &
-&             Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
-          d2EpotdV2(unit2) = d2EpotdV2(unit2) + d2EpotdV2Local
+&             Virial = Virial + 2._RK*Third * VirialLocal
+          d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
         end do! s2-cycle
 
         do s2 = 1, this%N2Quadrupole
@@ -7316,10 +7295,10 @@ end subroutine TInteraction_EnergySVC
             d2EpotdV2Local = EPotLocal*(35._RK*sitecorr*sitecorr-5._RK*Plen2*RijInv2)/9._RK !xxxxss9 QQ
           end if
           unit2= (np-1)*this%NUnit1+pqq%Site2%UnitNumber
-          EPot(unit2) = EPot(unit2) + 2._RK*EPotLocal
+          EPot = EPot + 2._RK*EPotLocal
           if ( OptPressure ) &
-&            Virial(unit2) = Virial(unit2) + 2._RK*Third * VirialLocal
-          d2EpotdV2(unit2) = d2EpotdV2(unit2) + 2._RK*d2EpotdV2Local
+&            Virial = Virial + 2._RK*Third * VirialLocal
+          d2EpotdV2 = d2EpotdV2 + 2._RK*d2EpotdV2Local
         end do! s2-cycle
       end do! s1-cycle
 
@@ -7362,14 +7341,14 @@ end subroutine TInteraction_EnergySVC
         ! Energy of the bond
 #if MPI_VER > 0
         if (Equilibration .and. CommonEqui) then
-          EPot(unit2) = EPot(unit2) + dR*F0 / NProcs
+          EPot = EPot + dR*F0 / NProcs
           !this%EPot1Bond(bi) = dR*F0 / NProcs
         else
-          EPot(unit2) = EPot(unit2) + dR*F0
+          EPot = EPot + dR*F0
           !this%EPot1Bond(bi) = dR*F0
         end if
 #else
-        EPot(unit2) = EPot(unit2) + dR*F0
+        EPot = EPot + dR*F0
         !this%EPot1Bond(bi) = dR*F0
 #endif
 
@@ -7401,13 +7380,13 @@ end subroutine TInteraction_EnergySVC
 #else
           VirialLocal = (PXij * FXij + PYij * FYij + PZij * FZij)
 #endif
-          Virial(unit2) = Virial(unit2) + Third * VirialLocal
+          Virial = Virial + Third * VirialLocal
         end if
         Plen2    =  PXij*PXij+PYij*PYij+PZij*PZij
         sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RSquared
         d2EpotdV2Local = RSquared * 2._RK * F0 * sitecorr * sitecorr *Third*Third !xxxx Bond
         d2EpotdV2Local = d2EpotdV2Local - R * 2._RK * F0 * dR * (sitecorr * sitecorr - Plen2/RSquared)*Third*Third
-        d2EpotdV2(unit2) = d2EpotdV2(unit2) + d2EpotdV2Local
+        d2EpotdV2 = d2EpotdV2 + d2EpotdV2Local
       end do ! bonds
 
       ! Angle Interaction
@@ -7592,7 +7571,7 @@ end subroutine TInteraction_EnergySVC
 
       end do ! Dihedral Interaction
 
-      this%EPot1 => EPot
+      this%EPot = EPot
 
   end subroutine TInteraction_IntraEnergy
 
