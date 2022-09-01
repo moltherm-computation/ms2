@@ -1712,6 +1712,7 @@ contains
       end do
 
       EPot = EPot + this%RFConst2 * EPotLocal
+      Virial = Virial + this%RFConst2* EPotLocal
       idfEPot%EPotInter = idfEPot%EPotInter + this%RFConst2 * EPotLocal
     end if
 
