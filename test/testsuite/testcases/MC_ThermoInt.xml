@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>MC_ThermoInt.par</parFile>
+	<name>MC_ThermoInt</name>
+	<np>3</np>
+	<reference>
+		<file>MC_ThermoInt_1.rav</file>
+	</reference>
+	<reference>
+		<file>MC_ThermoInt_1.res</file>
+	</reference>
+	<reference>
+		<file>MC_ThermoInt_1.run</file>
+	</reference>
+	<reference>
+		<file>MC_ThermoInt_1.thi</file>
+	</reference>
+	<reference>
+		<file>MC_ThermoInt_2.rav</file>
+	</reference>
+	<reference>
+		<file>MC_ThermoInt_2.res</file>
+	</reference>
+	<reference>
+		<file>MC_ThermoInt_2.run</file>
+	</reference>
+	<reference>
+		<file>MC_ThermoInt_2.thi</file>
+	</reference>
+	<reference>
+		<file>MC_ThermoInt.rst</file>
+	</reference>
+</testcase>

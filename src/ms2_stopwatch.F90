@@ -48,9 +48,6 @@
 ! the MPI2 standard requires the support of a mpi module (see 16.2),
 ! but some MPI1 distributions don't offer a Fortran90 binding and won't compile
 ! uncomment the next line, if you have a MPI distribution for MPI>=version 2
-!#if MPI_VER>1
-! #define MPI_USE_MODULE
-!#endif
 #define STOPWATCH_USE_MPIWTIME
 #endif
 
@@ -77,8 +74,7 @@
 module ms2_stopwatch
 
 #ifdef MPI_USE_MODULE
-  use mpi
-  !use mpi_f08	! needs to adjust types (e.g. Integer->MPI_Comm etc.)
+  use mpi_f08
 #endif
 
   use ms2_global
@@ -150,7 +146,11 @@ module ms2_stopwatch
     double precision, dimension(2) :: wtime_diff
 #endif
 #ifdef USE_MPI
+#if defined MPI_USE_MODULE
+    TYPE(MPI_Comm) :: mpi_communicator
+#else
     integer mpi_communicator
+#endif
     ! actually only used to reduce the wtime diff, but could be used also to reduce other data in the future
     logical mpi_diff_reduced
 #endif
@@ -288,7 +288,6 @@ contains
     this%wtime_diff = 0
 #endif
 #ifdef USE_MPI
-  !this%mpi_communicator=MPI_COMM_WORLD
   this%mpi_communicator=Communicator
   this%mpi_diff_reduced=.FALSE.
 #endif
@@ -515,14 +514,18 @@ contains
 
   !> Set MPI communicator
   !> \param this     ... object          TStopwatch
-  !> \param new_mpicommunicator  ... new MPI communicator to set     integer
+  !> \param new_mpicommunicator  ... new MPI communicator to set
   subroutine TStopwatch_SetMPIcommunicator( this, new_mpicommunicator )
 
     implicit none
 
     ! Declare arguments
     type(TStopwatch) :: this
+#if defined MPI_USE_MODULE
+    TYPE(MPI_Comm), intent(in) :: new_mpicommunicator
+#else
     integer, intent(in) :: new_mpicommunicator
+#endif
 
     this%mpi_communicator = new_mpicommunicator
 

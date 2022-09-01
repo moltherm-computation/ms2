@@ -22,16 +22,11 @@
 !DEC$ MESSAGE:'Compiling ms2_accumulator.F90...'
 #endif
 
-!#if MPI_VER>1
-! #define MPI_USE_MODULE
-!#endif
-
 
 module ms2_accumulator
 
 #if MPI_VER > 0 && defined(MPI_USE_MODULE)
-  use mpi
-  !use mpi_f08
+  use mpi_f08
 #endif
 
   use ms2_global
@@ -221,11 +216,19 @@ contains
 #if MPI_VER > 0
     if ( SimulationType .eq. MonteCarlo ) then
       ! Allocate arrays for MC communication COL_DEBUG
-      allocate( this%BlockSumGathered( i*NProcs ), STAT = stat )
+      if ( mpiMCCommonGroups > 0 ) then !Production cycles are distributed over mpiMCCommonGroups
+        allocate( this%BlockSumGathered( i*mpiMCCommonGroups ), STAT = stat )
+      else
+        allocate( this%BlockSumGathered( i*NProcs ), STAT = stat )
+      endif     
       call AllocationError( stat, 'output blocks', i )
       this%BlockSumGathered = 0._RK
    
-      allocate( this%NBlockSumGathered( i*NProcs ), STAT = stat )
+      if ( mpiMCCommonGroups > 0 ) then
+        allocate( this%NBlockSumGathered( i*mpiMCCommonGroups ), STAT = stat )
+      else
+        allocate( this%NBlockSumGathered( i*NProcs ), STAT = stat )
+      endif
       call AllocationError( stat, 'output blocks', i )
       this%NBlockSumGathered = 0._RK
     endif
@@ -295,6 +298,7 @@ contains
 
     ! Declare local variables
     integer :: i, j, k
+    
 
     i = Step
     j = BlockSize
@@ -355,12 +359,7 @@ contains
     logical, intent(in), optional :: kbi
 
     ! Declare local variables
-!#if TRANS == 1
-!    real(RK) :: Tau(max(NBlockSizes,NBlockSizesCF))
-!#else
-    !real(RK) :: Tau(NBlockSizes)
     real(RK), dimension(:), allocatable :: Tau
-!#endif
     real(RK) :: BlockAverage
     real(RK) :: sx1, sx2, sxy
     real(RK) :: TauSum, TauInf
@@ -388,28 +387,40 @@ contains
       end if
     end if
 
-#if TRANS == 1
-    allocate(Tau(max(NBlockSizes,NBlockSizesCF)),STAT=stat)
-#else 
     allocate(Tau(max(m,1)),STAT=stat)
-#endif
 
 
 #if MPI_VER > 0
     if ( SimulationType .eq. MonteCarlo .and. .not. present(kbi)) then
+      if ( mpiMCCommonGroups > 0 ) then !gather and reduce accumulated values of each group to the head (RootProc_MCCom) of each group heads (RootProc)
+        if (RootProc) then
+          call MPI_Gather(this%BlockSum(1:(n/mpiMCCommonGroups)),n/mpiMCCommonGroups, MPI_RK , &
+&           this%BlockSumGathered(1:n), n/mpiMCCommonGroups,MPI_RK,NRootProc_MCCom,MCCommonGroups_R,ierror )
+          call MPI_Gather(this%NBlockSum(1:(n/mpiMCCommonGroups)),n/mpiMCCommonGroups, MPI_INTEGER , &
+&           this%NBlockSumGathered(1:n), n/mpiMCCommonGroups,MPI_INTEGER,NRootProc_MCCom,MCCommonGroups_R,ierror )
+          call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
+&           NRootProc_MCCom, MCCommonGroups_R, ierror )
+        endif
+      else
+        call MPI_Gather(this%BlockSum(1:(n/NProcs)),n/NProcs, MPI_RK , &
+&         this%BlockSumGathered(1:n), n/NProcs,MPI_RK,NRootProc,Communicator,ierror )
+        call MPI_Gather(this%NBlockSum(1:(n/NProcs)),n/NProcs, MPI_INTEGER , this%NBlockSumGathered(1:n), & 
+&         n/NProcs,MPI_INTEGER,NRootProc,Communicator,ierror )
+        call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
+&         NRootProc, Communicator, ierror )
+      endif
 
-      call MPI_Gather(this%BlockSum(1:(n/NProcs)),n/NProcs, MPI_RK , &
-&       this%BlockSumGathered(1:n), n/NProcs,MPI_RK,NRootProc,Communicator,ierror )
-      call MPI_Gather(this%NBlockSum(1:(n/NProcs)),n/NProcs, MPI_INTEGER , this%NBlockSumGathered(1:n), & 
-&       n/NProcs,MPI_INTEGER,NRootProc,Communicator,ierror )
-      call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
-&       NRootProc, Communicator, ierror )
-
-    !Carefull: This if statement should remain as is, 
-    ! because in the MC parallelization, every processor is treated as root
-    if (Nproc /= NRootProc) return
-        
-      this%Average=ReducedAverage/NProcs
+      !Carefull: This if statement should remain as is, 
+      ! because in the MC parallelization, every processor is treated as root
+      ! this means that NRootProc=0 for each process
+      if (Nproc /= NRootProc) return
+      
+      if ( mpiMCCommonGroups > 0 ) then
+        if ( .not. RootProc_MCCom ) return !=RootProc_W
+        this%Average=ReducedAverage/mpiMCCommonGroups
+      else        
+        this%Average=ReducedAverage/NProcs
+      endif
       ! Calculate variance
       Tau = 0._RK
       do i = 1, m
@@ -476,6 +487,78 @@ contains
   end subroutine TAccumulator_Error
 
 
+  subroutine writeAverages(this, resultFile, runaveFile, optionalFormatString, parallelMC)
+
+    implicit none
+
+    type(TAccumulator) :: this
+    type(TFile)        :: resultFile, runaveFile
+    logical            :: parallelMC
+    character(len=*), intent(in), optional :: optionalFormatString
+    character(:), allocatable :: formatString
+
+    if (PRESENT(optionalFormatString)) then
+        formatString = optionalFormatString
+    else
+        formatString = '(" ",F10.5)'
+    end if
+
+#if MPI_VER > 0
+    if (parallelMC) then
+
+        write( IOBuffer, formatString) this%BlockAverage
+        call FileWriteNoAdvance_parallel(resultFile)
+
+        write( IOBuffer, formatString) this%Average
+        call FileWriteNoAdvance_parallel(runaveFile)
+
+    else
+#endif
+
+    write( IOBuffer, formatString) this%BlockAverage
+    call FileWriteNoAdvance(resultFile)
+
+    write( IOBuffer, formatString) this%Average
+    call FileWriteNoAdvance(runaveFile)
+
+#if MPI_VER > 0
+    end if
+#endif
+
+  end subroutine writeAverages
+
+
+  subroutine writeAverageAndVariance(this, variableName, errorsFile, reducedTitle)
+
+    implicit none
+
+    type(TAccumulator) :: this
+    type(TFile), intent(in)        :: errorsFile
+    character(:), allocatable    :: formatString
+    character(len=*), intent(in)    :: variableName
+    logical, optional :: reducedTitle
+
+
+    if (present(reducedTitle) .and. reducedTitle) then
+
+        formatString = '("'//variableName//'", T29, "Dimensionless:", 2F20.9)'
+    else
+
+        formatString = '("'//variableName//'", T29, "Dimensionless, residual:", 2F20.9)'
+    end if
+
+    if (UseIntDegFreed) then
+        formatString = '("'//variableName//' - Dimensionless, residual", T36,":", 2F20.9)'
+    end if
+
+    write( IOBuffer, formatString) this%Average, this%Variance
+
+    call FileWrite(errorsFile)
+    call FileWriteBlank(errorsFile)
+
+  end subroutine writeAverageAndVariance
+
+
 !==============================================================!
 !  Subroutine TAccumulator_ErrorGI                             !
 !==============================================================!
@@ -501,18 +584,36 @@ contains
 
     real(RK) :: ReducedAverage
 
-    call MPI_Gather(this%BlockSum(1:(NBlocks/NProcs)),NBlocks/NProcs, MPI_RK , this%BlockSumGathered(1:NBlocks), & 
-&     NBlocks/NProcs,MPI_RK,NRootProc,Communicator,ierror )
-    call MPI_Gather(this%NBlockSum(1:(NBlocks/NProcs)),NBlocks/NProcs, MPI_INTEGER , this%NBlockSumGathered(1:NBlocks), & 
-&     NBlocks/NProcs,MPI_INTEGER,NRootProc,Communicator,ierror )
-    call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
-&     NRootProc, Communicator, ierror )
+    if ( mpiMCCommonGroups > 0 ) then !gather and reduce accumulated values of each group to the head (RootProc_MCCom) of each group heads (RootProc)
+      if (RootProc) then
+        call MPI_Gather(this%BlockSum(1:(NBlocks/mpiMCCommonGroups)),NBlocks/mpiMCCommonGroups, MPI_RK , &
+&         this%BlockSumGathered(1:NBlocks), NBlocks/mpiMCCommonGroups,MPI_RK,NRootProc_MCCom,MCCommonGroups_R,ierror )        
+        call MPI_Gather(this%NBlockSum(1:(NBlocks/mpiMCCommonGroups)),NBlocks/mpiMCCommonGroups, MPI_INTEGER , &
+&         this%NBlockSumGathered(1:NBlocks), NBlocks/mpiMCCommonGroups,MPI_INTEGER,NRootProc_MCCom,MCCommonGroups_R,ierror )       
+        call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
+&         NRootProc_MCCom, MCCommonGroups_R, ierror )
+      endif
+    else
+      call MPI_Gather(this%BlockSum(1:(NBlocks/NProcs)),NBlocks/NProcs, MPI_RK , this%BlockSumGathered(1:NBlocks), & 
+&       NBlocks/NProcs,MPI_RK,NRootProc,Communicator,ierror )
+      call MPI_Gather(this%NBlockSum(1:(NBlocks/NProcs)),NBlocks/NProcs, MPI_INTEGER , this%NBlockSumGathered(1:NBlocks), & 
+&       NBlocks/NProcs,MPI_INTEGER,NRootProc,Communicator,ierror )
+      call MPI_Reduce( this%Average,ReducedAverage, 1, MPI_RK, MPI_SUM, &
+&       NRootProc, Communicator, ierror )
+    endif
+
 
     !be careful: This if statement should remain as is, because in the MC parallelization, 
     !every processor is treated as root
     if (RootProc) then
         
-      this%Average=ReducedAverage/NProcs
+      if ( mpiMCCommonGroups > 0 ) then
+        if ( .not. RootProc_MCCom ) return !=RootProc_W
+        this%Average=ReducedAverage/mpiMCCommonGroups
+      else
+        this%Average=ReducedAverage/NProcs
+      endif 
+      
       ! Calculate variance
       Tau = 0._RK
       do i = 1, NBlockSizes
@@ -566,16 +667,17 @@ contains
 #if MPI_VER > 0
     endif
 
+    if ( mpiMCCommonGroups > 0 ) return
     if (RootProc) then
 
       if (NProc/=NProc_W) then
-        call MPI_Send(this%Variance,1, MPI_RK ,NRootProc,1,MPI_COMM_WORLD,ierror )
-        call MPI_Send(this%Average,1, MPI_RK ,NRootProc,2,MPI_COMM_WORLD,ierror )
+        call MPI_Send(this%Variance, 1, MPI_RK ,NRootProc, 1, MPI_COMM_WORLD, ierror )
+        call MPI_Send(this%Average, 1, MPI_RK ,NRootProc, 2, MPI_COMM_WORLD, ierror )
       endif
 
     elseif (NProc_W==NRootProc) then
-      call MPI_Recv(this%Variance,1, MPI_RK ,NRootProc_W,1,MPI_COMM_WORLD,ierror )
-      call MPI_Recv(this%Average,1, MPI_RK ,NRootProc_W,2,MPI_COMM_WORLD,ierror )
+      call MPI_Recv(this%Variance, 1, MPI_RK ,NRootProc_W, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierror )
+      call MPI_Recv(this%Average, 1, MPI_RK ,NRootProc_W, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierror )
     endif
 
 #endif
@@ -617,8 +719,8 @@ contains
       end if
     end if
     ! Save contents to restart file
-    write( iounit_restart, '(I10)' ) j
-    if( j > 0 ) write( iounit_restart, '(ES20.12E3, ";", I10)' ) &
+    write( restartFile%iounit, '(I10)' ) j
+    if( j > 0 ) write( restartFile%iounit, '(ES20.12E3, ";", I10)' ) &
 &     ( this%BlockSum(i), this%NBlockSum(i), i = 1, j )
 
   end subroutine TAccumulator_RestartSave
@@ -647,10 +749,10 @@ contains
     ! Check for root process
     if( RootProc ) then
       ! Read contents from restart file
-      read( iounit_restart, '(I10)' ) i
-      !read( iounit_restart, '(ES20.12E3, X, I10)' ) ( this%BlockSum(j), this%NBlockSum(j), j = 1, i )
+      read( restartFile%iounit, '(I10)' ) i
+      !read( restartFile%iounit, '(ES20.12E3, X, I10)' ) ( this%BlockSum(j), this%NBlockSum(j), j = 1, i )
       do j = 1, i ! should be equivalent to the previous line, which produced an "input conversion error"
-        read( iounit_restart, '(ES20.12E3, 1X, I10)' ) this%BlockSum(j), this%NBlockSum(j)
+        read( restartFile%iounit, '(ES20.12E3, 1X, I10)' ) this%BlockSum(j), this%NBlockSum(j)
       end do
     endif
     
@@ -659,7 +761,6 @@ contains
       call MPI_Bcast( this%BlockSum(:), size( this%BlockSum ), MPI_RK, NRootProc, Communicator, ierror )
       call MPI_Bcast( this%NBlockSum(:), size( this%NBlockSum ), MPI_INTEGER, NRootProc, Communicator, ierror )
       call MPI_Bcast( i, 1, MPI_INTEGER, NRootProc, Communicator, ierror )
-
     elseif ( .not. RootProc) then
       return
     endif

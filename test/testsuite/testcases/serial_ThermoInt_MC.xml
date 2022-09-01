@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>serial_ThermoInt_MC_24DAT.par</parFile>
+	<name>serial_ThermoInt_MC</name>
+	<np>1</np>
+	<reference>
+		<file>serial_ThermoInt_MC_24DAT_1.rav</file>
+	</reference>
+	<reference>
+		<file>serial_ThermoInt_MC_24DAT_1.res</file>
+	</reference>
+	<reference>
+		<file>serial_ThermoInt_MC_24DAT_1.run</file>
+	</reference>
+	<reference>
+		<file>serial_ThermoInt_MC_24DAT_1.thi</file>
+	</reference>
+	<reference>
+		<file>serial_ThermoInt_MC_24DAT_2.rav</file>
+	</reference>
+	<reference>
+		<file>serial_ThermoInt_MC_24DAT_2.res</file>
+	</reference>
+	<reference>
+		<file>serial_ThermoInt_MC_24DAT_2.run</file>
+	</reference>
+	<reference>
+		<file>serial_ThermoInt_MC_24DAT_2.thi</file>
+	</reference>
+	<reference>
+		<file>serial_ThermoInt_MC_24DAT.rst</file>
+	</reference>
+</testcase>
