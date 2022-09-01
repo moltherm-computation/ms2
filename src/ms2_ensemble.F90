@@ -1332,10 +1332,9 @@ contains
     ! Read mass of piston
     if( SimulationType .eq. MolecularDynamics .and. ConstantPressure ) then
       call FileReadParameter( this%PistonMass, iounit_params , IdPistonMass, .false. )
-      if ( (.not. UseReducedUnits) .and. (parVersionNr .ge. 2.0_RK) ) then
-        this%PistonMass = this%PistonMass / UnitMass * UnitLength**4
-      end if
-      write( IOBuffer, '("Reduced mass of piston: ",T26, F14.10)' ) this%PistonMass
+      write( IOBuffer, '("Mass of piston (reduced): ",T26, F15.9)' ) this%PistonMass
+      call LogWrite
+      write( IOBuffer, '("Mass of piston: ",T26, F15.9, " kg/m^4")' ) this%PistonMass * UnitMass / UnitLength**4
       call LogWrite
     end if
 
@@ -14702,11 +14701,13 @@ loop2:        do nc = 1, this%NComponents
     write( IOBuffer, '("Number of NVE equilibration steps", T36, ":", I10)' ) NStepsE
     call FileWrite( this%iounit_errors )
     if( EnsembleType .eq. EnsembleTypeHA ) then
-       write( IOBuffer, '("Number of HA equilibration steps", T36, ":", I10)' ) NStepsP
+      write( IOBuffer, '("Number of HA equilibration steps", T36, ":", I10)' ) NStepsP
     elseif( EnsembleType .eq. EnsembleTypeGE ) then
-       write( IOBuffer, '("Number of GE equilibration steps", T36, ":", I10)' ) NStepsP
+      write( IOBuffer, '("Number of GE equilibration steps", T36, ":", I10)' ) NStepsP
+    elseif( EnsembleType .eq. EnsembleTypeMUVT ) then
+      write( IOBuffer, '("Number of MUVT equilibration steps", T36, ":", I10)' ) NStepsP
     else
-       write( IOBuffer, '("Number of NPT equilibration steps", T36, ":", I10)' ) NStepsP
+      write( IOBuffer, '("Number of NPT equilibration steps", T36, ":", I10)' ) NStepsP
     endif
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("Number of NPH equilibration steps", T36, ":", I10)' ) NStepsH
@@ -14825,7 +14826,7 @@ loop2:        do nc = 1, this%NComponents
     call FileWrite( this%iounit_errors )
     write( IOBuffer, '("Unit of energy", T36, ":", F20.9, " K")' ) UnitEnergy / kBoltzmann
     call FileWrite( this%iounit_errors )
-    write( IOBuffer, '("Unit of mass", T36, ":", F20.9, " a.u.")' ) UnitMass * NAvogadro * 1000._RK
+    write( IOBuffer, '("Unit of mass", T36, ":", F20.9, " g/mol")' ) UnitMass * NAvogadro * 1000._RK
     call FileWrite( this%iounit_errors )
     call FileWriteBlank( this%iounit_errors )
 
@@ -28324,7 +28325,7 @@ contains
   sendGridpointCount = this%NGridPoints1
   if (sendGridpointCount<1) then
     sendGridpointCount = 0
-  endif                                 
+  endif
   call MPI_Gather(sendGridpointCount , 1 , MPI_INT, GPCounter_all,  1, MPI_INT, NRootProc, Communicator, ierror ) ! BEWARE if every processor sends same length
 
   !DC NOTE- gather the strides for the gatherv call
