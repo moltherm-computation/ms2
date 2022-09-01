@@ -84,7 +84,12 @@ module ms2_global
 #endif
 
 #if MPI_VER > 0
+#if MPI_USE_MODULE
+  ! MPI Datatype corresponding to RK of the passed data
+  TYPE(MPI_Datatype) :: MPI_RK
+#else
   integer :: MPI_RK
+#endif
 #endif
 
   ! Identifier for MC overlaps
@@ -242,6 +247,14 @@ module ms2_global
   type TFile
 
     integer :: iounit
+
+#if MPI_VER > 0
+#if defined(MPI_USE_MODULE)
+    TYPE(MPI_File) :: MPIhandle = MPI_FILE_NULL
+#else
+    integer :: MPIhandle = -1
+#endif
+#endif
 
   end type TFile
 
@@ -1213,7 +1226,7 @@ contains
   subroutine Global_printVersion()
     implicit none
     if (RootProc) then
-      print *, trim( ProgramFileName ), ' Version: ', VersionString &
+      print *, trim( ProgramFileName ), ' Version: ', VersionString, "_idf" &
 &            , ' (compiled at ', CompileTime, ')'
     end if
   end subroutine Global_printVersion
@@ -1672,6 +1685,10 @@ contains
     write( IOBuffer, '(" SPME=1")' )
     call LogWriteNoAdvance
 #endif
+#if MPI_USE_MODULE == 1
+    write( IOBuffer, '(" MPI_USE_MODULE=1")' )
+    call LogWriteNoAdvance
+#endif
     ! new compiler flags should be added
     ! include target, omp and precision???
     write( IOBuffer, '(" ")' )
@@ -2024,10 +2041,10 @@ contains
     endif
 
     if ( NCommunicators .gt. 1 .and. NCommunicator .eq. 0 ) then
-      call FileAppend( logFile%iounit, trim(filename) )
+      call FileAppend(logFile, trim(filename))
       write( IOBuffer, '("ms2 logfile ",A," reopened")' ) trim(filename)
     else
-      call FileRewrite( logFile%iounit, trim(filename) )
+      call FileRewrite(logFile, trim(filename))
       write( IOBuffer, '("ms2 logfile ",A," created")' ) trim(filename)
     endif
 #if MPI_VER > 0
@@ -2059,7 +2076,7 @@ contains
 #endif
 
     ! Close log file
-    call FileClose( logFile%iounit )
+    call FileClose(logFile)
 
   end subroutine Global_LogClose
 
@@ -2204,12 +2221,12 @@ contains
 !  Subroutine Global_FileReset                                 !
 !==============================================================!
 
-  subroutine Global_FileReset( iounit, filename )
+  subroutine Global_FileReset(file, filename)
 
     implicit none
 
     ! Declare arguments
-    integer, intent(in)      :: iounit
+    type(TFile), intent(in)      :: file
     character(*), intent(in) :: filename
 
     ! Declare local variables
@@ -2220,9 +2237,9 @@ contains
 
 
     ! Open file for reading
-    write( IOBuffer, '("Opening file <", A, "> for reading (unit",I5,")")' ) trim( filename ), iounit
+    write( IOBuffer, '("Opening file <", A, "> for reading (unit",I5,")")' ) trim( filename ), file%iounit
     call LogWrite
-    open( iounit, file = filename, action = 'READ', status = 'OLD', iostat = stat )
+    open( file%iounit, file = filename, action = 'READ', status = 'OLD', iostat = stat )
     if( stat /= 0 ) call Error( 'Cannot open file '//trim( filename )//' for reading' )
 
   end subroutine Global_FileReset
@@ -2232,14 +2249,14 @@ contains
 !  Subroutine Global_FileClose_parallel                        !
 !==============================================================!
 
-  subroutine Global_FileClose_parallel( iounit )
+  subroutine Global_FileClose_parallel( file )
 
     implicit none
 
     ! Declare arguments
-    integer, intent(in) :: iounit
+    type(Tfile) :: file
 
-    call MPI_File_Close(iounit, ierror)
+    call MPI_File_close(file%MPIhandle, ierror)
 
     if( RootProc )then 
         write( IOBuffer, '("File <", A, "> closed")' )"*.run or *.rav"  
@@ -2253,26 +2270,30 @@ contains
 !  Subroutine Global_FileRewrite_parallel                      !
 !==============================================================!
 
-  subroutine Global_FileRewrite_parallel( iounit, filename )
+  subroutine Global_FileRewrite_parallel( file, filename )
 
     implicit none
 #if !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
+
     ! Declare arguments
-    integer, intent(out)          :: iounit
+    type(Tfile)                   :: file
     character(*), intent(in)      :: filename
 
     if(RootProc) then
       ! open file for writing
-      if( iounit /= logFile%iounit ) then
+      if( file%iounit /= logFile%iounit ) then
         write( iobuffer, '("opening file <", a, "> for writing")' ) trim( filename )
         call logwrite
-        open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
-        close(iounit)
+        open( file%iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
+        close(file%iounit)
       end if
     end if
-    call MPI_File_Open(Communicator, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, iounit, ierror)
+
+    call MPI_File_open(Communicator, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE, MPI_INFO_NULL, file%MPIhandle, ierror)
+    call MPI_File_set_size(file%MPIhandle, int(0, MPI_OFFSET_KIND), ierror)
+
     if(RootProc) then
       if( ierror .ne. 0 ) then
         write( IOBuffer,'(a,a)') 'Can not create ',trim( filename )
@@ -2286,33 +2307,34 @@ contains
 !  Subroutine Global_FileAppend_parallel                       !
 !==============================================================!
 
-  subroutine Global_FileAppend_parallel( iounit, filename )
+  subroutine Global_FileAppend_parallel(file, filename)
 
     implicit none
 #if !defined(MPI_USE_MODULE)
     include 'mpif.h'
 #endif
+
     ! Declare arguments
-    integer, intent(out)          :: iounit
+    type(TFile)                   :: file
     character(*), intent(in)      :: filename
 
     ! Declare local variables
-
     logical :: ex
 
     ! Check for root process
     if( RootProc ) then
 
       ! Open file for writing
-      if( iounit /= logFile%iounit ) then
+      if( file%iounit /= logFile%iounit ) then
         write( IOBuffer, '("Opening file <", A, "> for appending")' ) trim( filename )
         call LogWrite
       end if
 
     endif
-    ! MB: Fortran POSIX IO != MPI IO; Fortran units != MPI units; mpi iounit is not a prescribed value but returned from MPI_File_Open...
-    call MPI_File_Open(Communicator, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE + MPI_MODE_APPEND, MPI_INFO_NULL &
-&                     , iounit, ierror)
+
+    call MPI_File_open(Communicator, filename, MPI_MODE_WRONLY + MPI_MODE_CREATE + MPI_MODE_APPEND, MPI_INFO_NULL &
+&                     , file%MPIhandle, ierror)
+
     ! no "Append" in the strict sense!
     if(RootProc) then
       if( ierror /= MPI_SUCCESS ) then
@@ -2320,8 +2342,6 @@ contains
         call logwrite
       end if
     end if
-
-! TODO: Rewrite of MPI_IO? binary versions of output files?
 
   end subroutine Global_FileAppend_parallel
 
@@ -2340,12 +2360,7 @@ contains
     type(Tfile), intent(in) :: file
 
     ! Write contents of buffer to file
-    call MPI_File_write(file%iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)
-    !call MPI_File_write_all(iounit,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, mpistatus, ierror)    ! collective operation (still with individual file pointer)
-    !
-    !call MPI_File_write_shared(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER,mpistatus,ierror) ! write (a whole dataset at once) with a shared file handle
-    !call MPI_File_write_ordered(iounit,IOBuffer,len(trim(IOBuffer)),MPI_CHARACTER, mpistatus, ierror)  ! collective operation to write ranks one after another with a shared file handler
-    !
+    call MPI_File_write(file%MPIhandle,IOBuffer, len(trim(IOBuffer)), MPI_CHARACTER, MPI_STATUS_IGNORE, ierror)
 
   end subroutine Global_FileWriteNoAdvance_parallel
 
@@ -2355,23 +2370,23 @@ contains
 !  Subroutine Global_FileRewrite                               !
 !==============================================================!
 
-  subroutine Global_FileRewrite( iounit, filename )
+  subroutine Global_FileRewrite(file, filename)
 
     implicit none
 
     ! Declare arguments
-    integer, intent(in)           :: iounit
+    type(TFile), intent(in)       :: file
     character(*), intent(in)      :: filename
 
     ! Check for root process
     if( .not. RootProc ) return
 
     ! Open file for writing
-    if( iounit /= logFile%iounit ) then
-      write( IOBuffer, '("Opening file <", A, "> for writing (unit",I5,")")' ) trim( filename ), iounit
+    if( file%iounit /= logFile%iounit ) then
+      write( IOBuffer, '("Opening file <", A, "> for writing (unit",I5,")")' ) trim( filename ), file%iounit
       call LogWrite
     end if
-    open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
+    open( file%iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
 
   end subroutine Global_FileRewrite
 
@@ -2381,12 +2396,12 @@ contains
 !  Subroutine Global_FileAppend                                !
 !==============================================================!
 
-  subroutine Global_FileAppend( iounit, filename )
+  subroutine Global_FileAppend(file, filename)
 
     implicit none
 
     ! Declare arguments
-    integer, intent(in)           :: iounit
+    type(TFile), intent(in)       :: file
     character(*), intent(in)      :: filename
 
     ! Declare local variables
@@ -2396,17 +2411,17 @@ contains
     if( .not. RootProc ) return
 
     ! Open file for writing
-    if( iounit /= logFile%iounit ) then
-      write( IOBuffer, '("Opening file <", A, "> for appending (unit",I5,")")' ) trim( filename ), iounit
+    if( file%iounit /= logFile%iounit ) then
+      write( IOBuffer, '("Opening file <", A, "> for appending (unit",I5,")")' ) trim( filename ), file%iounit
       call LogWrite
     end if
     inquire( file = filename, exist = ex )
     if( ex ) then
-      open( iounit, file = filename, action = 'WRITE', status = 'OLD', position = 'APPEND' )
+      open( file%iounit, file = filename, action = 'WRITE', status = 'OLD', position = 'APPEND' )
     else
       write( IOBuffer, '("File does not exist. Creating new")' )
       call LogWrite
-      open( iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
+      open( file%iounit, file = filename, action = 'WRITE', status = 'REPLACE' )
     end if
 
   end subroutine Global_FileAppend
@@ -2417,12 +2432,12 @@ contains
 !  Subroutine Global_FileClose                                 !
 !==============================================================!
 
-  subroutine Global_FileClose( iounit )
+  subroutine Global_FileClose(file)
 
     implicit none
 
     ! Declare arguments
-    integer, intent(in) :: iounit
+    type(TFile), intent(in) :: file
 
     ! Declare local variables
     character(FileNameLength) :: fn
@@ -2434,14 +2449,14 @@ contains
     if( .not. RootProc ) return
 
     ! Close file
-    inquire( iounit, NAME = fn )
+    inquire( file%iounit, NAME = fn )
 #ifdef _WIN32
     i = index( fn, '\', BACK=.true. )
     if( i > 0 ) fn = fn( i+1:len( fn ) )
 #endif
-    close( iounit )
-    if( iounit /= logFile%iounit ) then
-      write( IOBuffer, '("File <", A, "> closed (unit",I5,")")' ) trim( fn ), iounit
+    close( file%iounit )
+    if( file%iounit /= logFile%iounit ) then
+      write( IOBuffer, '("File <", A, "> closed (unit",I5,")")' ) trim( fn ), file%iounit
       call LogWrite
     end if
 
