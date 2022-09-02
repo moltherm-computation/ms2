@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.319</tools4ms2version>
-	<caseRepositoryHash>c2c984d90f8d3cfc865345aa48b0122f2f89ba87</caseRepositoryHash>
+	<caseRepositoryHash>3e5f8ced8c8ea030aac0d3aff836c4599605f5cc</caseRepositoryHash>
 	<caseList>
 <!-- 		<case name="pentan_1" file="pentan_1.xml" />
 		<case name="pentan_2" file="pentan_2.xml" />
@@ -16,5 +16,15 @@
 		<case name="pentan_10" file="pentan_10.xml" />
 		<case name="pentan_11" file="pentan_11.xml" /> -->
 		<case name="propanol" file="propanol.xml" />
+		<case name="propanol_2" file="propanol_2.xml" />
+		<case name="propanol_3" file="propanol_3.xml" />
+		<case name="propanol_4" file="propanol_4.xml" />
+		<case name="propanol_5" file="propanol_5.xml" />
+		<case name="propanol_6" file="propanol_6.xml" />
+		<case name="propanol_7" file="propanol_7.xml" />
+		<case name="propanol_8" file="propanol_8.xml" />
+		<case name="propanol_9" file="propanol_9.xml" />
+		<case name="propanol_10" file="propanol_10.xml" />
+		<case name="propanol_11" file="propanol_11.xml" />
 	</caseList>
 </testsuite>

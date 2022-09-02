@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>propanol_NPT.par</parFile>
+	<name>propanol_2</name>
+	<compilerOption>
+		<name>COMPILER</name>
+		<value>INTEL</value>
+	</compilerOption>
+	<np>4</np>
+	<reference>
+		<file>propanol_NPT_1.res</file>
+	</reference>
+</testcase>
