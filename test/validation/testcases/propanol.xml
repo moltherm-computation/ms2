@@ -11,4 +11,8 @@
 	<reference>
 		<file>propanol_NPT_1.res</file>
 	</reference>
+	<analyze>
+		<command>python plot.py</command>
+		<picture>vaporPressure.pdf results.pdf</picture>
+	</analyze>
 </testcase>

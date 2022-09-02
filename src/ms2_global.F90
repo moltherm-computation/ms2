@@ -1226,7 +1226,7 @@ contains
   subroutine Global_printVersion()
     implicit none
     if (RootProc) then
-      print *, trim( ProgramFileName ), ' Version: ', VersionString, "_idf" &
+      print *, trim( ProgramFileName ), ' Version: ', VersionString &
 &            , ' (compiled at ', CompileTime, ')'
     end if
   end subroutine Global_printVersion
