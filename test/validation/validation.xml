@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xml>
 <testsuite>
-	<tools4ms2version>0.0.286</tools4ms2version>
-	<caseRepositoryHash>42f08c3bb80a6190363a132689c22954c6b6e2f1</caseRepositoryHash>
+	<tools4ms2version>0.0.319</tools4ms2version>
+	<caseRepositoryHash>cb4df8f2d9cb3262d9a33d160494d744a0243031</caseRepositoryHash>
 	<caseList>
 <!-- 		<case name="2VC_aceton" file="2VC_aceton.xml" /> -->
 <!-- 		<case name="2VC_Ar" file="2VC_Ar.xml" /> -->
@@ -222,5 +222,16 @@
 		<case name="MD_widom_xA100" file="MD_widom_xA100.xml" />
 		<case name="Mie_MC_CO2" file="Mie_MC_CO2.xml" />
 		<case name="NPT_4mixT380-MD" file="NPT_4mixT380-MD.xml" /> -->
+		<case name="pentan_1_shake" file="pentan_1_shake.xml" />
+		<case name="pentan_2_shake" file="pentan_2_shake.xml" />
+		<case name="pentan_3_shake" file="pentan_3_shake.xml" />
+		<case name="pentan_4_shake" file="pentan_4_shake.xml" />
+		<case name="pentan_5_shake" file="pentan_5_shake.xml" />
+		<case name="pentan_6_shake" file="pentan_6_shake.xml" />
+		<case name="pentan_7_shake" file="pentan_7_shake.xml" />
+		<case name="pentan_8_shake" file="pentan_8_shake.xml" />
+		<case name="pentan_9_shake" file="pentan_9_shake.xml" />
+		<case name="pentan_10_shake" file="pentan_10_shake.xml" />
+		<case name="pentan_11_shake" file="pentan_11_shake.xml" />
 	</caseList>
 </testsuite>

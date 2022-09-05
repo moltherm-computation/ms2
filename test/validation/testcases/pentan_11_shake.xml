@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>pentan_NPT_11.par</parFile>
+	<name>pentan_11_shake</name>
+	<walltime>20:00:00</walltime>
+	<np>4</np>
+	<compilerOption>
+		<name>COMPILER</name>
+		<value>INTEL</value>
+	</compilerOption>
+	<reference>
+		<file>pentan_NPT_11_1.res</file>
+	</reference>
+</testcase>
