@@ -17271,15 +17271,16 @@ loop2:  do j = 1, j1
 
             if (this%nmax > 0) then
               ! Normal Amber-type torsion angle
-              earg = 1._RK + cos(-this%gamma0(1))
-              EPotLocal = EPotLocal + earg * this%ForConst(1)
+              earg = 1 * arg - this%gamma0(1)
+              EPotLocal = EPotLocal + this%ForConst(1) * (1._RK + cos(earg))
+              deri = -this%ForConst(1) * 1.0 * sin(earg)
               do j = 1,this%nmax
-                earg= j*arg-this%gamma0(j+1)
+                earg= (j + 1) * arg - this%gamma0(j + 1)
                 ! Energy and forces:
                 ! formulae  E = ForConst*( 1 + cos(earg) )
                 !           F = ForConst*n*sin(earg)
                 EPotLocal = EPotLocal + this%ForConst(j+1)*(1._RK+cos(earg))
-                deri = deri - this%ForConst(j+1)*j*sin(earg)
+                deri = deri - this%ForConst(j + 1)*(j + 1)*sin(earg)
               end do
 
              else ! Improper dihedral angle
