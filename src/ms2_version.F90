@@ -10,7 +10,7 @@
 
 module ms2_version
 
-  character(*), parameter :: VersionString = '4.084_pentan_010_propanol_004'
+  character(*), parameter :: VersionString = '4.084_pentan_011_propanol_005'
   real(4)                :: ms2VersionNr = 4.084
 
 end module ms2_version
