@@ -3,10 +3,6 @@
 <testcase>
 	<parFile>pentan_NPT.par</parFile>
 	<name>pentan_org</name>
-	<compilerOption>
-		<name>COMPILER</name>
-		<value>INTEL</value>
-	</compilerOption>
 	<reference>
 		<file>pentan_NPT_1.rav</file>
 	</reference>

@@ -718,14 +718,6 @@ module ms2_ensemble
     module procedure TEnsemble_Atom2Unit
   end interface
 
-  interface Mol2Unit
-    module procedure TEnsemble_Mol2Unit
-  end interface
-
-  interface Unit2Mol
-    module procedure TEnsemble_Unit2Mol
-  end interface
-
   interface Predict
     module procedure TEnsemble_Predict
   end interface
@@ -2045,9 +2037,6 @@ contains
       end if
 
       if( SimulationType .eq. MolecularDynamics .and. .not. MCOverlapReduction ) then
-
-        ! Calculate positions of units
-        call Mol2Unit( this)   ! Calculate initial orientations and positions of units
 
         ! Initialize molecular dynamics simulation
         call InitMolecularDynamics( this, .false. )
@@ -5024,7 +5013,7 @@ xloop:do i = 1, NCells1dim(1)
 
     ! Declare local variables
     integer                   :: i, j, k, iUnit
-    real(RK)                  :: dq(3), pm(3), r
+    real(RK)                  :: dq(4), pm(3), r
     type(TComponent), pointer :: pc
 
     ! Set random orientations of particles
@@ -5044,12 +5033,13 @@ xloop:do i = 1, NCells1dim(1)
           else
             do
               do k = 1, 4
-                pc%Qm0(j, k) = rnd( -1._RK, 1._RK )
+                dq(k) = rnd( -1._RK, 1._RK )
               end do
-              r = sum( pc%Qm0(j, :)**2 )
+              r = sum( dq(:)**2 )
               if( r <= 1._RK ) exit
             end do
-          pc%Qm0(j, :) = pc%Qm0(j, :) / sqrt( r )
+          dq(:) = dq(:) / sqrt( r )
+          call Mol2Unit( pc, j, dq )
           end if
         end do
       else
@@ -6059,52 +6049,6 @@ loop5:    do nc = 1, this%NComponents
 #endif
 
   end subroutine TEnsemble_Atom2Unit
-
-
-!==============================================================!
-!  Subroutine TEnsemble_Mol2Unit                               !
-!==============================================================!
-
-  subroutine TEnsemble_Mol2Unit( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer      :: i
-
-    ! Call Mol2Unit for each component
-    do i = 1, this%NComponents
-      call Mol2Unit( this%Component(i), this%Component(i)%NPart, &
-&                      this%Component(i)%Molecule%nUnits )
-    end do
-
-  end subroutine TEnsemble_Mol2Unit
-
-
-!==============================================================!
-!  Subroutine TEnsemble_Unit2Mol                               !
-!==============================================================!
-
-  subroutine TEnsemble_Unit2Mol( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    integer      :: i
-
-    ! Call Unit2Mol for each component
-    do i = 1, this%NComponents
-      call Mol2Unit( this%Component(i), this%Component(i)%NPart, &
-&                      this%Component(i)%Molecule%nUnits )
-    end do
-
-  end subroutine TEnsemble_Unit2Mol
 
 
 !==============================================================!
