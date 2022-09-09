@@ -159,11 +159,11 @@ contains
 
     ! Convert to SI units
     this%R0 = this%R0 * Angstroem
-    this%ForConst = this%ForConst * kBoltzmann / Angstroem / Angstroem
+    this%ForConst = this%ForConst * kBoltzmann
 
     ! Convert to derived units
     this%R0 = this%R0 / UnitLength
-    this%ForConst = this%ForConst * UnitLength * UnitLength / UnitEnergy
+    this%ForConst = this%ForConst / UnitEnergy
 
 
 end subroutine TIdfBond_Construct
