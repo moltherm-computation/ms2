@@ -8,4 +8,8 @@
 	<reference>
 		<file>C2H6_OPLS_p3T2_Ring_1.res</file>
 	</reference>
+	<analyze>
+		<command>python plotComparison.py</command>
+		<picture>compareRhoEthan70MPa,.pdf compareUethan70MPa,.pdf</picture>
+	</analyze>
 </testcase>

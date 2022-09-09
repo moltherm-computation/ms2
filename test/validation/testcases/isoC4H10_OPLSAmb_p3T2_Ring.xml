@@ -8,4 +8,8 @@
 	<reference>
 		<file>isoC4H10_OPLSAmb_p3T2_Ring_1.res</file>
 	</reference>
+	<analyze>
+		<command>python plotComparison.py</command>
+		<picture>compareRhoIsoButan70MPa,.pdf compareUisoButan70MPa,.pdf</picture>
+	</analyze>
 </testcase>
