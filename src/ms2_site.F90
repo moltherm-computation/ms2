@@ -156,7 +156,7 @@ end type TSiteTT68
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK)          :: r(3)
+    real(RK),pointer  :: r(:)
     real(RK)          :: e
     real(RK)          :: mass
     real(RK)          :: shield
@@ -214,7 +214,7 @@ end type TSiteTT68
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK)          :: r(3), or(3)
+    real(RK),pointer  :: r(:), or(:)
     real(RK)          :: D
     real(RK)          :: mass
     real(RK)          :: shield
@@ -275,7 +275,7 @@ end type TSiteTT68
 
     integer           :: SiteId
     integer           :: UnitNumber
-    real(RK)          :: r(3), or(3)
+    real(RK),pointer  :: r(:), or(:)
     real(RK)          :: Q
     real(RK)          :: mass
     real(RK)          :: shield
@@ -1061,11 +1061,18 @@ contains
 
     ! Declare arguments
     type(TSiteCharge) :: this
+    
+    ! Declare local variables
+    integer          :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
       call FileReadParameter( this%SiteId, potmodFile%iounit, IdCharge_SiteId, .false. )
     end if
+    
+    nullify ( this%r )
+    allocate( this%r( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
 
     call FileReadParameter( this%r(1), potmodFile%iounit, IdCharge_r1, .false. )
     call FileReadParameter( this%r(2), potmodFile%iounit, IdCharge_r2, .false. )
@@ -1388,11 +1395,19 @@ contains
 
     ! Declare local variables
     real(RK) :: theta, phi
+    integer  :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
         call FileReadParameter( this%SiteId, potmodFile%iounit, IdDipole_SiteId, .false. )
     end if
+
+    nullify ( this%r )
+    allocate( this%r( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
+    nullify ( this%or )
+    allocate( this%or( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
 
     call FileReadParameter( this%r(1), potmodFile%iounit, IdDipole_r1, .false. )
     call FileReadParameter( this%r(2), potmodFile%iounit, IdDipole_r2, .false. )
@@ -1794,11 +1809,19 @@ contains
 
     ! Declare local variables
     real(RK) :: theta, phi
+    integer  :: stat
 
     ! Read site parameters
     if( UseIntDegFreed ) then
         call FileReadParameter( this%SiteId, potmodFile%iounit, IdQuadrupole_SiteId, .false. )
     end if
+
+    nullify ( this%r )
+    allocate( this%r( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
+    nullify ( this%or )
+    allocate( this%or( 3 ), STAT = stat )
+    call AllocationError( stat, 'coordinates', 3 )
 
     call FileReadParameter( this%r(1), potmodFile%iounit, IdQuadrupole_r1, .false. )
     call FileReadParameter( this%r(2), potmodFile%iounit, IdQuadrupole_r2, .false. )

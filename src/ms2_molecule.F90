@@ -450,6 +450,20 @@ contains
        end if
     end if
 
+    ! Read number of rotation axes
+    call FileReadParameter( stype, potmodFile%iounit, IdSite_NDFRot, .false. )
+    select case( stype )
+    case( '0' )
+      this%NDFRot = 0
+    case( '2' )
+      this%NDFRot = 2
+    case( '3' )
+      this%NDFRot = 3
+    case( 'AUTO', 'Auto', 'auto' )
+      this%NDFRot = -1
+    case default
+      call Error( IdSite_NDFRot//' cannot be equal to '//trim( stype ) )
+    end select
 
     ! Read number of IDF types
     if (UseIntDegFreed) then
@@ -761,6 +775,7 @@ contains
       this%UnitQP(iUnit) = this%Unit(iUnit-1)%NQuadrupole + this%UnitQP(iUnit-1)
     end do
 
+
     ! Find moments of inertia for molecule
     if( this%Unit(1)%NDFRot < 0 ) then
     ! Calculate moment-of-inertia tensor
@@ -774,6 +789,33 @@ contains
       moi(3, 3) = moi(3, 3) + this%SiteMIEnm(i)%mass * ( this%SiteMIEnm(i)%r(1)**2 + this%SiteMIEnm(i)%r(2)**2 )
     end do
 
+    do i = 1, this%NCharge
+      moi(1, 1) = moi(1, 1) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(2)**2 + this%SiteCharge(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(1)**2 + this%SiteCharge(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(2) * this%SiteCharge(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(1)**2 + this%SiteCharge(i)%r(2)**2 )
+    end do
+
+    do i = 1, this%NDipole
+      moi(1, 1) = moi(1, 1) + this%SiteDipole(i)%mass * ( this%SiteDipole(i)%r(2)**2 + this%SiteDipole(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteDipole(i)%mass * this%SiteDipole(i)%r(1) * this%SiteDipole(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteDipole(i)%mass * this%SiteDipole(i)%r(1) * this%SiteDipole(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteDipole(i)%mass * ( this%SiteDipole(i)%r(1)**2 + this%SiteDipole(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteDipole(i)%mass * this%SiteDipole(i)%r(2) * this%SiteDipole(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteDipole(i)%mass * ( this%SiteDipole(i)%r(1)**2 + this%SiteDipole(i)%r(2)**2 )
+    end do
+
+    do i = 1, this%NQuadrupole
+      moi(1, 1) = moi(1, 1) + this%SiteQuadrupole(i)%mass * ( this%SiteQuadrupole(i)%r(2)**2 + this%SiteQuadrupole(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteQuadrupole(i)%mass * this%SiteQuadrupole(i)%r(1) * this%SiteQuadrupole(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteQuadrupole(i)%mass * this%SiteQuadrupole(i)%r(1) * this%SiteQuadrupole(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteQuadrupole(i)%mass * ( this%SiteQuadrupole(i)%r(1)**2 + this%SiteQuadrupole(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteQuadrupole(i)%mass * this%SiteQuadrupole(i)%r(2) * this%SiteQuadrupole(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteQuadrupole(i)%mass * ( this%SiteQuadrupole(i)%r(1)**2 + this%SiteQuadrupole(i)%r(2)**2 )
+    end do
+
     ! Transform to principal axes
     call eigen_find( moi(:,:), this%MOI(:), rotation(:,:) )
     call eigen_sort( this%MOI(:), rotation(:,:) )
@@ -781,6 +823,21 @@ contains
       this%SiteMIEnm(i)%r(:) = matmul( this%SiteMIEnm(i)%r(:), rotation(:, :) )
     end do
 
+    do i = 1, this%NCharge
+      this%SiteCharge(i)%r(:) = matmul( this%SiteCharge(i)%r(:), rotation(:, :) )
+    end do
+
+    do i = 1, this%NDipole
+      this%SiteDipole(i)%r(:) = matmul( this%SiteDipole(i)%r(:), rotation(:, :) )
+      this%SiteDipole(i)%or(:) = matmul( this%SiteDipole(i)%or(:), rotation(:, :) )
+    end do
+
+    do i = 1, this%NQuadrupole
+      this%SiteQuadrupole(i)%r(:) = matmul( this%SiteQuadrupole(i)%r(:), rotation(:, :) )
+      this%SiteQuadrupole(i)%or(:) = matmul( this%SiteQuadrupole(i)%or(:), rotation(:, :) )
+    end do
+
+    if( (this%NCharge > 0).or.(this%NDipole > 0) ) this%Mue(:) = matmul( this%Mue(:), rotation(:, :) )
     end if
 
     ! For all Units find mass, COM, moment of inertia, number of degree of freedom
@@ -2192,7 +2249,8 @@ contains
         if( (unit%NCharge > 0).or.(unit%NDipole > 0) ) unit%Mue(:) = matmul( unit%Mue(:), rotation(:, :) )
 
         ! Calculate inverse of rotation matrix - from body coordinate to space axes
-        Rot2(:,:) = rotation
+        Rot2(:,:) = transpose(rotation)
+
 
         ! Implemented according to Bronstein et al. 2008, Revision 7
         T = Rot2(1,1)+Rot2(2,2)+Rot2(3,3)+1._RK

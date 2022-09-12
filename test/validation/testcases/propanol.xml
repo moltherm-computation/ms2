@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>propanol_NPT.par</parFile>
+	<name>propanol</name>
+	<compilerOption>
+		<name>COMPILER</name>
+		<value>INTEL</value>
+	</compilerOption>
+	<np>4</np>
+	<reference>
+		<file>propanol_NPT_1.res</file>
+	</reference>
+	<analyze>
+		<command>python plot.py</command>
+		<picture>vaporPressure.pdf results.pdf</picture>
+	</analyze>
+</testcase>
