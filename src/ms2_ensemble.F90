@@ -5040,7 +5040,7 @@ xloop:do i = 1, NCells1dim(1)
                 if( r <= 1._RK ) exit
               end do
               dq(:) = dq(:) / sqrt( r )
-              call Mol2Unit(pc,j,dq )
+              call InitUnit(pc,j,dq )
               do iUnit = 1, pc%Molecule%nUnits
                 pc%P0(j,:,iUnit) = pc%P0(j,:,iUnit) + pm(:) - pc%Pm0(j,:) ! since pm=Pm0, this does nothing
               end do

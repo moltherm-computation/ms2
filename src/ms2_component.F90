@@ -386,10 +386,6 @@ module ms2_component
     module procedure TComponent_RotateTest
   end interface
 
-  interface Mol2Unit
-    module procedure TComponent_Mol2Unit
-  end interface
-
   interface InitUnit
     module procedure TComponent_InitUnit
   end interface
@@ -6519,10 +6515,10 @@ contains
 
 
 !==============================================================!
-!  Subroutine TComponent_Mol2Unit                              !
+!  Subroutine TComponent_InitUnit                              !
 !==============================================================!
 
-  subroutine TComponent_Mol2Unit( this, np, dq )
+subroutine TComponent_InitUnit( this, np, dq )
 
     implicit none
 
@@ -6537,15 +6533,15 @@ contains
     real(RK)            :: dq(4)
 
     ! Declare local variables
-    type(TUnit), pointer           :: pUnit
-    real(RK)                       :: BoxLengthInv
-    real(RK)                       :: A11, A12, A13
-    real(RK)                       :: A21, A22, A23
-    real(RK)                       :: A31, A32, A33
-    real(RK)                       :: q1, q2, q3, q4, qinv
-    integer                        :: iUnit
+    type(TUnit), pointer :: pUnit
+    real(RK)             :: BoxLengthInv
+    real(RK)             :: A11, A12, A13
+    real(RK)             :: A21, A22, A23
+    real(RK)             :: A31, A32, A33
+    real(RK)             :: q1, q2, q3, q4, qinv
+    integer              :: iUnit
 
-    ! Broadcast positions and orientations to all processes
+    ! Broadcast center of mass (molecule) positions to all processes
 #if MPI_VER > 0
     ! in MC simulations, we only communicate during common equilibration
     if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
@@ -6580,88 +6576,6 @@ contains
     dq(3) = q3
     dq(4) = q4
 
-    A11 = q1**2 + q2**2 - q3**2 - q4**2
-    A12 = 2._RK * (q2 * q3 + q1 * q4)
-    A13 = 2._RK * (q2 * q4 - q1 * q3)
-    A21 = 2._RK * (q2 * q3 - q1 * q4)
-    A22 = q1**2 - q2**2 + q3**2 - q4**2
-    A23 = 2._RK * (q3 * q4 + q1 * q2)
-    A31 = 2._RK * (q2 * q4 + q1 * q3)
-    A32 = 2._RK * (q3 * q4 - q1 * q2)
-    A33 = q1**2 - q2**2 - q3**2 + q4**2
-
-    do iUnit = 1, this%Molecule%nUnits
-        pUnit => this%Molecule%Unit(iUnit)
-
-        ! Calculating new Positions and quaternions of unit iUnit after rotation
-        this%P0(np, 1, iUnit) = this%Pm0(np, 1) + (pUnit%P0(1) * A11 + pUnit%P0(2) * A21 +pUnit%P0(3) * A31) * BoxLengthInv
-        this%P0(np, 2, iUnit) = this%Pm0(np, 2) + (pUnit%P0(1) * A12 + pUnit%P0(2) * A22 +pUnit%P0(3) * A32) * BoxLengthInv
-        this%P0(np, 3, iUnit) = this%Pm0(np, 3) + (pUnit%P0(1) * A13 + pUnit%P0(2) * A23 +pUnit%P0(3) * A33) * BoxLengthInv
-
-        this%Q0(np,1,iUnit) = dq(1)*pUnit%Q0(1) - dq(2)*pUnit%Q0(2) - dq(3)*pUnit%Q0(3) - dq(4)*pUnit%Q0(4)
-        this%Q0(np,2,iUnit) = dq(1)*pUnit%Q0(2) + dq(2)*pUnit%Q0(1) + dq(3)*pUnit%Q0(4) - dq(4)*pUnit%Q0(3)
-        this%Q0(np,3,iUnit) = dq(1)*pUnit%Q0(3) + dq(3)*pUnit%Q0(1) - dq(2)*pUnit%Q0(4) + dq(4)*pUnit%Q0(2)
-        this%Q0(np,4,iUnit) = dq(1)*pUnit%Q0(4) + dq(4)*pUnit%Q0(1) - dq(2)*pUnit%Q0(3) - dq(3)*pUnit%Q0(2)
-    end do
-
-  end subroutine TComponent_Mol2Unit
-
-
-
-!==============================================================!
-!  Subroutine TComponent_InitUnit                              !
-!==============================================================!
-
-subroutine TComponent_InitUnit( this, np, dq )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TComponent)    :: this
-    integer, intent(in) :: np
-    real(RK),intent(in) :: dq(3)
-
-    ! Declare local variables
-    type(TUnit), pointer :: pUnit
-    real(RK)             :: BoxLengthInv
-    real(RK)             :: A11, A12, A13
-    real(RK)             :: A21, A22, A23
-    real(RK)             :: A31, A32, A33
-    real(RK)             :: q1, q2, q3, q4, qinv
-    integer              :: iUnit
-
-    ! Broadcast center of mass (molecule) positions to all processes
-#if MPI_VER > 0
-    ! in MC simulations, we only communicate during common equilibration
-    if ( SimulationType .ne. MonteCarlo .or. ((Equilibration .and. CommonEqui) )) then
-      call MPI_Bcast( this%Pm0(np, :), 3, MPI_RK, NRootProc, Communicator, ierror )
-    end if
-#endif
-
-    ! Assign local variables
-    BoxLengthInv = 1._RK / this%BoxLength
-
-    ! Calculate rotation matrix elements
-    q1 = 1._RK
-    q2 = dq(1)
-    q3 = dq(2)
-    q4 = dq(3)
-    ! Normalise quaternions
-#if ARCH == 3
-    qinv = rsqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#else
-    qinv = 1._RK / sqrt( q1**2 + q2**2 + q3**2 + q4**2 )
-#endif
-    q1 = q1 * qinv
-    q2 = q2 * qinv
-    q3 = q3 * qinv
-    q4 = q4 * qinv
-
     A11 = q2**2 - q3**2 - q4**2 + q1**2
     A12 = 2._RK * (q2 * q3 + q4*q1)
     A13 = 2._RK * (q2 * q4 - q3*q1)
@@ -6681,10 +6595,10 @@ subroutine TComponent_InitUnit( this, np, dq )
       this%P0(np,3,iUnit) = this%Pm0(np,3) + (pUnit%P0(1) * A13 + pUnit%P0(2) * A23 + pUnit%P0(3) * A33) * BoxLengthInv
 
       ! Unit%Q0*dq w/o norm
-      this%Q0(np,1,iUnit) = pUnit%Q0(1) - dq(1)*pUnit%Q0(2) - dq(2)*pUnit%Q0(3) - dq(3)*pUnit%Q0(4)
-      this%Q0(np,2,iUnit) = pUnit%Q0(2) + dq(1)*pUnit%Q0(1) - dq(3)*pUnit%Q0(3) + dq(2)*pUnit%Q0(4)
-      this%Q0(np,3,iUnit) = pUnit%Q0(3) + dq(2)*pUnit%Q0(1) + dq(3)*pUnit%Q0(2) - dq(1)*pUnit%Q0(4)
-      this%Q0(np,4,iUnit) = pUnit%Q0(4) + dq(3)*pUnit%Q0(1) - dq(2)*pUnit%Q0(2) + dq(1)*pUnit%Q0(3)
+      this%Q0(np,1,iUnit) = dq(1)*pUnit%Q0(1) - dq(2)*pUnit%Q0(2) - dq(3)*pUnit%Q0(3) - dq(4)*pUnit%Q0(4)
+      this%Q0(np,2,iUnit) = dq(1)*pUnit%Q0(2) + dq(2)*pUnit%Q0(1) + dq(3)*pUnit%Q0(4) - dq(4)*pUnit%Q0(3)
+      this%Q0(np,3,iUnit) = dq(1)*pUnit%Q0(3) + dq(3)*pUnit%Q0(1) - dq(2)*pUnit%Q0(4) + dq(4)*pUnit%Q0(2)
+      this%Q0(np,4,iUnit) = dq(1)*pUnit%Q0(4) + dq(4)*pUnit%Q0(1) - dq(2)*pUnit%Q0(3) - dq(3)*pUnit%Q0(2)
     end do
 
   end subroutine TComponent_InitUnit
