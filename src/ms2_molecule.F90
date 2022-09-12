@@ -777,7 +777,7 @@ contains
 
 
     ! Find moments of inertia for molecule
-    if( this%NDFRot < 0 ) then
+    if( this%Unit(1)%NDFRot < 0 ) then
     ! Calculate moment-of-inertia tensor
     moi(:, :) = 0._RK
     do i = 1, this%NMIEnm
