@@ -3,7 +3,7 @@
 <testcase>
 	<parFile>pentan_NPT_3.par</parFile>
 	<name>pentan_3</name>
-	<walltime>20:00:00</walltime>
+	<walltime>04:00:00</walltime>
 	<np>4</np>
 	<compilerOption>
 		<name>COMPILER</name>
