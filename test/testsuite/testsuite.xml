@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.297</tools4ms2version>
-	<caseRepositoryHash>6463dbd9961c24697aed26c814c57717f91511bf</caseRepositoryHash>
+	<caseRepositoryHash>a1e3ba4ad649db541cab1dcae086f01ea387f70a</caseRepositoryHash>
 	<caseList>
 <!-- 		<case name="energyMinimization" file="energyMinimization.xml" />
 		<case name="idf_cc_NPT" file="idf_cc_NPT.xml" />
