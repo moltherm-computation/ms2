@@ -8,4 +8,8 @@
 	<reference>
 		<file>C3H8_OPLSAmb_p3T2_Ring_1.res</file>
 	</reference>
+	<analyze>
+		<command>python plotComparison.py</command>
+		<picture>compareRhoPropan70MPa,.pdf compareUpropan70MPa,.pdf</picture>
+	</analyze>
 </testcase>

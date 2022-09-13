@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>pentan_NPT_1.par</parFile>
+	<name>pentan_1_shake</name>
+	<walltime>20:00:00</walltime>
+	<np>4</np>
+	<compilerOption>
+		<name>COMPILER</name>
+		<value>INTEL</value>
+	</compilerOption>
+	<reference>
+		<file>pentan_NPT_1_1.res</file>
+	</reference>
+	<analyze>
+		<command>python do.py</command>
+		<picture>compareWithElts.pdf</picture>
+	</analyze>
+</testcase>
