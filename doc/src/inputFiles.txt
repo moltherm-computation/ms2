@@ -1,0 +1,70 @@
+
+/*!
+
+\page page_inputFiles Input files
+
+- \subpage page_parameterFile
+- \subpage page_potentialModelFile
+
+\page page_parameterFile Parameter file (.par)
+
+<table>
+<tr><th> Parameter <th> Description <th> Possible values <th> Reduction <th> Example <th> Note
+<tr><td> ms2Version <td> <td> <td> <td>
+<tr><td> OutputNameTag <td> <td> <td> <td> <td>
+<tr><td> Walltime <td> <td> <td> <td> <td>
+<tr><td> Timelimit <td> <td> <td> <td> <td>
+<tr><td> UnitLength Units <td> <td> <td> <td> <td>
+<tr><td> Unitenergy <td> <td> <td> <td> <td>
+<tr><td> Unitmass <td> <td> <td> <td> <td>
+<tr><td> Simulation Type <td> <td> <td> <td> <td>
+<tr><td> NOrient <td> <td> <td> <td> <td> only if 2VC
+<tr><td> Rsteps <td> <td> <td> <td> <td> only if 2VC
+<tr><td> MinRadius <td> <td> <td> <td> <td> only if 2VC
+<tr><td> MaxRadius <td> <td> <td> <td> <td> only if 2VC
+<tr><td> Integrator type <td> <td> <td> <td> <td>
+<tr><td> Time step <td> <td> <td> <td> <td>
+<tr><td> Acceptance <td> <td> <td> <td> <td> limited by 0.05 and 0.95
+<tr><td> Ensemble type
+    <td> <td> \ref sec_NVTensemble "NVT", \ref sec_NVEensemble "NVE", 
+         \ref sec_NPTensemlbe "NPT", \ref sec_GEensemble "GE", \ref sec_NPHensemble "NPH"
+    <td> - <td> - <td>
+<tr><td> MCORSteps <td> <td> <td> <td> <td>
+<tr><td> NVESteps <td> <td> <td> <td> <td>
+<tr><td> muePTSteps <td> <td> <td> <td> <td>
+<tr><td> NPHSteps <td> <td> <td> <td> <td>
+<tr><td> NPTSteps <td> <td> <td> <td> <td>
+<tr><td> mueVTSteps <td> <td> <td> <td> <td>
+<tr><td> RunSteps <td> <td> <td> <td> <td>
+<tr><td> ResultFreq <td> <td> <td> <td> <td>
+<tr><td> ErrorsFreq <td> <td> <td> <td> <td>
+<tr><td> VisualFreq <td> <td> <td> <td> <td>
+<tr><td> RDFFreq <td> <td> <td> <td> <td>
+<tr><td> NumShells <td> <td> <td> <td> <td>
+<tr><td> CutoffMode <td> <td> <td> <td> <td>
+<tr><td> LongRange <td> <td> <td> <td> <td>
+<tr><td> Kappa <td> <td> <td> <td> <td>
+<tr><td> NsqMax <td> <td> <td> <td> <td>
+<tr><td> NVecMax <td> <td> <td> <td> <td>
+<tr><td> NMax <td> <td> <td> <td> <td>
+<tr><td> Grid <td> <td> <td> <td> <td>
+<tr><td> Spline <td> <td> <td> <td> <td>
+<tr><td> DebyeLen <td> <td> <td> <td> <td>
+<tr><td> NEnsembles <td> <td> <td> <td> <td>
+<tr><td> mpiEnsembleGroups <td> <td> <td> <td> <td>
+<tr><td> <td> <td> <td> <td> <td>
+<tr><td> <td> <td> <td> <td> <td>
+<tr><td> IntDegFreed <td> <td> <td> <td> <td>
+<tr><td> printIDF <td> <td> <td> <td> <td>
+<tr><td> Shake <td> \ref sec_shake "QShake" algorithm in the case of Leap-frog <td> <td> <td> <td>
+<tr><td> IntraLJ_El <td> all intramolecular 1-5 interaction incl/excl <td> <td> <td> <td>
+<tr><td> LJ_El_14 <td> all 1-4 pairs incl/excl from non-bonded inter <td> <td> <td> <td>
+<tr><td> <td> <td> <td> <td> <td>
+<tr><td> <td> <td> <td> <td> <td>
+</table>
+
+
+
+
+
+*/

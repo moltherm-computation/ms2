@@ -1,0 +1,22 @@
+
+/*!
+
+\page page_potentialModels Potential models
+
+- \subpage page_lennardJones
+- \subpage page_mie
+- \subpage page_tangToennies
+- \subpage page_idf
+  - \ref sec_idf_bond
+  - \ref sec_idf_angle
+  - \ref sec_idf_dihedral
+
+
+
+\page page_lennardJones Lennard-Jones
+
+\page page_mie Mie
+
+\page page_tangToennies Tang & Tönnies
+
+*/

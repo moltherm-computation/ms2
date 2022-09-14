@@ -1,0 +1,44 @@
+
+/*!
+
+\page page_potentialModelFile Potential model file (.pm)
+
+<table>
+<tr><th> Parameter <th> Description <th> Possible values <th> Reduction <th> Example <th> Note
+<tr><td> NSiteTypes <td> Corresponds to the number of *SiteType*-parameter in the file <td> <td> <td> <td>
+<tr><td> SiteType <td> <td> <td> <td> <td>
+<tr><td> NSites <td> <td> <td> <td> <td>
+<tr><td> SiteID <td> <td> <td> <td> <td>
+<tr><td> x <td> <td> <td> <td> <td>
+<tr><td> y <td> <td> <td> <td> <td>
+<tr><td> z <td> <td> <td> <td> <td>
+<tr><td> sigma <td> <td> <td> <td> <td>
+<tr><td> epsilon <td> <td> <td> <td> <td>
+<tr><td> mass <td> <td> <td> <td> <td>
+<tr><td>  <td> <td> <td> <td> <td>
+<tr><td>  <td> <td> <td> <td> <td>
+
+<tr><td> NIdfTypes <td> <td> <td> <td> <td>
+<tr><td> IdfType <td> <td> \ref sec_idf_bond "Bond", \ref sec_idf_angle "Angle", \ref sec_idf_dihedral "Dihedral" <td> <td> <td>
+<tr><td> NIdfs <td> Number of IDFs of *IdfType*<td> <td> <td> <td>
+<tr><td> Bond <td> Site-IDs conected with a \ref sec_idf_bond "bond" <td> <td> <td> 3 4 : Define a \ref sec_idf_bond "bond" between sites with IDs 3 and 4 <td>
+<tr><td> R0 <td> <td> <td> <td> <td>
+<tr><td> ForConst <td> <td> <td> <td> <td>
+<tr><td> Angle0 <td> <td> <td> <td> <td> \ref sec_idf_angle "Angle" only
+<tr><td> nmax
+    <td> Fourrier-series length of torsion potential
+    <td>
+    <td>
+    <td> 
+    <td> \ref sec_idf_dihedral "Dihedral" only, if "nmax=0"is set, "improper torsion" is calculated
+<tr><td> ForConst<0-3> <td> <td> <td> <td> <td> \ref sec_idf_dihedral "Dihedral" only
+<tr><td> gamma0<0-3> <td> <td> <td> <td> <td> \ref sec_idf_dihedral "Dihedral" only
+<tr><td> ScaleLJ14 <td> <td> <td> <td> <td> \ref sec_idf_dihedral "Dihedral" only
+<tr><td> ScaleEl14 <td> <td> <td> <td> <td> \ref sec_idf_dihedral "Dihedral" only
+<tr><td> NConstrU <td> <td> <td> <td> <td>
+<tr><td>  <td> <td> <td> <td> <td>
+<tr><td>  <td> <td> <td> <td> <td>
+
+</table>
+
+*/

@@ -1,0 +1,18 @@
+
+/*!
+
+\page page_outputFiles Output files
+
+\section sec_logFile Log file (.log)
+
+\section sec_resFile Result file (.res)
+
+\section sec_rstFile Restart file (.rst)
+
+\section sec_ravFile (.rav)
+
+\section sec_runFile (.run)
+
+\section sec_nrmFile (.nrm)
+
+*/

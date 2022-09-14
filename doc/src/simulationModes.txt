@@ -1,0 +1,13 @@
+
+
+/*!
+
+\page page_simulationModes Simulation modes
+
+\section sec_molecularDynamic Molecular dynamic (MD)
+
+\section sec_monteCarlo Monte-Carlo (MC)
+
+\section sec_svc Second virial coefficient (SVC)
+
+*/
