@@ -104,6 +104,14 @@ module ms2_unit
     module procedure TUnit_FindCOM
   end interface
 
+
+  type Constraint
+
+    integer :: nSites
+    integer, allocatable :: siteIDs(:)
+
+  end type Constraint
+
 contains
 
 
