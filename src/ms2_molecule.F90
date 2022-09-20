@@ -232,7 +232,7 @@ contains
     integer       :: k, index, index1, index2, iUnit
     integer       :: nidftypes  !number of internal degree of freedom types
     character(16) :: sidftype  !type of internal degree of freedom
-    logical                :: ok, ok1, LJfound(2), same
+    logical                :: ok, ok1, LJfound(2)
     logical                :: charge(2), dipole(2), quadrupole(2)
     integer                :: cc, cd, cq, dc, dd, dq, qc, qd, qq, lj
     integer                :: Site(4)
@@ -921,56 +921,7 @@ contains
         end do
 
 
-        ! Find LJ and Charge Sites with the same coordinates (for1,4-1,5 interactions)
-        do i=1, this%NMIEnm
-            do j=1, this%NCharge
-                call compare_coord(this%SiteMIEnm(i)%r(:), this%SiteCharge(j)%r(:), same)
-                if (same) then
-                    SameCoord(this%SiteMIEnm(i)%SiteId,1)=this%SiteCharge(j)%SiteId
-                    AllSites(this%SiteMIEnm(i)%SiteId, this%SiteCharge(j)%SiteId)=0
-                    do k=1, this%NSite
-                        if (AllSites(this%SiteMIEnm(i)%SiteId, k)== 0) then
-                            AllSites(this%SiteCharge(j)%SiteId, k)=0
-                            AllSites(k, this%SiteCharge(j)%SiteId)=0
-                        end if
-                    end do
-                end if
-            end do
-        end do
-
-        ! Find LJ and Dipole Sites with the same coordinates (for1,4-1,5 interactions)
-        do i=1, this%NMIEnm
-            do j=1, this%NDipole
-                call compare_coord(this%SiteMIEnm(i)%r(:), this%SiteDipole(j)%r(:), same)
-                if (same) then
-                    SameCoord(this%SiteMIEnm(i)%SiteId,2)=this%SiteDipole(j)%SiteId
-                    AllSites(this%SiteMIEnm(i)%SiteId, this%SiteDipole(j)%SiteId)=0
-                    do k=1, this%NSite
-                        if (AllSites(this%SiteMIEnm(i)%SiteId, k)== 0) then
-                            AllSites(this%SiteDipole(j)%SiteId, k)=0
-                            AllSites(k, this%SiteDipole(j)%SiteId)=0
-                        end if
-                    end do
-                end if
-            end do
-        end do
-
-        ! Find LJ and Quadrupole Sites with the same coordinates (for1,4-1,5 interactions)
-        do i=1, this%NMIEnm
-            do j=1, this%NQuadrupole
-                call compare_coord(this%SiteMIEnm(i)%r(:), this%SiteQuadrupole(j)%r(:), same )
-                if (same) then
-                    SameCoord(this%SiteMIEnm(i)%SiteId,3)=this%SiteQuadrupole(j)%SiteId
-                    AllSites(this%SiteMIEnm(i)%SiteId, this%SiteQuadrupole(j)%SiteId)=0
-                    do k=1, this%NSite
-                        if (AllSites(this%SiteMIEnm(i)%SiteId, k)== 0) then
-                            AllSites(this%SiteQuadrupole(j)%SiteId, k)=0
-                            AllSites(k, this%SiteQuadrupole(j)%SiteId)=0
-                        end if
-                    end do
-                end if
-            end do
-        end do
+        call markSameCoordinates(this, AllSites, SameCoord)
 
 
         lj=1
@@ -1551,23 +1502,6 @@ contains
 
     end subroutine binar_search
 
-    subroutine compare_coord(array1, array2, same)
-
-    ! Declare arguments
-    real(RK), dimension(3),intent(in) ::array1
-    real(RK), dimension(3), intent(in) ::array2
-    logical, intent(out)              :: same
-
-    ! Declare local variables
-
-     if (array1(1)==array2(1) .and. array1(2)==array2(2) .and. array1(3)==array2(3) ) then
-       same = .true.
-     else
-       same = .false.
-    end if
-
-    end subroutine compare_coord
-
 
     subroutine FindEdgeFrom( unit, bondedunit, E, n )
 
@@ -1660,6 +1594,81 @@ contains
 
   end subroutine TMolecule_Construct
 
+
+  subroutine markSameCoordinates(this, AllSites, SameCoord)
+
+    implicit none
+
+    type(TMolecule) :: this
+    integer         :: i, j, k, mieSiteID, otherSiteID
+    logical         :: same
+    integer         :: AllSites(:, :), SameCoord(:,:)
+
+    do i = 1, this%NMIEnm
+
+        mieSiteID = this%SiteMIEnm(i)%SiteId
+
+        do j = 1, this%NCharge
+
+            otherSiteID = this%SiteCharge(j)%SiteId
+
+            same = all(this%SiteMIEnm(i)%r(:) .eq. this%SiteCharge(j)%r(:))
+
+            call setMarker(this%NSite, same, SameCoord, AllSites, mieSiteID, otherSiteID, 1)
+
+        end do
+
+        do j = 1, this%NDipole
+
+            otherSiteID = this%SiteDipole(j)%SiteId
+
+            same = all(this%SiteMIEnm(i)%r(:) .eq. this%SiteDipole(j)%r(:))
+
+            call setMarker(this%NSite, same, SameCoord, AllSites, mieSiteID, otherSiteID, 2)
+
+        end do
+
+        do j = 1, this%NQuadrupole
+
+            otherSiteID = this%SiteQuadrupole(j)%SiteId
+
+            same = all(this%SiteMIEnm(i)%r(:) .eq. this%SiteQuadrupole(j)%r(:))
+
+            call setMarker(this%NSite, same, SameCoord, AllSites, mieSiteID, otherSiteID, 3)
+
+        end do
+    end do
+
+  end subroutine markSameCoordinates
+
+
+  subroutine setMarker(nSites, same, SameCoord, AllSites, mieSiteID, otherSiteID, typeIdentifier)
+
+    implicit none
+
+    integer         :: k, mieSiteID, otherSiteID, typeIdentifier, nSites
+    logical         :: same
+    integer         :: AllSites(:, :), SameCoord(:, :)
+
+    if (same) then
+
+        SameCoord(mieSiteID, typeIdentifier) = otherSiteID
+        AllSites(mieSiteID, otherSiteID) = 0
+
+        do k = 1, nSites
+
+            if (AllSites(mieSiteID, k) == 0) then
+
+                AllSites(otherSiteID, k) = 0
+                AllSites(k, otherSiteID) = 0
+
+            end if
+
+        end do
+
+    end if
+
+  end subroutine setMarker
 
 
 !==============================================================!
