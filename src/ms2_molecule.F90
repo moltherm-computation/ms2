@@ -2092,45 +2092,7 @@ contains
         ! Calculate inverse of rotation matrix - from body coordinate to space axes
         Rot2(:,:) = rotation
 
-        ! Implemented according to Bronstein et al. 2008, Revision 7
-        T = Rot2(1,1)+Rot2(2,2)+Rot2(3,3)+1._RK
-        if (T>0) then
-           S = 0.5_RK/sqrt(T)
-           qu1 = 0.25_RK/S
-           qu2 = (Rot2(3,2)-Rot2(2,3))*S
-           qu3 = (Rot2(1,3)-Rot2(3,1))*S
-           qu4 = (Rot2(2,1)-Rot2(1,2))*S
-        else if ( (Rot2(1,1)>Rot2(2,2)) .and. (Rot2(1,1)>Rot2(3,3)) ) then
-           S = 2._RK*sqrt(1._RK + Rot2(1,1) - Rot2(2,2) - Rot2(3,3)) ! S = 4*qu2
-           SInv = 1._RK/S
-           qu1 = (Rot2(3,2) - Rot2(2,3))*SInv
-           qu2 = 0.25_RK*S
-           qu3 = (Rot2(1,2) + Rot2(2,1))*SInv
-           qu4 = (Rot2(1,3) + Rot2(3,1))*SInv
-        else if (Rot2(2,2)>Rot2(3,3)) then
-           S = 2._RK*sqrt(1._RK + Rot2(2,2) - Rot2(1,1) - Rot2(3,3)) ! S = 4*qu3
-           SInv = 1._RK/S
-           qu1 = (Rot2(1,3)-Rot2(3,1))*SInv
-           qu2 = (Rot2(1,2)+Rot2(2,1))*SInv
-           qu3 = 0.25_RK*S
-           qu4 = (Rot2(2,3)+Rot2(3,2))*SInv
-        else
-           S = 2._RK*sqrt(1._RK + Rot2(3,3) - Rot2(1,1) - Rot2(2,2)) ! S = 4*qu4
-           SInv = 1._RK/S
-           qu1 = (Rot2(1,2)-Rot2(2,1))*SInv
-           qu2 = (Rot2(1,3)+Rot2(3,1))*SInv
-           qu3 = (Rot2(2,3)+Rot2(3,2))*SInv
-           qu4 = 0.25_RK*S
-        end if
-        quinv = 1._RK / sqrt( qu1**2 + qu2**2 + qu3**2 + qu4**2 )
-        qu1 = qu1 * quinv
-        qu2 = qu2 * quinv
-        qu3 = qu3 * quinv
-        qu4 = qu4 * quinv
-        unit%Q0(1) = qu1
-        unit%Q0(2) = qu2
-        unit%Q0(3) = qu3
-        unit%Q0(4) = qu4
+        call unit%applyRotationMatrix(Rot2)
 
       end if
     end do
