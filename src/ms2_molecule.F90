@@ -1309,22 +1309,9 @@ contains
 
       ! For Unit Sites as well
       do iUnit = 1, this%nUnits
-        do j = 1, this%Unit(iUnit)%NMIEnm
-            this%Unit(iUnit)%SiteMIEnm(j)%sig = this%Unit(iUnit)%SiteMIEnm(j)%sig * scalesig
-            this%Unit(iUnit)%SiteMIEnm(j)%eps = this%Unit(iUnit)%SiteMIEnm(j)%eps * scaleeps
-        end do
-        do j = 1, this%Unit(iUnit)%NCharge
-            this%Unit(iUnit)%SiteCharge(j)%shield = this%Unit(iUnit)%SiteCharge(j)%shield * scalegeo
-            this%Unit(iUnit)%SiteCharge(j)%e      = this%Unit(iUnit)%SiteCharge(j)%e * scaleest
-        end do
-        do j = 1, this%Unit(iUnit)%NDipole
-            this%Unit(iUnit)%SiteDipole(j)%shield = this%Unit(iUnit)%SiteDipole(j)%shield * scalegeo
-            this%Unit(iUnit)%SiteDipole(j)%D      = this%Unit(iUnit)%SiteDipole(j)%D * scaleest
-        end do
-        do j = 1, this%Unit(iUnit)%NQuadrupole
-            this%Unit(iUnit)%SiteQuadrupole(j)%shield = this%Unit(iUnit)%SiteQuadrupole(j)%shield * scalegeo
-            this%Unit(iUnit)%SiteQuadrupole(j)%Q      = this%Unit(iUnit)%SiteQuadrupole(j)%Q * scaleest
-        end do
+
+        call this%Unit(iUnit)%applyScalingFactors(scaleest, scaleeps, scalegeo, scalesig)
+
       end do
 
       if ( UseIntDegFreed ) then

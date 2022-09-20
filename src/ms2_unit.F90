@@ -91,6 +91,7 @@ module ms2_unit
   contains
 
     procedure :: applyRotationMatrix => applyRotationMatrix
+    procedure :: applyScalingFactors => applyScalingFactors
 
   end type TUnit
 
@@ -171,6 +172,38 @@ contains
     self%Q0(1:4) = qu(1:4)
 
   end subroutine applyRotationMatrix
+
+
+  subroutine applyScalingFactors(self, scaleest, scaleeps, scalegeo, scalesig)
+
+    implicit none
+
+    class(TUnit), intent(in out) :: self
+    real(RK), intent(in)         :: scaleest, scaleeps, scalegeo, scalesig
+    integer                      :: j
+
+    do j = 1, self%NMIEnm
+        self%SiteMIEnm(j)%sig = self%SiteMIEnm(j)%sig * scalesig
+        self%SiteMIEnm(j)%eps = self%SiteMIEnm(j)%eps * scaleeps
+    end do
+
+    do j = 1, self%NCharge
+        self%SiteCharge(j)%shield = self%SiteCharge(j)%shield * scalegeo
+        self%SiteCharge(j)%e      = self%SiteCharge(j)%e * scaleest
+    end do
+
+    do j = 1, self%NDipole
+        self%SiteDipole(j)%shield = self%SiteDipole(j)%shield * scalegeo
+        self%SiteDipole(j)%D      = self%SiteDipole(j)%D * scaleest
+    end do
+
+    do j = 1, self%NQuadrupole
+        self%SiteQuadrupole(j)%shield = self%SiteQuadrupole(j)%shield * scalegeo
+        self%SiteQuadrupole(j)%Q      = self%SiteQuadrupole(j)%Q * scaleest
+    end do
+
+  end subroutine applyScalingFactors
+
 
 !==============================================================!
 !  Subroutine TUnit_Construct                                  !
