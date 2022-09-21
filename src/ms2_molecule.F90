@@ -150,6 +150,10 @@ module ms2_molecule
     ! Total charge of the molecule
     real(RK) :: Charge
 
+  contains
+
+    procedure :: createNonBoundedInteractionList => createNonBoundedInteractionList
+
   end type TMolecule
 
   interface Construct
@@ -220,37 +224,17 @@ contains
 
     ! Declare local variables
     integer       :: i, j
-    integer       :: iDihedral, iDihedralSite, jDihedralSite
     integer       :: iConstraint
     integer       :: ntypes
     character(16) :: stype
     integer       :: stat
     real(RK)      :: scalegeo, scalesig, scaleeps, scaleest
-    integer       :: npossPartners
 
     ! Inner Degrees of Freedom
-    integer       :: k, index, index1, index2, iUnit
+    integer       :: k, index, iUnit
     integer       :: nidftypes  !number of internal degree of freedom types
     character(16) :: sidftype  !type of internal degree of freedom
-    logical                :: ok, ok1, LJfound(2)
-    logical                :: charge(2), dipole(2), quadrupole(2)
-    integer                :: cc, cd, cq, dc, dd, dq, qc, qd, qq, lj
-    integer                :: Site(4)
-    integer, allocatable   :: AllSites(:, :), Int14(:,:)
-    integer, allocatable   :: IntLJ14(:, :), IntLJ15(:,:)
-    integer, allocatable   :: SameCoord(:,:)
-    integer, allocatable   :: IntCC14(:, :), IntCD14(:,:), IntCQ14(:,:)
-    integer, allocatable   :: IntDC14(:, :), IntDD14(:,:), IntDQ14(:,:)
-    integer, allocatable   :: IntQC14(:, :), IntQD14(:,:), IntQQ14(:,:)
-    integer, allocatable   :: IntCC15(:, :), IntCD15(:,:), IntCQ15(:,:)
-    integer, allocatable   :: IntDC15(:, :), IntDD15(:,:), IntDQ15(:,:)
-    integer, allocatable   :: IntQC15(:, :), IntQD15(:,:), IntQQ15(:,:)
-    real, allocatable      :: ScaleLJ14(:)
-    real, allocatable      :: ScaleCC14(:), ScaleCD14(:), ScaleCQ14(:)
-    real, allocatable      :: ScaleDC14(:), ScaleDD14(:), ScaleDQ14(:)
-    real, allocatable      :: ScaleQC14(:), ScaleQD14(:), ScaleQQ14(:)
-    real, allocatable      :: CoeffLJ14(:), CoeffEl14(:)
-    integer                :: ChargeID(2), DipoleID(2), QuadrupoleID(2)
+    logical                :: ok
 
     ! Nullify pointers.
     nullify( this%SiteMIEnm )
@@ -781,481 +765,9 @@ contains
 
     ! create list of 1-4, 1-5 interactions
     if (this%hasIntraLJEl) then
-        ! Michael Sch.: instead of "this%NSite-3" "..-4" should be sufficient...testing needed!
-        npossPartners = (this%NSite-4)*(this%NSite-3)/2
-        allocate (AllSites(this%NSite, this%NSite))
-        call AllocationError( stat, 'AllSites', this%NSite*this%NSite )
-        allocate (SameCoord(this%NMIEnm, 3))
-        call AllocationError( stat, 'SameCoord', this%NMIEnm*3 )
-        allocate (IntLJ15(npossPartners, 2), STAT = stat)
-        call AllocationError( stat, 'Int15', npossPartners*2 )
-        if (this%NCharge>0) then
-            allocate (IntCC15(npossPartners, 2), STAT = stat)
-            call AllocationError( stat, 'IntCC15', npossPartners*2 )
-            if (this%NDipole>0) then
-                allocate (IntCD15(npossPartners, 2), STAT = stat)
-                call AllocationError( stat, 'IntCD15', npossPartners*2 )
-                allocate (IntDC15(npossPartners, 2), STAT = stat)
-                call AllocationError( stat, 'IntDC15', npossPartners*2 )
-            end if
-            if ( this%NQuadrupole>0) then
-                allocate (IntCQ15(npossPartners, 2), STAT = stat)
-                call AllocationError( stat, 'IntCQ15', npossPartners*2 )
-                allocate (IntQC15(npossPartners, 2), STAT = stat)
-                call AllocationError( stat, 'IntQC15', npossPartners*2 )
-            end if
-        end if
-        if (this%NDipole>0) then
-            allocate (IntDD15(npossPartners, 2), STAT = stat)
-            call AllocationError( stat, 'IntDD15', npossPartners*2 )
-            if ( this%NQuadrupole >0) then
-                allocate (IntQD15(npossPartners, 2), STAT = stat)
-                call AllocationError( stat, 'IntQD15', npossPartners*2 )
-                allocate (IntDQ15(npossPartners, 2), STAT = stat)
-                call AllocationError( stat, 'IntDQ15', npossPartners*2 )
-            end if
-        end if
-        if ( this%NQuadrupole>0) then
-            allocate (IntQQ15(npossPartners, 2), STAT = stat)
-            call AllocationError( stat, 'IntQQ15', npossPartners*2 )
-        end if
-        if (LJEl14) then
-            allocate (Int14(this%NDihedral, 2), STAT = stat)
-            call AllocationError( stat, 'Int14', this%NDihedral*2 )
-            allocate (CoeffLJ14(this%NDihedral), STAT = stat)
-            call AllocationError( stat, 'CoeffLJ14', this%NDihedral )
-            allocate (CoeffEl14(this%NDihedral), STAT = stat)
-            call AllocationError( stat, 'CoeffEl14', this%NDihedral )
-            allocate (IntLJ14(this%NDihedral, 2), STAT = stat)
-            call AllocationError( stat, 'IntLJ14', this%NDihedral*2 )
-            allocate (ScaleLJ14(this%NDihedral), STAT = stat)
-            call AllocationError( stat, 'ScaleLJ14', this%NDihedral )
-            if (this%NCharge>0) then
-                allocate (IntCC14(this%NDihedral, 2), STAT = stat)
-                call AllocationError( stat, 'IntCC14', this%NDihedral*2 )
-                allocate (ScaleCC14(this%NDihedral), STAT = stat)
-                call AllocationError( stat, 'ScaleCC14', this%NDihedral )
-                if (this%NDipole>0) then
-                    allocate (IntCD14(this%NDihedral, 2), STAT = stat)
-                    call AllocationError( stat, 'IntCD14', this%NDihedral*2 )
-                    allocate (ScaleCD14(this%NDihedral), STAT = stat)
-                    call AllocationError( stat, 'ScaleCD14', this%NDihedral )
-                    allocate (IntDC14(this%NDihedral, 2), STAT = stat)
-                    call AllocationError( stat, 'IntDC14', this%NDihedral*2 )
-                    allocate (ScaleDC14(this%NDihedral), STAT = stat)
-                    call AllocationError( stat, 'ScaleDC14', this%NDihedral )
-                end if
-                if ( this%NQuadrupole>0) then
-                    allocate (IntCQ14(this%NDihedral, 2), STAT = stat)
-                    call AllocationError( stat, 'IntCQ14', this%NDihedral*2 )
-                    allocate (ScaleCQ14(this%NDihedral), STAT = stat)
-                    call AllocationError( stat, 'ScaleCQ14', this%NDihedral )
-                    allocate (IntQC14(this%NDihedral, 2), STAT = stat)
-                    call AllocationError( stat, 'IntQC14', this%NDihedral*2 )
-                    allocate (ScaleQC14(this%NDihedral), STAT = stat)
-                    call AllocationError( stat, 'ScaleQC14', this%NDihedral )
-                end if
-            end if
-            if (this%NDipole>0) then
-                allocate (IntDD14(this%NDihedral, 2), STAT = stat)
-                call AllocationError( stat, 'IntDD14', this%NDihedral*2 )
-                allocate (ScaleDD14(this%NDihedral), STAT = stat)
-                call AllocationError( stat, 'ScaleDD14', this%NDihedral )
-                if ( this%NQuadrupole>0) then
-                    allocate (IntDQ14(this%NDihedral, 2), STAT = stat)
-                    call AllocationError( stat, 'IntDQ14', this%NDihedral*2 )
-                    allocate (ScaleDQ14(this%NDihedral), STAT = stat)
-                    call AllocationError( stat, 'ScaleDQ14', this%NDihedral )
-                    allocate (IntQD14(this%NDihedral, 2), STAT = stat)
-                    call AllocationError( stat, 'IntQD14', this%NDihedral*2 )
-                    allocate (ScaleQD14(this%NDihedral), STAT = stat)
-                    call AllocationError( stat, 'ScaleQD14', this%NDihedral )
-                end if
-            end if
-            if ( this%NQuadrupole>0) then
-                allocate (IntQQ14(this%NDihedral, 2), STAT = stat)
-                call AllocationError( stat, 'IntQQ14', this%NDihedral*2 )
-                allocate (ScaleQQ14(this%NDihedral), STAT = stat)
-                call AllocationError( stat, 'ScaleQQ14', this%NDihedral )
-            end if
-        end if
 
-        ! Initialisierung
-        do i=1, this%NSite
-            do j=1, this%NSite
-                if (i==j) then
-                    AllSites(i,j)=0
-                else
-                    AllSites(i,j) = 1
-                end if
-            end do
-        end do
+        call this%createNonBoundedInteractionList
 
-        do i=1, this%NMIEnm
-            do j=1,3
-                SameCoord(i,j)=0
-            end do
-        end do
-
-
-        do i = 1, this%NDihedral
-
-            Site(1:4)=this%IdfDihedral(i)%SiteId(1:4)
-
-            do iDihedralSite = 1, 4
-
-                do jDihedralSite = 1, 4
-
-                    AllSites(Site(iDihedralSite), Site(jDihedralSite)) = 0
-                end do
-
-            end do
-        end do
-
-        do iUnit = 1, this%nUnits
-            if (this%Unit(iUnit)%NSites>1) then
-                do j=1, this%Unit(iUnit)%NSites
-                    AllSites(this%Unit(iUnit)%SiteIds(j),this%Unit(iUnit)%SiteIds(:))=0
-                end do
-            end if
-        end do
-
-
-        call markSameCoordinates(this, AllSites, SameCoord)
-
-
-        lj=1
-        cc=1
-        dd=1
-        qq=1
-        cd=1
-        cq=1
-        dq=1
-        dc=1
-        qc=1
-        qd=1
-        do i=1, this%NSite
-            do j=i+1, this%NSite
-                if (AllSites(i,j)==1) then
-                    LJfound(1:2) =.false.
-                    charge(1:2) = .false.
-                    dipole(1:2) = .false.
-                    quadrupole(1:2) = .false.
-                    call binar_search(this%LJSiteIds(:), i, LJfound(1), index)
-                    call binar_search(this%LJSiteIds(:), j, LJfound(2), index)
-                    if (LJfound(1) .and. LJfound(2)) then
-                        IntLJ15(lj,1)=i
-                        IntLJ15(lj,2)=j
-                        lj=lj+1
-                    else if (.not. LJfound(1) .and. .not. LJfound(2)) then
-                        call binar_search(this%ChargeSiteIds(:), i, charge(1), index)
-                        if (.not. charge(1)) then
-                            call binar_search(this%DipoleSiteIds(:), i, dipole(1), index)
-                            if (.not. dipole(1)) then
-                                call binar_search(this%QuadrupoleSiteIds(:), i, quadrupole(1), index)
-                            end if
-                        end if
-                        call binar_search(this%ChargeSiteIds(:), j, charge(2), index)
-                        if (.not. charge(2)) then
-                            call binar_search(this%DipoleSiteIds(:), i, dipole(2), index)
-                            if (.not. dipole(2)) then
-                                call binar_search(this%QuadrupoleSiteIds(:), i, quadrupole(2), index)
-                            end if
-                        end if
-                        if (charge(1)) then
-                            if (charge(2)) then
-                                IntCC15(cc,1)= i
-                                IntCC15(cc,2)= j
-                                cc=cc+1
-                            else if (dipole(2)) then
-                                IntCD15(cd,1)= i
-                                IntCD15(cd,2)= j
-                                cd=cd+1
-                            else !quadrupole(2)
-                                IntCQ15(cq,1)=i
-                                IntCQ15(cq,2)=j
-                                cq=cq+1
-                            end if
-                        else if (dipole(1)) then
-                            if (charge(2)) then
-                                IntDC15(dc,1)= i
-                                IntDC15(dc,2)= j
-                                dc=dc+1
-                            else if (dipole(2)) then
-                                IntDD15(dd,1)= i
-                                IntDD15(dd,2)= j
-                                dd=dd+1
-                            else !quadrupole(2)
-                                IntDQ15(dq,1)=i
-                                IntDQ15(dq,2)=j
-                                dq=dq+1
-                            end if
-                        else ! quadrupole(1)
-                            if (charge(2))then
-                                IntQC15(qc,1)= i
-                                IntQC15(qc,2)= j
-                                qc=qc+1
-                            else if (dipole(2))then
-                                IntQD15(qd,1)= i
-                                IntQD15(qd,2)= j
-                                qd=qd+1
-                            else ! quadrupole(2)
-                                IntQQ15(qq,1)=i
-                                IntQQ15(qq,2)=j
-                                qq=qq+1
-                            end if
-                        end if
-                    else
-                        AllSites(i,j)=0
-                    end if
-                end if
-            end do
-        end do
-
-        allocate (this%IntLJ15(lj-1, 2), STAT = stat)
-        call AllocationError( stat, 'this%IntLJ15', (lj-1)*2 )
-        this%IntLJ15 = IntLJ15(1:lj-1,:)
-
-        if (this%NCharge>0) then
-            allocate (this%IntCC15(cc-1, 2), STAT = stat)
-            call AllocationError( stat, 'this%IntCC15', (cc-1)*2 )
-            this%IntCC15 = IntCC15(1:cc-1,:)
-            if (this%NDipole>0) then
-                allocate (this%IntCD15(cd-1, 2), STAT = stat)
-                call AllocationError( stat, 'this%IntCD15', (cd-1)*2 )
-                this%IntCD15 = IntCD15(1:cd-1,:)
-                allocate (this%IntDC15(dc-1, 2), STAT = stat)
-                call AllocationError( stat, 'this%IntDC15', (dc-1)*2 )
-                this%IntDC15 = IntDC15(1:dc-1,:)
-            end if
-            if (this%NQuadrupole>0) then
-                allocate (this%IntCQ15(cq-1, 2), STAT = stat)
-                call AllocationError( stat, 'this%IntCQ15', (cq-1)*2 )
-                this%IntCQ15 = IntCQ15(1:cq-1,:)
-                allocate (this%IntQC15(qc-1, 2), STAT = stat)
-                call AllocationError( stat, 'this%IntQC15', (qc-1)*2 )
-                this%IntQC15 = IntQC15(1:qc-1,:)
-            end if
-        end if
-        if (this%NDipole>0) then
-            allocate (this%IntDD15(dd-1, 2), STAT = stat)
-            call AllocationError( stat, 'this%IntDD15', (dd-1)*2 )
-            this%IntDD15 = IntDD15(1:dd-1,:)
-            if (this%NQuadrupole>0) then
-                allocate (this%IntDQ15(dq-1, 2), STAT = stat)
-                call AllocationError( stat, 'this%IntDQ15', (dq-1)*2 )
-                this%IntDQ15 = IntDQ15(1:dq-1,:)
-                allocate (this%IntQD15(qd-1, 2), STAT = stat)
-                call AllocationError( stat, 'this%IntQD15', (qd-1)*2 )
-                this%IntQD15 = IntQD15(1:qd-1,:)
-            end if
-        end if
-        if (this%NQuadrupole>0) then
-            allocate (this%IntQQ15(qq-1, 2), STAT = stat)
-            call AllocationError( stat, 'this%IntQQ15', (qq-1)*2 )
-            this%IntQQ15 = IntQQ15(1:qq-1,:)
-        end if
-
-
-        if (LJEl14) then
-            k=1
-            do i=1, this%NDihedral
-                if (this%IdfDihedral(i)%nmax>=0) then  !If proper dihedral
-                    Site(1)=this%IdfDihedral(i)%SiteId(1)
-                    Site(4)=this%IdfDihedral(i)%SiteId(4)
-                    if (Site(1)>Site(4)) then
-                        Site(1)=this%IdfDihedral(i)%SiteId(4)
-                        Site(4)=this%IdfDihedral(i)%SiteId(1)
-                    end if
-                    if (k>1) then
-                        call binar_search(Int14(1:k,1), Site(1), ok1, index)
-                        if (.not. ok1) then
-                            Int14(k,1)=Site(1)
-                            Int14(k,2)=Site(4)
-                            CoeffLJ14(k)=this%IdfDihedral(i)%ScaleLJ14
-                            CoeffEl14(k)=this%IdfDihedral(i)%ScaleEl14
-                            k=k+1
-                        else if (Int14(index, 2) .ne. Site(4)) then
-                            Int14(k,1)=Site(1)
-                            Int14(k,2)=Site(4)
-                            CoeffLJ14(k)=this%IdfDihedral(i)%ScaleLJ14
-                            CoeffEl14(k)=this%IdfDihedral(i)%ScaleEl14
-                            k=k+1
-                        end if
-                    else
-                        Int14(k,1)=Site(1)
-                        Int14(k,2)=Site(4)
-                        CoeffLJ14(k)=this%IdfDihedral(i)%ScaleLJ14
-                        CoeffEl14(k)=this%IdfDihedral(i)%ScaleEl14
-                        k=k+1
-                    end if
-                end if
-            end do
-
-            lj = 1
-            cc = 1
-            cq = 1
-            cd = 1
-            dc = 1
-            dd = 1
-            dq = 1
-            qc = 1
-            qd = 1
-            qq = 1
-            do i =1, k-1
-                call binar_search(this%LJSiteIds(:), Int14(i,1), LJfound(1), index1)
-                call binar_search(this%LJSiteIds(:), Int14(i,2), LJfound(2), index2)
-                if (LJfound(1) .and. LJfound(2)) then
-                    IntLJ14(lj,1)=Int14(i,1)
-                    IntLJ14(lj,2)=Int14(i,2)
-                    ScaleLJ14(lj)=CoeffLJ14(i)
-                    lj = lj+1
-                    ChargeID(1) = SameCoord(this%LJSiteIds(index1),1)
-                    ChargeID(2) = SameCoord(this%LJSiteIds(index2),1)
-                    DipoleID(1) = SameCoord(this%LJSiteIds(index1),2)
-                    DipoleID(2) = SameCoord(this%LJSiteIds(index2),2)
-                    QuadrupoleID(1) = SameCoord(this%LJSiteIds(index1),3)
-                    QuadrupoleID(2) = SameCoord(this%LJSiteIds(index1),3)
-                    if (ChargeID(1) > 0) then
-                        if ( ChargeID(2) > 0) then
-                            IntCC14(cc,1) = ChargeID(1)
-                            IntCC14(cc,2) = ChargeID(2)
-                            ScaleCC14(cc)=CoeffEl14(i)
-                            cc = cc+1
-                        else if ( DipoleID(2) > 0) then
-                            IntCD14(cd,1) = ChargeID(1)
-                            IntCD14(cd,2) = DipoleID(2)
-                            ScaleCD14(cd)=CoeffEl14(i)
-                            cd = cd+1
-                        else
-                            if ( QuadrupoleID(2) > 0) then
-                                IntCQ14(cq,1) = ChargeID(1)
-                                IntCQ14(cq,2) = QuadrupoleID(2)
-                                ScaleCQ14(cq)=CoeffEl14(i)
-                                cq = cq+1
-                            end if
-                        end if
-                    end if
-                    if (DipoleID(1) > 0) then
-                        if ( ChargeID(2) > 0) then
-                            IntDC14(dc,1) = DipoleID(1)
-                            IntDC14(dc,2) = ChargeID(2)
-                            ScaleDC14(dc)=CoeffEl14(i)
-                            dc = dc+1
-                        else if ( DipoleID(2) > 0) then
-                            IntDD14(dd,1) = DipoleID(1)
-                            IntDD14(dd,2) = DipoleID(2)
-                            ScaleDD14(dd)=CoeffEl14(i)
-                            dd = dd+1
-                        else
-                            if (QuadrupoleID(2) > 0) then
-                                IntDQ14(dq,1) = DipoleID(1)
-                                IntDQ14(dq,2) = QuadrupoleID(2)
-                                ScaleDQ14(dq)=CoeffEl14(i)
-                                dq = dq+1
-                            end if
-                        end if
-                    end if
-                    if (QuadrupoleID(1) > 0) then
-                        if ( ChargeID(2) > 0) then
-                            IntQC14(qc,1) = QuadrupoleID(1)
-                            IntQC14(qc,2) = ChargeID(2)
-                            ScaleQC14(qc) = CoeffEl14(i)
-                            qc = qc+1
-                        else if ( DipoleID(2) > 0) then
-                            IntQD14(qd,1) = QuadrupoleID(1)
-                            IntQD14(qd,2) = DipoleID(2)
-                            ScaleQD14(qd) = CoeffEl14(i)
-                            qd = qd+1
-                        else
-                            if ( QuadrupoleID(2) > 0) then
-                                IntQQ14(qq,1) = QuadrupoleID(1)
-                                IntQQ14(qq,2) = QuadrupoleID(2)
-                                ScaleQQ14(qq)= CoeffEl14(i)
-                                qq = qq+1
-                            end if
-                        end if
-                    end if
-                end if
-            end do
-
-
-            allocate (this%IntLJ14(lj-1, 2), STAT = stat)
-            call AllocationError( stat, 'this%IntLJ14', (lj-1)*2 )
-            this%IntLJ14 = IntLJ14(1:lj-1,:)
-            allocate (this%ScaleLJ14(lj-1), STAT = stat)
-            call AllocationError( stat, 'ScaleLJ14', lj-1 )
-            this%ScaleLJ14 = ScaleLJ14(1:lj-1)
-
-
-            if (this%NCharge>0) then
-                allocate (this%IntCC14(cc-1, 2), STAT = stat)
-                call AllocationError( stat, 'this%IntCC14', (cc-1)*2 )
-                this%IntCC14 = IntCC14(1:cc-1,:)
-                allocate (this%ScaleCC14(cc-1), STAT = stat)
-                call AllocationError( stat, 'ScaleCC14', cc-1 )
-                this%ScaleCC14 = ScaleCC14(1:cc-1)
-                if (this%NDipole>0) then
-                    allocate (this%IntCD14(cd-1, 2), STAT = stat)
-                    call AllocationError( stat, 'this%IntCD14', (cd-1)*2 )
-                    this%IntCD14 = IntCD14(1:cd-1,:)
-                    allocate (this%ScaleCD14(cd-1), STAT = stat)
-                    call AllocationError( stat, 'ScaleCD14', cd-1 )
-                    this%ScaleCD14 = ScaleCD14(1:cd-1)
-                    allocate (this%IntDC14(dc-1, 2), STAT = stat)
-                    call AllocationError( stat, 'this%IntDC14', (dc-1)*2 )
-                    this%IntDC14 = IntDC14(1:dc-1,:)
-                    allocate (this%ScaleDC14(dc-1), STAT = stat)
-                    call AllocationError( stat, 'ScaleDC14', dc-1 )
-                    this%ScaleDC14 = ScaleDC14(1:dc-1)
-                end if
-                if (this%NQuadrupole>0) then
-                    allocate (this%IntQC14(qc-1, 2), STAT = stat)
-                    call AllocationError( stat, 'this%IntQC14', (qc-1)*2 )
-                    this%IntQC14 = IntQC14(1:qc-1,:)
-                    allocate (this%ScaleQC14(qc-1), STAT = stat)
-                    call AllocationError( stat, 'ScaleQC14', qc-1 )
-                    this%ScaleQC14 = ScaleQC14(1:qc-1)
-                    allocate (this%IntCQ14(cq-1, 2), STAT = stat)
-                    call AllocationError( stat, 'this%IntCQ14', (cq-1)*2 )
-                    this%IntCQ14 = IntCQ14(1:cq-1,:)
-                    allocate (this%ScaleCQ14(cq-1), STAT = stat)
-                    call AllocationError( stat, 'ScaleCQ14', cq-1 )
-                    this%ScaleCQ14 = ScaleCQ14(1:cq-1)
-                end if
-            end if
-            if (this%NDipole>0) then
-                allocate (this%IntDD14(dd-1, 2), STAT = stat)
-                call AllocationError( stat, 'this%IntDD14', (dd-1)*2 )
-                this%IntDD14 = IntDD14(1:dd-1,:)
-                allocate (this%ScaleDD14(dd-1), STAT = stat)
-                call AllocationError( stat, 'ScaleDD14', dd-1 )
-                this%ScaleDD14 = ScaleDD14(1:dd-1)
-                if (this%NQuadrupole>0) then
-                    allocate (this%IntDQ14(dq-1, 2), STAT = stat)
-                    call AllocationError( stat, 'this%IntDQ14', (dq-1)*2 )
-                    this%IntDQ14 = IntDQ14(1:dq-1,:)
-                    allocate (this%ScaleDQ14(dq-1), STAT = stat)
-                    call AllocationError( stat, 'ScaleDQ14', dq-1 )
-                    this%ScaleDQ14 = ScaleDQ14(1:dq-1)
-                    allocate (this%IntQD14(qd-1, 2), STAT = stat)
-                    call AllocationError( stat, 'this%IntQD14', (qd-1)*2 )
-                    this%IntQD14 = IntQD14(1:qd-1,:)
-                    allocate (this%ScaleQD14(qd-1), STAT = stat)
-                    call AllocationError( stat, 'ScaleQD14', qd-1 )
-                    this%ScaleQD14 = ScaleQD14(1:qd-1)
-                end if
-            end if
-            if (this%NQuadrupole>0) then
-                 allocate (this%IntQQ14(qq-1, 2), STAT = stat)
-                 call AllocationError( stat, 'this%IntQQ14', (qq-1)*2 )
-                 this%IntQQ14 = IntQQ14(1:qq-1,:)
-                 allocate (this%ScaleQQ14(qq-1), STAT = stat)
-                 call AllocationError( stat, 'ScaleQQ14', qq-1 )
-                 this%ScaleQQ14 = ScaleQQ14(1:qq-1)
-            end if
-
-        end if
     end if    ! (Internal Degrees of Freedom)
 
     ! For fluctuating particle scale parameters
@@ -1462,33 +974,6 @@ contains
 
     end subroutine sort_quadrupolesitetypes
 
-    subroutine binar_search (array, Id, treffer, index)
-
-      ! Declare arguments
-      integer, dimension(:), intent( in ) :: array
-      integer, intent( in )               :: Id
-      logical, intent( out )              :: treffer
-      integer, intent( out )              :: index
-
-      ! Declare local variables
-      integer                             :: anfang, ende, mitte
-
-      anfang = 1
-      ende = size (array)
-      do
-         if ( anfang == ende ) exit
-         mitte = (anfang + ende)*0.5
-         if ( id <= array(mitte) ) then
-           ende = mitte
-         else
-           anfang = mitte + 1
-         end if
-      end do
-      index = anfang
-      treffer = (id == array(index))
-
-    end subroutine binar_search
-
 
     subroutine FindEdgeFrom( unit, bondedunit, E, n )
 
@@ -1580,6 +1065,608 @@ contains
 
 
   end subroutine TMolecule_Construct
+
+
+  subroutine binar_search (array, Id, treffer, index)
+
+    ! Declare arguments
+    integer, dimension(:), intent( in ) :: array
+    integer, intent( in )               :: Id
+    logical, intent( out )              :: treffer
+    integer, intent( out )              :: index
+
+    ! Declare local variables
+    integer                             :: anfang, ende, mitte
+
+    anfang = 1
+    ende = size (array)
+    do
+        if ( anfang == ende ) exit
+        mitte = (anfang + ende)*0.5
+        if ( id <= array(mitte) ) then
+            ende = mitte
+        else
+            anfang = mitte + 1
+        end if
+    end do
+    index = anfang
+    treffer = (id == array(index))
+
+  end subroutine binar_search
+
+
+  subroutine createNonBoundedInteractionList(self)
+
+    implicit none
+
+    class(TMolecule), intent(in out) :: self
+    integer, allocatable   :: AllSites(:, :)
+    integer, allocatable   :: SameCoord(:,:)
+
+    integer                :: i, j, k, Site(4), iUnit
+    integer                :: index, index1, index2
+    integer                :: iDihedralSite, jDihedralSite
+    logical                :: LJfound(2), ok1
+    logical                :: charge(2), dipole(2), quadrupole(2)
+    integer                :: npossPartners
+    integer                :: stat
+    integer                :: ChargeID(2), DipoleID(2), QuadrupoleID(2)
+
+    integer                :: cc, cd, cq, dc, dd, dq, qc, qd, qq, lj
+
+    integer, allocatable   :: Int14(:,:)
+
+    integer, allocatable   :: IntLJ14(:, :), IntLJ15(:,:)
+    integer, allocatable   :: IntCC14(:, :), IntCD14(:,:), IntCQ14(:,:)
+    integer, allocatable   :: IntDC14(:, :), IntDD14(:,:), IntDQ14(:,:)
+    integer, allocatable   :: IntQC14(:, :), IntQD14(:,:), IntQQ14(:,:)
+    integer, allocatable   :: IntCC15(:, :), IntCD15(:,:), IntCQ15(:,:)
+    integer, allocatable   :: IntDC15(:, :), IntDD15(:,:), IntDQ15(:,:)
+    integer, allocatable   :: IntQC15(:, :), IntQD15(:,:), IntQQ15(:,:)
+
+    real, allocatable      :: ScaleLJ14(:)
+    real, allocatable      :: ScaleCC14(:), ScaleCD14(:), ScaleCQ14(:)
+    real, allocatable      :: ScaleDC14(:), ScaleDD14(:), ScaleDQ14(:)
+    real, allocatable      :: ScaleQC14(:), ScaleQD14(:), ScaleQQ14(:)
+    real, allocatable      :: CoeffLJ14(:), CoeffEl14(:)
+
+
+    allocate (AllSites(self%NSite, self%NSite))
+    call AllocationError( stat, 'AllSites', self%NSite*self%NSite )
+
+    call markIdenticalIndicesWithZero(self, AllSites)
+
+    do i = 1, self%NDihedral
+        call markDihedralSitesWithZero(self%IdfDihedral(i), AllSites)
+    end do
+
+    do iUnit = 1, self%nUnits
+        if (self%Unit(iUnit)%NSites>1) then
+            do j=1, self%Unit(iUnit)%NSites
+                AllSites(self%Unit(iUnit)%SiteIds(j),self%Unit(iUnit)%SiteIds(:))=0
+            end do
+        end if
+    end do
+
+    allocate (SameCoord(self%NMIEnm, 3))
+    call AllocationError(stat, 'SameCoord', self%NMIEnm * 3)
+
+    SameCoord = 0
+
+    call markSameCoordinates(self, AllSites, SameCoord)
+
+    ! Michael Sch.: instead of "self%NSite-3" "..-4" should be sufficient...testing needed!
+    npossPartners = (self%NSite-4)*(self%NSite-3)/2
+
+    allocate (IntLJ15(npossPartners, 2), STAT = stat)
+    call AllocationError( stat, 'Int15', npossPartners*2 )
+
+    if (self%NCharge>0) then
+
+        allocate (IntCC15(npossPartners, 2), STAT = stat)
+        call AllocationError( stat, 'IntCC15', npossPartners*2 )
+
+        if (self%NDipole>0) then
+            allocate (IntCD15(npossPartners, 2), STAT = stat)
+            call AllocationError( stat, 'IntCD15', npossPartners*2 )
+            allocate (IntDC15(npossPartners, 2), STAT = stat)
+            call AllocationError( stat, 'IntDC15', npossPartners*2 )
+        end if
+
+        if ( self%NQuadrupole>0) then
+            allocate (IntCQ15(npossPartners, 2), STAT = stat)
+            call AllocationError( stat, 'IntCQ15', npossPartners*2 )
+            allocate (IntQC15(npossPartners, 2), STAT = stat)
+            call AllocationError( stat, 'IntQC15', npossPartners*2 )
+        end if
+
+    end if
+
+    if (self%NDipole>0) then
+
+        allocate (IntDD15(npossPartners, 2), STAT = stat)
+        call AllocationError( stat, 'IntDD15', npossPartners*2 )
+
+        if ( self%NQuadrupole >0) then
+            allocate (IntQD15(npossPartners, 2), STAT = stat)
+            call AllocationError( stat, 'IntQD15', npossPartners*2 )
+            allocate (IntDQ15(npossPartners, 2), STAT = stat)
+            call AllocationError( stat, 'IntDQ15', npossPartners*2 )
+        end if
+
+    end if
+
+    if ( self%NQuadrupole>0) then
+        allocate (IntQQ15(npossPartners, 2), STAT = stat)
+        call AllocationError( stat, 'IntQQ15', npossPartners*2 )
+    end if
+
+    lj=1
+    cc=1
+    dd=1
+    qq=1
+    cd=1
+    cq=1
+    dq=1
+    dc=1
+    qc=1
+    qd=1
+    do i=1, self%NSite
+        do j=i+1, self%NSite
+            if (AllSites(i,j)==1) then
+                LJfound(1:2) =.false.
+                charge(1:2) = .false.
+                dipole(1:2) = .false.
+                quadrupole(1:2) = .false.
+                call binar_search(self%LJSiteIds(:), i, LJfound(1), index)
+                call binar_search(self%LJSiteIds(:), j, LJfound(2), index)
+                if (LJfound(1) .and. LJfound(2)) then
+                    IntLJ15(lj,1)=i
+                    IntLJ15(lj,2)=j
+                    lj=lj+1
+                else if (.not. LJfound(1) .and. .not. LJfound(2)) then
+                    call binar_search(self%ChargeSiteIds(:), i, charge(1), index)
+                    if (.not. charge(1)) then
+                        call binar_search(self%DipoleSiteIds(:), i, dipole(1), index)
+                        if (.not. dipole(1)) then
+                            call binar_search(self%QuadrupoleSiteIds(:), i, quadrupole(1), index)
+                        end if
+                    end if
+                    call binar_search(self%ChargeSiteIds(:), j, charge(2), index)
+                    if (.not. charge(2)) then
+                        call binar_search(self%DipoleSiteIds(:), i, dipole(2), index)
+                        if (.not. dipole(2)) then
+                            call binar_search(self%QuadrupoleSiteIds(:), i, quadrupole(2), index)
+                        end if
+                    end if
+                    if (charge(1)) then
+                        if (charge(2)) then
+                            IntCC15(cc,1)= i
+                            IntCC15(cc,2)= j
+                            cc=cc+1
+                        else if (dipole(2)) then
+                            IntCD15(cd,1)= i
+                            IntCD15(cd,2)= j
+                            cd=cd+1
+                        else !quadrupole(2)
+                            IntCQ15(cq,1)=i
+                            IntCQ15(cq,2)=j
+                            cq=cq+1
+                        end if
+                    else if (dipole(1)) then
+                        if (charge(2)) then
+                            IntDC15(dc,1)= i
+                            IntDC15(dc,2)= j
+                            dc=dc+1
+                        else if (dipole(2)) then
+                            IntDD15(dd,1)= i
+                            IntDD15(dd,2)= j
+                            dd=dd+1
+                        else !quadrupole(2)
+                            IntDQ15(dq,1)=i
+                            IntDQ15(dq,2)=j
+                            dq=dq+1
+                        end if
+                    else ! quadrupole(1)
+                        if (charge(2))then
+                            IntQC15(qc,1)= i
+                            IntQC15(qc,2)= j
+                            qc=qc+1
+                        else if (dipole(2))then
+                            IntQD15(qd,1)= i
+                            IntQD15(qd,2)= j
+                            qd=qd+1
+                        else ! quadrupole(2)
+                            IntQQ15(qq,1)=i
+                            IntQQ15(qq,2)=j
+                            qq=qq+1
+                        end if
+                    end if
+                else
+                    AllSites(i,j)=0
+                end if
+            end if
+        end do
+    end do
+
+    allocate (self%IntLJ15(lj-1, 2), STAT = stat)
+    call AllocationError( stat, 'self%IntLJ15', (lj-1)*2 )
+    self%IntLJ15 = IntLJ15(1:lj-1,:)
+
+    if (self%NCharge>0) then
+        allocate (self%IntCC15(cc-1, 2), STAT = stat)
+        call AllocationError( stat, 'self%IntCC15', (cc-1)*2 )
+        self%IntCC15 = IntCC15(1:cc-1,:)
+        if (self%NDipole>0) then
+            allocate (self%IntCD15(cd-1, 2), STAT = stat)
+            call AllocationError( stat, 'self%IntCD15', (cd-1)*2 )
+            self%IntCD15 = IntCD15(1:cd-1,:)
+            allocate (self%IntDC15(dc-1, 2), STAT = stat)
+            call AllocationError( stat, 'self%IntDC15', (dc-1)*2 )
+            self%IntDC15 = IntDC15(1:dc-1,:)
+        end if
+        if (self%NQuadrupole>0) then
+            allocate (self%IntCQ15(cq-1, 2), STAT = stat)
+            call AllocationError( stat, 'self%IntCQ15', (cq-1)*2 )
+            self%IntCQ15 = IntCQ15(1:cq-1,:)
+            allocate (self%IntQC15(qc-1, 2), STAT = stat)
+            call AllocationError( stat, 'self%IntQC15', (qc-1)*2 )
+            self%IntQC15 = IntQC15(1:qc-1,:)
+        end if
+    end if
+    if (self%NDipole>0) then
+        allocate (self%IntDD15(dd-1, 2), STAT = stat)
+        call AllocationError( stat, 'self%IntDD15', (dd-1)*2 )
+        self%IntDD15 = IntDD15(1:dd-1,:)
+        if (self%NQuadrupole>0) then
+            allocate (self%IntDQ15(dq-1, 2), STAT = stat)
+            call AllocationError( stat, 'self%IntDQ15', (dq-1)*2 )
+            self%IntDQ15 = IntDQ15(1:dq-1,:)
+            allocate (self%IntQD15(qd-1, 2), STAT = stat)
+            call AllocationError( stat, 'self%IntQD15', (qd-1)*2 )
+            self%IntQD15 = IntQD15(1:qd-1,:)
+        end if
+    end if
+    if (self%NQuadrupole>0) then
+        allocate (self%IntQQ15(qq-1, 2), STAT = stat)
+        call AllocationError( stat, 'self%IntQQ15', (qq-1)*2 )
+        self%IntQQ15 = IntQQ15(1:qq-1,:)
+    end if
+
+
+    if (LJEl14) then
+
+        allocate (Int14(self%NDihedral, 2), STAT = stat)
+        call AllocationError( stat, 'Int14', self%NDihedral*2 )
+
+        allocate (CoeffLJ14(self%NDihedral), STAT = stat)
+        call AllocationError( stat, 'CoeffLJ14', self%NDihedral )
+
+        allocate (CoeffEl14(self%NDihedral), STAT = stat)
+        call AllocationError( stat, 'CoeffEl14', self%NDihedral )
+
+        k=1
+        do i=1, self%NDihedral
+            if (self%IdfDihedral(i)%nmax>=0) then  !If proper dihedral
+                Site(1)=self%IdfDihedral(i)%SiteId(1)
+                Site(4)=self%IdfDihedral(i)%SiteId(4)
+                if (Site(1)>Site(4)) then
+                    Site(1)=self%IdfDihedral(i)%SiteId(4)
+                    Site(4)=self%IdfDihedral(i)%SiteId(1)
+                end if
+                if (k>1) then
+                    call binar_search(Int14(1:k,1), Site(1), ok1, index)
+                    if (.not. ok1) then
+                        Int14(k,1)=Site(1)
+                        Int14(k,2)=Site(4)
+                        CoeffLJ14(k)=self%IdfDihedral(i)%ScaleLJ14
+                        CoeffEl14(k)=self%IdfDihedral(i)%ScaleEl14
+                        k=k+1
+                    else if (Int14(index, 2) .ne. Site(4)) then
+                        Int14(k,1)=Site(1)
+                        Int14(k,2)=Site(4)
+                        CoeffLJ14(k)=self%IdfDihedral(i)%ScaleLJ14
+                        CoeffEl14(k)=self%IdfDihedral(i)%ScaleEl14
+                        k=k+1
+                    end if
+                else
+                    Int14(k,1)=Site(1)
+                    Int14(k,2)=Site(4)
+                    CoeffLJ14(k)=self%IdfDihedral(i)%ScaleLJ14
+                    CoeffEl14(k)=self%IdfDihedral(i)%ScaleEl14
+                    k=k+1
+                end if
+            end if
+        end do
+
+
+        allocate (IntLJ14(self%NDihedral, 2), STAT = stat)
+        call AllocationError( stat, 'IntLJ14', self%NDihedral*2 )
+
+        allocate (ScaleLJ14(self%NDihedral), STAT = stat)
+        call AllocationError( stat, 'ScaleLJ14', self%NDihedral )
+
+        if (self%NCharge>0) then
+
+            allocate (IntCC14(self%NDihedral, 2), STAT = stat)
+            call AllocationError( stat, 'IntCC14', self%NDihedral*2 )
+
+            allocate (ScaleCC14(self%NDihedral), STAT = stat)
+            call AllocationError( stat, 'ScaleCC14', self%NDihedral )
+
+            if (self%NDipole>0) then
+
+                allocate (IntCD14(self%NDihedral, 2), STAT = stat)
+                call AllocationError( stat, 'IntCD14', self%NDihedral*2 )
+
+                allocate (ScaleCD14(self%NDihedral), STAT = stat)
+                call AllocationError( stat, 'ScaleCD14', self%NDihedral )
+
+                allocate (IntDC14(self%NDihedral, 2), STAT = stat)
+                call AllocationError( stat, 'IntDC14', self%NDihedral*2 )
+
+                allocate (ScaleDC14(self%NDihedral), STAT = stat)
+                call AllocationError( stat, 'ScaleDC14', self%NDihedral )
+
+            end if
+
+            if ( self%NQuadrupole>0) then
+
+                allocate (IntCQ14(self%NDihedral, 2), STAT = stat)
+                call AllocationError( stat, 'IntCQ14', self%NDihedral*2 )
+
+                allocate (ScaleCQ14(self%NDihedral), STAT = stat)
+                call AllocationError( stat, 'ScaleCQ14', self%NDihedral )
+
+                allocate (IntQC14(self%NDihedral, 2), STAT = stat)
+                call AllocationError( stat, 'IntQC14', self%NDihedral*2 )
+
+                allocate (ScaleQC14(self%NDihedral), STAT = stat)
+                call AllocationError( stat, 'ScaleQC14', self%NDihedral )
+
+            end if
+
+        end if
+
+        if (self%NDipole>0) then
+
+            allocate (IntDD14(self%NDihedral, 2), STAT = stat)
+            call AllocationError( stat, 'IntDD14', self%NDihedral*2 )
+
+            allocate (ScaleDD14(self%NDihedral), STAT = stat)
+            call AllocationError( stat, 'ScaleDD14', self%NDihedral )
+
+            if ( self%NQuadrupole>0) then
+
+                allocate (IntDQ14(self%NDihedral, 2), STAT = stat)
+                call AllocationError( stat, 'IntDQ14', self%NDihedral*2 )
+
+                allocate (ScaleDQ14(self%NDihedral), STAT = stat)
+                call AllocationError( stat, 'ScaleDQ14', self%NDihedral )
+
+                allocate (IntQD14(self%NDihedral, 2), STAT = stat)
+                call AllocationError( stat, 'IntQD14', self%NDihedral*2 )
+
+                allocate (ScaleQD14(self%NDihedral), STAT = stat)
+                call AllocationError( stat, 'ScaleQD14', self%NDihedral )
+
+            end if
+
+        end if
+
+        if ( self%NQuadrupole>0) then
+
+            allocate (IntQQ14(self%NDihedral, 2), STAT = stat)
+            call AllocationError( stat, 'IntQQ14', self%NDihedral*2 )
+
+            allocate (ScaleQQ14(self%NDihedral), STAT = stat)
+            call AllocationError( stat, 'ScaleQQ14', self%NDihedral )
+
+        end if
+
+        lj = 1
+        cc = 1
+        cq = 1
+        cd = 1
+        dc = 1
+        dd = 1
+        dq = 1
+        qc = 1
+        qd = 1
+        qq = 1
+        do i =1, k-1
+            call binar_search(self%LJSiteIds(:), Int14(i,1), LJfound(1), index1)
+            call binar_search(self%LJSiteIds(:), Int14(i,2), LJfound(2), index2)
+            if (LJfound(1) .and. LJfound(2)) then
+                IntLJ14(lj,1)=Int14(i,1)
+                IntLJ14(lj,2)=Int14(i,2)
+                ScaleLJ14(lj)=CoeffLJ14(i)
+                lj = lj+1
+                ChargeID(1) = SameCoord(self%LJSiteIds(index1),1)
+                ChargeID(2) = SameCoord(self%LJSiteIds(index2),1)
+                DipoleID(1) = SameCoord(self%LJSiteIds(index1),2)
+                DipoleID(2) = SameCoord(self%LJSiteIds(index2),2)
+                QuadrupoleID(1) = SameCoord(self%LJSiteIds(index1),3)
+                QuadrupoleID(2) = SameCoord(self%LJSiteIds(index1),3)
+                if (ChargeID(1) > 0) then
+                    if ( ChargeID(2) > 0) then
+                        IntCC14(cc,1) = ChargeID(1)
+                        IntCC14(cc,2) = ChargeID(2)
+                        ScaleCC14(cc)=CoeffEl14(i)
+                        cc = cc+1
+                    else if ( DipoleID(2) > 0) then
+                        IntCD14(cd,1) = ChargeID(1)
+                        IntCD14(cd,2) = DipoleID(2)
+                        ScaleCD14(cd)=CoeffEl14(i)
+                        cd = cd+1
+                    else
+                        if ( QuadrupoleID(2) > 0) then
+                            IntCQ14(cq,1) = ChargeID(1)
+                            IntCQ14(cq,2) = QuadrupoleID(2)
+                            ScaleCQ14(cq)=CoeffEl14(i)
+                            cq = cq+1
+                        end if
+                    end if
+                end if
+                if (DipoleID(1) > 0) then
+                    if ( ChargeID(2) > 0) then
+                        IntDC14(dc,1) = DipoleID(1)
+                        IntDC14(dc,2) = ChargeID(2)
+                        ScaleDC14(dc)=CoeffEl14(i)
+                        dc = dc+1
+                    else if ( DipoleID(2) > 0) then
+                        IntDD14(dd,1) = DipoleID(1)
+                        IntDD14(dd,2) = DipoleID(2)
+                        ScaleDD14(dd)=CoeffEl14(i)
+                        dd = dd+1
+                    else
+                        if (QuadrupoleID(2) > 0) then
+                            IntDQ14(dq,1) = DipoleID(1)
+                            IntDQ14(dq,2) = QuadrupoleID(2)
+                            ScaleDQ14(dq)=CoeffEl14(i)
+                            dq = dq+1
+                        end if
+                    end if
+                end if
+                if (QuadrupoleID(1) > 0) then
+                    if ( ChargeID(2) > 0) then
+                        IntQC14(qc,1) = QuadrupoleID(1)
+                        IntQC14(qc,2) = ChargeID(2)
+                        ScaleQC14(qc) = CoeffEl14(i)
+                        qc = qc+1
+                    else if ( DipoleID(2) > 0) then
+                        IntQD14(qd,1) = QuadrupoleID(1)
+                        IntQD14(qd,2) = DipoleID(2)
+                        ScaleQD14(qd) = CoeffEl14(i)
+                        qd = qd+1
+                    else
+                        if ( QuadrupoleID(2) > 0) then
+                            IntQQ14(qq,1) = QuadrupoleID(1)
+                            IntQQ14(qq,2) = QuadrupoleID(2)
+                            ScaleQQ14(qq)= CoeffEl14(i)
+                            qq = qq+1
+                        end if
+                    end if
+                end if
+            end if
+        end do
+
+
+        allocate (self%IntLJ14(lj-1, 2), STAT = stat)
+        call AllocationError( stat, 'self%IntLJ14', (lj-1)*2 )
+        self%IntLJ14 = IntLJ14(1:lj-1,:)
+        allocate (self%ScaleLJ14(lj-1), STAT = stat)
+        call AllocationError( stat, 'ScaleLJ14', lj-1 )
+        self%ScaleLJ14 = ScaleLJ14(1:lj-1)
+
+
+        if (self%NCharge>0) then
+            allocate (self%IntCC14(cc-1, 2), STAT = stat)
+            call AllocationError( stat, 'self%IntCC14', (cc-1)*2 )
+            self%IntCC14 = IntCC14(1:cc-1,:)
+            allocate (self%ScaleCC14(cc-1), STAT = stat)
+            call AllocationError( stat, 'ScaleCC14', cc-1 )
+            self%ScaleCC14 = ScaleCC14(1:cc-1)
+            if (self%NDipole>0) then
+                allocate (self%IntCD14(cd-1, 2), STAT = stat)
+                call AllocationError( stat, 'self%IntCD14', (cd-1)*2 )
+                self%IntCD14 = IntCD14(1:cd-1,:)
+                allocate (self%ScaleCD14(cd-1), STAT = stat)
+                call AllocationError( stat, 'ScaleCD14', cd-1 )
+                self%ScaleCD14 = ScaleCD14(1:cd-1)
+                allocate (self%IntDC14(dc-1, 2), STAT = stat)
+                call AllocationError( stat, 'self%IntDC14', (dc-1)*2 )
+                self%IntDC14 = IntDC14(1:dc-1,:)
+                allocate (self%ScaleDC14(dc-1), STAT = stat)
+                call AllocationError( stat, 'ScaleDC14', dc-1 )
+                self%ScaleDC14 = ScaleDC14(1:dc-1)
+            end if
+            if (self%NQuadrupole>0) then
+                allocate (self%IntQC14(qc-1, 2), STAT = stat)
+                call AllocationError( stat, 'self%IntQC14', (qc-1)*2 )
+                self%IntQC14 = IntQC14(1:qc-1,:)
+                allocate (self%ScaleQC14(qc-1), STAT = stat)
+                call AllocationError( stat, 'ScaleQC14', qc-1 )
+                self%ScaleQC14 = ScaleQC14(1:qc-1)
+                allocate (self%IntCQ14(cq-1, 2), STAT = stat)
+                call AllocationError( stat, 'self%IntCQ14', (cq-1)*2 )
+                self%IntCQ14 = IntCQ14(1:cq-1,:)
+                allocate (self%ScaleCQ14(cq-1), STAT = stat)
+                call AllocationError( stat, 'ScaleCQ14', cq-1 )
+                self%ScaleCQ14 = ScaleCQ14(1:cq-1)
+            end if
+        end if
+        if (self%NDipole>0) then
+            allocate (self%IntDD14(dd-1, 2), STAT = stat)
+            call AllocationError( stat, 'self%IntDD14', (dd-1)*2 )
+            self%IntDD14 = IntDD14(1:dd-1,:)
+            allocate (self%ScaleDD14(dd-1), STAT = stat)
+            call AllocationError( stat, 'ScaleDD14', dd-1 )
+            self%ScaleDD14 = ScaleDD14(1:dd-1)
+            if (self%NQuadrupole>0) then
+                allocate (self%IntDQ14(dq-1, 2), STAT = stat)
+                call AllocationError( stat, 'self%IntDQ14', (dq-1)*2 )
+                self%IntDQ14 = IntDQ14(1:dq-1,:)
+                allocate (self%ScaleDQ14(dq-1), STAT = stat)
+                call AllocationError( stat, 'ScaleDQ14', dq-1 )
+                self%ScaleDQ14 = ScaleDQ14(1:dq-1)
+                allocate (self%IntQD14(qd-1, 2), STAT = stat)
+                call AllocationError( stat, 'self%IntQD14', (qd-1)*2 )
+                self%IntQD14 = IntQD14(1:qd-1,:)
+                allocate (self%ScaleQD14(qd-1), STAT = stat)
+                call AllocationError( stat, 'ScaleQD14', qd-1 )
+                self%ScaleQD14 = ScaleQD14(1:qd-1)
+            end if
+        end if
+        if (self%NQuadrupole>0) then
+             allocate (self%IntQQ14(qq-1, 2), STAT = stat)
+             call AllocationError( stat, 'self%IntQQ14', (qq-1)*2 )
+             self%IntQQ14 = IntQQ14(1:qq-1,:)
+             allocate (self%ScaleQQ14(qq-1), STAT = stat)
+             call AllocationError( stat, 'ScaleQQ14', qq-1 )
+             self%ScaleQQ14 = ScaleQQ14(1:qq-1)
+        end if
+
+    end if
+
+  end subroutine createNonBoundedInteractionList
+
+
+  subroutine markIdenticalIndicesWithZero(this, AllSites)
+
+    implicit none
+
+    type(TMolecule) :: this
+    integer         :: i, AllSites(:, :)
+
+    ! Initialisierung
+
+    AllSites = 1 ! complete matrix filled with 1's
+
+    do i = 1, this%NSite
+        AllSites(i, i) = 0 ! main diagonal filed with 0's
+    end do
+
+  end subroutine markIdenticalIndicesWithZero
+
+
+  subroutine markDihedralSitesWithZero(dihedral, AllSites)
+
+    type(TIdfDihedral) :: dihedral
+    integer            :: site(4), iDihedralSite, jDihedralSite, AllSites(:, :)
+
+    site(1:4) = dihedral%SiteId(1:4)
+
+    do iDihedralSite = 1, 4
+
+        do jDihedralSite = 1, 4
+
+            AllSites(site(iDihedralSite), site(jDihedralSite)) = 0
+        end do
+
+    end do
+
+  end subroutine markDihedralSitesWithZero
 
 
   subroutine markSameCoordinates(this, AllSites, SameCoord)
