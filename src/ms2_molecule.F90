@@ -1225,48 +1225,43 @@ contains
         end do
     end do
 
-    allocate (self%IntLJ15(lj-1, 2), STAT = stat)
-    call AllocationError( stat, 'self%IntLJ15', (lj-1)*2 )
-    self%IntLJ15 = IntLJ15(1:lj-1,:)
+    call allocateAndCopyInteractionList(self%IntLJ15, IntLJ15, lj - 1, 'self%IntLJ15')
 
-    if (self%NCharge>0) then
-        allocate (self%IntCC15(cc-1, 2), STAT = stat)
-        call AllocationError( stat, 'self%IntCC15', (cc-1)*2 )
-        self%IntCC15 = IntCC15(1:cc-1,:)
-        if (self%NDipole>0) then
-            allocate (self%IntCD15(cd-1, 2), STAT = stat)
-            call AllocationError( stat, 'self%IntCD15', (cd-1)*2 )
-            self%IntCD15 = IntCD15(1:cd-1,:)
-            allocate (self%IntDC15(dc-1, 2), STAT = stat)
-            call AllocationError( stat, 'self%IntDC15', (dc-1)*2 )
-            self%IntDC15 = IntDC15(1:dc-1,:)
+    if (self%NCharge > 0) then
+
+        call allocateAndCopyInteractionList(self%IntCC15, IntCC15, cc - 1, 'self%IntCC15')
+
+        if (self%NDipole > 0) then
+
+            call allocateAndCopyInteractionList(self%IntCD15, IntCD15, cd - 1, 'self%IntCD15')
+
+            call allocateAndCopyInteractionList(self%IntDC15, IntDC15, dc - 1, 'self%IntDC15')
+
         end if
-        if (self%NQuadrupole>0) then
-            allocate (self%IntCQ15(cq-1, 2), STAT = stat)
-            call AllocationError( stat, 'self%IntCQ15', (cq-1)*2 )
-            self%IntCQ15 = IntCQ15(1:cq-1,:)
-            allocate (self%IntQC15(qc-1, 2), STAT = stat)
-            call AllocationError( stat, 'self%IntQC15', (qc-1)*2 )
-            self%IntQC15 = IntQC15(1:qc-1,:)
+        if (self%NQuadrupole > 0) then
+
+            call allocateAndCopyInteractionList(self%IntCQ15, IntCQ15, cq - 1, 'self%IntCQ15')
+
+            call allocateAndCopyInteractionList(self%IntQC15, IntQC15, qc - 1, 'self%IntQC15')
+
         end if
     end if
-    if (self%NDipole>0) then
-        allocate (self%IntDD15(dd-1, 2), STAT = stat)
-        call AllocationError( stat, 'self%IntDD15', (dd-1)*2 )
-        self%IntDD15 = IntDD15(1:dd-1,:)
-        if (self%NQuadrupole>0) then
-            allocate (self%IntDQ15(dq-1, 2), STAT = stat)
-            call AllocationError( stat, 'self%IntDQ15', (dq-1)*2 )
-            self%IntDQ15 = IntDQ15(1:dq-1,:)
-            allocate (self%IntQD15(qd-1, 2), STAT = stat)
-            call AllocationError( stat, 'self%IntQD15', (qd-1)*2 )
-            self%IntQD15 = IntQD15(1:qd-1,:)
+    if (self%NDipole > 0) then
+
+        call allocateAndCopyInteractionList(self%IntDD15, IntDD15, dd - 1, 'self%IntDD15')
+
+        if (self%NQuadrupole > 0) then
+
+            call allocateAndCopyInteractionList(self%IntDQ15, IntDQ15, dq - 1, 'self%IntDQ15')
+
+            call allocateAndCopyInteractionList(self%IntQD15, IntQD15, qd - 1, 'self%IntQD15')
+
         end if
     end if
-    if (self%NQuadrupole>0) then
-        allocate (self%IntQQ15(qq-1, 2), STAT = stat)
-        call AllocationError( stat, 'self%IntQQ15', (qq-1)*2 )
-        self%IntQQ15 = IntQQ15(1:qq-1,:)
+    if (self%NQuadrupole > 0) then
+
+        call allocateAndCopyInteractionList(self%IntQQ15, IntQQ15, qq - 1, 'self%IntQQ15')
+
     end if
 
 
@@ -1605,10 +1600,7 @@ contains
     integer              :: stat
     character(len=*)     :: name1, name2
 
-    allocate(finalInteractionList(arraySize, 2), STAT = stat)
-    call AllocationError(stat, name1, (arraySize) * 2)
-
-    finalInteractionList = interactionList(1:arraySize, :)
+    call allocateAndCopyInteractionList(finalInteractionList, interactionList, arraySize, name1)
 
     allocate (finalScaleList(arraySize), STAT = stat)
     call AllocationError(stat, name2, arraySize)
@@ -1616,6 +1608,23 @@ contains
     finalScaleList = scaleList(1:arraySize)
 
   end subroutine
+
+
+  subroutine allocateAndCopyInteractionList(finalInteractionList, interactionList, arraySize, name)
+
+    implicit none
+
+    integer, allocatable :: finalInteractionList(:, :)
+    integer, intent(in)  :: interactionList(:, :), arraySize
+    character(len=*)     :: name
+    integer              :: stat
+
+    allocate(finalInteractionList(arraySize, 2), STAT = stat)
+    call AllocationError(stat, name, (arraySize) * 2)
+
+    finalInteractionList = interactionList(1:arraySize, :)
+
+  end subroutine allocateAndCopyInteractionList
 
 
 !==============================================================!
