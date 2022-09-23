@@ -1,0 +1,40 @@
+
+/*! \mainpage Molecular simulation with ms2
+
+
+
+<em>ms</em>2 is
+
+Content of this documentation:
+
+- \ref page_inputFiles
+  - \ref page_parameterFile
+  - \ref page_potentialModelFile
+
+- \ref page_simulationModes
+  - \ref sec_molecularDynamic
+  - \ref sec_monteCarlo
+  - \ref sec_svc
+
+- \ref page_potentialModels
+  - \ref page_lennardJones
+  - \ref page_mie
+  - \ref page_tangToennies
+  - \ref page_idf
+
+- \ref page_ensembles
+  - \ref sec_NVTensemble
+  - \ref sec_NVEensemble
+  - \ref sec_NPTensemlbe
+  - \ref sec_GEensemble
+  - \ref sec_NPHensemble
+
+- \ref page_outputFiles
+  - \ref sec_logFile
+  - \ref sec_resFile
+  - \ref sec_rstFile
+  - \ref sec_ravFile
+  - \ref sec_runFile
+  - \ref sec_nrmFile
+
+*/

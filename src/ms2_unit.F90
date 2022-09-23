@@ -23,6 +23,8 @@
 !DEC$ MESSAGE:'Compiling ms2_unit.F90...'
 #endif
 
+#include "mathMacros.F90"
+
 module ms2_unit
 
   use ms2_global
@@ -86,6 +88,11 @@ module ms2_unit
     integer, pointer :: NPartMax, NPart ! Michael Sch. pointer needed here?
     integer, pointer :: NPart0, NPart1, NPart2
 
+  contains
+
+    procedure :: applyRotationMatrix => applyRotationMatrix
+    procedure :: applyScalingFactors => applyScalingFactors
+
   end type TUnit
 
   interface Construct
@@ -104,8 +111,98 @@ module ms2_unit
     module procedure TUnit_FindCOM
   end interface
 
+  type Constraint
+
+    integer :: nSites
+    integer, allocatable :: siteIDs(:)
+
+  end type Constraint
+
 contains
 
+
+  subroutine applyRotationMatrix(self, Rot2)
+
+    implicit none
+
+    class(TUnit), intent(in out) :: self
+    real(RK)                     :: Rot2(:, :), S, qu(4), SInv, T
+
+    ! Implemented according to Bronstein et al. 2008, Revision 7
+    T = Rot2(1, 1) + Rot2(2, 2) + Rot2(3, 3) + 1._RK
+
+    if (T > 0) then
+       S = 0.5_RK / sqrt(T)
+
+       qu(1) = 0.25_RK / S
+       qu(2) = (Rot2(3, 2) - Rot2(2, 3)) * S
+       qu(3) = (Rot2(1, 3) - Rot2(3, 1)) * S
+       qu(4) = (Rot2(2, 1) - Rot2(1, 2)) * S
+
+    else if ((Rot2(1, 1) > Rot2(2, 2)) .and. (Rot2(1, 1) > Rot2(3, 3))) then
+       S = 2._RK * sqrt(1._RK + Rot2(1, 1) - Rot2(2, 2) - Rot2(3, 3)) ! S = 4*qu(2)
+       SInv = 1._RK / S
+
+       qu(1) = (Rot2(3, 2) - Rot2(2, 3)) * SInv
+       qu(2) = 0.25_RK * S
+       qu(3) = (Rot2(1, 2) + Rot2(2, 1)) * SInv
+       qu(4) = (Rot2(1, 3) + Rot2(3, 1)) * SInv
+
+    else if (Rot2(2, 2) > Rot2(3, 3)) then
+       S = 2._RK * sqrt(1._RK + Rot2(2, 2) - Rot2(1, 1) - Rot2(3, 3)) ! S = 4*qu(3)
+       SInv = 1._RK / S
+
+       qu(1) = (Rot2(1, 3) - Rot2(3, 1)) * SInv
+       qu(2) = (Rot2(1, 2) + Rot2(2, 1)) * SInv
+       qu(3) = 0.25_RK * S
+       qu(4) = (Rot2(2, 3) + Rot2(3, 2)) * SInv
+
+    else
+       S = 2._RK * sqrt(1._RK + Rot2(3, 3) - Rot2(1, 1) - Rot2(2, 2)) ! S = 4*qu(4)
+       SInv = 1._RK / S
+
+       qu(1) = (Rot2(1, 2) - Rot2(2, 1)) * SInv
+       qu(2) = (Rot2(1, 3) + Rot2(3, 1)) * SInv
+       qu(3) = (Rot2(2, 3) + Rot2(3, 2)) * SInv
+       qu(4) = 0.25_RK * S
+
+    end if
+
+    qu(:) = qu(:) / sqrt(sum(SQR(qu)))
+    self%Q0(1:4) = qu(1:4)
+
+  end subroutine applyRotationMatrix
+
+
+  subroutine applyScalingFactors(self, scaleest, scaleeps, scalegeo, scalesig)
+
+    implicit none
+
+    class(TUnit), intent(in out) :: self
+    real(RK), intent(in)         :: scaleest, scaleeps, scalegeo, scalesig
+    integer                      :: j
+
+    do j = 1, self%NMIEnm
+        self%SiteMIEnm(j)%sig = self%SiteMIEnm(j)%sig * scalesig
+        self%SiteMIEnm(j)%eps = self%SiteMIEnm(j)%eps * scaleeps
+    end do
+
+    do j = 1, self%NCharge
+        self%SiteCharge(j)%shield = self%SiteCharge(j)%shield * scalegeo
+        self%SiteCharge(j)%e      = self%SiteCharge(j)%e * scaleest
+    end do
+
+    do j = 1, self%NDipole
+        self%SiteDipole(j)%shield = self%SiteDipole(j)%shield * scalegeo
+        self%SiteDipole(j)%D      = self%SiteDipole(j)%D * scaleest
+    end do
+
+    do j = 1, self%NQuadrupole
+        self%SiteQuadrupole(j)%shield = self%SiteQuadrupole(j)%shield * scalegeo
+        self%SiteQuadrupole(j)%Q      = self%SiteQuadrupole(j)%Q * scaleest
+    end do
+
+  end subroutine applyScalingFactors
 
 
 !==============================================================!

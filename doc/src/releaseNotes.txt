@@ -1,0 +1,22 @@
+
+/*!
+
+\page page_releaseNotes Release notes
+
+\section sec_release4 Release 4.0
+
+See Fingerhut et al. (2021) \cite Fingerhut2021 .
+
+\section sec_release3 Release 3.0
+
+See Rutkai et al. (2017) \cite Rutkai2017 .
+
+\section sec_release2 Release 2.0
+
+See Glass et al. (2014) \cite Glass2014 .
+
+\section sec_release1 Release 1.0
+
+See Deublein et al. (2011) \cite Deublein2011 .
+
+*/

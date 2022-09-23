@@ -1,0 +1,11 @@
+
+/*!
+
+\page page_codingGuidelines Coding guide lines
+
+
+- Standard indention is ? whitespaces
+- Use <em>contiguous</em> whenever possible
+
+
+*/

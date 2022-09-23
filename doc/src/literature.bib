@@ -1,0 +1,126 @@
+% Encoding: UTF-8
+
+@Article{Deublein2011,
+  author    = {Stephan Deublein and Bernhard Eckl and Jürgen Stoll and Sergey V. Lishchuk and Gabriela Guevara-Carrion and Colin W. Glass and Thorsten Merker and Martin Bernreuther and Hans Hasse and Jadran Vrabec},
+  title     = {ms2: {A} molecular simulation tool for thermodynamic properties},
+  journal   = {Computer Physics Communications},
+  year      = {2011},
+  volume    = {182},
+  number    = {11},
+  pages     = {2350 - 2367},
+  issn      = {0010-4655},
+  abstract  = {This work presents the molecular simulation program ms2 that is designed for the calculation of thermodynamic properties of bulk fluids in equilibrium consisting of small electro-neutral molecules. ms2 features the two main molecular simulation techniques, molecular dynamics (MD) and Monte-Carlo. It supports the calculation of vapor–liquid equilibria of pure fluids and multi-component mixtures described by rigid molecular models on the basis of the grand equilibrium method. Furthermore, it is capable of sampling various classical ensembles and yields numerous thermodynamic properties. To evaluate the chemical potential, Widomʼs test molecule method and gradual insertion are implemented. Transport properties are determined by equilibrium MD simulations following the Green–Kubo formalism. ms2 is designed to meet the requirements of academia and industry, particularly achieving short response times and straightforward handling. It is written in Fortran90 and optimized for a fast execution on a broad range of computer architectures, spanning from single processor PCs over PC-clusters and vector computers to high-end parallel machines. The standard Message Passing Interface (MPI) is used for parallelization and ms2 is therefore easily portable to different computing platforms. Feature tools facilitate the interaction with the code and the interpretation of input and output files. The accuracy and reliability of ms2 has been shown for a large variety of fluids in preceding work.
+Program summary
+Program title: ms2 Catalogue identifier: AEJF_v1_0 Program summary URL: http://cpc.cs.qub.ac.uk/summaries/AEJF_v1_0.html Program obtainable from: CPC Program Library, Queenʼs University, Belfast, N. Ireland Licensing provisions: Special Licence supplied by the authors No. of lines in distributed program, including test data, etc.: 82 794 No. of bytes in distributed program, including test data, etc.: 793 705 Distribution format: tar.gz Programming language: Fortran90 Computer: The simulation tool ms2 is usable on a wide variety of platforms, from single processor machines over PC-clusters and vector computers to vector-parallel architectures. (Tested with Fortran compilers: gfortran, Intel, PathScale, Portland Group and Sun Studio.) Operating system: Unix/Linux, Windows Has the code been vectorized or parallelized?: Yes. Message Passing Interface (MPI) protocol Scalability. Excellent scalability up to 16 processors for molecular dynamics and >512 processors for Monte-Carlo simulations. RAM: ms2 runs on single processors with 512 MB RAM. The memory demand rises with increasing number of processors used per node and increasing number of molecules. Classification: 7.7, 7.9, 12 External routines: Message Passing Interface (MPI) Nature of problem: Calculation of application oriented thermodynamic properties for rigid electro-neutral molecules: vapor–liquid equilibria, thermal and caloric data as well as transport properties of pure fluids and multi-component mixtures. Solution method: Molecular dynamics, Monte-Carlo, various classical ensembles, grand equilibrium method, Green–Kubo formalism. Restrictions: No. The system size is user-defined. Typical problems addressed by ms2 can be solved by simulating systems containing typically 2000 molecules or less. Unusual features: Feature tools are available for creating input files, analyzing simulation results and visualizing molecular trajectories. Additional comments: Sample makefiles for multiple operation platforms are provided. Documentation is provided with the installation package and is available at http://www.ms-2.de. Running time: The running time of ms2 depends on the problem set, the system size and the number of processes used in the simulation. Running four processes on a “Nehalem” processor, simulations calculating VLE data take between two and twelve hours, calculating transport properties between six and 24 hours.},
+  doi       = {https://doi.org/10.1016/j.cpc.2011.04.026},
+  keywords  = {Molecular simulation, Molecular dynamics, Monte-Carlo, Grand equilibrium method, Vapor–liquid equilibrium, Transport properties},
+  timestamp = {2021-04-07},
+  url       = {http://www.sciencedirect.com/science/article/pii/S0010465511002025},
+}
+
+@Article{Fingerhut2021,
+  author    = {Robin Fingerhut and Gabriela Guevara-Carrion and Isabel Nitzke and Denis Saric and Joshua Marx and Kai Langenbach and Sergei Prokopev and David Celný and Martin Bernreuther and Simon Stephan and Maximilian Kohns and Hans Hasse and Jadran Vrabec},
+  title     = {ms2: A molecular simulation tool for thermodynamic properties, release 4.0},
+  journal   = {Computer Physics Communications},
+  year      = {2021},
+  volume    = {262},
+  pages     = {107860},
+  issn      = {0010-4655},
+  abstract  = {A new version release (4.0) of the molecular simulation tool ms2 (Deublein et al. 2011; Glass et al. 2014; Rutkai et al. 2017) is presented. Version 4.0 of ms2 features two additional potential functions to address the repulsive and dispersive interactions in a more versatile way, i.e. the Mie potential and the Tang–Toennies potential. This version further introduces Kirkwood–Buff integrals based on radial distribution functions, which allow the sampling of the thermodynamic factor of mixtures with up to four components, orientational distribution functions to elucidate mutual configurations of neighboring molecules, thermal diffusion coefficients of binary mixtures for heat, mass as well as coupled heat and mass transport, Einstein relations to sample transport properties with an alternative to the Green–Kubo formalism, dielectric constant of non-polarizable fluid models, vapor–liquid equilibria relying on the second virial coefficient and cluster criteria to identify nucleation.
+New version programm summary
+Program Title: ms2 Program Files doi: http://dx.doi.org/10.17632/nsfj67wydx.3 Licensing provisions: CC by NC 3.0 Programming language: Fortran95 Supplemental material: A detailed description of the parameter setup for the introduced methods, properties, functionalities etc. is given in the supplemental material. Furthermore, all molecular force field models developed by our group are provided by the MolMod Database: Stephan et al., Mol. Sim. 45 (2019) 806 Journal reference of previous version: Deublein et al., Comput. Phys. Commun. 182 (2011) 2350 and Glass et al., Comput. Phys. Commun. 185 (2014) 3302 and Rutkai et al., Comput. Phys. Commun. 221 (2017) 343 Does the new version supersede the previous version?: Yes Reasons for the new version: Introduction of new features as well as enhancement of computational efficiency Summary of revisions: Two new potential functions to address repulsive and dispersive interactions (Mie and Tang–Toennies potential), new properties (Helmholtz energy, Kirkwood–Buff integrals, thermodynamic factor, thermal diffusion coefficients, dielectric constant, mean squared displacement and non-Gaussian parameter), new functionalities (Kirkwood–Buff integration with extrapolation to the thermodynamic limit, van der Vegt correction for the radial distribution function, orientational distribution function, Einstein relations, vapor–liquid equilibria estimations, cluster criteria to identify nucleation). Nature of problem: Calculation of application-oriented thermodynamic properties: vapor–liquid equilibria of pure fluids and multi-component mixtures, thermal, caloric and entropic data as well as transport properties and data on microscopic structure Solution method: Molecular dynamics, Monte Carlo, various ensembles, Grand equilibrium method, Green–Kubo formalism, Einstein formalism, Lustig formalism, OPAS method, smooth-particle mesh Ewald summation.},
+  doi       = {https://doi.org/10.1016/j.cpc.2021.107860},
+  keywords  = {Molecular simulation, Molecular dynamics, Monte Carlo},
+  timestamp = {2021-04-07},
+  url       = {https://www.sciencedirect.com/science/article/pii/S0010465521000217},
+}
+
+@Article{Glass2014,
+  author    = {Colin W. Glass and Steffen Reiser and Gábor Rutkai and Stephan Deublein and Andreas Köster and Gabriela Guevara-Carrion and Amer Wafai and Martin Horsch and Martin Bernreuther and Thorsten Windmann and Hans Hasse and Jadran Vrabec},
+  title     = {ms2: A molecular simulation tool for thermodynamic properties, new version release},
+  journal   = {Computer Physics Communications},
+  year      = {2014},
+  volume    = {185},
+  number    = {12},
+  pages     = {3302 - 3306},
+  issn      = {0010-4655},
+  abstract  = {A new version release (2.0) of the molecular simulation tool ms2 [S. Deublein et al., Comput. Phys. Commun. 182 (2011) 2350] is presented. Version 2.0 of ms2 features a hybrid parallelization based on MPI and OpenMP for molecular dynamics simulation to achieve higher scalability. Furthermore, the formalism by Lustig [R. Lustig, Mol. Phys. 110 (2012) 3041] is implemented, allowing for a systematic sampling of Massieu potential derivatives in a single simulation run. Moreover, the Green–Kubo formalism is extended for the sampling of the electric conductivity and the residence time. To remove the restriction of the preceding version to electro-neutral molecules, Ewald summation is implemented to consider ionic long range interactions. Finally, the sampling of the radial distribution function is added.
+Program summary
+Program title: ms2 Catalogue identifier: AEJF_v2_0 Program summary URL:http://cpc.cs.qub.ac.uk/summaries/AEJF_v2_0.html Program obtainable from: CPC Program Library, Queen’s University, Belfast, N. Ireland Licensing provisions: Standard CPC licence, http://cpc.cs.qub.ac.uk/licence/licence.html No. of lines in distributed program, including test data, etc.: 50375 No. of bytes in distributed program, including test data, etc.: 345786 Distribution format: tar.gz Programming language: Fortran90. Computer: The simulation program ms2 is usable on a wide variety of platforms, from single processor machines to modern supercomputers. Operating system: Unix/Linux. Has the code been vectorized or parallelized?: Yes: Message Passing Interface (MPI) protocol and OpenMP Scalability is up to 2000 cores. RAM: ms2 runs on single cores with 512 MB RAM. The memory demand rises with increasing number of cores used per node and increasing number of molecules. Classification: 7.7, 7.9, 12. External routines: Message Passing Interface (MPI) Catalogue identifier of previous version: AEJF_v1_0 Journal reference of previous version: Comput. Phys. Comm. 182 (2011) 2350 Does the new version supersede the previous version?: Yes. Nature of problem: Calculation of application oriented thermodynamic properties for fluids consisting of rigid molecules: vapor–liquid equilibria of pure fluids and multi-component mixtures, thermal and caloric data as well as transport properties. Solution method: Molecular dynamics, Monte Carlo, various classical ensembles, grand equilibrium method, Green–Kubo formalism, Lustig formalism Reasons for new version: The source code was extended to introduce new features. Summary of revisions: The new features of Version 2.0 include: Hybrid parallelization based on MPI and OpenMP for molecular dynamics simulation; Ewald summation for long range interactions; sampling of Massieu potential derivatives; extended Green–Kubo formalism for the sampling of the electric conductivity and the residence time; radial distribution function. Restrictions: None. The system size is user-defined. Typical problems addressed by ms2 can be solved by simulating systems containing typically 1000–4000 molecules. Unusual features: Auxiliary feature tools are available for creating input files, analyzing simulation results and visualizing molecular trajectories. Additional comments: Sample makefiles for multiple operation platforms are provided. Documentation is provided with the installation package and is available at http://www.ms-2.de. Running time: The running time of ms2 depends on the specified problem, the system size and the number of processes used in the simulation. E.g. running four processes on a “Nehalem” processor, simulations calculating vapor–liquid equilibrium data take between two and 12 hours, calculating transport properties between six and 24 hours. Note that the examples given above stand for the total running time as there is no post-processing of any kind involved in property calculations.},
+  doi       = {https://doi.org/10.1016/j.cpc.2014.07.012},
+  keywords  = {Molecular simulation, Molecular dynamics, Monte Carlo, Vapor–liquid equilibrium, Transport properties, Massieu potential derivatives},
+  timestamp = {2021-04-07},
+  url       = {http://www.sciencedirect.com/science/article/pii/S0010465514002550},
+}
+
+@Article{Rutkai2017,
+  author    = {Gábor Rutkai and Andreas Köster and Gabriela Guevara-Carrion and Tatjana Janzen and Michael Schappals and Colin W. Glass and Martin Bernreuther and Amer Wafai and Simon Stephan and Maximilian Kohns and Steffen Reiser and Stephan Deublein and Martin Horsch and Hans Hasse and Jadran Vrabec},
+  title     = {ms2: A molecular simulation tool for thermodynamic properties, release 3.0},
+  journal   = {Computer Physics Communications},
+  year      = {2017},
+  volume    = {221},
+  pages     = {343 - 351},
+  issn      = {0010-4655},
+  abstract  = {A new version release (3.0) of the molecular simulation tool ms 2 (Deublein et al., 2011; Glass et al. 2014) is presented. Version 3.0 of ms 2 features two additional ensembles, i.e. microcanonical (NVE) and isobaric–isoenthalpic (NpH), various Helmholtz energy derivatives in the NVE ensemble, thermodynamic integration as a method for calculating the chemical potential, the osmotic pressure for calculating the activity of solvents, the six Maxwell–Stefan diffusion coefficients of quaternary mixtures, statistics for sampling hydrogen bonds, smooth-particle mesh Ewald summation as well as the ability to carry out molecular dynamics runs for an arbitrary number of state points in a single program execution.
+New version program summary
+Program Title: ms2 Program Files doi: http://dx.doi.org/10.17632/9rcrykvkyh.1 Licensing provisions: CC by NC 3.0 Programming language: Fortran95 Supplementary material: A detailed description of the parameter setup for thermodynamic integration and hydrogen bonding is given in the supplementary material. Furthermore, all molecular force field models developed by our group are provided Journal reference of previous versions: Deublein et al., Comput. Phys. Commun. 182 (2011) 2350 and Glass et al., Comput. Phys. Commun. 185 (2014) 3302 Does the new version supersede the previous version?: Yes Reasons for the new version: Introduction of new features as well as enhancement of computational efficiency Summary of revisions: Two new ensembles (NVE and NpH), new properties (Helmholtz energy derivatives, chemical potential via thermodynamic integration, activity coefficients via osmotic pressure, Maxwell–Stefan diffusion coefficients of quaternary mixtures), new functionalities (detection and statistics of hydrogen bonding, smooth-particle mesh Ewald summation, ability to carry out molecular dynamics runs for an arbitrary number of state points in a single program execution). Nature of problem: Calculation of application oriented thermodynamic properties: vapor–liquid equilibria of pure fluids and multi-component mixtures, thermal, caloric and entropic data as well as transport properties and data on microscopic structure Solution method: Molecular dynamics, Monte Carlo, various ensembles, Grand Equilibrium method, Green–Kubo formalism, Lustig formalism, OPAS method, smooth-particle mesh Ewald summation Restrictions: Typical problems addressed by ms2 are solved by simulating systems containing 1000 to 5000 molecules that are modeled as rigid bodies. Additional comments: Documentation is available at http://www.ms-2.de},
+  doi       = {https://doi.org/10.1016/j.cpc.2017.07.025},
+  keywords  = {Molecular simulation, Molecular dynamics, Monte Carlo},
+  owner     = {sascha},
+  timestamp = {2021-04-07},
+  url       = {http://www.sciencedirect.com/science/article/pii/S0010465517302527},
+}
+
+@PhdThesis{Elts2011,
+  author    = {Elts, Ekaterina},
+  title     = {Erweiterung der Molekulardynamik um innere Freiheitsgrade: Modellierung und verteilte Simulationen auf dem Grid},
+  school    = {Technische Universität München},
+  year      = {2011},
+  type      = {Dissertation},
+  address   = {München},
+  keywords  = {Molekulardynamik, Verfahrenstechnik, Grid, Workflow, Parameterstudien},
+  timestamp = {2022-03-30},
+  url       = {https://mediatum.ub.tum.de/node?id=997473},
+}
+
+@Article{Schappals2017a,
+  author    = {Schappals, Michael and Mecklenfeld, Andreas and Kröger, Leif and Botan, Vitalie and Köster, Andreas and Stephan, Simon and García, Edder J. and Rutkai, Gabor and Raabe, Gabriele and Klein, Peter and Leonhard, Kai and Glass, Colin W. and Lenhard, Johannes and Vrabec, Jadran and Hasse, Hans},
+  title     = {Supporting information to Round Robin Study: Molecular Simulation of Thermodynamic Properties from Models with Internal Degrees of Freedom},
+  journal   = {Journal of Chemical Theory and Computation},
+  year      = {2017},
+  volume    = {13},
+  number    = {9},
+  pages     = {4270-4280},
+  note      = {PMID: 28738147},
+  doi       = {10.1021/acs.jctc.7b00489},
+  eprint    = {https://doi.org/10.1021/acs.jctc.7b00489},
+  timestamp = {2022-03-30},
+  url       = {https://doi.org/10.1021/acs.jctc.7b00489},
+}
+
+@Article{Ryckaert1977,
+  author    = {Jean-Paul Ryckaert and Giovanni Ciccotti and Herman J.C Berendsen},
+  title     = {Numerical integration of the cartesian equations of motion of a system with constraints: molecular dynamics of n-alkanes},
+  journal   = {Journal of Computational Physics},
+  year      = {1977},
+  volume    = {23},
+  number    = {3},
+  pages     = {327-341},
+  issn      = {0021-9991},
+  abstract  = {A numerical algorithm integrating the 3N Cartesian equations of motion of a system of N points subject to holonomic constraints is formulated. The relations of constraint remain perfectly fulfilled at each step of the trajectory despite the approximate character of numerical integration. The method is applied to a molecular dynamics simulation of a liquid of 64 n-butane molecules and compared to a simulation using generalized coordinates. The method should be useful for molecular dynamics calculations on large molecules with internal degrees of freedom.},
+  doi       = {https://doi.org/10.1016/0021-9991(77)90098-5},
+  timestamp = {2022-03-30},
+  url       = {https://www.sciencedirect.com/science/article/pii/0021999177900985},
+}
+
+@Article{Forester1998,
+  author    = {Timothy R. Forester and William Smith},
+  title     = {SHAKE, rattle, and roll: Efficient constraint algorithms for linked rigid bodies},
+  journal   = {Journal of Computational Chemistry},
+  year      = {1998},
+  volume    = {19},
+  pages     = {102-111},
+  timestamp = {2022-03-30},
+}
+
+@Comment{jabref-meta: databaseType:bibtex;}

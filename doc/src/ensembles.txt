@@ -1,0 +1,19 @@
+
+/*!
+
+\page page_ensembles Ensemble types
+
+
+\section sec_NVTensemble Canonical ensemble (NVT)
+
+\section sec_NVEensemble Micro-canonical ensemble (NVE)
+
+\section sec_NPTensemlbe Isobaric-isothermal ensemble (NpT)
+
+\section sec_GEensemble grand equilibrium method
+
+
+
+\section sec_NPHensemble Isoenthalpic–isobaric ensemble (NpH)
+
+*/

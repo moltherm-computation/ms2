@@ -1,0 +1,357 @@
+
+/*!
+
+\page page_idf Inner degrees of freedom (flexible molecules)
+
+
+\section sec_idf_bond Bonds
+
+Potential depends on bond length \f$ l =  \left| \vec r_i - \vec r_j \right| =  \left| \vec r_{ij} \right| \f$
+according to eq. 2.22 in Elts (2011) \cite Elts2011 :
+
+\f[ u_{bind}\left( l \right) = K_l \left(l - l_{eq}\right)^2\f]
+
+Get force by negative spatial derivation, e.g. x-component of i-th site:
+
+\f[ f_{bind, i} = -\frac{\partial u_{bind}\left( l \right)}{\partial x_i}\f]
+
+With \f$ l = \sqrt{(x_i-x_j)^2 + (y_i-y_j)^2 + (z_i-z_j)^2 }\f$:
+
+\f{eqnarray} f_{bind, i} &=& -\frac{\partial \left[K_l \left(l - l_{eq}\right)^2\right]}{\partial x_i} \\
+						  &=& -2K_l\left(l - l_{eq}\right)\frac{\partial\left(l - l_{eq}\right)}{\partial x_i}\\
+						  &=& -2K_l\left(l - l_{eq}\right)\frac{1}{2l}\frac{ \partial \left[(x_i-x_j)^2 + (y_i-y_j)^2 + (z_i-z_j)^2\right]}{\partial x_i}\\
+						  &=& -2K_l\left(l - l_{eq}\right)\frac{1}{2l}2\left(x_i-x_j\right)\\
+						  &=& -\frac{2K_l\left(l - l_{eq}\right)}{l}\left(x_i-x_j\right)\\
+\f}
+
+Analogous procedure for y- and z-component leads to:
+\f[ \vec f_{bind, i} = \frac{-2K_l\left(l - l_{eq}\right)}{l}\vec r_{ij}\f]
+
+Derivation after e.g. \f$x_j\f$ leads to opposite sign for j-th particle.
+
+\subsection sec_shake Shake
+
+According to Schappals et al. (2017) \cite Schappals2017a implemented following
+Ryckaert et al. (1977) \cite Ryckaert1977 .
+
+According to Elts (2011) \cite Elts2011 "QShake" is implemented following Forester and Smith (1998) \cite Forester1998 .
+
+\section sec_idf_angle Angles
+
+Potential acording to eq. 2.26 in Elts (2011) \cite Elts2011 :
+
+\f[ u_{wink}\left(\alpha\right) = K_{alpha}\left(\alpha - \alpha_{eq}\right)^2 \f]
+
+\image latex angle.pdf width=0.11\textwidth
+\image html angle.png "Nomenclature of angle potential" width=70
+
+Get force by negative spatial derivation:
+
+\f[ f_{wink,~\xi,~\eta} = -\frac{\partial u_{wink}\left(\alpha\right)}{\partial \xi_{\eta}} \quad with \quad \xi_{\eta} =x_\eta,y_\eta,z_\eta\quad with \quad \eta=i,j,k \f]
+
+\f{eqnarray} f_{wink,~\xi,~\eta} &=& -\frac{\partial \left(K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]^2\right)}{\partial \xi_{\eta}} \\
+&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{\partial \left[\alpha\left(\xi_{\eta}\right)\right]}{\partial \xi_{\eta}}
+\f}
+
+Since \f$\alpha = \cos^{-1} \left( \frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)\f$
+ and \f$\partial \cos\left(x\right)/\partial x = 1/\left(1-x^2\right)\f$:
+
+
+\f{eqnarray} \frac{\partial \left[\alpha\left(\xi_{\eta}\right)\right]}{\partial \xi_{\eta}}
+	&=&\frac{1}{1-\left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)^2}\frac{\partial \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)}{\partial \xi_{\eta}}\\
+	&=& \frac{1}{1-\cos^2\left(\alpha\right)}\frac{\partial \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)}{\partial \xi_{\eta}}\\
+	&=& \frac{1}{\sin^2\left(\alpha\right)}\frac{\partial \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)}{\partial \xi_{\eta}}\\
+\f}
+
+Therefore, the force can be written as:
+
+\f[ f_{wink,~\xi,~\eta} = -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}\frac{\partial \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)}{\partial \xi_{\eta}} \f]
+
+
+\f[\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|}
+= \frac{\left(x_i-x_j\right)\left(x_k-x_j\right)+\left(y_i-y_j\right)\left(y_k-y_j\right)+\left(z_i-z_j\right)\left(z_k-z_j\right)}
+  {\sqrt{\left(x_i-x_j\right)^2+\left(y_i-y_j\right)^2+\left(z_i-z_j\right)^2}\sqrt{\left(x_k-x_j\right)^2+\left(y_k-y_j\right)^2+\left(z_k-z_j\right)^2}}
+\f]
+
+
+<table>
+<tr><td>
+	<td>\f$\vec r_{ij} \cdot \vec r_{kj}\f$
+	<td>\f$\frac{1}{\left|\vec r_{ij}\right|}\f$
+	<td>\f$\frac{1}{\left|\vec r_{kj}\right|}\f$
+<tr><td>\f$\frac{\partial}{\partial \xi_i}\f$
+	<td>
+		\f{eqnarray*}
+			&&\frac{\partial \left[\sum\limits_{\xi=x,y,z}\left(\xi_i-\xi_j\right)\left(\xi_k-\xi_j\right)\right]}{\partial \xi_i}\\
+			&&=\xi_k-\xi_j
+		\f}
+	<td>
+		\f{eqnarray*}
+			&&\frac{\partial \frac{1}{\sqrt{\sum\limits_{\xi=x,y,z}\left(\xi_i-\xi_j\right)^2}}}{\partial \xi_i}\\
+			&&=-\frac{1}{2\left|\vec r_{ij}\right|\left|\vec r_{ij}\right|^2} \frac{\partial\sum\limits_{\xi=x,y,z}\left(\xi_i-\xi_j\right)^2}{\partial \xi_i}\\
+			&&=-\frac{2\left(\xi_i-\xi_j\right)}{2\left|\vec r_{ij}\right|\left|\vec r_{ij}\right|^2}
+			  =-\frac{\left(\xi_i-\xi_j\right)}{\left|\vec r_{ij}\right|\left|\vec r_{ij}\right|^2}
+		\f}
+	<td>
+		0
+<tr><td>\f$\frac{\partial }{\partial \xi_j}\f$
+	<td>
+		\f{eqnarray*}
+			&&\frac{\partial \left[\sum\limits_{\xi=x,y,z}\left(\xi_i-\xi_j\right)\left(\xi_k-\xi_j\right)\right]}{\partial \xi_j}\\
+			&&=-\left(\xi_i-\xi_j\right)-\left(\xi_k-\xi_j\right)
+		\f}
+	<td>
+		\f{eqnarray*}
+			&&\frac{\partial \frac{1}{\sqrt{\sum\limits_{\xi=x,y,z}\left(\xi_i-\xi_j\right)^2}}}{\partial \xi_j}\\
+			&&=-\frac{1}{2\left|\vec r_{ij}\right|\left|\vec r_{ij}\right|^2} \frac{\partial\sum\limits_{\xi=x,y,z}\left(\xi_i-\xi_j\right)^2}{\partial \xi_i}\\
+			&&=\frac{2\left(\xi_i-\xi_j\right)}{2\left|\vec r_{ij}\right|\left|\vec r_{ij}\right|^2}
+			  =\frac{\left(\xi_i-\xi_j\right)}{\left|\vec r_{ij}\right|\left|\vec r_{ij}\right|^2}
+		\f}
+	<td>
+		\f{eqnarray*}
+			&&\frac{\partial \frac{1}{\sqrt{\sum\limits_{\xi=x,y,z}\left(\xi_k-\xi_j\right)^2}}}{\partial \xi_j}\\
+			&&=-\frac{1}{2\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2} \frac{\partial\sum\limits_{\xi=x,y,z}\left(\xi_k-\xi_j\right)^2}{\partial \xi_j}\\
+			&&=\frac{2\left(\xi_k-\xi_j\right)}{2\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2}
+			  =\frac{\left(\xi_k-\xi_j\right)}{\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2}
+		\f}
+<tr><td>\f$\frac{\partial}{\partial \xi_k}\f$
+	<td>
+		\f{eqnarray*}
+			&&\frac{\partial \left[\sum\limits_{\xi=x,y,z}\left(\xi_i-\xi_j\right)\left(\xi_k-\xi_j\right)\right]}{\partial \xi_k}\\
+			&&=\xi_i-\xi_j
+		\f}
+	<td>
+		0
+	<td>
+		\f{eqnarray*}
+			&&\frac{\partial \frac{1}{\sqrt{\sum\limits_{\xi=x,y,z}\left(\xi_k-\xi_j\right)^2}}}{\partial \xi_k}\\
+			&&=-\frac{1}{2\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2} \frac{\partial\sum\limits_{\xi=x,y,z}\left(\xi_k-\xi_j\right)^2}{\partial \xi_k}\\
+			&&=-\frac{2\left(\xi_k-\xi_j\right)}{2\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2}
+			  =-\frac{\left(\xi_k-\xi_j\right)}{\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2}
+		\f}
+</table>
+
+Without derivation and using \f$\vec r\f$-notation:
+
+<table>
+<tr><td>
+	<td>\f$\vec r_{ij} \cdot \vec r_{kj}\f$
+	<td>\f$\frac{1}{\left|\vec r_{ij}\right|}\f$
+	<td>\f$\frac{1}{\left|\vec r_{kj}\right|}\f$
+<tr><td>\f$\frac{\partial}{\partial \xi_i}\f$
+	<td>
+		\f$r_{kj,~\xi}\f$
+	<td>
+		\f$ -\frac{r_{ij,~\xi}}{\left|\vec r_{ij}\right|\left|\vec r_{ij}\right|^2} \f$
+	<td>
+		0
+<tr><td>\f$\frac{\partial }{\partial \xi_j}\f$
+	<td>
+		\f$ -r_{ij,~\xi} - r_{kj,~\xi} \f$
+	<td>
+		\f$ \frac{r_{ij,~\xi}}{\left|\vec r_{ij}\right|\left|\vec r_{ij}\right|^2} \f$
+	<td>
+		\f$\frac{r_{kj,~\xi}}{\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2} \f$
+<tr><td>\f$\frac{\partial}{\partial \xi_k}\f$
+	<td>
+		\f$ r_{ij,~\xi}\f$
+	<td>
+		0
+	<td>
+		\f$ -\frac{r_{kj,~\xi}}{\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2} \f$
+</table>
+
+The general force vectors can be written as:
+
+\f{eqnarray}
+\vec f_{wink,~\eta}
+		&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+			\partial \left(
+				\frac{\vec r_{ij} \cdot \vec r_{kj}}
+					{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|}
+			\right)
+			\left[ \begin{array}{c}
+				\frac{1}{\partial x_{\eta}} \\
+				\frac{1}{\partial y_{\eta}} \\
+				\frac{1}{\partial z_{\eta}}
+			\end{array} \right] \\
+		&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+			\left[\left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|} \partial \frac{1}{\left|\vec r_{kj}\right|} \right)
+			      + \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{kj}\right|} \partial \frac{1}{\left|\vec r_{ij}\right|} \right)
+			      + \frac{1}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \partial \left(\vec r_{ij} \cdot \vec r_{kj}\right)\right]
+			\left[ \begin{array}{c}
+				\frac{1}{\partial x_{\eta}} \\
+				\frac{1}{\partial y_{\eta}} \\
+				\frac{1}{\partial z_{\eta}}
+			\end{array} \right]\\
+		&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+			\left[\left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|}
+					\left[ \begin{array}{c}
+						\frac{\partial~1/\left|\vec r_{kj}\right|}{\partial x_{\eta}} \\
+						\frac{\partial~1/\left|\vec r_{kj}\right|}{\partial y_{\eta}} \\
+						\frac{\partial~1/\left|\vec r_{kj}\right|}{\partial z_{\eta}}
+					\end{array} \right]\right)
+				+ \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{kj}\right|}
+					\left[ \begin{array}{c}
+						\frac{\partial~1/\left|\vec r_{ij}\right|}{\partial x_{\eta}} \\
+						\frac{\partial~1/\left|\vec r_{ij}\right|}{\partial y_{\eta}} \\
+						\frac{\partial~1/\left|\vec r_{ij}\right|}{\partial z_{\eta}}
+					\end{array} \right]\right)
+				+ \frac{1}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|}
+					\left[ \begin{array}{c}
+						\frac{\partial \left(\vec r_{ij} \cdot \vec r_{kj}\right)}{\partial x_{\eta}} \\
+						\frac{\partial \left(\vec r_{ij} \cdot \vec r_{kj}\right)}{\partial y_{\eta}} \\
+						\frac{\partial \left(\vec r_{ij} \cdot \vec r_{kj}\right)}{\partial z_{\eta}}
+					\end{array} \right]
+			\right]
+\f}
+
+With the table, the force vectors can be written as:
+
+\f{eqnarray}
+\vec f_{wink,~\eta=i} 
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+	\left[
+			\left[ \begin{array}{c}
+				0\\0\\0
+			\end{array} \right]
+		+ \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{kj}\right|}
+			\left[ \begin{array}{c}
+				-\frac{r_{ij,~x}}{\left|\vec r_{ij}\right|\left|\vec r_{ij}\right|^2} \\
+				-\frac{r_{ij,~y}}{\left|\vec r_{ij}\right|\left|\vec r_{ij}\right|^2} \\
+				-\frac{r_{ij,~z}}{\left|\vec r_{ij}\right|\left|\vec r_{ij}\right|^2}
+			\end{array} \right]\right)
+		+ \frac{1}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|}
+			\left[ \begin{array}{c}
+				r_{kj,~x} \\
+				r_{kj,~y} \\
+				r_{kj,~z}
+			\end{array} \right]
+	\right]\\
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+	\left[
+		-\left(\frac{\cos \alpha}{\left|\vec r_{ij}\right|^2} 
+			\left[ \begin{array}{c}
+				r_{ij,~x}\\
+				r_{ij,~y}\\
+				r_{ij,~z}
+			\end{array} \right]\right)
+		+ \frac{1}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|}
+			\left[ \begin{array}{c}
+				r_{kj,~x} \\
+				r_{kj,~y} \\
+				r_{kj,~z}
+			\end{array} \right]
+	\right]\\
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+	\left[
+		-\left(\frac{\cos \alpha}{\left|\vec r_{ij}\right|^2} \vec r_{ij}\right)
+		+ \frac{1}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \vec r_{kj}
+	\right]
+\f}
+
+\f{eqnarray}
+\vec f_{wink,~\eta=k} 
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+		\left[\left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|}
+				\left[ \begin{array}{c}
+					-\frac{r_{kj,~x}}{\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2} \\
+					-\frac{r_{kj,~y}}{\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2} \\
+					-\frac{r_{kj,~z}}{\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2}
+				\end{array} \right]\right)
+			+
+				\left[ \begin{array}{c}
+					0\\0\\0
+				\end{array} \right]
+			+ \frac{1}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|}
+				\left[ \begin{array}{c}
+					r_{ij,~x}\\
+					r_{ij,~y}\\
+					r_{ij,~z}
+				\end{array} \right]
+		\right]\\
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+		\left[\left(-\frac{\cos \alpha}{\left|\vec r_{kj}\right|^2}
+				\left[ \begin{array}{c}
+					r_{kj,~x}\\
+					r_{kj,~y}\\
+					r_{kj,~z}
+				\end{array} \right]\right)
+			+ \frac{1}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|}
+				\left[ \begin{array}{c}
+					r_{ij,~x}\\
+					r_{ij,~y}\\
+					r_{ij,~z}
+				\end{array} \right]
+		\right]\\
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+	\left[
+		- \frac{\cos \alpha}{\left|\vec r_{kj}\right|^2}\vec r_{kj}
+		+ \frac{1}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \vec r_{ij}
+	\right]
+\f}
+
+
+\f{eqnarray}
+\vec f_{wink,~\eta=j} 
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+		\left[\left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|}
+				\left[ \begin{array}{c}
+					\frac{r_{kj,~x}}{\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2}\\
+					\frac{r_{kj,~y}}{\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2}\\
+					\frac{r_{kj,~z}}{\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2}
+				\end{array} \right]\right)
+			+ \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{kj}\right|}
+				\left[ \begin{array}{c}
+					\frac{r_{ij,~x}}{\left|\vec r_{ij}\right|\left|\vec r_{ij}\right|^2}\\
+					\frac{r_{ij,~y}}{\left|\vec r_{ij}\right|\left|\vec r_{ij}\right|^2}\\
+					\frac{r_{ij,~z}}{\left|\vec r_{ij}\right|\left|\vec r_{ij}\right|^2}
+				\end{array} \right]\right)
+			+ \frac{1}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|}
+				\left[ \begin{array}{c}
+					-r_{ij,~x} - r_{kj,~x}\\
+					-r_{ij,~y} - r_{kj,~y}\\
+					-r_{ij,~z} - r_{kj,~z}
+				\end{array} \right]
+		\right]\\
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+		\left[\left(\frac{\cos \alpha}{\left|\vec r_{kj}\right|^2}
+				\left[ \begin{array}{c}
+					r_{kj,~x}\\
+					r_{kj,~y}\\
+					r_{kj,~z}
+				\end{array} \right]\right)
+			+ \left(\frac{\cos \alpha}{\left|\vec r_{ij}\right|^2}
+				\left[ \begin{array}{c}
+					r_{ij,~x}\\
+					r_{ij,~y}\\
+					r_{ij,~z}
+				\end{array} \right]\right)
+			+ \frac{1}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|}
+				\left[ \begin{array}{c}
+					-r_{ij,~x} - r_{kj,~x}\\
+					-r_{ij,~y} - r_{kj,~y}\\
+					-r_{ij,~z} - r_{kj,~z}
+				\end{array} \right]
+		\right]\\
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+		\left[\left(\frac{\cos \alpha}{\left|\vec r_{kj}\right|^2}\vec r_{kj}\right)
+			+ \left(\frac{\cos \alpha}{\left|\vec r_{ij}\right|^2} \vec r_{ij} \right)
+			- \frac{1}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \left( \vec r_{ij} + \vec r_{kj} \right)
+		\right]
+\f}
+
+
+
+\section sec_idf_dihedral Dihedral
+
+As implemented by Elts (2011) \cite Elts2011 , dihedrals combine torsion and improper torsion.
+ 
+Torsion eq. 2.27 in Elts (2011) \cite Elts2011 :
+
+\f[ u_{tors}\left(\psi\right) = \sum\limits_{n=0}^{M} V_n \left[ 1 + \cos\left(n\psi -\gamma\right)\right] \f]
+
+Improper torsion (nmax=0) eq. 2.29 in Elts (2011) \cite Elts2011 :
+\f[ u_{un}\left(\phi\right) = V_{\phi} \left( \phi -\phi_{eq}\right)^2 \f]
+
+*/
