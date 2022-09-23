@@ -1100,27 +1100,24 @@ contains
     implicit none
 
     class(TMolecule), intent(in out) :: self
-    integer, allocatable   :: AllSites(:, :)
-    integer, allocatable   :: SameCoord(:,:)
+    integer                :: AllSites(self%NSite, self%NSite)
+    integer                :: SameCoord(self%NMIEnm, 3)
 
     integer                :: i, j, k, iUnit
     integer                :: index, index1, index2
     integer                :: iDihedralSite, jDihedralSite
     logical                :: LJfound(2)
     logical                :: charge(2), dipole(2), quadrupole(2)
-    integer                :: npossPartners
     integer                :: stat
 
     integer                :: cc, cd, cq, dc, dd, dq, qc, qd, qq, lj
 
-    integer, allocatable   :: IntLJ15(:,:)
-    integer, allocatable   :: IntCC15(:, :), IntCD15(:,:), IntCQ15(:,:)
-    integer, allocatable   :: IntDC15(:, :), IntDD15(:,:), IntDQ15(:,:)
-    integer, allocatable   :: IntQC15(:, :), IntQD15(:,:), IntQQ15(:,:)
+    ! Michael Sch.: instead of "self%NSite-3" "..-4" should be sufficient...testing needed!
+    integer, dimension((self%NSite - 4) * (self%NSite - 3) / 2, 2) :: IntLJ15, IntCC15, IntCD15, &
+                                    IntCQ15, IntDC15, IntDD15, IntDQ15, IntQC15, IntQD15, IntQQ15
 
 
-    allocate (AllSites(self%NSite, self%NSite))
-    call AllocationError( stat, 'AllSites', self%NSite*self%NSite )
+    AllSites = 1
 
     call markIdenticalIndicesWithZero(self, AllSites)
 
@@ -1129,65 +1126,16 @@ contains
     end do
 
     do iUnit = 1, self%nUnits
-        if (self%Unit(iUnit)%NSites>1) then
-            do j=1, self%Unit(iUnit)%NSites
-                AllSites(self%Unit(iUnit)%SiteIds(j),self%Unit(iUnit)%SiteIds(:))=0
+        if (self%Unit(iUnit)%NSites > 1) then
+            do j = 1, self%Unit(iUnit)%NSites
+                AllSites(self%Unit(iUnit)%SiteIds(j), self%Unit(iUnit)%SiteIds(:)) = 0
             end do
         end if
     end do
 
-    allocate (SameCoord(self%NMIEnm, 3))
-    call AllocationError(stat, 'SameCoord', self%NMIEnm * 3)
-
     SameCoord = 0
 
     call markSameCoordinates(self, AllSites, SameCoord)
-
-    ! Michael Sch.: instead of "self%NSite-3" "..-4" should be sufficient...testing needed!
-    npossPartners = (self%NSite-4)*(self%NSite-3)/2
-
-    allocate (IntLJ15(npossPartners, 2), STAT = stat)
-    call AllocationError( stat, 'Int15', npossPartners*2 )
-
-    if (self%NCharge>0) then
-
-        allocate (IntCC15(npossPartners, 2), STAT = stat)
-        call AllocationError( stat, 'IntCC15', npossPartners*2 )
-
-        if (self%NDipole>0) then
-            allocate (IntCD15(npossPartners, 2), STAT = stat)
-            call AllocationError( stat, 'IntCD15', npossPartners*2 )
-            allocate (IntDC15(npossPartners, 2), STAT = stat)
-            call AllocationError( stat, 'IntDC15', npossPartners*2 )
-        end if
-
-        if ( self%NQuadrupole>0) then
-            allocate (IntCQ15(npossPartners, 2), STAT = stat)
-            call AllocationError( stat, 'IntCQ15', npossPartners*2 )
-            allocate (IntQC15(npossPartners, 2), STAT = stat)
-            call AllocationError( stat, 'IntQC15', npossPartners*2 )
-        end if
-
-    end if
-
-    if (self%NDipole>0) then
-
-        allocate (IntDD15(npossPartners, 2), STAT = stat)
-        call AllocationError( stat, 'IntDD15', npossPartners*2 )
-
-        if ( self%NQuadrupole >0) then
-            allocate (IntQD15(npossPartners, 2), STAT = stat)
-            call AllocationError( stat, 'IntQD15', npossPartners*2 )
-            allocate (IntDQ15(npossPartners, 2), STAT = stat)
-            call AllocationError( stat, 'IntDQ15', npossPartners*2 )
-        end if
-
-    end if
-
-    if ( self%NQuadrupole>0) then
-        allocate (IntQQ15(npossPartners, 2), STAT = stat)
-        call AllocationError( stat, 'IntQQ15', npossPartners*2 )
-    end if
 
     lj=1
     cc=1
@@ -1209,9 +1157,9 @@ contains
                 call binar_search(self%LJSiteIds(:), i, LJfound(1), index)
                 call binar_search(self%LJSiteIds(:), j, LJfound(2), index)
                 if (LJfound(1) .and. LJfound(2)) then
-                    IntLJ15(lj,1)=i
-                    IntLJ15(lj,2)=j
-                    lj=lj+1
+
+                    call addInteractionToList(IntLJ15, (/i, j/), lj)
+
                 else if (.not. LJfound(1) .and. .not. LJfound(2)) then
                     call binar_search(self%ChargeSiteIds(:), i, charge(1), index)
                     if (.not. charge(1)) then
@@ -1229,45 +1177,45 @@ contains
                     end if
                     if (charge(1)) then
                         if (charge(2)) then
-                            IntCC15(cc,1)= i
-                            IntCC15(cc,2)= j
-                            cc=cc+1
+
+                            call addInteractionToList(IntCC15, (/i, j/), cc)
+
                         else if (dipole(2)) then
-                            IntCD15(cd,1)= i
-                            IntCD15(cd,2)= j
-                            cd=cd+1
+
+                            call addInteractionToList(IntCD15, (/i, j/), cd)
+
                         else !quadrupole(2)
-                            IntCQ15(cq,1)=i
-                            IntCQ15(cq,2)=j
-                            cq=cq+1
+
+                            call addInteractionToList(IntCQ15, (/i, j/), cq)
+
                         end if
                     else if (dipole(1)) then
                         if (charge(2)) then
-                            IntDC15(dc,1)= i
-                            IntDC15(dc,2)= j
-                            dc=dc+1
+
+                            call addInteractionToList(IntDC15, (/i, j/), dc)
+
                         else if (dipole(2)) then
-                            IntDD15(dd,1)= i
-                            IntDD15(dd,2)= j
-                            dd=dd+1
+
+                            call addInteractionToList(IntDD15, (/i, j/), dd)
+
                         else !quadrupole(2)
-                            IntDQ15(dq,1)=i
-                            IntDQ15(dq,2)=j
-                            dq=dq+1
+
+                            call addInteractionToList(IntDQ15, (/i, j/), dq)
+
                         end if
                     else ! quadrupole(1)
                         if (charge(2))then
-                            IntQC15(qc,1)= i
-                            IntQC15(qc,2)= j
-                            qc=qc+1
-                        else if (dipole(2))then
-                            IntQD15(qd,1)= i
-                            IntQD15(qd,2)= j
-                            qd=qd+1
+
+                            call addInteractionToList(IntQC15, (/i, j/), qc)
+
+                        else if (dipole(2)) then
+
+                            call addInteractionToList(IntQD15, (/i, j/), qd)
+
                         else ! quadrupole(2)
-                            IntQQ15(qq,1)=i
-                            IntQQ15(qq,2)=j
-                            qq=qq+1
+
+                            call addInteractionToList(IntQQ15, (/i, j/), qq)
+
                         end if
                     end if
                 else
@@ -1338,9 +1286,6 @@ contains
     type(TMolecule) :: this
     integer         :: i, AllSites(:, :)
 
-    ! Initialisierung
-
-    AllSites = 1 ! complete matrix filled with 1's
 
     do i = 1, this%NSite
         AllSites(i, i) = 0 ! main diagonal filed with 0's
@@ -1488,18 +1433,18 @@ contains
                 if (.not. ok1) then
 
                     CoeffEl14(interactionCounter)=this%IdfDihedral(i)%ScaleEl14
-                    call addInteractionToList(Int14, CoeffLJ14, this%IdfDihedral(i)%ScaleLJ14, (/Site(1), Site(4)/), interactionCounter)
+                    call addInteractionToList(Int14, (/Site(1), Site(4)/), interactionCounter, CoeffLJ14, this%IdfDihedral(i)%ScaleLJ14)
 
                 else if (Int14(index, 2) .ne. Site(4)) then
 
                     CoeffEl14(interactionCounter)=this%IdfDihedral(i)%ScaleEl14
-                    call addInteractionToList(Int14, CoeffLJ14, this%IdfDihedral(i)%ScaleLJ14, (/Site(1), Site(4)/), interactionCounter)
+                    call addInteractionToList(Int14, (/Site(1), Site(4)/), interactionCounter, CoeffLJ14, this%IdfDihedral(i)%ScaleLJ14)
 
                 end if
             else
 
                     CoeffEl14(interactionCounter)=this%IdfDihedral(i)%ScaleEl14
-                    call addInteractionToList(Int14, CoeffLJ14, this%IdfDihedral(i)%ScaleLJ14, (/Site(1), Site(4)/), interactionCounter)
+                    call addInteractionToList(Int14, (/Site(1), Site(4)/), interactionCounter, CoeffLJ14, this%IdfDihedral(i)%ScaleLJ14)
 
             end if
         end if
@@ -1522,7 +1467,7 @@ contains
 
         if (LJfound(1) .and. LJfound(2)) then
 
-            call addInteractionToList(IntLJ14, ScaleLJ14, real(CoeffLJ14(i), RK) , Int14(i, 1:2), lj)
+            call addInteractionToList(IntLJ14, Int14(i, 1:2), lj, ScaleLJ14, real(CoeffLJ14(i), RK))
 
             ChargeID(1) = SameCoord(this%LJSiteIds(index1), 1)
             ChargeID(2) = SameCoord(this%LJSiteIds(index2), 1)
@@ -1534,16 +1479,16 @@ contains
             if (ChargeID(1) > 0) then
                 if (ChargeID(2) > 0) then
 
-                    call addInteractionToList(IntCC14, ScaleCC14, real(CoeffEl14(i), RK) , ChargeID(1:2), cc)
+                    call addInteractionToList(IntCC14, ChargeID(1:2), cc, ScaleCC14, real(CoeffEl14(i), RK))
 
                 else if (DipoleID(2) > 0) then
 
-                    call addInteractionToList(IntCD14, ScaleCD14, real(CoeffEl14(i), RK), (/ChargeID(1), DipoleID(2)/), cd)
+                    call addInteractionToList(IntCD14, (/ChargeID(1), DipoleID(2)/), cd, ScaleCD14, real(CoeffEl14(i), RK))
 
                 else
                     if (QuadrupoleID(2) > 0) then
 
-                        call addInteractionToList(IntCQ14, ScaleCQ14, real(CoeffEl14(i), RK), (/ChargeID(1), QuadrupoleID(2)/), cq)
+                        call addInteractionToList(IntCQ14, (/ChargeID(1), QuadrupoleID(2)/), cq, ScaleCQ14, real(CoeffEl14(i), RK))
 
                     end if
                 end if
@@ -1551,16 +1496,16 @@ contains
             if (DipoleID(1) > 0) then
                 if (ChargeID(2) > 0) then
 
-                    call addInteractionToList(IntDC14, ScaleDC14, real(CoeffEl14(i), RK), (/DipoleID(1), ChargeID(2)/), dc)
+                    call addInteractionToList(IntDC14, (/DipoleID(1), ChargeID(2)/), dc, ScaleDC14, real(CoeffEl14(i), RK))
 
                 else if (DipoleID(2) > 0) then
 
-                    call addInteractionToList(IntDD14, ScaleDD14, real(CoeffEl14(i), RK), DipoleID(1:2), dd)
+                    call addInteractionToList(IntDD14, DipoleID(1:2), dd, ScaleDD14, real(CoeffEl14(i), RK))
 
                 else
                     if (QuadrupoleID(2) > 0) then
 
-                        call addInteractionToList(IntDQ14, ScaleDQ14, real(CoeffEl14(i), RK), (/DipoleID(1), QuadrupoleID(2)/), dq)
+                        call addInteractionToList(IntDQ14, (/DipoleID(1), QuadrupoleID(2)/), dq, ScaleDQ14, real(CoeffEl14(i), RK))
 
                     end if
                 end if
@@ -1568,16 +1513,16 @@ contains
             if (QuadrupoleID(1) > 0) then
                 if ( ChargeID(2) > 0) then
 
-                    call addInteractionToList(IntQC14, ScaleQC14, real(CoeffEl14(i), RK), (/QuadrupoleID(1), ChargeID(2)/), qc)
+                    call addInteractionToList(IntQC14, (/QuadrupoleID(1), ChargeID(2)/), qc, ScaleQC14, real(CoeffEl14(i), RK))
 
                 else if ( DipoleID(2) > 0) then
 
-                    call addInteractionToList(IntQD14, ScaleQD14, real(CoeffEl14(i), RK), (/QuadrupoleID(1), DipoleID(2)/), qd)
+                    call addInteractionToList(IntQD14, (/QuadrupoleID(1), DipoleID(2)/), qd, ScaleQD14, real(CoeffEl14(i), RK))
 
                 else
                     if ( QuadrupoleID(2) > 0) then
 
-                        call addInteractionToList(IntQQ14, ScaleQQ14, real(CoeffEl14(i), RK), QuadrupoleID(1:2), qq)
+                        call addInteractionToList(IntQQ14, QuadrupoleID(1:2), qq, ScaleQQ14, real(CoeffEl14(i), RK))
 
                     end if
                 end if
@@ -1629,18 +1574,21 @@ contains
   end subroutine create14interactionList
 
 
-  subroutine addInteractionToList(interactionList, coeffList, coefficient, SiteIDs, counter)
+  subroutine addInteractionToList(interactionList, SiteIDs, counter, coeffList, coefficient)
 
     implicit none
 
     integer :: interactionList(:, :), SiteIDs(:), counter
-    real    :: coeffList(:)
-    real(RK):: coefficient
+    real, optional     :: coeffList(:)
+    real(RK), optional :: coefficient
 
     interactionList(counter, 1) = SiteIDs(1)
     interactionList(counter, 2) = SiteIDs(2)
 
-    coeffList(counter) = coefficient
+    if (present(coeffList) .and. present(coefficient)) then
+        coeffList(counter) = coefficient
+    end if
+
     counter = counter + 1
 
   end subroutine addInteractionToList
