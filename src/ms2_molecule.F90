@@ -1045,32 +1045,6 @@ contains
     end subroutine sort_quadrupolesitetypes
 
 
-    subroutine FindEdgeFrom( unit, bondedunit, E, n )
-
-      ! Declare arguments
-      integer, dimension(this%NBond, 3), intent( in) :: bondedunit
-      integer, intent( in )                           :: unit
-      integer, intent( inout )                        :: n
-      integer, dimension(this%NBond, 2),  intent( out ):: E
-
-      ! Declare local variables
-      integer                                 :: index
-
-      do index = 1, this%NBond
-         if ( unit == bondedunit(index, 1)) then
-            n = n + 1
-            E(n, 1) = index
-            E(n, 2) = bondedunit(index,2)
-         else if (unit == bondedunit(index, 2)) then
-            n = n + 1
-            E(n, 1) = index
-            E(n, 2) = bondedunit(index, 1)
-         end if
-      end do
-
-    end subroutine FindEdgeFrom
-
-
     subroutine constructUnitPerConstraint()
 
         integer :: siteCounter, sideID, iConstrainedSite
@@ -1287,12 +1261,10 @@ contains
     integer                :: AllSites(self%NSite, self%NSite)
     integer                :: SameCoord(self%NMIEnm, 3)
 
-    integer                :: i, j, k, iUnit
-    integer                :: index, index1, index2
-    integer                :: iDihedralSite, jDihedralSite
+    integer                :: i, j, iUnit
+    integer                :: index
     logical                :: LJfound(2)
     logical                :: charge(2), dipole(2), quadrupole(2)
-    integer                :: stat
 
     integer                :: cc, cd, cq, dc, dd, dq, qc, qd, qq, lj
 
@@ -1497,7 +1469,7 @@ contains
     implicit none
 
     type(TMolecule) :: this
-    integer         :: i, j, k, mieSiteID, otherSiteID
+    integer         :: i, j, mieSiteID, otherSiteID
     logical         :: same
     integer         :: AllSites(:, :), SameCoord(:,:)
 
@@ -1575,7 +1547,7 @@ contains
     type(TMolecule) :: this
     integer         :: SameCoord(:, :)
 
-    integer                :: i, interactionCounter, stat
+    integer                :: i, interactionCounter
     integer                :: Site(4)
     integer                :: index, index1, index2
     logical                :: LJfound(2), ok1
@@ -2117,7 +2089,6 @@ contains
     type(TUnit), pointer :: unit
     integer  :: i, iUnit
     real(RK) :: moi(3, 3), rotation(3, 3), Rot2(3, 3)
-    real(RK) :: qu1,qu2,qu3,qu4,quinv, T,S,SInv
     type(TSiteCharge), pointer     :: chargeSite
     type(TSiteDipole), pointer     :: dipolSite
     type(TSiteMIEnm), pointer      :: mieSite
