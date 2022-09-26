@@ -32,15 +32,20 @@ module ms2_site
   use ms2_global
 
 
+  type Site
+
+    integer           :: SiteId
+    integer           :: UnitNumber
+
+  end type Site
+
 
 !==============================================================!
 !  Type TSiteMIEnm                                             !
 !==============================================================!
 
-  type TSiteMIEnm
+  type, extends(Site) :: TSiteMIEnm
 
-    integer           :: SiteId
-    integer           :: UnitNumber
     real(RK),pointer  :: r(:)
     real(RK)          :: sig, eps
     real(RK)          :: mass
@@ -152,10 +157,8 @@ end type TSiteTT68
 !  Type TSiteCharge                                            !
 !==============================================================!
 
-  type TSiteCharge
+  type, extends(Site) :: TSiteCharge
 
-    integer           :: SiteId
-    integer           :: UnitNumber
     real(RK),pointer  :: r(:)
     real(RK)          :: e
     real(RK)          :: mass
@@ -210,10 +213,8 @@ end type TSiteTT68
 !  Type TSiteDipole                                            !
 !==============================================================!
 
-  type TSiteDipole
+  type, extends(Site) :: TSiteDipole
 
-    integer           :: SiteId
-    integer           :: UnitNumber
     real(RK),pointer  :: r(:), or(:)
     real(RK)          :: D
     real(RK)          :: mass
@@ -271,10 +272,8 @@ end type TSiteTT68
 !  Type TSiteQuadrupole                                        !
 !==============================================================!
 
-  type TSiteQuadrupole
+  type, extends(Site) :: TSiteQuadrupole
 
-    integer           :: SiteId
-    integer           :: UnitNumber
     real(RK),pointer  :: r(:), or(:)
     real(RK)          :: Q
     real(RK)          :: mass
