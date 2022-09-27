@@ -282,7 +282,7 @@ contains
       select case( stype )
       case( 'MIEnm', 'mienm', 'MIE', 'mie', 'Mie' ) !Case: Mie-Potential
       LJorMIE = 'MIE'
-        call FileReadParameter( this%NMIEnm, potmodFile%iounit, IdSite_NMIEnm, .false. )
+        call FileReadParameter( this%NMIEnm, potmodFile%iounit, IdSite_NSites, .false. )
         if( this%NMIEnm > 0 ) then
           allocate( this%SiteMIEnm(this%NMIEnm), STAT = stat )
           call AllocationError( stat, 'MIE sites', this%NMIEnm )
@@ -293,7 +293,7 @@ contains
 
       case( 'LJ126', 'lj126', 'LJ', 'lj', 'Lj' ) !Case: LJ126-Potential
       LJorMIE = 'LJ'
-        call FileReadParameter( this%NMIEnm, potmodFile%iounit, IdSite_NMIEnm, .false. )
+        call FileReadParameter( this%NMIEnm, potmodFile%iounit, IdSite_NSites, .false. )
         if( this%NMIEnm > 0 ) then
           allocate( this%SiteMIEnm(this%NMIEnm), STAT = stat )
           call AllocationError( stat, 'LJ sites', this%NMIEnm )
@@ -303,7 +303,7 @@ contains
         end if
 
       case( 'TT68', 'tt68', 'tt' )
-        call FileReadParameter( this%NTT68, potmodFile%iounit, IdSite_NTT68, .false. )
+        call FileReadParameter( this%NTT68, potmodFile%iounit, IdSite_NSites, .false. )
         if( this%NTT68 > 0 ) then
           allocate( this%SiteTT68(this%NTT68), STAT = stat )
           call AllocationError( stat, 'TT sites', this%NTT68 )
@@ -313,7 +313,7 @@ contains
         end if
 
       case( 'CHARGE', 'Charge', 'charge', 'E', 'e' )
-        call FileReadParameter( this%NCharge, potmodFile%iounit, IdSite_NCharge, .false. )
+        call FileReadParameter( this%NCharge, potmodFile%iounit, IdSite_NSites, .false. )
         if( this%NCharge > 0 ) then
           allocate( this%SiteCharge(this%NCharge), STAT = stat )
           call AllocationError( stat, 'point charge sites', this%NCharge )
@@ -324,7 +324,7 @@ contains
         end if
 
       case( 'DIPOLE', 'Dipole', 'dipole', 'D', 'd' )
-        call FileReadParameter( this%NDipole, potmodFile%iounit, IdSite_NDipole, .false. )
+        call FileReadParameter( this%NDipole, potmodFile%iounit, IdSite_NSites, .false. )
         if( this%NDipole > 0 ) then
           allocate( this%SiteDipole(this%NDipole), STAT = stat )
           call AllocationError( stat, 'dipolar sites', this%NDipole )
@@ -334,7 +334,7 @@ contains
         end if
 
       case( 'QUADRUPOLE', 'Quadrupole', 'quadrupole', 'Q', 'q' )
-        call FileReadParameter( this%NQuadrupole, potmodFile%iounit, IdSite_NQuadrupole, .false. )
+        call FileReadParameter( this%NQuadrupole, potmodFile%iounit, IdSite_NSites, .false. )
         if( this%NQuadrupole > 0 ) then
           allocate( this%SiteQuadrupole(this%NQuadrupole), STAT = stat )
           call AllocationError( stat, 'quadrupolar sites', this%NQuadrupole )
@@ -1940,7 +1940,7 @@ contains
       write( IOBuffer, '(1X, A)' ) LJorMIE !'MIEnm'
       call FileWriteParameter( normalFile%iounit, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NMIEnm
-      call FileWriteParameter( normalFile%iounit, IdSite_NMIEnm )
+      call FileWriteParameter( normalFile%iounit, IdSite_NSites )
       do i = 1, this%NMIEnm
         call FileWriteBlank(normalFile)
         call Save( this%SiteMIEnm(i) )
@@ -1953,7 +1953,7 @@ contains
       write( IOBuffer, '(1X, A)' ) 'TT68'
       call FileWriteParameter( normalFile%iounit, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NTT68
-      call FileWriteParameter( normalFile%iounit, IdSite_NTT68 )
+      call FileWriteParameter( normalFile%iounit, IdSite_NSites )
       do i = 1, this%NTT68
         call FileWriteBlank(normalFile)
         call Save( this%SiteTT68(i) )
@@ -1966,7 +1966,7 @@ contains
       write( IOBuffer, '(1X, A)' ) 'Charge'
       call FileWriteParameter( normalFile%iounit, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NCharge
-      call FileWriteParameter( normalFile%iounit, IdSite_NCharge )
+      call FileWriteParameter( normalFile%iounit, IdSite_NSites )
       do i = 1, this%NCharge
         call FileWriteBlank(normalFile)
         call Save( this%SiteCharge(i) )
@@ -1979,7 +1979,7 @@ contains
       write( IOBuffer, '(1X, A)' ) 'Dipole'
       call FileWriteParameter( normalFile%iounit, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NDipole
-      call FileWriteParameter( normalFile%iounit, IdSite_NDipole )
+      call FileWriteParameter( normalFile%iounit, IdSite_NSites )
       do i = 1, this%NDipole
         call FileWriteBlank(normalFile)
         call Save( this%SiteDipole(i) )
@@ -1992,7 +1992,7 @@ contains
       write( IOBuffer, '(1X, A)' ) 'Quadrupole'
       call FileWriteParameter( normalFile%iounit, IdSite_stype )
       write( IOBuffer, '(I2)' ) this%NQuadrupole
-      call FileWriteParameter( normalFile%iounit, IdSite_NQuadrupole )
+      call FileWriteParameter( normalFile%iounit, IdSite_NSites )
       do i = 1, this%NQuadrupole
         call FileWriteBlank(normalFile)
         call Save( this%SiteQuadrupole(i) )
@@ -2007,7 +2007,7 @@ contains
     ! Save total mass of the molecule
     write( IOBuffer, '(G20.10, T32, "# reduced value: ", G20.10)' ) &
 &          this%Mass * UnitMass * 1000._RK * NAvogadro, this%Mass
-    call FileWriteParameter( normalFile%iounit, IdSite_Mass )
+    call FileWriteParameter( normalFile%iounit, IdMolecule_mass )
 
     ! Save moments of inertia
     if( this%Unit(1)%NDFRot > 0 ) then
