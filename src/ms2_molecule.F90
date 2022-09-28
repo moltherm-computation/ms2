@@ -446,44 +446,49 @@ contains
         call AllocationError( stat, 'DihedralPartner', this%NSite )
 
         if( this%NMIEnm > 0 ) then
+
+            this%SiteIds = this%SiteMIEnm%SiteId
+
             allocate (this%LJSiteIds(this%NMIEnm), STAT = stat)
             call AllocationError( stat, 'LJSiteIds', this%NMIEnm )
-            do j = 1, this%NMIEnm
-                this%SiteIds(j)=this%SiteMIEnm(j)%SiteId
-                this%LJSiteIds(j)=this%SiteMIEnm(j)%SiteId
-            end do
+            this%LJSiteIds = this%SiteMIEnm%SiteId
             call sort_array(this%LJSiteIds)
+
         end if
-        i=this%NMIEnm
+
         if( this%NCharge > 0 ) then
+
+            this%SiteIds = (/this%SiteIds, this%SiteCharge%SiteId/)
+
             allocate (this%ChargeSiteIds(this%NCharge), STAT = stat)
             call AllocationError( stat, 'ChargeSiteIds', this%NCharge )
-            do j = 1+i, this%NCharge+i
-                this%SiteIds(j)=this%SiteCharge(j-i)%SiteId
-                this%ChargeSiteIds(j-i)=this%SiteCharge(j-i)%SiteId
-            end do
+            this%ChargeSiteIds = this%SiteCharge%SiteId
             call sort_array(this%ChargeSiteIds)
+
         end if
-        i=i+this%NCharge
+
         if( this%NDipole > 0 ) then
+
+            this%SiteIds = (/this%SiteIds, this%SiteDipole%SiteId/)
+
             allocate (this%DipoleSiteIds(this%NDipole), STAT = stat)
             call AllocationError( stat, 'DipoleSiteIds', this%NDipole )
-            do j = 1+i, this%NDipole+i
-                this%SiteIds(j)=this%SiteDipole(j-i)%SiteId
-                this%DipoleSiteIds(j-i)=this%SiteDipole(j-i)%SiteId
-            end do
+            this%DipoleSiteIds = this%SiteDipole%SiteId
             call sort_array(this%DipoleSiteIds)
+
         end if
-        i=i+this%NDipole
+
         if( this%NQuadrupole > 0 ) then
+
+            this%SiteIds = (/this%SiteIds, this%SiteQuadrupole%SiteId/)
+
             allocate (this%QuadrupoleSiteIds(this%NQuadrupole), STAT = stat)
             call AllocationError( stat, 'QuadrupoleSiteIds', this%NQuadrupole )
-            do j = 1+i, this%NQuadrupole+i
-                this%SiteIds(j)=this%SiteQuadrupole(j-i)%SiteId
-                this%QuadrupoleSiteIds(j-i)=this%SiteQuadrupole(j-i)%SiteId
-            end do
+            this%QuadrupoleSiteIds = this%SiteQuadrupole%SiteId
             call sort_array(this%QuadrupoleSiteIds)
+
         end if
+
     end if
 
 
@@ -491,7 +496,7 @@ contains
     if (UseIntDegFreed) then
         if (this%nConstraints > 0) then
 
-            call constructUnitPerConstraint()
+            call constructUnitPerConstraint(this)
 
         end if ! if NConstraint > 0
         if (this%NNotConstraint > 0) then
@@ -987,71 +992,71 @@ contains
 
     end subroutine FindEdgeFrom
 
+  end subroutine TMolecule_Construct
 
-    subroutine constructUnitPerConstraint()
 
-        integer :: siteCounter, sideID, iConstrainedSite
-        type(TUnit), pointer :: newUnit
-        logical :: found
+ subroutine constructUnitPerConstraint(this)
 
-        siteCounter = 0
-        do iConstraint = 1, this%nConstraints
+    type(TMolecule)      :: this
+    integer :: siteCounter, sideID, iConstrainedSite
+    type(TUnit), pointer :: newUnit
+    logical :: found
 
-            newUnit => this%Unit(iConstraint)
+    siteCounter = 0
+    do iConstraint = 1, this%nConstraints
 
-            call Construct(newUnit, .true., this%constraint(iConstraint)%nSites)
+        newUnit => this%Unit(iConstraint)
 
-            do iConstrainedSite = 1, this%constraint(iConstraint)%nSites
+        call Construct(newUnit, .true., this%constraint(iConstraint)%nSites)
 
-                sideID = newUnit%SiteIds(iConstrainedSite)
+        do iConstrainedSite = 1, this%constraint(iConstraint)%nSites
 
-                this%constraint(iConstraint)%siteIDs(iConstrainedSite) = sideID
+            sideID = newUnit%SiteIds(iConstrainedSite)
 
-                call binar_search(this%SiteMIEnm%SiteId, sideID, found, index )
+            this%constraint(iConstraint)%siteIDs(iConstrainedSite) = sideID
 
+            call binar_search(this%SiteMIEnm%SiteId, sideID, found, index )
+
+            if (found) then
+                newUnit%NMIEnm = newUnit%NMIEnm + 1
+                newUnit%SiteMIEnm(newUnit%NMIEnm) = this%SiteMIEnm(index)
+                this%SiteMIEnm(index)%UnitNumber = iConstraint
+            end if
+
+            if  ( .not. found .and. this%NCharge > 0) then
+                call binar_search(this%SiteCharge%SiteId, sideID, found, index )
                 if (found) then
-                    newUnit%NMIEnm = newUnit%NMIEnm + 1
-                    newUnit%SiteMIEnm(newUnit%NMIEnm) = this%SiteMIEnm(index)
-                    this%SiteMIEnm(index)%UnitNumber = iConstraint
+                    newUnit%NCharge = newUnit%NCharge + 1
+                    newUnit%SiteCharge(newUnit%NCharge) = this%SiteCharge(index)
+                    this%SiteCharge(index)%UnitNumber = iConstraint
                 end if
+            end if
 
-                if  ( .not. found .and. this%NCharge > 0) then
-                    call binar_search(this%SiteCharge%SiteId, sideID, found, index )
-                    if (found) then
-                        newUnit%NCharge = newUnit%NCharge + 1
-                        newUnit%SiteCharge(newUnit%NCharge) = this%SiteCharge(index)
-                        this%SiteCharge(index)%UnitNumber = iConstraint
-                    end if
+            if  ( .not. found .and. this%NDipole > 0) then
+                call binar_search(this%SiteDipole%SiteId, sideID, found, index )
+                if (found) then
+                    newUnit%NDipole = newUnit%NDipole + 1
+                    newUnit%SiteDipole(newUnit%NDipole) = this%SiteDipole(index)
+                    this%SiteDipole(index)%UnitNumber = iConstraint
                 end if
+            end if
 
-                if  ( .not. found .and. this%NDipole > 0) then
-                    call binar_search(this%SiteDipole%SiteId, sideID, found, index )
-                    if (found) then
-                        newUnit%NDipole = newUnit%NDipole + 1
-                        newUnit%SiteDipole(newUnit%NDipole) = this%SiteDipole(index)
-                        this%SiteDipole(index)%UnitNumber = iConstraint
-                    end if
+            if  ( .not. found .and. this%NQuadrupole > 0) then
+                call binar_search(this%SiteQuadrupole%SiteId, sideID, found, index )
+                if (found) then
+                    newUnit%NQuadrupole = newUnit%NQuadrupole + 1
+                    newUnit%SiteQuadrupole(newUnit%NQuadrupole) = this%SiteQuadrupole(index)
+                    this%SiteQuadrupole(index)%UnitNumber = iConstraint
                 end if
-
-                if  ( .not. found .and. this%NQuadrupole > 0) then
-                    call binar_search(this%SiteQuadrupole%SiteId, sideID, found, index )
-                    if (found) then
-                        newUnit%NQuadrupole = newUnit%NQuadrupole + 1
-                        newUnit%SiteQuadrupole(newUnit%NQuadrupole) = this%SiteQuadrupole(index)
-                        this%SiteQuadrupole(index)%UnitNumber = iConstraint
-                    end if
-                end if
-
-            end do
-
-            siteCounter = siteCounter + this%constraint(iConstraint)%nSites
+            end if
 
         end do
 
-    end subroutine constructUnitPerConstraint
+        siteCounter = siteCounter + this%constraint(iConstraint)%nSites
 
+    end do
 
-  end subroutine TMolecule_Construct
+  end subroutine constructUnitPerConstraint
 
 
   subroutine binar_search (array, Id, treffer, index)
