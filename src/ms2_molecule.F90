@@ -81,10 +81,6 @@ module ms2_molecule
 
     ! SiteIds
     integer, allocatable :: SiteIds(:)
-    integer, allocatable :: LJSiteIds(:)
-    integer, allocatable :: ChargeSiteIds(:)
-    integer, allocatable :: DipoleSiteIds(:)
-    integer, allocatable :: QuadrupoleSiteIds(:)
     integer, allocatable :: NotConstraintSiteIds(:)
     integer, pointer, contiguous :: UnitLJ(:), UnitC(:), UnitDP(:), UnitQP(:)
 
@@ -434,25 +430,9 @@ contains
         allocate (this%SiteIds(this%NSite), STAT = stat)
         call AllocationError( stat, 'MoleculeSiteIds', this%NSite )
 
-        ! Important constants
-        nullify( this%BoPartner )
-        allocate (this%BoPartner(this%NSite,this%NSite), STAT = stat)
-        call AllocationError( stat, 'BoPartner', this%NSite )
-        nullify( this%AnglePartner )
-        allocate (this%AnglePartner(this%NSite,this%NSite*2), STAT = stat)
-        call AllocationError( stat, 'AnglePartner', this%NSite )
-        nullify( this%DihedralPartner )
-        allocate (this%DihedralPartner(this%NSite,this%NSite*2), STAT = stat)
-        call AllocationError( stat, 'DihedralPartner', this%NSite )
-
         if( this%NMIEnm > 0 ) then
 
             this%SiteIds = this%SiteMIEnm%SiteId
-
-            allocate (this%LJSiteIds(this%NMIEnm), STAT = stat)
-            call AllocationError( stat, 'LJSiteIds', this%NMIEnm )
-            this%LJSiteIds = this%SiteMIEnm%SiteId
-            call sort_array(this%LJSiteIds)
 
         end if
 
@@ -460,32 +440,17 @@ contains
 
             this%SiteIds = (/this%SiteIds, this%SiteCharge%SiteId/)
 
-            allocate (this%ChargeSiteIds(this%NCharge), STAT = stat)
-            call AllocationError( stat, 'ChargeSiteIds', this%NCharge )
-            this%ChargeSiteIds = this%SiteCharge%SiteId
-            call sort_array(this%ChargeSiteIds)
-
         end if
 
         if( this%NDipole > 0 ) then
 
             this%SiteIds = (/this%SiteIds, this%SiteDipole%SiteId/)
 
-            allocate (this%DipoleSiteIds(this%NDipole), STAT = stat)
-            call AllocationError( stat, 'DipoleSiteIds', this%NDipole )
-            this%DipoleSiteIds = this%SiteDipole%SiteId
-            call sort_array(this%DipoleSiteIds)
-
         end if
 
         if( this%NQuadrupole > 0 ) then
 
             this%SiteIds = (/this%SiteIds, this%SiteQuadrupole%SiteId/)
-
-            allocate (this%QuadrupoleSiteIds(this%NQuadrupole), STAT = stat)
-            call AllocationError( stat, 'QuadrupoleSiteIds', this%NQuadrupole )
-            this%QuadrupoleSiteIds = this%SiteQuadrupole%SiteId
-            call sort_array(this%QuadrupoleSiteIds)
 
         end if
 
@@ -645,6 +610,10 @@ contains
 
         if (this%NBond>0) then ! check bonds and find initial bond lengths
 
+            nullify( this%BoPartner )
+            allocate (this%BoPartner(this%NSite,this%NSite), STAT = stat)
+            call AllocationError( stat, 'BoPartner', this%NSite )
+
             nullify( this%BondCount )
             allocate (this%BondCount(this%NSite), STAT = stat)
             call AllocationError( stat, 'BondCount', this%NSite )
@@ -662,6 +631,10 @@ contains
 
         if (this%NAngle>0) then ! check angles and find initial angles
 
+            nullify( this%AnglePartner )
+            allocate (this%AnglePartner(this%NSite,this%NSite*2), STAT = stat)
+            call AllocationError( stat, 'AnglePartner', this%NSite )
+
             nullify( this%AngleCount )
             allocate (this%AngleCount(this%NSite*2), STAT = stat)
             call AllocationError( stat, 'AngleCount', this%NSite*2 )
@@ -678,6 +651,10 @@ contains
         end if
 
         if ( this%NDihedral > 0 ) then
+
+            nullify( this%DihedralPartner )
+            allocate (this%DihedralPartner(this%NSite,this%NSite*2), STAT = stat)
+            call AllocationError( stat, 'DihedralPartner', this%NSite )
 
             nullify( this%DihedralCount )
             allocate (this%DihedralCount(this%NSite*2), STAT = stat)
@@ -878,30 +855,6 @@ contains
 
     contains
 
-    subroutine sort_array(array)
-      ! Declare arguments
-      integer, dimension(:), intent( inout ) :: array
-      ! Declare local variables
-      integer :: i,j
-
-      do i = 1, size(array)
-         do j = 1, size(array)
-            if (array(j)>array(i))  call change(array(i), array(j))
-         end do
-      end do
-    end subroutine sort_array
-
-   subroutine change(a, b)
-      ! Declare arguments
-      integer, intent( inout ) :: a, b
-      ! Declare local variables
-      integer :: temp
-
-      temp = a
-      a = b
-      b = temp
-   end subroutine change
-
     subroutine sort_LJsitetypes(this, i, j)
 
     ! Declare arguments
@@ -993,6 +946,35 @@ contains
     end subroutine FindEdgeFrom
 
   end subroutine TMolecule_Construct
+
+
+  subroutine change(a, b)
+
+    implicit none
+
+    integer, intent( inout ) :: a, b
+    integer :: temp
+
+    temp = a
+    a = b
+    b = temp
+
+  end subroutine change
+
+
+  subroutine sort_array(array)
+
+    implicit none
+
+    integer, dimension(:), intent( inout ) :: array
+    integer :: i,j
+
+    do i = 1, size(array)
+        do j = 1, size(array)
+            if (array(j)>array(i))  call change(array(i), array(j))
+        end do
+    end do
+  end subroutine sort_array
 
 
  subroutine constructUnitPerConstraint(this)
@@ -1094,6 +1076,10 @@ contains
     class(TMolecule), intent(in out) :: self
     integer                :: AllSites(self%NSite, self%NSite)
     integer                :: SameCoord(self%NMIEnm, 3)
+    integer              :: ChargeSiteIds(self%NCharge)
+    integer              :: LJSiteIds(self%NMIEnm)
+    integer              :: DipoleSiteIds(self%NDipole)
+    integer              :: QuadrupoleSiteIds(self%NQuadrupole)
 
     integer                :: i, j, k, iUnit
     integer                :: index, index1, index2
@@ -1129,42 +1115,62 @@ contains
 
     call markSameCoordinates(self, AllSites, SameCoord)
 
-    lj=1
-    cc=1
-    dd=1
-    qq=1
-    cd=1
-    cq=1
-    dq=1
-    dc=1
-    qc=1
-    qd=1
-    do i=1, self%NSite
-        do j=i+1, self%NSite
-            if (AllSites(i,j)==1) then
-                LJfound(1:2) =.false.
+    if (self%NMIEnm > 0) then
+        LJSiteIds = self%SiteMIEnm%SiteId
+        call sort_array(LJSiteIds)
+    end if
+
+    if (self%NCharge > 0) then
+        ChargeSiteIds = self%SiteCharge%SiteId
+        call sort_array(ChargeSiteIds)
+    end if
+
+    if (self%NDipole > 0) then
+        DipoleSiteIds = self%SiteDipole%SiteId
+        call sort_array(DipoleSiteIds)
+    end if
+
+    if (self%NQuadrupole > 0) then
+        QuadrupoleSiteIds = self%SiteQuadrupole%SiteId
+        call sort_array(QuadrupoleSiteIds)
+    end if
+
+    lj = 1
+    cc = 1
+    dd = 1
+    qq = 1
+    cd = 1
+    cq = 1
+    dq = 1
+    dc = 1
+    qc = 1
+    qd = 1
+    do i = 1, self%NSite
+        do j = i + 1, self%NSite
+            if (AllSites(i, j) == 1) then
+                LJfound(1:2) = .false.
                 charge(1:2) = .false.
                 dipole(1:2) = .false.
                 quadrupole(1:2) = .false.
-                call binar_search(self%LJSiteIds(:), i, LJfound(1), index)
-                call binar_search(self%LJSiteIds(:), j, LJfound(2), index)
+                call binar_search(LJSiteIds(:), i, LJfound(1), index)
+                call binar_search(LJSiteIds(:), j, LJfound(2), index)
                 if (LJfound(1) .and. LJfound(2)) then
 
                     call addInteractionToList(IntLJ15, (/i, j/), lj)
 
                 else if (.not. LJfound(1) .and. .not. LJfound(2)) then
-                    call binar_search(self%ChargeSiteIds(:), i, charge(1), index)
+                    call binar_search(ChargeSiteIds(:), i, charge(1), index)
                     if (.not. charge(1)) then
-                        call binar_search(self%DipoleSiteIds(:), i, dipole(1), index)
+                        call binar_search(DipoleSiteIds(:), i, dipole(1), index)
                         if (.not. dipole(1)) then
-                            call binar_search(self%QuadrupoleSiteIds(:), i, quadrupole(1), index)
+                            call binar_search(QuadrupoleSiteIds(:), i, quadrupole(1), index)
                         end if
                     end if
-                    call binar_search(self%ChargeSiteIds(:), j, charge(2), index)
+                    call binar_search(ChargeSiteIds(:), j, charge(2), index)
                     if (.not. charge(2)) then
-                        call binar_search(self%DipoleSiteIds(:), i, dipole(2), index)
+                        call binar_search(DipoleSiteIds(:), i, dipole(2), index)
                         if (.not. dipole(2)) then
-                            call binar_search(self%QuadrupoleSiteIds(:), i, quadrupole(2), index)
+                            call binar_search(QuadrupoleSiteIds(:), i, quadrupole(2), index)
                         end if
                     end if
                     if (charge(1)) then
@@ -1259,7 +1265,7 @@ contains
 
     if (LJEl14) then
 
-        call create14interactionList(self, SameCoord)
+        call create14interactionList(self, SameCoord, LJSiteIds)
 
     end if
 
@@ -1376,12 +1382,12 @@ contains
   end subroutine setMarker
 
 
-  subroutine create14interactionList(this, SameCoord)
+  subroutine create14interactionList(this, SameCoord, LJSiteIds)
 
     implicit none
 
     type(TMolecule) :: this
-    integer         :: SameCoord(:, :)
+    integer         :: SameCoord(:, :), LJSiteIds(:)
 
     integer                :: i, interactionCounter, stat
     integer                :: Site(4)
@@ -1449,19 +1455,19 @@ contains
     qq = 1
     do i = 1, interactionCounter - 1
 
-        call binar_search(this%LJSiteIds(:), Int14(i, 1), LJfound(1), index1)
-        call binar_search(this%LJSiteIds(:), Int14(i, 2), LJfound(2), index2)
+        call binar_search(LJSiteIds(:), Int14(i, 1), LJfound(1), index1)
+        call binar_search(LJSiteIds(:), Int14(i, 2), LJfound(2), index2)
 
         if (LJfound(1) .and. LJfound(2)) then
 
             call addInteractionToList(IntLJ14, Int14(i, 1:2), lj, ScaleLJ14, real(CoeffLJ14(i), RK))
 
-            ChargeID(1) = SameCoord(this%LJSiteIds(index1), 1)
-            ChargeID(2) = SameCoord(this%LJSiteIds(index2), 1)
-            DipoleID(1) = SameCoord(this%LJSiteIds(index1), 2)
-            DipoleID(2) = SameCoord(this%LJSiteIds(index2), 2)
-            QuadrupoleID(1) = SameCoord(this%LJSiteIds(index1), 3)
-            QuadrupoleID(2) = SameCoord(this%LJSiteIds(index1), 3) ! use index2 here? bug?
+            ChargeID(1) = SameCoord(LJSiteIds(index1), 1)
+            ChargeID(2) = SameCoord(LJSiteIds(index2), 1)
+            DipoleID(1) = SameCoord(LJSiteIds(index1), 2)
+            DipoleID(2) = SameCoord(LJSiteIds(index2), 2)
+            QuadrupoleID(1) = SameCoord(LJSiteIds(index1), 3)
+            QuadrupoleID(2) = SameCoord(LJSiteIds(index1), 3) ! use index2 here? bug?
 
             if (ChargeID(1) > 0) then
                 if (ChargeID(2) > 0) then
