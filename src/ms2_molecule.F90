@@ -452,15 +452,6 @@ contains
         ! Allocation
         allocate (this%SiteIds(this%NSite), STAT = stat)
         call AllocationError( stat, 'MoleculeSiteIds', this%NSite )
-        allocate (this%LJSiteIds(this%NMIEnm), STAT = stat)
-        call AllocationError( stat, 'LJSiteIds', this%NMIEnm )
-        allocate (this%ChargeSiteIds(this%NCharge), STAT = stat)
-        call AllocationError( stat, 'ChargeSiteIds', this%NCharge )
-        allocate (this%DipoleSiteIds(this%NDipole), STAT = stat)
-        call AllocationError( stat, 'DipoleSiteIds', this%NDipole )
-        allocate (this%QuadrupoleSiteIds(this%NQuadrupole), STAT = stat)
-        call AllocationError( stat, 'QuadrupoleSiteIds', this%NQuadrupole )
-
 
         ! Important constants
         nullify( this%BoPartner )
@@ -474,31 +465,43 @@ contains
         call AllocationError( stat, 'DihedralPartner', this%NSite )
 
         if( this%NMIEnm > 0 ) then
+            allocate (this%LJSiteIds(this%NMIEnm), STAT = stat)
+            call AllocationError( stat, 'LJSiteIds', this%NMIEnm )
             do j = 1, this%NMIEnm
                 this%SiteIds(j)=this%SiteMIEnm(j)%SiteId
                 this%LJSiteIds(j)=this%SiteMIEnm(j)%SiteId
             end do
+            call sort_array(this%LJSiteIds)
         end if
         i=this%NMIEnm
         if( this%NCharge > 0 ) then
+            allocate (this%ChargeSiteIds(this%NCharge), STAT = stat)
+            call AllocationError( stat, 'ChargeSiteIds', this%NCharge )
             do j = 1+i, this%NCharge+i
                 this%SiteIds(j)=this%SiteCharge(j-i)%SiteId
                 this%ChargeSiteIds(j-i)=this%SiteCharge(j-i)%SiteId
             end do
+            call sort_array(this%ChargeSiteIds)
         end if
         i=i+this%NCharge
         if( this%NDipole > 0 ) then
+            allocate (this%DipoleSiteIds(this%NDipole), STAT = stat)
+            call AllocationError( stat, 'DipoleSiteIds', this%NDipole )
             do j = 1+i, this%NDipole+i
                 this%SiteIds(j)=this%SiteDipole(j-i)%SiteId
                 this%DipoleSiteIds(j-i)=this%SiteDipole(j-i)%SiteId
             end do
+            call sort_array(this%DipoleSiteIds)
         end if
         i=i+this%NDipole
         if( this%NQuadrupole > 0 ) then
+            allocate (this%QuadrupoleSiteIds(this%NQuadrupole), STAT = stat)
+            call AllocationError( stat, 'QuadrupoleSiteIds', this%NQuadrupole )
             do j = 1+i, this%NQuadrupole+i
                 this%SiteIds(j)=this%SiteQuadrupole(j-i)%SiteId
                 this%QuadrupoleSiteIds(j-i)=this%SiteQuadrupole(j-i)%SiteId
             end do
+            call sort_array(this%QuadrupoleSiteIds)
         end if
     end if
 
@@ -813,22 +816,6 @@ contains
     this%isElongated = .false.
     this%isElongated = this%nUnits > 1
     if ( this%Unit(1)%NDFRot > 0 ) this%isElongated = .true.
-
-    ! sort SiteIds
-    if (IntraLJEl) then
-        do k = 1, this%NMIEnm
-            call sort_array(this%LJSiteIds)
-        end do
-        do k = 1, this%NCharge
-            call sort_array(this%ChargeSiteIds)
-        end do
-        do k = 1, this%NDipole
-            call sort_array(this%DipoleSiteIds)
-        end do
-        do k = 1, this%NQuadrupole
-            call sort_array(this%QuadrupoleSiteIds)
-        end do
-    end if
 
     !Consider Intramolecular interactions
     this%hasIntraLJEl = .true.
