@@ -54,18 +54,18 @@ Get force by negative spatial derivation:
 \f}
 
 Since \f$\alpha = \cos^{-1} \left( \frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)\f$
- and \f$\partial \cos\left(x\right)/\partial x = 1/\left(1-x^2\right)\f$:
+ and \f$\partial \cos\left(x\right)^{-1}/\partial x = 1/\sqrt{\left(1-x^2\right)}\f$:
 
 
 \f{eqnarray} \frac{\partial \left[\alpha\left(\xi_{\eta}\right)\right]}{\partial \xi_{\eta}}
-	&=&\frac{1}{1-\left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)^2}\frac{\partial \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)}{\partial \xi_{\eta}}\\
-	&=& \frac{1}{1-\cos^2\left(\alpha\right)}\frac{\partial \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)}{\partial \xi_{\eta}}\\
-	&=& \frac{1}{\sin^2\left(\alpha\right)}\frac{\partial \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)}{\partial \xi_{\eta}}\\
+	&=&\frac{1}{\sqrt{1-\left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)^2}}\frac{\partial \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)}{\partial \xi_{\eta}}\\
+	&=& \frac{1}{\sqrt{1-\cos^2\left(\alpha\right)}}\frac{\partial \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)}{\partial \xi_{\eta}}\\
+	&=& \frac{1}{\sin\left(\alpha\right)}\frac{\partial \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)}{\partial \xi_{\eta}}\\
 \f}
 
 Therefore, the force can be written as:
 
-\f[ f_{wink,~\xi,~\eta} = -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}\frac{\partial \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)}{\partial \xi_{\eta}} \f]
+\f[ f_{wink,~\xi,~\eta} = -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin\left(\alpha\right)}\frac{\partial \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \right)}{\partial \xi_{\eta}} \f]
 
 
 \f[\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|}
@@ -165,7 +165,7 @@ The general force vectors can be written as:
 
 \f{eqnarray}
 \vec f_{wink,~\eta}
-		&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+		&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin\left(\alpha\right)}
 			\partial \left(
 				\frac{\vec r_{ij} \cdot \vec r_{kj}}
 					{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|}
@@ -175,7 +175,7 @@ The general force vectors can be written as:
 				\frac{1}{\partial y_{\eta}} \\
 				\frac{1}{\partial z_{\eta}}
 			\end{array} \right] \\
-		&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+		&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin\left(\alpha\right)}
 			\left[\left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|} \partial \frac{1}{\left|\vec r_{kj}\right|} \right)
 			      + \left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{kj}\right|} \partial \frac{1}{\left|\vec r_{ij}\right|} \right)
 			      + \frac{1}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \partial \left(\vec r_{ij} \cdot \vec r_{kj}\right)\right]
@@ -184,7 +184,7 @@ The general force vectors can be written as:
 				\frac{1}{\partial y_{\eta}} \\
 				\frac{1}{\partial z_{\eta}}
 			\end{array} \right]\\
-		&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+		&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin\left(\alpha\right)}
 			\left[\left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|}
 					\left[ \begin{array}{c}
 						\frac{\partial~1/\left|\vec r_{kj}\right|}{\partial x_{\eta}} \\
@@ -210,7 +210,7 @@ With the table, the force vectors can be written as:
 
 \f{eqnarray}
 \vec f_{wink,~\eta=i} 
-	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin\left(\alpha\right)}
 	\left[
 			\left[ \begin{array}{c}
 				0\\0\\0
@@ -228,7 +228,7 @@ With the table, the force vectors can be written as:
 				r_{kj,~z}
 			\end{array} \right]
 	\right]\\
-	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin\left(\alpha\right)}
 	\left[
 		-\left(\frac{\cos \alpha}{\left|\vec r_{ij}\right|^2} 
 			\left[ \begin{array}{c}
@@ -243,7 +243,7 @@ With the table, the force vectors can be written as:
 				r_{kj,~z}
 			\end{array} \right]
 	\right]\\
-	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin\left(\alpha\right)}
 	\left[
 		-\left(\frac{\cos \alpha}{\left|\vec r_{ij}\right|^2} \vec r_{ij}\right)
 		+ \frac{1}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \vec r_{kj}
@@ -252,7 +252,7 @@ With the table, the force vectors can be written as:
 
 \f{eqnarray}
 \vec f_{wink,~\eta=k} 
-	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin\left(\alpha\right)}
 		\left[\left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|}
 				\left[ \begin{array}{c}
 					-\frac{r_{kj,~x}}{\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2} \\
@@ -270,7 +270,7 @@ With the table, the force vectors can be written as:
 					r_{ij,~z}
 				\end{array} \right]
 		\right]\\
-	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin\left(\alpha\right)}
 		\left[\left(-\frac{\cos \alpha}{\left|\vec r_{kj}\right|^2}
 				\left[ \begin{array}{c}
 					r_{kj,~x}\\
@@ -284,7 +284,7 @@ With the table, the force vectors can be written as:
 					r_{ij,~z}
 				\end{array} \right]
 		\right]\\
-	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin\left(\alpha\right)}
 	\left[
 		- \frac{\cos \alpha}{\left|\vec r_{kj}\right|^2}\vec r_{kj}
 		+ \frac{1}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \vec r_{ij}
@@ -294,7 +294,7 @@ With the table, the force vectors can be written as:
 
 \f{eqnarray}
 \vec f_{wink,~\eta=j} 
-	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin\left(\alpha\right)}
 		\left[\left(\frac{\vec r_{ij} \cdot \vec r_{kj}}{\left|\vec r_{ij}\right|}
 				\left[ \begin{array}{c}
 					\frac{r_{kj,~x}}{\left|\vec r_{kj}\right|\left|\vec r_{kj}\right|^2}\\
@@ -314,7 +314,7 @@ With the table, the force vectors can be written as:
 					-r_{ij,~z} - r_{kj,~z}
 				\end{array} \right]
 		\right]\\
-	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin\left(\alpha\right)}
 		\left[\left(\frac{\cos \alpha}{\left|\vec r_{kj}\right|^2}
 				\left[ \begin{array}{c}
 					r_{kj,~x}\\
@@ -334,7 +334,7 @@ With the table, the force vectors can be written as:
 					-r_{ij,~z} - r_{kj,~z}
 				\end{array} \right]
 		\right]\\
-	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin^2\left(\alpha\right)}
+	&=& -2K_{alpha}\left[\alpha\left(\xi_{\eta}\right) - \alpha_{eq}\right]\frac{1}{\sin\left(\alpha\right)}
 		\left[\left(\frac{\cos \alpha}{\left|\vec r_{kj}\right|^2}\vec r_{kj}\right)
 			+ \left(\frac{\cos \alpha}{\left|\vec r_{ij}\right|^2} \vec r_{ij} \right)
 			- \frac{1}{\left|\vec r_{ij}\right|\left|\vec r_{kj}\right|} \left( \vec r_{ij} + \vec r_{kj} \right)
