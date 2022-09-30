@@ -14,12 +14,12 @@ variables: # "declaration" neccessary for use in job definitions
 default:
   before_script:
     - cd src
-    - if [ $COMPILER == 'COMPILER=INTEL' ]; then module load mpi/2021.1.1 compiler/2021.1.1 ;fi
+    - if [ $COMPILER == 'COMPILER=INTEL' ]; then module load mpi/2021.6.0 compiler/2022.1.0 ;fi
     - if [ $COMPILER == 'COMPILER=INTEL' ]; then ifort --version; mpiifort --version; else gfortran --version; mpif90 --version ;fi
     - if [ $MPI == 'MPI=1' ]; then mpirun --version; fi
     - if [ $COMPILER == 'COMPILER=INTEL' ]; then sed 's!mpif90!mpiifort!g' makefiles/INTEL.mk -i; fi
   after_script:
-    - if [ $COMPILER == 'COMPILER=INTEL' ]; then module unload mpi/2021.1.1 compiler/2021.1.1 ;fi
+    - if [ $COMPILER == 'COMPILER=INTEL' ]; then module unload mpi/2021.6.0 compiler/2022.1.0 ;fi
 
 stages:
   - build
@@ -87,12 +87,13 @@ MPIF08:
     MPI: MPI=1
   stage: flags
   script:
-    - make all -j 3 $COMPILER MPI=1 $OMP TRANS=$TRANS MPI_USE_MODULE=1
+    - make all -j 3 $COMPILER MPI=$MPI $OMP TRANS=$TRANS MPI_USE_MODULE=$MPI_USE_MODULE
   parallel:
     matrix:
       - COMPILER: [COMPILER=GNU, COMPILER=INTEL]
         OMP: [OMP=1, OMP=0]
         TRANS: [TRANS=1, TRANS=0]
+        MPI_USE_MODULE: [MPI_USE_MODULE=1, MPI_USE_MODULE=0]
   retry: 2
 
 HBOND:
