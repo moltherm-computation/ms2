@@ -6748,7 +6748,7 @@ loop2:        do nc = 1, this%NComponents
             end do
 
 #if MPI_VER > 0
-            call MPI_Allreduce(NTestBinDen,NTestBinDenAll,1,MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror)
+            call MPI_Allreduce(NTestBinDen,NTestBinDenAll,1,MPI_INTEGER, MPI_SUM, Communicator, ierror)
             if ( NTestBinDenAll > 1) then
               ChemPotProfile(j)= ChemPotProfile(j) / NTestBinDenAll
             end if
