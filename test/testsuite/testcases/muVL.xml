@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>muVL_T400.par</parFile>
+	<name>muVL</name>
+	<np>3</np>
+	<reference>
+		<file>muVL_T400.rst</file>
+	</reference>
+	<reference>
+		<file>muVL_T400_1.res</file>
+	</reference>
+	<reference>
+		<file>muVL_T400_1.rav</file>
+	</reference>
+	<reference>
+		<file>muVL_T400_1.run</file>
+	</reference>
+</testcase>

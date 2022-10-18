@@ -2,7 +2,7 @@
 <!DOCTYPE xml>
 <testsuite>
 	<tools4ms2version>0.0.297</tools4ms2version>
-	<caseRepositoryHash>3ee696104d9c143cd2d2be38d40ea4c0817d0c2d</caseRepositoryHash>
+	<caseRepositoryHash>a48bc6180eb61f350189a336f6a315b47cdf0e53</caseRepositoryHash>
 	<caseList>
 		<case name="einstein_CO2" file="einstein_CO2.xml" />
 		<case name="einsteinCoef_trans_24DAT" file="einsteinCoef_trans_24DAT.xml" />
@@ -50,6 +50,7 @@
 		<case name="MD_NVT_leap_Ar_ensembleGroups" file="MD_NVT_leap_Ar_ensembleGroups.xml" />
 		<case name="MD_NVT_leap_CO2_alpha" file="MD_NVT_leap_CO2_alpha.xml" />
 		<case name="MD_optpressure_site" file="MD_optpressure_site.xml" />
+		<case name="muVL" file="muVL.xml" />
 		<case name="muVT" file="muVT.xml" />
 		<!-- <case name="muVT_AccInserts" file="muVT_AccInserts.xml" /> -->
 		<!-- <case name="muVT_restart" file="muVT_restart.xml" /> -->
