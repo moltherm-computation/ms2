@@ -324,6 +324,7 @@ module ms2_global
   character(*), parameter :: IdNStepsP                     = 'NPTSteps'
   character(*), parameter :: IdNStepsH                     = 'NPHSteps'
   character(*), parameter :: IdNStepsMue                   = 'mueVTSteps'
+  character(*), parameter :: IdNStepsMueL                  = 'mueVLSteps'
   character(*), parameter :: IdNStepsMueP                  = 'muePTSteps'
   character(*), parameter :: IdNSteps                      = 'RunSteps'
   character(*), parameter :: IdBlockSize                   = 'ResultFreq'
@@ -593,8 +594,9 @@ module ms2_global
   integer, parameter :: EnsembleTypeHA  = 6                ! Humid Air mupT
   integer, parameter :: EnsembleTypeNPTSVC = 7             ! NpT + SVC
   integer, parameter :: EnsembleTypeMUVT = 8               ! muVT
+  integer, parameter :: EnsembleTypeMUVL = 9               ! Hill muVL
   integer            :: EnsembleType
-  logical            :: ConstantTemperature, ConstantPressure
+  logical            :: ConstantTemperature, ConstantPressure, OpenSystem
 
   ! Type of cutoff
   character(80)      :: CutoffModeString
