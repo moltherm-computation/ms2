@@ -262,7 +262,6 @@ module ms2_ensemble
     integer :: NInsertAttempts, NInsertSuccesses
     integer :: NDeleteAttempts, NDeleteSuccesses
     integer :: NTransferAttempts, NTransferSuccesses
-    integer :: BndInsertAttempts
 
     ! Kinetic energy
     real(RK) :: EKin, EKinTran, EKinRot
@@ -861,10 +860,6 @@ module ms2_ensemble
 
   interface UpdateDisplacements
     module procedure TEnsemble_UpdateDisplacements
-  end interface
-
-  interface UpdateInsertAttempts
-    module procedure TEnsemble_UpdateInsertAttempts
   end interface
 
   interface Residence
@@ -2028,11 +2023,6 @@ contains
           this%Component(i)%DispTran = DispTranStart
           this%Component(i)%DispRot = DispRotStart
         end do
-
-        ! Set initial number of insert/delete attempts
-        if ( EnsembleType .eq. EnsembleTypeMUVT .or.  EnsembleType .eq. EnsembleTypeMUVL ) then
-          this%BndInsertAttempts = 2
-        end if
 
       end if
     else        ! Restart
@@ -5520,9 +5510,6 @@ loop5:      do nc = 1, this%NComponents
 
     ! Update MC displacements
     if( Equilibration .and. mod( Step, DispUpdateFrequency ) == 0 ) then
-      if ( EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeMUVL .and. ( .not. NVTEquilibration ) ) then
-        call UpdateInsertAttempts( this )
-      end if
       call UpdateDisplacements( this )
     end if
 
@@ -10281,37 +10268,6 @@ loop2:        do nc = 1, this%NComponents
   end subroutine TEnsemble_UpdateDisplacements
 
 
-
-!==============================================================!
-!  Subroutine TEnsemble_UpdateInsertAttempts                   !
-!==============================================================!
-
-  subroutine TEnsemble_UpdateInsertAttempts( this )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble) :: this
-
-    ! Declare local variables
-    real(RK) :: AccRateInsert, AccRateDelete
-
-    ! Calculate acceptance rates
-    AccRateInsert = real(this%NInsertSuccesses) / real(DispUpdateFrequency)
-    AccRateDelete = real(this%NDeleteSuccesses) / real(DispUpdateFrequency)
-
-    ! Update translational displacement
-    if( min( AccRateInsert, AccRateDelete ) .gt. InsertUpperLimit ) then
-      this%BndInsertAttempts = this%BndInsertAttempts - 1
-    else if( max( AccRateInsert, AccRateDelete ) .lt. InsertLowerLimit ) then
-      this%BndInsertAttempts = this%BndInsertAttempts + 1
-    end if
-
-    if ( this%BndInsertAttempts .eq. 0 ) then
-      this%BndInsertAttempts = 1
-    end if
-
-  end subroutine TEnsemble_UpdateInsertAttempts
 
 
 !==============================================================!
@@ -16109,20 +16065,10 @@ end if
         if (Nproc == NRootProc) then
           write( IOBuffer, '("Acceptance rate inserts", T32, "in %:", F20.9)' ) &
 &                100._RK * real( tempVal, RK ) / real ( tempVal2, RK )
-          if ( EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeMUVL ) then
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("Per MC cycle", T32, "in %:", F20.9)' ) &
-&                100._RK * this%BndInsertAttempts * real( tempVal, RK ) / real ( tempVal2, RK )
-          end if
         endif
 #else
         write( IOBuffer, '("Acceptance rate inserts", T32, "in %:", F20.9)' ) &
 &              100._RK * real( this%NInsertSuccesses, RK ) / real ( this%NInsertAttempts, RK )
-        if ( EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeMUVL ) then
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '("Per MC cycle", T32, "in %:", F20.9)' ) &
-&              100._RK * this%BndInsertAttempts * real( this%NInsertSuccesses, RK ) / real ( this%NInsertAttempts, RK )
-        end if
 #endif
         call FileWrite(this%errorsFile)
 
@@ -16137,20 +16083,10 @@ end if
         if (Nproc == NRootProc) then
           write( IOBuffer, '("Acceptance rate deletes", T32, "in %:", F20.9)' ) &
 &                100._RK * real(tempVal, RK ) / real ( tempVal2, RK )
-          if ( EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeMUVL ) then
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '("Per MC cycle", T32, "in %:", F20.9)' ) &
-&                100._RK * this%BndInsertAttempts * real( tempVal, RK ) / real ( tempVal2, RK )
-          end if
         endif
 #else
         write( IOBuffer, '("Acceptance rate deletes", T32, "in %:", F20.9)' ) &
 &              100._RK * real( this%NDeleteSuccesses, RK ) / real ( this%NDeleteAttempts, RK )
-        if ( EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeMUVL ) then
-          call FileWrite(this%errorsFile)
-          write( IOBuffer, '("Per MC cycle", T32, "in %:", F20.9)' ) &
-&                100._RK * this%BndInsertAttempts * real( this%NDeleteSuccesses, RK ) / real ( this%NDeleteAttempts, RK )
-        end if
 #endif
         call FileWrite(this%errorsFile)
         call FileWriteBlank(this%errorsFile)
@@ -21601,9 +21537,6 @@ end if
           if( OpenSystem .or. EnsembleType .eq. EnsembleTypeHA ) then
             write(restartFile%iounit, '(2I10)' ) this%NInsertAttempts, this%NInsertSuccesses
             write(restartFile%iounit, '(2I10)' ) this%NDeleteAttempts, this%NDeleteSuccesses
-            if( EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeMUVL ) then
-              write(restartFile%iounit, '(2I10)' ) this%BndInsertAttempts
-            end if
           end if
         end if
 
@@ -22360,9 +22293,6 @@ if( RootProc .and. this%CorrfunMode ) then
         if( OpenSystem .or. EnsembleType .eq. EnsembleTypeHA ) then
           read(restartFile%iounit, '(2I10)' ) this%NInsertAttempts, this%NInsertSuccesses
           read(restartFile%iounit, '(2I10)' ) this%NDeleteAttempts, this%NDeleteSuccesses
-          if( EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeMUVL ) then
-            read(restartFile%iounit, '(2I10)' ) this%BndInsertAttempts
-          end if
         end if
       end if
       read( restartFile%iounit, '(I10)' ) this%NRCutoffMax

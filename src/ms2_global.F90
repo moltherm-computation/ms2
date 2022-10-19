@@ -317,7 +317,6 @@ module ms2_global
   character(*), parameter :: IdIntegratorType              = 'Integrator'
   character(*), parameter :: IdTimeStep                    = 'TimeStep'
   character(*), parameter :: IdAcceptance                  = 'Acceptance'
-  character(*), parameter :: IdAccInserts                  = 'AccInserts'
   character(*), parameter :: IdNStepsMC                    = 'MCORSteps'
   character(*), parameter :: IdNStepsV                     = 'NVTSteps'
   character(*), parameter :: IdNStepsE                     = 'NVESteps'
@@ -654,10 +653,6 @@ module ms2_global
 
   ! Frequency of updating MC displacements
   integer, parameter :: DispUpdateFrequency = 100
-
-  ! muVT insert/delete acceptance
-  real(RK) :: AccInserts
-  real(RK) :: InsertUpperLimit,InsertLowerLimit
 
   ! Number of simulation time steps
   integer :: NSteps

@@ -714,21 +714,6 @@ contains
         MCOverlapReduction = .false.
       end if
 
-      ! Read insert/delete acceptance rate for muVT
-      if( EnsembleType .eq. EnsembleTypeMUVT .or.  EnsembleType .eq. EnsembleTypeMUVL ) then
-        call FileReadParameter( AccInserts, paramsFile%iounit , IdAccInserts, .true., 0.5_RK )
-        if( AccInserts < 0.05_RK ) then
-          AccInserts = 0.05_RK
-        else if( AccInserts > 0.95_RK ) then
-          AccInserts = 0.95_RK
-        end if
-        write( IOBuffer, '("Inserts rate: ",T24, F6.2, "%")' ) AccInserts * 100._RK
-        call LogWrite
-        InsertUpperLimit = AccInserts * 1.2_RK
-        InsertLowerLimit = AccInserts * 0.8_RK
-        call LogWriteBlank
-      end if
-
       ! Read number of NVT equilibration steps
       call FileReadParameter( NStepsV, paramsFile%iounit , IdNStepsV, .true., 0 )
       write( IOBuffer, '("Number of NVT equilibration steps: ",T40, I7)' ) NStepsV
