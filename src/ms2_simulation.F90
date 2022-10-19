@@ -571,48 +571,63 @@ contains
         ConstantTemperature = .false.
         ConstantPressure = .false.
         EnsembleTypeString = 'NVE'
+        OpenSystem = .false.
 
       case( 'NVT', 'nvt' )
         EnsembleType = EnsembleTypeNVT
         ConstantTemperature = .true.
         ConstantPressure = .false.
         EnsembleTypeString = 'NVT'
+        OpenSystem = .false.
 
       case( 'NPH', 'nph' )
         EnsembleType = EnsembleTypeNPH
         ConstantTemperature = .false.
         ConstantPressure = .true.
         EnsembleTypeString = 'NPH'
+        OpenSystem = .false.
 
       case( 'NPT', 'npt' )
         EnsembleType = EnsembleTypeNPT
         ConstantTemperature = .true.
         ConstantPressure = .true.
         EnsembleTypeString = 'NPT'
+        OpenSystem = .false.
 
       case( 'GE', 'ge' )
         EnsembleType = EnsembleTypeGE
         ConstantTemperature = .true.
         ConstantPressure = .false.
         EnsembleTypeString = 'GrandEquilibrium'
+        OpenSystem = .true.
 
       case( 'HA', 'ha' )
         EnsembleType = EnsembleTypeHA
         ConstantTemperature = .true.
         ConstantPressure = .true.
         EnsembleTypeString = 'Humid Air'
+        OpenSystem = .false.
 
       case( 'NPTSVC', 'nptsvc' )
         EnsembleType = EnsembleTypeNPTSVC
         ConstantTemperature = .true.
         ConstantPressure = .true.
         EnsembleTypeString = 'NpT + SVC'
+        OpenSystem = .false.
 
       case( 'MUVT', 'muvt' )
         EnsembleType = EnsembleTypeMUVT
         ConstantTemperature = .true.
         ConstantPressure = .false.
         EnsembleTypeString = 'MUVT'
+        OpenSystem = .true.
+
+      case( 'MUVL', 'muvl' )
+        EnsembleType = EnsembleTypeMUVL
+        ConstantTemperature = .false.
+        ConstantPressure = .false.
+        EnsembleTypeString = 'MUVL'
+        OpenSystem = .true.
 
       case default
         call Error( trim( str )//' ensemble is not implemented' )
@@ -626,7 +641,7 @@ contains
 &         call Error( trim( SimulationTypeString )//" simulation of " &
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
 
-      if( (EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA) &
+      if( (EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeMUVL .or. EnsembleType .eq. EnsembleTypeHA) &
 &         .and. .not. SimulationType .eq. MonteCarlo ) &
 &         call Error( trim( SimulationTypeString )//" simulation of " &
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
@@ -700,7 +715,7 @@ contains
       end if
 
       ! Read insert/delete acceptance rate for muVT
-      if( EnsembleType .eq. EnsembleTypeMUVT ) then
+      if( EnsembleType .eq. EnsembleTypeMUVT .or.  EnsembleType .eq. EnsembleTypeMUVL ) then
         call FileReadParameter( AccInserts, paramsFile%iounit , IdAccInserts, .true., 0.5_RK )
         if( AccInserts < 0.05_RK ) then
           AccInserts = 0.05_RK
@@ -754,6 +769,11 @@ contains
       else if( EnsembleType .eq. EnsembleTypeMUVT ) then
         call FileReadParameter( NStepsP, paramsFile%iounit , IdNStepsMue, .true., 0 )
         write( IOBuffer, '("Number of MUVT equilibration steps: ",T40, I7)' ) NStepsP
+        call LogWrite
+
+      else if( EnsembleType .eq. EnsembleTypeMUVL ) then
+        call FileReadParameter( NStepsP, paramsFile%iounit , IdNStepsMueL, .true., 0 )
+        write( IOBuffer, '("Number of MUVL equilibration steps: ",T40, I7)' ) NStepsP
         call LogWrite
 
       else
@@ -1730,7 +1750,7 @@ contains
               endif
 
               if (Equilibration) then
-                if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT) NStepsP = 1
+                if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeMUVL) NStepsP = 1
                 if( ConstantPressure ) then
                   if(EnsembleType .eq. EnsembleTypeNPH ) then
                     NStepsH = 1
@@ -1938,6 +1958,33 @@ eqloop: do
             Equilibration = .false.
           else
             write( IOBuffer, '("MUVT equilibration TERMINATED")' )
+          end if
+          call LogWriteTime
+
+        else if( EnsembleType .eq. EnsembleTypeMUVL ) then
+          StepEnd = NStepsP
+
+          call LogWriteBlank
+          if( Restart ) then
+            write( IOBuffer, '("Resuming MUVL equilibration")' )
+            Restart = .false.
+          else
+            write( IOBuffer, '("Starting MUVL equilibration")' )
+          end if
+
+          call Timer_setTag(RunStepsTimer,"MUVL equilibration")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
+          call RunSteps( this, StepStart, StepEnd )
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
+
+
+          if( .not. TerminateProgram ) then
+            write( IOBuffer, '("MUVL equilibration completed")' )
+            Equilibration = .false.
+          else
+            write( IOBuffer, '("MUVL equilibration TERMINATED")' )
           end if
           call LogWriteTime
 

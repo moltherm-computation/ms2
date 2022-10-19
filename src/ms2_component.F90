@@ -550,6 +550,13 @@ contains
       &       trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
       call LogWrite
 
+    else if( EnsembleType .eq. EnsembleTypeMUVL ) then
+        ! Read chemical potential
+        call FileReadParameter( this%ChemPot0, paramsFile%iounit , IdChemPot, .false. )
+        write( IOBuffer,'("Reduced ChemPot0 of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
+        &       trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
+        call LogWrite
+
     else
       ! Read method for calculation of chemical potential
       call FileReadParameter( str, paramsFile%iounit, IdChemPotMethod, .false., "NONE" )
@@ -1015,7 +1022,7 @@ contains
       call Construct( this%SumChemPotGE, .false. )
     endif
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeMUVL .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Construct( this%SumFraction, .false. )
     end if
 
@@ -1076,7 +1083,7 @@ contains
       call Destruct( this%SumChemPotGE )
     endif
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeMUVL .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumFraction )
     end if
 
@@ -1181,10 +1188,10 @@ contains
 
     !EinsteinCoef ri0_E nullify
     if (( TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
-      nullify( this%ri0_E_x ) 
+      nullify( this%ri0_E_x )
       nullify( this%ri0_E_y )
       nullify( this%ri0_E_z )
-    end if  
+    end if
 
 #if OSMOP > 0
     nullify( this%FOsmoticPressure )
@@ -1280,7 +1287,7 @@ contains
     this%FRC2(:,:)  = 0._RK
     this%FRC3(:,:)  = 0._RK
 !TRANSPORT_END
-#endif 
+#endif
 
     ! Centers of mass positions
     allocate( this%P0( np, 3 ), STAT = stat )
@@ -1971,7 +1978,7 @@ contains
        call Error
      end if
 
-     if ( ((EnsembleType .eq. EnsembleTypeGE) .or. (EnsembleType .eq. EnsembleTypeMUVT) .or. (EnsembleType .eq. EnsembleTypeHA)) .and. (abs(q) .ge. 1e-1) ) then
+     if ( ((EnsembleType .eq. EnsembleTypeGE) .or. (EnsembleType .eq. EnsembleTypeMUVT) .or. (EnsembleType .eq. EnsembleTypeMUVL) .or. (EnsembleType .eq. EnsembleTypeHA)) .and. (abs(q) .ge. 1e-1) ) then
        write (ErrorBuffer,'("GrandEquilibrium not possible in a charged system, q=",G16.9)') q
        call Error
      end if
@@ -3034,7 +3041,7 @@ contains
     this%FRC2(:,:) = 0._RK
     this%FRC3(:,:) = 0._RK
 #endif
-    
+
     ! Assign local variables
     BoxLength = this%BoxLength
 
@@ -3064,7 +3071,7 @@ contains
           fy = pMIEnm%FY(i)
           fz = pMIEnm%FZ(i)
 #if  TRANS == 1
-      
+
           vsx = pMIEnm%vsMIEx(i)
           vsy = pMIEnm%vsMIEy(i)
           vsz = pMIEnm%vsMIEz(i)
@@ -3136,7 +3143,7 @@ contains
           fy = pTT68%FY(i)
           fz = pTT68%FZ(i)
 #if  TRANS == 1
-  
+
           vsx = pTT68%vsTTx(i)
           vsy = pTT68%vsTTy(i)
           vsz = pTT68%vsTTz(i)
@@ -3169,7 +3176,7 @@ contains
           this%T(i, 2) = this%T(i, 2) + r1z * fx - r1x * fz
           this%T(i, 3) = this%T(i, 3) + r1x * fy - r1y * fx
 #if  TRANS == 1
-    
+
           this%FS(i, 1)= this%FS(i, 1)+ vsx
           this%FS(i, 2)= this%FS(i, 2)+ vsy
           this%FS(i, 3)= this%FS(i, 3)+ vsz
@@ -3230,7 +3237,7 @@ contains
           tdx = pCharge%tdCx(i)
           tdy = pCharge%tdCy(i)
           tdz = pCharge%tdCz(i)
-         
+
 #endif
           r1x = ( pCharge%RX(i) - rx(i) ) * BoxLength
           r1y = ( pCharge%RY(i) - ry(i) ) * BoxLength
@@ -3242,7 +3249,7 @@ contains
           this%T(i, 2) = this%T(i, 2) + r1z * fx - r1x * fz
           this%T(i, 3) = this%T(i, 3) + r1x * fy - r1y * fx
 #if  TRANS == 1
-     
+
           this%FS(i, 1)= this%FS(i, 1)+ vsx
           this%FS(i, 2)= this%FS(i, 2)+ vsy
           this%FS(i, 3)= this%FS(i, 3)+ vsz
@@ -3281,7 +3288,7 @@ contains
           fy = pDipole%FY(i)
           fz = pDipole%FZ(i)
 #if  TRANS == 1
-        
+
           vsx = pDipole%vsDx(i)
           vsy = pDipole%vsDy(i)
           vsz = pDipole%vsDz(i)
@@ -3303,7 +3310,7 @@ contains
           tdx = pDipole%tdDx(i)
           tdy = pDipole%tdDy(i)
           tdz = pDipole%tdDz(i)
-         
+
 #endif
           r1x = ( pDipole%RX(i) - rx(i) ) * BoxLength
           r1y = ( pDipole%RY(i) - ry(i) ) * BoxLength
@@ -3321,7 +3328,7 @@ contains
 &                                     - pDipole%OY(i) * pDipole%TX(i) &
 &                                     + r1x * fy - r1y * fx
 #if  TRANS == 1
-         
+
           this%FS(i, 1)= this%FS(i, 1)+ vsx
           this%FS(i, 2)= this%FS(i, 2)+ vsy
           this%FS(i, 3)= this%FS(i, 3)+ vsz
@@ -3401,7 +3408,7 @@ contains
 &                                     - pQuadrupole%OY(i) * pQuadrupole%TX(i) &
 &                                     + r1x * fy - r1y * fx
 #if  TRANS == 1
-  
+
           this%FS(i, 1)= this%FS(i, 1)+ vsx
           this%FS(i, 2)= this%FS(i, 2)+ vsy
           this%FS(i, 3)= this%FS(i, 3)+ vsz
@@ -3460,7 +3467,7 @@ contains
         pMIEnm => this%Molecule%SiteMIEnm(j)
         do i = 1, np
 #if  TRANS == 1
-  
+
           vsx = pMIEnm%vsMIEx(i)
           vsy = pMIEnm%vsMIEy(i)
           vsz = pMIEnm%vsMIEz(i)
@@ -3542,7 +3549,7 @@ contains
             this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
             this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
             this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
-        
+
 #endif
         end do
       end do
@@ -3556,7 +3563,7 @@ contains
             this%F(i, 2) = this%F(i, 2) + pCharge%FY(i)
             this%F(i, 3) = this%F(i, 3) + pCharge%FZ(i)
 #if  TRANS == 1
-       
+
             vsx = pCharge%vsCx(i)
             vsy = pCharge%vsCy(i)
             vsz = pCharge%vsCz(i)
@@ -3569,7 +3576,7 @@ contains
             this%FB(i, 1)= this%FB(i, 1)+ vbx
             this%FB(i, 2)= this%FB(i, 2)+ vby
             this%FB(i, 3)= this%FB(i, 3)+ vbz
-           
+
 #endif
           end do
         end do
@@ -4169,12 +4176,22 @@ loop1:do i = 1, this%NPart
       return
     end if
 
+    if( this%NPart >= this%NPartMax .and. EnsembleType .eq. EnsembleTypeMUVL ) then
+      tooManyParticles = .true.
+      return
+    end if
+
     if( this%NPart > this%NPartMax .and. EnsembleType .ne. EnsembleTypeGE) then
       tooManyParticles = .true.
       return
     end if
 
     if( this%NPart > this%NPartMax .and. EnsembleType .ne. EnsembleTypeMUVT) then
+      tooManyParticles = .true.
+      return
+    end if
+
+    if( this%NPart > this%NPartMax .and. EnsembleType .ne. EnsembleTypeMUVL) then
       tooManyParticles = .true.
       return
     end if

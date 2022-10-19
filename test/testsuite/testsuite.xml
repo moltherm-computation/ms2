@@ -51,8 +51,8 @@
 		<case name="MD_NVT_leap_CO2_alpha" file="MD_NVT_leap_CO2_alpha.xml" />
 		<case name="MD_optpressure_site" file="MD_optpressure_site.xml" />
 		<case name="muVT" file="muVT.xml" />
-		<case name="muVT_AccInserts" file="muVT_AccInserts.xml" />
-		<case name="muVT_restart" file="muVT_restart.xml" />
+		<!-- <case name="muVT_AccInserts" file="muVT_AccInserts.xml" /> -->
+		<!-- <case name="muVT_restart" file="muVT_restart.xml" /> -->
 		<case name="NPT_4mixT380--MD" file="NPT_4mixT380--MD.xml" />
 		<case name="NPTSVC_N2_O2_MC" file="NPTSVC_N2_O2_MC.xml" />
 		<case name="NVT_4mixT380--MC" file="NVT_4mixT380--MC.xml" />
