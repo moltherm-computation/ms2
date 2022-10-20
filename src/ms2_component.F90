@@ -2147,6 +2147,40 @@ contains
   end subroutine TComponent_CalculateEKin
 
 
+  subroutine move2End(this, np)
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent), pointer :: this
+    integer, intent(inout) :: np
+
+    ! Declare local variables
+    integer                     :: n1
+    real(RK)                    :: PSave(3), QSave(4)
+
+    n1 = this%NPart
+
+    ! Copy position and quaternions
+    PSave(:) = this%P0(np, :)
+    this%P0(np, :) = this%P0(n1, :)
+    this%P0(n1, :) = PSave(:)
+    if( this%Molecule%IsElongated ) then
+      QSave(:) = this%Q0(np, :)
+      this%Q0(np, :) = this%Q0(n1, :)
+      this%Q0(n1, :) = QSave(:)
+    end if
+
+    ! Convert molecular coordinates to atom positions
+    call Mol2Atom1( this, np )
+    call Mol2Atom1( this, n1 )
+
+    ! Set new particle number
+    np = n1
+
+  end subroutine move2End
+
+
 !==============================================================!
 !  Subroutine TComponent_Mol2Atom                              !
 !==============================================================!

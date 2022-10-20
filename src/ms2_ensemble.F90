@@ -824,10 +824,6 @@ module ms2_ensemble
     module procedure TEnsemble_Delete_MUVL
   end interface
 
-  interface Move2End
-    module procedure TEnsemble_Move2End
-  end interface
-
   interface Resize
     module procedure TEnsemble_Resize
   end interface
@@ -6569,7 +6565,7 @@ componentLoop:       do i = 1, this%NRealComponents
           ncf = pc%NFluctComp( pc%NFluctState )
           if( ncf == i ) then
             npf = rnd( pc%NPart )
-            call Move2End( this, ncf, npf )
+            call Move2End(pc, npf)
           else
             npf = 1
           end if
@@ -8470,7 +8466,7 @@ loop2:        do nc = 1, this%NComponents
     if( oldstate .eq. 0 ) then
       if( rnd( 0._RK, 1._RK ) < .5_RK ) then
         npf = rnd( pcf%NPart )
-        call Move2End( this, ncf, npf )
+        call Move2End(pcf, npf)
       end if
       newstate = 1
       pc%NFluctUpAttempts( newstate ) = pc%NFluctUpAttempts( newstate ) + 1
@@ -9393,51 +9389,6 @@ loop2:        do nc = 1, this%NComponents
 
 
   end subroutine TEnsemble_Delete_MUVL
-
-
-
-!==============================================================!
-!  Subroutine TEnsemble_Move2End                               !
-!==============================================================!
-
-  subroutine TEnsemble_Move2End( this, nc, np )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble)        :: this
-    integer, intent(in)    :: nc
-    integer, intent(inout) :: np
-
-    ! Declare local variables
-    type(TComponent), pointer   :: pc
-    type(TInteraction), pointer :: pi
-    integer                     :: n1
-    real(RK)                    :: PSave(3), QSave(4)
-
-    ! Assign local variables
-    pc => this%Component(nc)
-    n1 = pc%NPart
-
-    ! Copy position and quaternions
-    PSave(:) = pc%P0(np, :)
-    pc%P0(np, :) = pc%P0(n1, :)
-    pc%P0(n1, :) = PSave(:)
-    if( pc%Molecule%IsElongated ) then
-      QSave(:) = pc%Q0(np, :)
-      pc%Q0(np, :) = pc%Q0(n1, :)
-      pc%Q0(n1, :) = QSave(:)
-    end if
-
-    ! Convert molecular coordinates to atom positions
-    call Mol2Atom1( pc, np )
-    call Mol2Atom1( pc, n1 )
-
-    ! Set new particle number
-    np = n1
-
-  end subroutine TEnsemble_Move2End
-
 
 
 !==============================================================!
