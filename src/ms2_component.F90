@@ -543,19 +543,12 @@ contains
         call LogWrite
       end if
 
-    else if( EnsembleType .eq. EnsembleTypeMUVT ) then
+    else if( OpenSystem ) then
       ! Read chemical potential
       call FileReadParameter( this%ChemPot0, paramsFile%iounit , IdChemPot, .false. )
       write( IOBuffer,'("Reduced ChemPot0 of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
       &       trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
       call LogWrite
-
-    else if( EnsembleType .eq. EnsembleTypeMUVL ) then
-        ! Read chemical potential
-        call FileReadParameter( this%ChemPot0, paramsFile%iounit , IdChemPot, .false. )
-        write( IOBuffer,'("Reduced ChemPot0 of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
-        &       trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
-        call LogWrite
 
     else
       ! Read method for calculation of chemical potential
@@ -1022,7 +1015,7 @@ contains
       call Construct( this%SumChemPotGE, .false. )
     endif
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeMUVL .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( OpenSystem .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Construct( this%SumFraction, .false. )
     end if
 
@@ -1083,7 +1076,7 @@ contains
       call Destruct( this%SumChemPotGE )
     endif
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeMUVL .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( OpenSystem .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumFraction )
     end if
 
@@ -1978,8 +1971,8 @@ contains
        call Error
      end if
 
-     if ( ((EnsembleType .eq. EnsembleTypeGE) .or. (EnsembleType .eq. EnsembleTypeMUVT) .or. (EnsembleType .eq. EnsembleTypeMUVL) .or. (EnsembleType .eq. EnsembleTypeHA)) .and. (abs(q) .ge. 1e-1) ) then
-       write (ErrorBuffer,'("GrandEquilibrium not possible in a charged system, q=",G16.9)') q
+     if ( (OpenSystem .or. (EnsembleType .eq. EnsembleTypeHA)) .and. (abs(q) .ge. 1e-1) ) then
+       write (ErrorBuffer,'("Open ensemble simulation not possible in a charged system, q=",G16.9)') q
        call Error
      end if
 
@@ -2145,6 +2138,40 @@ contains
     end do
 
   end subroutine TComponent_CalculateEKin
+
+
+  subroutine move2End(this, np)
+
+    implicit none
+
+    ! Declare arguments
+    type(TComponent), pointer :: this
+    integer, intent(inout) :: np
+
+    ! Declare local variables
+    integer                     :: n1
+    real(RK)                    :: PSave(3), QSave(4)
+
+    n1 = this%NPart
+
+    ! Copy position and quaternions
+    PSave(:) = this%P0(np, :)
+    this%P0(np, :) = this%P0(n1, :)
+    this%P0(n1, :) = PSave(:)
+    if( this%Molecule%IsElongated ) then
+      QSave(:) = this%Q0(np, :)
+      this%Q0(np, :) = this%Q0(n1, :)
+      this%Q0(n1, :) = QSave(:)
+    end if
+
+    ! Convert molecular coordinates to atom positions
+    call Mol2Atom1( this, np )
+    call Mol2Atom1( this, n1 )
+
+    ! Set new particle number
+    np = n1
+
+  end subroutine move2End
 
 
 !==============================================================!
@@ -4166,32 +4193,12 @@ loop1:do i = 1, this%NPart
     real(RK), intent(in), optional :: q(4)
 
     ! Test boundaries of particle arrays
-    if( this%NPart >= this%NPartMax .and. EnsembleType .eq. EnsembleTypeGE ) then
+    if( this%NPart >= this%NPartMax .and. OpenSystem ) then
       tooManyParticles = .true.
       return
     end if
 
-    if( this%NPart >= this%NPartMax .and. EnsembleType .eq. EnsembleTypeMUVT ) then
-      tooManyParticles = .true.
-      return
-    end if
-
-    if( this%NPart >= this%NPartMax .and. EnsembleType .eq. EnsembleTypeMUVL ) then
-      tooManyParticles = .true.
-      return
-    end if
-
-    if( this%NPart > this%NPartMax .and. EnsembleType .ne. EnsembleTypeGE) then
-      tooManyParticles = .true.
-      return
-    end if
-
-    if( this%NPart > this%NPartMax .and. EnsembleType .ne. EnsembleTypeMUVT) then
-      tooManyParticles = .true.
-      return
-    end if
-
-    if( this%NPart > this%NPartMax .and. EnsembleType .ne. EnsembleTypeMUVL) then
+    if( this%NPart > this%NPartMax .and. .not. OpenSystem ) then
       tooManyParticles = .true.
       return
     end if

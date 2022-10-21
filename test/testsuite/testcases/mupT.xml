@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>mupT_T120.par</parFile>
+	<name>mupT</name>
+	<np>3</np>
+	<reference>
+		<file>mupT_T120.rst</file>
+	</reference>
+	<reference>
+		<file>mupT_T120_1.res</file>
+	</reference>
+	<reference>
+		<file>mupT_T120_1.rav</file>
+	</reference>
+	<reference>
+		<file>mupT_T120_1.run</file>
+	</reference>
+</testcase>

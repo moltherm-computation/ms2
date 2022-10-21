@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<testcase>
+	<parFile>mupR_T200.par</parFile>
+	<name>mupR</name>
+	<np>3</np>
+	<reference>
+		<file>mupR_T200.rst</file>
+	</reference>
+	<reference>
+		<file>mupR_T200_1.res</file>
+	</reference>
+	<reference>
+		<file>mupR_T200_1.rav</file>
+	</reference>
+	<reference>
+		<file>mupR_T200_1.run</file>
+	</reference>
+</testcase>
