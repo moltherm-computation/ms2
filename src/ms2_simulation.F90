@@ -629,6 +629,20 @@ contains
         EnsembleTypeString = 'MUVL'
         OpenSystem = .true.
 
+      case( 'MUPR', 'mupr' )
+        EnsembleType = EnsembleTypeMUPR
+        ConstantTemperature = .false.
+        ConstantPressure = .true.
+        EnsembleTypeString = 'MUPR'
+        OpenSystem = .true.
+
+      case( 'MUPT', 'mupt' )
+        EnsembleType = EnsembleTypeMUPT
+        ConstantTemperature = .true.
+        ConstantPressure = .true.
+        EnsembleTypeString = 'MUPT'
+        OpenSystem = .true.
+
       case default
         call Error( trim( str )//' ensemble is not implemented' )
       end select
@@ -641,7 +655,7 @@ contains
 &         call Error( trim( SimulationTypeString )//" simulation of " &
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
 
-      if( (EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeMUVL .or. EnsembleType .eq. EnsembleTypeHA) &
+      if( ( OpenSystem .or. EnsembleType .eq. EnsembleTypeHA) &
 &         .and. .not. SimulationType .eq. MonteCarlo ) &
 &         call Error( trim( SimulationTypeString )//" simulation of " &
 &         //trim( EnsembleTypeString )//" ensemble is not implemented" )
@@ -738,6 +752,16 @@ contains
         else if( EnsembleType .eq. EnsembleTypeNPH ) then
           call FileReadParameter( NStepsH, paramsFile%iounit , IdNStepsH, .true., 0 )
           write( IOBuffer, '("Number of NPH equilibration steps: ",T40, I7)' ) NStepsH
+          call LogWrite
+
+        else if( EnsembleType .eq. EnsembleTypeMUPR ) then
+          call FileReadParameter( NStepsP, paramsFile%iounit , IdNStepsMueR, .true., 0 )
+          write( IOBuffer, '("Number of MUPR equilibration steps: ",T40, I7)' ) NStepsP
+          call LogWrite
+
+        else if( EnsembleType .eq. EnsembleTypeMUPT ) then
+          call FileReadParameter( NStepsP, paramsFile%iounit , IdNStepsMueP, .true., 0 )
+          write( IOBuffer, '("Number of MUPT equilibration steps: ",T40, I7)' ) NStepsP
           call LogWrite
 
         else
@@ -1735,7 +1759,7 @@ contains
               endif
 
               if (Equilibration) then
-                if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. EnsembleType .eq. EnsembleTypeMUVL) NStepsP = 1
+                if( OpenSystem ) NStepsP = 1
                 if( ConstantPressure ) then
                   if(EnsembleType .eq. EnsembleTypeNPH ) then
                     NStepsH = 1
@@ -1972,6 +1996,60 @@ eqloop: do
             write( IOBuffer, '("MUVL equilibration TERMINATED")' )
           end if
           call LogWriteTime
+
+        else if( EnsembleType .eq. EnsembleTypeMUPR ) then
+          StepEnd = NStepsP
+
+          call LogWriteBlank
+          if( Restart ) then
+            write( IOBuffer, '("Resuming MUPR equilibration")' )
+            Restart = .false.
+          else
+            write( IOBuffer, '("Starting MUPR equilibration")' )
+          end if
+
+          call Timer_setTag(RunStepsTimer,"MUPR equilibration")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
+          call RunSteps( this, StepStart, StepEnd )
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
+
+
+          if( .not. TerminateProgram ) then
+            write( IOBuffer, '("MUPR equilibration completed")' )
+            Equilibration = .false.
+          else
+            write( IOBuffer, '("MUPR equilibration TERMINATED")' )
+          end if
+          call LogWriteTime
+
+        else if( EnsembleType .eq. EnsembleTypeMUPT ) then
+          StepEnd = NStepsP
+
+          call LogWriteBlank
+          if( Restart ) then
+            write( IOBuffer, '("Resuming MUPT equilibration")' )
+            Restart = .false.
+          else
+            write( IOBuffer, '("Starting MUPT equilibration")' )
+          end if
+
+          call Timer_setTag(RunStepsTimer,"MUPT equilibration")
+          call start_Timer(RunStepsTimer)
+          call logwritestart_Timer(RunStepsTimer)
+          call RunSteps( this, StepStart, StepEnd )
+          call stop_Timer(RunStepsTimer)
+          call logwritestop_Timer(RunStepsTimer)
+
+
+          if( .not. TerminateProgram ) then
+            write( IOBuffer, '("MUPT equilibration completed")' )
+            Equilibration = .false.
+          else
+            write( IOBuffer, '("MUPT equilibration TERMINATED")' )
+          end if
+          call LogWriteTime    
 
         else if( EnsembleType .eq. EnsembleTypeHA ) then
           StepEnd = NStepsP

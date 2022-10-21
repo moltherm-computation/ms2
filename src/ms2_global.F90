@@ -324,6 +324,7 @@ module ms2_global
   character(*), parameter :: IdNStepsH                     = 'NPHSteps'
   character(*), parameter :: IdNStepsMue                   = 'mueVTSteps'
   character(*), parameter :: IdNStepsMueL                  = 'mueVLSteps'
+  character(*), parameter :: IdNStepsMueR                  = 'muePRSteps'
   character(*), parameter :: IdNStepsMueP                  = 'muePTSteps'
   character(*), parameter :: IdNSteps                      = 'RunSteps'
   character(*), parameter :: IdBlockSize                   = 'ResultFreq'
@@ -594,6 +595,8 @@ module ms2_global
   integer, parameter :: EnsembleTypeNPTSVC = 7             ! NpT + SVC
   integer, parameter :: EnsembleTypeMUVT = 8               ! muVT
   integer, parameter :: EnsembleTypeMUVL = 9               ! Hill muVL
+  integer, parameter :: EnsembleTypeMUPR = 10              ! Ray mupR
+  integer, parameter :: EnsembleTypeMUPT = 11              ! Guggenheim mupT
   integer            :: EnsembleType
   logical            :: ConstantTemperature, ConstantPressure, OpenSystem
 
