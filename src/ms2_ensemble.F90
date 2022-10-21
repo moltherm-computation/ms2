@@ -5575,10 +5575,9 @@ loop6:      do nc = 1, this%NComponents
               sx = sx + this%Component(nc)%Fraction
               if( rx <= sx ) exit loop6
             end do loop6
-            ! TODO: wird Referenzen für muVT verändern
-            ! if ( (rx < 0.5_RK) .and. (this%Npart < this%NPartMax) ) then 
+            if ( (rx < 0.5_RK) .and. (this%Npart < this%NPartMax) ) then 
               call Insert( this, nc )
-            ! else if( this%NPart > N_min ) then
+            else if( this%NPart > N_min ) then
               s = 0._RK
               r = rnd( this%NPart )
 
@@ -5589,7 +5588,7 @@ loop7:        do nc = 1, this%NComponents
 
               np = 1 + s - r
               call Delete( this, nc, np )
-            ! end if
+            end if
           end do
         end if
 
