@@ -332,15 +332,18 @@ module ms2_ensemble
     type(TAccumulator) :: SumNPart2EPot
     type(TAccumulator) :: SumNPartEpot2
     type(TAccumulator) :: SumNPartdEpotdV
-    type(TAccumulator) :: SumJ100
-    type(TAccumulator) :: SumJ200
-    type(TAccumulator) :: SumJ001
-    type(TAccumulator) :: SumJ002
-    type(TAccumulator) :: SumJ020
-    type(TAccumulator) :: SumJ101
-    type(TAccumulator) :: SumJ010
-    type(TAccumulator) :: SumJ110
-    type(TAccumulator) :: SumJ011
+
+    ! thermodynamic potential in open systems
+
+    type(TAccumulator) :: SumP100
+    type(TAccumulator) :: SumP200
+    type(TAccumulator) :: SumP001
+    type(TAccumulator) :: SumP002
+    type(TAccumulator) :: SumP020
+    type(TAccumulator) :: SumP101
+    type(TAccumulator) :: SumP010
+    type(TAccumulator) :: SumP110
+    type(TAccumulator) :: SumP011
 
     ! Hill Ensemble MUVL
     type(TAccumulator) :: SumOmega000
@@ -2887,6 +2890,15 @@ contains
 
       if( OpenSystem .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
         call Construct( this%SumNPart, .false. )
+        call Construct( this%SumP100, .true. )
+        call Construct( this%SumP200, .true. )
+        call Construct( this%SumP020, .true. )
+        call Construct( this%SumP001, .true. )
+        call Construct( this%SumP002, .true. )
+        call Construct( this%SumP101, .true. )
+        call Construct( this%SumP010, .true. )
+        call Construct( this%SumP110, .true. )
+        call Construct( this%SumP011, .true. )
         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
           call Construct( this%SumNPart2, .false. )
           call Construct( this%SumNPart3, .false. )
@@ -2900,15 +2912,6 @@ contains
           call Construct( this%SumNPartEPot2, .false. )
           call Construct( this%SumNPart2EPot, .false. )
           call Construct( this%SumNPartdEpotdV, .false. )
-          call Construct( this%SumJ100, .true. )
-          call Construct( this%SumJ200, .true. )
-          call Construct( this%SumJ020, .true. )
-          call Construct( this%SumJ001, .true. )
-          call Construct( this%SumJ002, .true. )
-          call Construct( this%SumJ101, .true. )
-          call Construct( this%SumJ010, .true. )
-          call Construct( this%SumJ110, .true. )
-          call Construct( this%SumJ011, .true. )
         else if( EnsembleType .eq. EnsembleTypeMUVL ) then
           call Construct( this%SumOmega000, .false. )
           call Construct( this%SumOmega200, .false. )
@@ -3179,6 +3182,15 @@ contains
 
     if( OpenSystem .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Destruct( this%SumNPart )
+      call Destruct( this%SumP100 )
+      call Destruct( this%SumP200 )
+      call Destruct( this%SumP020 )
+      call Destruct( this%SumP001 )
+      call Destruct( this%SumP002 )
+      call Destruct( this%SumP101 )
+      call Destruct( this%SumP010 )
+      call Destruct( this%SumP110 )
+      call Destruct( this%SumP011 )
       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
         call Destruct( this%SumNPart2 )
         call Destruct( this%SumNPart3 )
@@ -3192,15 +3204,6 @@ contains
         call Destruct( this%SumNPartEPot2 )
         call Destruct( this%SumNPart2EPot )
         call Destruct( this%SumNPartdEpotdV )
-        call Destruct( this%SumJ100 )
-        call Destruct( this%SumJ200 )
-        call Destruct( this%SumJ020 )
-        call Destruct( this%SumJ001 )
-        call Destruct( this%SumJ002 )
-        call Destruct( this%SumJ101 )
-        call Destruct( this%SumJ010 )
-        call Destruct( this%SumJ110 )
-        call Destruct( this%SumJ011 )
       else if( EnsembleType .eq. EnsembleTypeMUVL ) then
         call Destruct( this%SumOmega000 )
         call Destruct( this%SumOmega200 )
@@ -11510,6 +11513,15 @@ loop2:        do nc = 1, this%NComponents
 
       if( OpenSystem .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
         call Reset( this%SumNPart )
+        call Reset( this%SumP100 )
+        call Reset( this%SumP200 )
+        call Reset( this%SumP020 )
+        call Reset( this%SumP001 )
+        call Reset( this%SumP002 )
+        call Reset( this%SumP101 )
+        call Reset( this%SumP010 )
+        call Reset( this%SumP110 )
+        call Reset( this%SumP011 )
         if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
           call Reset( this%SumNPart2 )
           call Reset( this%SumNPart3 )
@@ -11523,15 +11535,6 @@ loop2:        do nc = 1, this%NComponents
           call Reset( this%SumNPartEPot2 )
           call Reset( this%SumNPart2EPot )
           call Reset( this%SumNPartdEpotdV )
-          call Reset( this%SumJ100 )
-          call Reset( this%SumJ200 )
-          call Reset( this%SumJ020 )
-          call Reset( this%SumJ001 )
-          call Reset( this%SumJ002 )
-          call Reset( this%SumJ101 )
-          call Reset( this%SumJ010 )
-          call Reset( this%SumJ110 )
-          call Reset( this%SumJ011 )
           call Reset( this%SumCVsm )
           call Reset( this%SumCPsm )
           call Reset( this%SumGammaVsm )
@@ -11886,25 +11889,25 @@ loop2:        do nc = 1, this%NComponents
         Psi011res = beta*InvVol*Numb2-Beta2*NdUdV
         Psi110res = factor*InvVol*Numb2-Beta*factor*NdUdV-InvVol*NU-dUdV+Beta*UdUdV
 
-        call Update( this%SumJ100, Psi100res )
-        call Update( this%SumJ010, Psi010res )
-        call Update( this%SumJ001, Psi001res )
-        call Update( this%SumJ200, Psi200res-Psi100res**2 )
-        call Update( this%SumJ020, Psi020res-Psi010res**2 )
-        call Update( this%SumJ002, Psi002res-Psi001res**2 )
-        call Update( this%SumJ110, Psi110res-Psi100res*Psi010res )
-        call Update( this%SumJ101, Psi101res-Psi100res*Psi001res )
-        call Update( this%SumJ011, Psi011res-Psi010res*Psi001res )
+        call Update( this%SumP100, Psi100res )
+        call Update( this%SumP010, Psi010res )
+        call Update( this%SumP001, Psi001res )
+        call Update( this%SumP200, Psi200res-Psi100res**2 )
+        call Update( this%SumP020, Psi020res-Psi010res**2 )
+        call Update( this%SumP002, Psi002res-Psi001res**2 )
+        call Update( this%SumP110, Psi110res-Psi100res*Psi010res )
+        call Update( this%SumP101, Psi101res-Psi100res*Psi001res )
+        call Update( this%SumP011, Psi011res-Psi010res*Psi001res )
 
-        CV = ( Beta2*this%SumJ200%Average - ( (this%SumJ001%Average - Beta*this%SumJ101%Average)**2 )&
-        &           /this%SumJ002%Average )/real( this%SumNPart%Average, RK )
+        CV = ( Beta2*this%SumP200%Average - ( (this%SumP001%Average - Beta*this%SumP101%Average)**2 )&
+        &           /this%SumP002%Average )/real( this%SumNPart%Average, RK )
 
-        GammaV = ( this%SumJ010%Average-Beta*this%SumJ110%Average - this%SumJ011%Average &
-        &              * ( this%SumJ001%Average - Beta*this%SumJ101%Average )/this%SumJ002%Average ) &
+        GammaV = ( this%SumP010%Average-Beta*this%SumP110%Average - this%SumP011%Average &
+        &              * ( this%SumP001%Average - Beta*this%SumP101%Average )/this%SumP002%Average ) &
         &              / real( this%SumNPart%Average, RK )
 
-        BetaT = -Beta*InvVol*real( this%SumNPart%Average, RK )/( this%SumJ020%Average- &
-        &                (this%SumJ011%Average**2) / this%SumJ002%Average )
+        BetaT = -Beta*InvVol*real( this%SumNPart%Average, RK )/( this%SumP020%Average- &
+        &                (this%SumP011%Average**2) / this%SumP002%Average )
 
         CP = CV + specv*InvBeta*BetaT*(GammaV**2)
 
@@ -11955,6 +11958,16 @@ loop2:        do nc = 1, this%NComponents
         O110 = this%SumNpartV%Average - this%SumOmega110%Average
         O011 = this%SumNpart2V%Average - this%SumOmega011%Average
 
+        call Update( this%SumP100, 1/O000 )
+        call Update( this%SumP200, (O200-1/O000)/O000 )
+        call Update( this%SumP010, O010/O000 )
+        call Update( this%SumP020, (O020-O010*O010/O000)/O000 )
+        call Update( this%SumP001, O001/O000 )
+        call Update( this%SumP002, (O002-O001*O001/O000)/O000 )
+        call Update( this%SumP110, (O110-O010/O000)/O000 )
+        call Update( this%SumP101, (O101-O001/O000)/O000 )
+        call Update( this%SumP011, (O011-O010*O001/O000)/O000 ) 
+ 
         dTdL = 1 - O000*O200
         dTdV = O010 - O000*O110
         dTdmu = O001 - O000*O101
@@ -12016,6 +12029,16 @@ loop2:        do nc = 1, this%NComponents
         O110 = -this%SumOmega110%Average
         O011 = -this%SumOmega011%Average
 
+        call Update( this%SumP100, 1/O000 )
+        call Update( this%SumP200, (O200-1/O000)/O000 )
+        call Update( this%SumP010, O010/O000 )
+        call Update( this%SumP020, (O020-O010*O010/O000)/O000 )
+        call Update( this%SumP001, O001/O000 )
+        call Update( this%SumP002, (O002-O001*O001/O000)/O000 )
+        call Update( this%SumP110, (O110-O010/O000)/O000 )
+        call Update( this%SumP101, (O101-O001/O000)/O000 )
+        call Update( this%SumP011, (O011-O010*O001/O000)/O000 ) 
+
         dTdR = 1 - O000*O200
         dTdp = O010 - O000*O110
         dTdmu = O001 - O000*O101
@@ -12076,6 +12099,16 @@ loop2:        do nc = 1, this%NComponents
         Xi110 = this%SumNVmV%Average + Beta*this%SumZeroV%Average
         Xi101 = this%SumNmN2%Average - Beta*this%SumZeroN%Average
         Xi011 = -Beta2*this%SumNV%Average
+
+        call Update( this%SumP100, Xi100 )
+        call Update( this%SumP200, Xi200-Xi100*Xi100 )
+        call Update( this%SumP010, Xi010 )
+        call Update( this%SumP020, Xi020-Xi010*Xi010 )
+        call Update( this%SumP001, Xi001 )
+        call Update( this%SumP002, Xi002-Xi001*Xi001 )
+        call Update( this%SumP110, Xi110-Xi100*Xi010 )
+        call Update( this%SumP101, Xi101-Xi100*Xi001 )
+        call Update( this%SumP011, Xi011-Xi001*Xi010 ) 
 
         CP = (Beta2*(Xi200-Xi100**2) - ((Xi001-Beta*(Xi101-Xi100*Xi001))**2) / (Xi002-Xi001**2)) / this%SumNPart%Average
 
@@ -14108,27 +14141,48 @@ loop2:        do nc = 1, this%NComponents
       end if
     end if
 
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT .or. &
-    & EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
+    if( OpenSystem .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       do i = 1, this%NComponents
         pc => this%Component(i)
         call Error( pc%SumFraction )
       end do
 
-      call Error( this%SumJ001 )
-      call Error( this%SumJ002 )
-      call Error( this%SumJ100 )
-      call Error( this%SumJ200 )
-      call Error( this%SumJ020 )
-      call Error( this%SumJ101 )
-      call Error( this%SumJ010 )
-      call Error( this%SumJ110 )
-      call Error( this%SumJ011 )
-      call Error( this%SumCVsm )
-      call Error( this%SumGammaVsm )
-      call Error( this%SumBetaTsm )
-      call Error( this%SumAlphaPsm )
-      call Error( this%SumCPsm )
+      if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
+        call Error( this%SumP001 )
+        call Error( this%SumP002 )
+        call Error( this%SumP100 )
+        call Error( this%SumP200 )
+        call Error( this%SumP020 )
+        call Error( this%SumP101 )
+        call Error( this%SumP010 )
+        call Error( this%SumP110 )
+        call Error( this%SumP011 )
+        call Error( this%SumCVsm )
+        call Error( this%SumGammaVsm )
+        call Error( this%SumBetaTsm )
+        call Error( this%SumAlphaPsm )
+        call Error( this%SumCPsm )
+      else if( EnsembleType .eq. EnsembleTypeMUVL .or. EnsembleType .eq. EnsembleTypeMUPR ) then
+        call Error( this%SumP001 )
+        call Error( this%SumP002 )
+        call Error( this%SumP100 )
+        call Error( this%SumP200 )
+        call Error( this%SumP020 )
+        call Error( this%SumP101 )
+        call Error( this%SumP010 )
+        call Error( this%SumP110 )
+        call Error( this%SumP011 )
+      else if( EnsembleType .eq. EnsembleTypeMUPT ) then
+        call Error( this%SumP001 )
+        call Error( this%SumP002 )
+        call Error( this%SumP100 )
+        call Error( this%SumP200 )
+        call Error( this%SumP020 )
+        call Error( this%SumP101 )
+        call Error( this%SumP010 )
+        call Error( this%SumP110 )
+        call Error( this%SumP011 )
+      end if
 
     else
       if( ConstantPressure ) then
@@ -16425,27 +16479,67 @@ end if
       call FileWrite(this%errorsFile)
       call FileWriteBlank(this%errorsFile)
 
-      call writeAverageAndVariance(this%SumJ100, "J100", this%errorsFile, .true.)
+      call writeAverageAndVariance(this%SumP100, "J100", this%errorsFile, .true.)
 
-      call writeAverageAndVariance(this%SumJ010, "J010", this%errorsFile, .true.)
+      call writeAverageAndVariance(this%SumP010, "J010", this%errorsFile, .true.)
 
-      call writeAverageAndVariance(this%SumJ001, "J001", this%errorsFile, .true.)
+      call writeAverageAndVariance(this%SumP001, "J001", this%errorsFile, .true.)
 
-      call writeAverageAndVariance(this%SumJ200, "J200", this%errorsFile, .true.)
+      call writeAverageAndVariance(this%SumP200, "J200", this%errorsFile, .true.)
 
-      call writeAverageAndVariance(this%SumJ020, "J020", this%errorsFile, .true.)
+      call writeAverageAndVariance(this%SumP020, "J020", this%errorsFile, .true.)
 
-      call writeAverageAndVariance(this%SumJ002, "J002", this%errorsFile, .true.)
+      call writeAverageAndVariance(this%SumP002, "J002", this%errorsFile, .true.)
 
-      call writeAverageAndVariance(this%SumJ110, "J110", this%errorsFile, .true.)
+      call writeAverageAndVariance(this%SumP110, "J110", this%errorsFile, .true.)
 
-      call writeAverageAndVariance(this%SumJ101, "J101", this%errorsFile, .true.)
+      call writeAverageAndVariance(this%SumP101, "J101", this%errorsFile, .true.)
 
-      call writeAverageAndVariance(this%SumJ011, "J011", this%errorsFile, .true.)
+      call writeAverageAndVariance(this%SumP011, "J011", this%errorsFile, .true.)
 
-    else if( EnsembleType .eq. EnsembleTypeMUVL .or. EnsembleType .eq. EnsembleTypeMUPR .or. EnsembleType .eq. EnsembleTypeMUPT ) then
+    else if( EnsembleType .eq. EnsembleTypeMUVL .or. EnsembleType .eq. EnsembleTypeMUPR ) then
 
       call writeStatisticalAnalogues(this)
+
+      call writeAverageAndVariance(this%SumP100, "S100", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP010, "S010", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP001, "S001", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP200, "S200", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP020, "S020", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP002, "S002", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP110, "S110", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP101, "S101", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP011, "S011", this%errorsFile, .true.)
+
+    else if( EnsembleType .eq. EnsembleTypeMUPT ) then
+
+      call writeStatisticalAnalogues(this)
+
+      call writeAverageAndVariance(this%SumP100, "Z100", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP010, "Z010", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP001, "Z001", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP200, "Z200", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP020, "Z020", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP002, "Z002", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP110, "Z110", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP101, "Z101", this%errorsFile, .true.)
+
+      call writeAverageAndVariance(this%SumP011, "Z011", this%errorsFile, .true.)
 
     end if
 
@@ -22186,15 +22280,15 @@ end if
             call RestartSave( this%SumNPart2EPot )
             call RestartSave( this%SumNPartEpot2 )
             call RestartSave( this%SumNPartdEpotdV )
-            call RestartSave( this%SumJ100 )
-            call RestartSave( this%SumJ200 )
-            call RestartSave( this%SumJ001 )
-            call RestartSave( this%SumJ002 )
-            call RestartSave( this%SumJ020 )
-            call RestartSave( this%SumJ101 )
-            call RestartSave( this%SumJ010 )
-            call RestartSave( this%SumJ110 )
-            call RestartSave( this%SumJ011 )
+            call RestartSave( this%SumP100 )
+            call RestartSave( this%SumP200 )
+            call RestartSave( this%SumP001 )
+            call RestartSave( this%SumP002 )
+            call RestartSave( this%SumP020 )
+            call RestartSave( this%SumP101 )
+            call RestartSave( this%SumP010 )
+            call RestartSave( this%SumP110 )
+            call RestartSave( this%SumP011 )
             call RestartSave( this%SumCVsm )
             call RestartSave( this%SumBetaTsm )
             call RestartSave( this%SumGammaVsm )
@@ -22963,15 +23057,15 @@ if( RootProc .and. this%CorrfunMode ) then
         call RestartRead( this%SumNPart2EPot )
         call RestartRead( this%SumNPartEpot2 )
         call RestartRead( this%SumNPartdEpotdV )
-        call RestartRead( this%SumJ100 )
-        call RestartRead( this%SumJ200 )
-        call RestartRead( this%SumJ001 )
-        call RestartRead( this%SumJ002 )
-        call RestartRead( this%SumJ020 )
-        call RestartRead( this%SumJ101 )
-        call RestartRead( this%SumJ010 )
-        call RestartRead( this%SumJ110 )
-        call RestartRead( this%SumJ011 )
+        call RestartRead( this%SumP100 )
+        call RestartRead( this%SumP200 )
+        call RestartRead( this%SumP001 )
+        call RestartRead( this%SumP002 )
+        call RestartRead( this%SumP020 )
+        call RestartRead( this%SumP101 )
+        call RestartRead( this%SumP010 )
+        call RestartRead( this%SumP110 )
+        call RestartRead( this%SumP011 )
         call RestartRead( this%SumCVsm )
         call RestartRead( this%SumBetaTsm )
         call RestartRead( this%SumGammaVsm )
