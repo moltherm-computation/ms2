@@ -9929,7 +9929,7 @@ loop2:        do nc = 1, this%NComponents
     ! NPH
     if( EnsembleType .eq. EnsembleTypeNPH ) then
       if( exp(( real (this%NDF, RK) / 2._RK - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) &
-&       / (this%RefEnthalpy*this%NPart - EPotOld - this%RefPressure * VolumeOld)) + this%NPart * log(this%Volume0 / VolumeOld)) > rnd( 0._RK, 1._RK )) then
+&       / (this%RefEnthalpy*this%NPart - EPotOld - this%RefPressure * VolumeOld)) + (this%NPart-1) * log(this%Volume0 / VolumeOld)) > rnd( 0._RK, 1._RK )) then
 
         ! Accept volume change
         this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK)
@@ -10016,7 +10016,7 @@ loop2:        do nc = 1, this%NComponents
 
     else !NPT of MUPT
       EPotDelta = this%RefPressure * (this%Volume0 - VolumeOld) + this%EPot - EPotOld &
-&     + this%NPart * this%Temperature * log( VolumeOld / this%Volume0 )
+&     + (this%NPart-1) * this%Temperature * log( VolumeOld / this%Volume0 )
 
       accepted = EPotDelta < 0._RK
       if ( .not. accepted ) accepted = exp( -EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
