@@ -782,14 +782,6 @@ module ms2_ensemble
     module procedure TEnsemble_Rotate
   end interface
 
-  interface Rotate_NVE
-    module procedure TEnsemble_Rotate_NVE
-  end interface
-
-  interface Rotate_NPH
-    module procedure TEnsemble_Rotate_NPH
-  end interface
-
   interface MoveBiased
     module procedure TEnsemble_MoveBiased
   end interface
@@ -5424,27 +5416,7 @@ loop1:do nc = 1, this%NComponents
 
       else
 
-          if( EnsembleType .eq. EnsembleTypeNVE .and. .not. NVTEquilibration) then
-
-              call Rotate_NVE( this, nc, np )
-
-          else if( EnsembleType .eq. EnsembleTypeNPH .and. .not. NVTEquilibration) then
-
-              call Rotate_NPH( this, nc, np )
-
-          else if( EnsembleType .eq. EnsembleTypeMUVL .and. .not. NVTEquilibration) then
-
-              call Error ('muVL not implemented for non-spherical particles')
-
-          else if( EnsembleType .eq. EnsembleTypeMUPR .and. .not. NVTEquilibration) then
-
-              call Error ('mupR not implemented for non-spherical particles')
-
-          else
-
-              call Rotate( this, nc, np )
-
-          end if
+          call rotateParticle(this, nc, np)
 
       end if
 
@@ -7617,6 +7589,198 @@ loop2:        do nc = 1, this%NComponents
   end subroutine tmp_move
 
 
+  subroutine rotateParticle(this, nc, np)
+
+    implicit none
+
+    ! Include MPI header
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+    include 'mpif.h'
+#endif
+
+    type(TEnsemble)     :: this
+    integer, intent(in) :: nc, np
+
+    ! Declare local variables
+    real(RK)                  :: q(4), dq(3)
+    real(RK)                  :: EPotOld, EPotNew, NewOmega
+    real(RK)                  :: EPot, d2EdV2, Virial
+    real(RK)                  :: EFourier, EVirial
+    type(TComponent), pointer :: pc
+    integer                   :: i
+    real(RK)                  :: EPotDelta
+    logical                   :: accepted
+
+    ! Assign local variables
+    pc => this%Component(nc)
+
+    ! Update number of rotation attempts
+    pc%NRotateAttempts = pc%NRotateAttempts + 1
+
+    ! Save current particle orientation and energy
+    q(:) = pc%Q0(np, :)
+    call EnergyinRC(this, nc, np, EPotOld)
+
+    ! Save the Energies and Virials for a faster MoveRejction
+    if (LongRange .eq. Ewald) then
+
+        EFourier = this%UFourier
+
+        do i = 1, pc%Molecule%NCharge
+
+            this%rold(i, 1) = pc%Molecule%SiteCharge(i)%RX(np)
+            this%rold(i, 2) = pc%Molecule%SiteCharge(i)%RY(np)
+            this%rold(i, 3) = pc%Molecule%SiteCharge(i)%RZ(np)
+
+        end do
+
+#if SPME > 0
+    else if (LongRange .eq. PME) then
+
+        EFourier = this%UFourier
+        EVirial  = this%EVirial
+
+        call chargegrid_min(this, nc, np)
+#endif
+    end if
+
+    ! Generate a trial rotation
+    do i = 1, 3
+
+        dq(i) = rnd(-pc%DispRot, pc%DispRot)
+
+    end do
+
+    pc%Q0(np, 1) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
+    pc%Q0(np, 2) = q(2) + dq(1) * q(1) - dq(2) * q(4) + dq(3) * q(3)
+    pc%Q0(np, 3) = q(3) + dq(1) * q(4) + dq(2) * q(1) - dq(3) * q(2)
+    pc%Q0(np, 4) = q(4) - dq(1) * q(3) + dq(2) * q(2) + dq(3) * q(1)
+
+    ! Convert molecular coordinates to atom positions
+    call Mol2Atom1(pc, np)
+
+#if SPME > 0
+    if (LongRange .eq. PME) then
+
+        call chargegrid_plus(this, nc, np)
+
+    end if
+#endif
+
+    ! Calculate particle energy with trial orientation
+    MCOverlapDetected = .FALSE.
+    call EnergyinRC(this, nc, np, EPotNew)
+
+    ! Apply Metropolis acceptance criterion
+#if MPI_VER > 0
+    if ((Equilibration .and. CommonEqui) .or. (mpiMCCommonGroups > 0)) then
+        call MPI_Allreduce(EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror)
+
+    else
+        EPotDelta = EPotOld - EPotNew
+
+    endif
+
+#else
+    EPotDelta = EPotOld - EPotNew
+#endif
+
+    if (EnsembleType .eq. EnsembleTypeNVE .and. .not. NVTEquilibration) then
+
+        if ((this%RefHamiltonian * this%NPart - this%Epot + EPotDelta) < 0._RK) then
+            NewOmega = 0._RK
+
+        else
+            NewOmega = 1._RK
+
+        end if
+
+        accepted = ((this%RefHamiltonian * this%NPart - this%Epot + EPotDelta) / (this%RefHamiltonian * this%NPart - this%Epot))**((real(this%NDF, RK) - 2._RK) / 2._RK) * NewOmega .ge. rnd(0._RK, 1._RK)
+
+        if (accepted) then
+
+            ! Accept rotation
+            this%Temperature = 2._RK * (this%RefHamiltonian * this%NPart - this%Epot + EPotDelta) / real(this%NDF, RK)
+            this%EPot = this%EPot - EPotDelta
+
+        end if
+
+    else if (EnsembleType .eq. EnsembleTypeNPH .and. .not. NVTEquilibration) then
+
+        accepted = exp((real(this%NDF, RK) / 2._RK - 1._RK) * log((this%RefEnthalpy * this%NPart - this%Epot + EpotDelta - this%RefPressure * this%Volume0) &
+&           / (this%RefEnthalpy * this%NPart - this%Epot - this%RefPressure * this%Volume0))) > rnd(0._RK, 1._RK)
+
+        ! Acceptance criterion
+        if (accepted) then
+
+            ! Accept rotation
+            this%Temperature = 2._RK * (this%RefEnthalpy * this%NPart - this%Epot + EpotDelta - this%RefPressure * this%Volume0) / real(this%NDF, RK)
+            this%EPot = this%EPot - EPotDelta
+
+        end if
+
+    else if (EnsembleType .eq. EnsembleTypeMUVL .and. .not. NVTEquilibration) then
+
+        call Error ('muVL not implemented for non-spherical particles')
+
+    else if (EnsembleType .eq. EnsembleTypeMUPR .and. .not. NVTEquilibration) then
+
+        call Error ('mupR not implemented for non-spherical particles')
+
+    else
+
+        accepted = EPotDelta > 0._RK
+        if (.not. accepted) accepted = exp(EPotDelta / this%Temperature) > rnd(0._RK, 1._RK) .AND. .NOT. MCOverlapDetected
+
+    end if
+
+    if (accepted) then
+        ! Accept rotation
+        pc%NRotateSuccesses = pc%NRotateSuccesses + 1
+
+    else
+
+        ! Reject move
+        if (LongRange .eq. Ewald) then
+            this%UFourier = EFourier
+
+            do i = 1, pc%Molecule%NCharge
+
+                this%rold(i, 1) = pc%Molecule%SiteCharge(i)%RX(np)
+                this%rold(i, 2) = pc%Molecule%SiteCharge(i)%RY(np)
+                this%rold(i, 3) = pc%Molecule%SiteCharge(i)%RZ(np)
+
+            end do
+
+            pc%Q0(np, :) = q(:)
+            call Mol2Atom1(pc, np)
+
+            call EwaldFourierEnergy(this, nc, np)
+
+#if SPME > 0
+        else if (LongRange .eq. PME) then
+
+            this%UFourier = EFourier
+            this%EVirial  = EVirial
+
+            call chargegrid_min(this, nc, np)
+            pc%Q0(np, :) = q(:)
+
+            call Mol2Atom1(pc, np)
+            call chargegrid_plus(this, nc, np)
+#endif
+
+        else
+
+            pc%Q0(np, :) = q(:)
+            call Mol2Atom1(pc, np)
+
+        end if
+    end if
+
+  end subroutine rotateParticle
+
+
 !==============================================================!
 !  Subroutine TEnsemble_Rotate                                 !
 !==============================================================!
@@ -7743,273 +7907,6 @@ loop2:        do nc = 1, this%NComponents
     end if
 
   end subroutine TEnsemble_Rotate
-
-
-!==============================================================!
-!  Subroutine TEnsemble_Rotate_NVE                             !
-!==============================================================!
-
-  subroutine TEnsemble_Rotate_NVE( this, nc, np )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments03
-    type(TEnsemble)     :: this
-    integer, intent(in) :: nc, np
-
-    ! Declare local variables
-    real(RK)                  :: q(4), dq(3)
-    real(RK)                  :: EPotOld, EPotNew, NewOmega
-    real(RK)                  :: EPot, d2EdV2, Virial
-    real(RK)                  :: EFourier, EVirial
-    type(TComponent), pointer :: pc
-    integer                   :: i
-    real(RK)                  :: EPotDelta
-    logical                   :: accepted
-
-    ! Assign local variables
-    pc => this%Component(nc)
-
-    ! Update number of rotation attempts
-    pc%NRotateAttempts = pc%NRotateAttempts + 1
-
-    ! Save current particle orientation and energy
-    q(:) = pc%Q0(np, :)
-    call EnergyinRC( this, nc, np, EPotOld )
-
-    ! Save the Energies and Virials for a faster MoveRejction
-    if (LongRange .eq. Ewald) then
-      EFourier = this%UFourier
-      DO i=1,pc%Molecule%NCharge
-        this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
-        this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
-        this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
-      END DO
-
-#if SPME > 0
-    else if (LongRange .eq. PME) then
-      EFourier = this%UFourier
-      EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
-#endif
-    end if
-
-    ! Generate a trial rotation
-    do i = 1, 3
-      dq(i) = rnd( -pc%DispRot, pc%DispRot )
-    end do
-    pc%Q0(np, 1) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
-    pc%Q0(np, 2) = q(2) + dq(1) * q(1) - dq(2) * q(4) + dq(3) * q(3)
-    pc%Q0(np, 3) = q(3) + dq(1) * q(4) + dq(2) * q(1) - dq(3) * q(2)
-    pc%Q0(np, 4) = q(4) - dq(1) * q(3) + dq(2) * q(2) + dq(3) * q(1)
-
-
-    ! Convert molecular coordinates to atom positions
-    call Mol2Atom1( pc, np )
-
-#if SPME > 0
-    if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
-    end if
-#endif
-
-    ! Calculate particle energy with trial orientation
-    call EnergyinRC( this, nc, np, EPotNew )
-
-    ! Apply acceptance criterion
-#if MPI_VER > 0
-    if ( (Equilibration .and. CommonEqui) .or. (mpiMCCommonGroups > 0) ) then
-      call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-    else
-      EPotDelta = EPotOld - EPotNew
-    endif
-
-#else
-    EPotDelta = EPotOld - EPotNew
-#endif
-
-    if( (this%RefHamiltonian*this%NPart - this%Epot+EPotDelta) < 0._RK ) then
-      NewOmega = 0._RK
-    else
-      NewOmega = 1._RK
-    end if
-
-    if( ((this%RefHamiltonian*this%NPart - this%Epot+EPotDelta)/(this%RefHamiltonian*this%NPart - this%Epot))**((real (this%NDF, RK)-2._RK)/2._RK) * NewOmega .ge. rnd( 0._RK, 1._RK ) ) then
-      ! Accept rotation
-      this%Temperature = 2._RK * (this%RefHamiltonian*this%NPart - this%Epot+EPotDelta) / real (this%NDF, RK)
-      pc%NRotateSuccesses = pc%NRotateSuccesses + 1
-
-      this%EPot = this%EPot - EPotDelta
-
-    else
-
-      ! Reject move
-      if (LongRange .eq. Ewald) then
-        this%UFourier = EFourier
-        DO i=1,pc%Molecule%NCharge
-          this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
-          this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
-          this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
-        END DO
-        pc%Q0(np, :) = q(:)
-        call Mol2Atom1( pc, np )
-        call EwaldFourierEnergy(this,nc,np)
-
-#if SPME > 0
-      else if (LongRange .eq. PME) then
-        this%UFourier = EFourier
-        this%EVirial  = EVirial
-        call chargegrid_min  (this, nc, np)
-        pc%Q0(np, :) = q(:)
-        call Mol2Atom1( pc, np )
-        call chargegrid_plus (this, nc, np)
-#endif
-
-      else
-        pc%Q0(np, :) = q(:)
-        call Mol2Atom1( pc, np )
-      end if
-
-    end if
-
-  end subroutine TEnsemble_Rotate_NVE
-
-
-!==============================================================!
-!  Subroutine TEnsemble_Rotate_NPH                             !
-!==============================================================!
-
-  subroutine TEnsemble_Rotate_NPH( this, nc, np )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments03
-    type(TEnsemble)     :: this
-    integer, intent(in) :: nc, np
-
-    ! Declare local variables
-    real(RK)                  :: q(4), dq(3)
-    real(RK)                  :: EPotOld, EPotNew
-    real(RK)                  :: EPot, d2EdV2, Virial
-    real(RK)                  :: EFourier, EVirial
-    type(TComponent), pointer :: pc
-    integer                   :: i
-    real(RK)                  :: EPotDelta
-    logical                   :: accepted
-
-    ! Assign local variables
-    pc => this%Component(nc)
-
-    ! Update number of rotation attempts
-    pc%NRotateAttempts = pc%NRotateAttempts + 1
-
-    ! Save current particle orientation and energy
-    q(:) = pc%Q0(np, :)
-    call EnergyinRC( this, nc, np, EPotOld )
-
-    ! Save the Energies and Virials for a faster MoveRejction
-    if (LongRange .eq. Ewald) then
-      EFourier = this%UFourier
-      DO i=1,pc%Molecule%NCharge
-        this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
-        this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
-        this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
-      END DO
-
-#if SPME > 0
-    else if (LongRange .eq. PME) then
-      EFourier = this%UFourier
-      EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
-#endif
-    end if
-
-    ! Generate a trial rotation
-    do i = 1, 3
-      dq(i) = rnd( -pc%DispRot, pc%DispRot )
-    end do
-    pc%Q0(np, 1) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
-    pc%Q0(np, 2) = q(2) + dq(1) * q(1) - dq(2) * q(4) + dq(3) * q(3)
-    pc%Q0(np, 3) = q(3) + dq(1) * q(4) + dq(2) * q(1) - dq(3) * q(2)
-    pc%Q0(np, 4) = q(4) - dq(1) * q(3) + dq(2) * q(2) + dq(3) * q(1)
-
-
-    ! Convert molecular coordinates to atom positions
-    call Mol2Atom1( pc, np )
-
-#if SPME > 0
-    if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
-    end if
-#endif
-
-    ! Calculate particle energy with trial orientation
-    call EnergyinRC( this, nc, np, EPotNew )
-
-    ! Apply acceptance criterion
-#if MPI_VER > 0
-    if ( (Equilibration .and. CommonEqui) .or. (mpiMCCommonGroups > 0) ) then
-      call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-    else
-      EPotDelta = EPotOld - EPotNew
-    endif
-
-#else
-    EPotDelta = EPotOld - EPotNew
-#endif
-
-     ! Acceptance criterion
-    if( exp(( real (this%NDF, RK) / 2._RK - 1._RK) * log((this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) &
-&       / (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0))) > rnd( 0._RK, 1._RK ) ) then
-
-     ! Accept rotation
-      this%Temperature = 2._RK * (this%RefEnthalpy*this%NPart - this%Epot+EpotDelta - this%RefPressure * this%Volume0) / real (this%NDF, RK)
-      pc%NRotateSuccesses = pc%NRotateSuccesses + 1
-
-      this%EPot = this%EPot - EPotDelta
-
-    else
-
-      ! Reject move
-      if (LongRange .eq. Ewald) then
-        this%UFourier = EFourier
-        DO i=1,pc%Molecule%NCharge
-          this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
-          this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
-          this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
-        END DO
-        pc%Q0(np, :) = q(:)
-        call Mol2Atom1( pc, np )
-        call EwaldFourierEnergy(this,nc,np)
-
-#if SPME > 0
-      else if (LongRange .eq. PME) then
-        this%UFourier = EFourier
-        this%EVirial  = EVirial
-        call chargegrid_min  (this, nc, np)
-        pc%Q0(np, :) = q(:)
-        call Mol2Atom1( pc, np )
-        call chargegrid_plus (this, nc, np)
-#endif
-
-      else
-        pc%Q0(np, :) = q(:)
-        call Mol2Atom1( pc, np )
-      end if
-
-    end if
-
-  end subroutine TEnsemble_Rotate_NPH
 
 
 !==============================================================!
