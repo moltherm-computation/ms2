@@ -13697,9 +13697,22 @@ loop2:        do nc = 1, this%NComponents
 #endif
 
 
-    ! Open final result file
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( RootProc_MCCom ) then !=RootProc_W
+         ! Open final result file
+         write( IOBuffer, '(I16)' ) this%EnsembleNumber
+         call FileRewrite( this%errorsFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ErrorsFileExtension )
+       endif
+    else
+       ! Open final result file
+       write( IOBuffer, '(I16)' ) this%EnsembleNumber
+       call FileRewrite( this%errorsFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ErrorsFileExtension )
+    endif
+#else    ! Open final result file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileRewrite(this%errorsFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ErrorsFileExtension )
+    call FileRewrite( this%errorsFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ErrorsFileExtension )
+#endif
 
     call writeCitationHeader(this%errorsFile)
 
@@ -16273,9 +16286,20 @@ end if
     end if
     call FileWriteBlank(this%errorsFile)
 
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( RootProc_MCCom ) then !=RootProc_W
+         ! Close final result file
+         call FileClose( this%errorsFile )
+       endif
+    else
+       ! Close final result file
+       call FileClose( this%errorsFile )
+    endif
+#else
     ! Close final result file
-    call FileClose(this%errorsFile)
-
+    call FileClose( this%errorsFile )
+#endif
 
     ! Open ThermoInt result file
     if ( any(this%Component(:)%ChemPotMethod .eq. ChemPotMethodThermoInt)) then
@@ -17380,6 +17404,12 @@ end if
         end do
     end if
 
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
+
     ! Open visualization file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
     call FileRewrite(this%rdfFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
@@ -17447,10 +17477,23 @@ end if
     integer  :: RDFSum_out(RDFNumberShells)
 #endif
 
-
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( RootProc_MCCom ) then !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+         ! write header of *.rdf file
+         write( IOBuffer, '(I16)' ) this%EnsembleNumber
+         call FileRewrite( this%rdfFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+       endif
+    else
+       ! write header of *.rdf file
+       write( IOBuffer, '(I16)' ) this%EnsembleNumber
+       call FileRewrite( this%rdfFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+    endif
+#else
     ! write header of *.rdf file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileRewrite(this%rdfFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+    call FileRewrite( this%rdfFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//RDFFileExtension )
+#endif
 
     write(IOBuffer, '(T5," r [A]")')
     call FileWriteNoAdvance(this%rdfFile)
@@ -17666,6 +17709,11 @@ end if
     enddo
 #endif
 
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
     call FileClose(this%rdfFile)
 
 
@@ -17683,6 +17731,11 @@ end if
     ! Declare arguments
     type(TEnsemble) :: this
 
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+       if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Close visualization file
     write( IOBuffer, '("##")' )
@@ -17728,6 +17781,11 @@ end if
             this%KBIRDFvdVshfextra(:,p) = 0
         end do
 
+#if MPI_VER > 0
+        if ( mpiMCCommonGroups > 0 ) then
+           if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+        endif
+#endif
 
         ! Open running average KBI RDF file
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
@@ -17952,10 +18010,23 @@ end if
         this%KBIRDFvdVshfextra(:,p) = (this%KBIRDFvdVshfextra(:,p)*(this%KBIBlockCount-1)+RDFvdVshf(:,p))/this%KBIBlockCount
     end do
 
-
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+        if ( RootProc_MCCom ) then !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+          !Write running average RDF (center of mass) in *.kbirdf file
+          write( IOBuffer, '(I16)' ) this%EnsembleNumber
+          call FileRewrite( this%kbirdfFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )
+        endif
+    else
+        !Write running average RDF (center of mass) in *.kbirdf file
+        write( IOBuffer, '(I16)' ) this%EnsembleNumber
+        call FileRewrite( this%kbirdfFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )    
+    endif
+#else
     !Write running average RDF (center of mass) in *.kbirdf file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileRewrite(this%kbirdfFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )
+    call FileRewrite( this%kbirdfFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )
+#endif
 
     write(IOBuffer, '(T5,"last index: 1: RDF; 2: RDFvdV; 3: RDFvdVshf")')
     call FileWriteNoAdvance(this%kbirdfFile)
@@ -17990,7 +18061,17 @@ end if
     end do
     call FileWriteBlank(this%kbirdfFile)
 
-    call FileClose(this%kbirdfFile)
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+        if ( RootProc_MCCom ) then !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+          call FileClose( this%kbirdfFile )
+        endif
+    else
+        call FileClose( this%kbirdfFile )
+    endif
+#else
+    call FileClose( this%kbirdfFile )
+#endif
 
 
     ! Start of numerical Kirkwood-Buff Integration
@@ -18063,11 +18144,25 @@ end if
         call Error( this%SumKBIGij2(p), .false., .true. )
         call Error( this%SumKBIGij3(p), .false., .true. )
     end do
+	
 
-
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+        if ( RootProc_MCCom ) then !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+          !Write running average Gij from Accumulator in *.kbirav file
+          write( IOBuffer, '(I16)' ) this%EnsembleNumber
+          call FileAppend( this%kbiravFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIravFileExtension )
+        endif
+    else
+        !Write running average Gij from Accumulator in *.kbirav file
+        write( IOBuffer, '(I16)' ) this%EnsembleNumber
+        call FileAppend( this%kbiravFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIravFileExtension ) 
+    endif
+#else
     !Write running average Gij from Accumulator in *.kbirav file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
-    call FileAppend(this%kbiravFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIravFileExtension )
+    call FileAppend( this%kbiravFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIravFileExtension )
+#endif
 
     if ( SimulationType .eq. MonteCarlo ) then
         if (mpiMCCommonGroups>0) then
@@ -21251,6 +21346,11 @@ end if
     ! Declare arguments
     type(TEnsemble) :: this
 
+#if MPI_VER > 0
+    if ( mpiMCCommonGroups > 0 ) then
+        if ( .not. RootProc_MCCom ) return !=RootProc_W, only the head (RootProc_MCCom) of all RootProc (head of each group)
+    endif
+#endif
 
     ! Close KBI file
     call FileClose(this%kbiravFile)
