@@ -5387,7 +5387,7 @@ xloop:do i = 1, NCells1dim(1)
     integer  :: r, s
     integer  :: nc, np, ndf, N_min
     integer  :: i, k
-    real(RK) :: rx, sx
+    real(RK) :: rx, sx, tx
     real(RK) :: diffpressure
     real(RK) :: EPot, d2EdV2, Virial
 
@@ -5457,10 +5457,11 @@ loop1:do nc = 1, this%NComponents
           do i = 1, k
             sx = 0._RK
             rx = rnd( 0._RK, 1._RK )
+            tx = rnd( 0._RK, 1._RK )
 
 loop2:      do nc = 1, this%NComponents
               sx = sx + this%Component(nc)%Fraction
-              if( rx <= sx ) exit loop2
+              if( tx <= sx ) exit loop2
             end do loop2
             if ( (rx < 0.5_RK) ) then
               call Insert_MUVL( this, nc )
@@ -5481,10 +5482,11 @@ loop3:        do nc = 1, this%NComponents
           do i = 1, k
             sx = 0._RK
             rx = rnd( 0._RK, 1._RK )
+            tx = rnd( 0._RK, 1._RK )
 
 loop4:      do nc = 1, this%NComponents
               sx = sx + this%Component(nc)%Fraction
-              if( rx <= sx ) exit loop4
+              if( tx <= sx ) exit loop4
             end do loop4
             if ( (rx < 0.5_RK) ) then
               call Insert_MUPR( this, nc )
@@ -5507,12 +5509,13 @@ loop5:        do nc = 1, this%NComponents
           do i = 1, k
             sx = 0._RK
             rx = rnd( 0._RK, 1._RK )
+            tx = rnd( 0._RK, 1._RK )
 
 loop6:      do nc = 1, this%NComponents
               sx = sx + this%Component(nc)%Fraction
               if( rx <= sx ) exit loop6
             end do loop6
-            if ( (rx < 0.5_RK) .and. (this%Npart < this%NPartMax) ) then 
+            if ( (tx < 0.5_RK) .and. (this%Npart < this%NPartMax) ) then 
               call Insert( this, nc )
             else if( this%NPart > N_min ) then
               s = 0._RK
