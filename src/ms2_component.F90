@@ -549,6 +549,7 @@ contains
       write( IOBuffer,'("Reduced ChemPot0 of component ", A, ": ", F9.6, " (", F9.6, ")")' ) &
       &       trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
       call LogWrite
+      this%ChemPotMethod = ChemPotMethodNone
 
     else
       ! Read method for calculation of chemical potential
