@@ -937,11 +937,11 @@ contains
       ! Read frequency of updating KBI file
       call FileReadParameter( KBIUpdateFrequency, paramsFile%iounit , IdKBIUpdateFrequency, .true., 0 )
       if( KBIUpdateFrequency > 0 ) then
-        if( .not. EnsembleType .eq. EnsembleTypeNVT) then
-            call Error( trim( str )//' -> Kirkwood-Buff integration is in the NVT ensemble defined only' )
+        if( (EnsembleType .eq. EnsembleTypeNVT) .or. OpenSystem ) then
+          if (SimulationType .eq. MolecularDynamics ) KBIUpdateFrequency=1 !with MD and KBI -> KBISum is calculated while traversing the interaction matrix with RunMDStep
+          write( IOBuffer, '("RDF for KBI will be updated each", T40, I7, " time steps")' ) KBIUpdateFrequency
         else
-            if (SimulationType .eq. MolecularDynamics ) KBIUpdateFrequency=1 !with MD and KBI -> KBISum is calculated while traversing the interaction matrix with RunMDStep
-            write( IOBuffer, '("RDF for KBI will be updated each", T40, I7, " time steps")' ) KBIUpdateFrequency
+          call Error( trim( str )//' -> Kirkwood-Buff integration is only defined for NVT and open ensembles' )
         end if
       else
         write( IOBuffer, '("KBI files will not be created")' )
@@ -1462,7 +1462,6 @@ contains
 #if  TRANS == 1
   this%rescfFile%iounit  = rescfFile%iounit  !TRANSPORT_thisline
 #endif
-
 ! Open result and visualisation files
     call LogWriteBlank
     call LogWriteBlank
@@ -1810,6 +1809,7 @@ contains
           call Randomize( seed = (5333*(NProc+1)) )
         endif
       endif
+
 
       ! adapt procrange for to the given equilibration scheme
       do j = this%firstEnsembleIdx, this%lastEnsembleIdx

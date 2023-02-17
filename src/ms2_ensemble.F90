@@ -2962,7 +2962,7 @@ contains
       end if
 
       ! KBI sum Gij
-      if( EnsembleType .eq. EnsembleTypeNVT .and.  KBIUpdateFrequency > 0) then
+      if( KBIUpdateFrequency > 0) then
         do i= 1, this%NRealComponents*(this%NRealComponents+1)/2 !Number of comb., e.g. 11 12 22
             call Construct( this%SumKBIGij1(i), .false., .false., .true.)
             call Construct( this%SumKBIGij2(i), .false., .false., .true.)
