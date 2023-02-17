@@ -14821,7 +14821,7 @@ else
       call writeValue("Vapor enthalpy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
       DeltaHv = Average - DeltaHv
-      VarDeltaHv = Variance + VarDeltaHv
+      VarDeltaHv = SQRT(Variance**2 + VarDeltaHv**2)
 
       ! Evaporation enthalpy
 
@@ -15959,7 +15959,7 @@ end if
         call writeValue("Vapor enthalpy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
       DeltaHv = Average - DeltaHv
-      VarDeltaHv = Variance + VarDeltaHv
+      VarDeltaHv = SQRT(Variance**2 + VarDeltaHv**2)
 
         ! Evaporation enthalpy
 
