@@ -41,6 +41,7 @@ module ms2_ensemble
 #endif
 
   use ms2_accumulator
+  
   use ms2_component
   use ms2_global
   use ms2_potential
@@ -1096,7 +1097,7 @@ contains
     integer :: i, j
     integer :: stat
     character( IOBufferLength ) :: str
-    real(RK) :: EPot, d2EdV2, Virial
+    real(RK) :: EPot, d2EdV2, Virial, TotalChemPot
     integer :: counter
 
     ! Nullify EPot, d2EPotdV2 and Virial
@@ -1587,18 +1588,22 @@ contains
 
     ! calculate Hill energy for MUVL ensemble
     if( EnsembleType .eq. EnsembleTypeMUVL ) then
+      TotalChemPot = 0
       do i = 1, this%NComponents
         this%Component(i)%Chempot0 = this%Component(i)%Chempot0 * this%RefTemperature
+        TotalChemPot = TotalChemPot + this%Component(i)%Chempot0 * this%Component(i)%Fraction
       end do
-      this%RefHill = (this%RefHamiltonian - this%Component(1)%ChemPot0 ) * this%NPartInitial
+      this%RefHill = (this%RefHamiltonian - TotalChemPot) * this%NPartInitial
     end if
 
     ! calculate Ray energy for MUPR ensemble
     if( EnsembleType .eq. EnsembleTypeMUPR ) then
+      TotalChemPot = 0
       do i = 1, this%NComponents
         this%Component(i)%Chempot0 = this%Component(i)%Chempot0 * this%RefTemperature
+        TotalChemPot = TotalChemPot + this%Component(i)%Chempot0 * this%Component(i)%Fraction
       end do
-      this%RefRay = (this%RefEnthalpy - this%Component(1)%ChemPot0 ) * this%NPartInitial
+      this%RefRay = (this%RefEnthalpy - TotalChemPot) * this%NPartInitial
     end if
 
     ! Charge sites need center of mass cutoff
@@ -2957,7 +2962,7 @@ contains
       end if
 
       ! KBI sum Gij
-      if( EnsembleType .eq. EnsembleTypeNVT .and.  KBIUpdateFrequency > 0) then
+      if( KBIUpdateFrequency > 0) then
         do i= 1, this%NRealComponents*(this%NRealComponents+1)/2 !Number of comb., e.g. 11 12 22
             call Construct( this%SumKBIGij1(i), .false., .false., .true.)
             call Construct( this%SumKBIGij2(i), .false., .false., .true.)
@@ -7362,7 +7367,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: r(3), q(4), dq(3)
     real(RK)                  :: EPotOld, EPotNew, NewTheta, NewOmega
     real(RK)                  :: StateAlpha, StateBeta
-    real(RK)                  :: EPot, d2EdV2, Virial
+    real(RK)                  :: EPot, d2EdV2, Virial, TotalChemPot
     real(RK)                  :: EFourier, EVirial
     real(RK)                  :: EPotDelta
     type(TComponent), pointer :: pc
@@ -7516,8 +7521,13 @@ loop2:        do nc = 1, this%NComponents
 
     else if (EnsembleType .eq. EnsembleTypeMUVL .and. .not. NVTEquilibration) then
 
-        StateAlpha = this%RefHill - this%Epot + pc%ChemPot0 * this%NPart
-        StateBeta = this%RefHill - this%Epot + EPotDelta + pc%ChemPot0 * this%NPart
+        TotalChemPot = 0
+        do i = 1, this%NComponents
+          TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
+        end do
+
+        StateAlpha = this%RefHill - this%Epot + TotalChemPot * this%NPart
+        StateBeta = this%RefHill - this%Epot + EPotDelta + TotalChemPot * this%NPart
 
         if (StateBeta < 0._RK) then
           NewTheta = 0._RK
@@ -7540,8 +7550,13 @@ loop2:        do nc = 1, this%NComponents
 
     else if (EnsembleType .eq. EnsembleTypeMUPR .and. .not. NVTEquilibration) then
 
-        StateAlpha = this%RefRay - this%Refpressure * this%Volume0 - this%Epot + pc%ChemPot0 * this%NPart
-        StateBeta = this%RefRay - this%Refpressure * this%Volume0 - this%Epot + EPotDelta + pc%ChemPot0 * this%NPart
+        TotalChemPot = 0
+        do i = 1, this%NComponents
+          TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
+        end do
+
+        StateAlpha = this%RefRay - this%Refpressure * this%Volume0 - this%Epot + TotalChemPot * this%NPart
+        StateBeta = this%RefRay - this%Refpressure * this%Volume0 - this%Epot + EPotDelta + TotalChemPot * this%NPart
 
         if (StateBeta < 0._RK) then
           NewTheta = 0._RK
@@ -8740,7 +8755,7 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     integer                   :: i, np
     real(RK)                  :: s
-    real(RK)                  :: ChemPot
+    real(RK)                  :: TotalChemPot, NewTheta
     real(RK)                  :: acceptance, StateAlpha, StateBeta
     real(RK)                  :: Gamma, enum, denom, N
 #if MPI_VER > 0
@@ -8752,8 +8767,6 @@ loop2:        do nc = 1, this%NComponents
 
     ! Update number of insert attempts
     this%NInsertAttempts = this%NInsertAttempts + 1
-
-    ChemPot = pc%ChemPot0 ! log( this%Density/pc%ChemPot )
 
     ! Generate a random position and orientation
     do i = 1, 3
@@ -8799,13 +8812,21 @@ loop2:        do nc = 1, this%NComponents
       EPotIns = EPotIns + this%Density * pc%EPotTestCorrTT68
     endif
 
-    ! StateAlpha = ((this%RefHamiltonian-pc%ChemPot0)*this%NPartInitial &
-    ! &              - this%Epot + ChemPot*(this%NPart-1) )
-    ! StateBeta = ((this%RefHamiltonian-pc%ChemPot0)*this%NPartInitial &
-    ! & - this%Epot - EPotIns + ChemPot*this%NPart )
+    TotalChemPot = 0
+    do i = 1, this%NComponents
+      TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
+    end do
 
-    StateAlpha = this%RefHill - this%Epot + pc%ChemPot0 * (this%NPart-1)
-    StateBeta = this%RefHill - this%Epot - EPotIns + pc%ChemPot0 * this%NPart
+    StateAlpha = this%RefHill - this%Epot + TotalChemPot * (this%NPart-1)
+    StateBeta = this%RefHill - this%Epot - EPotIns + TotalChemPot * (this%NPart-1) + pc%ChemPot0
+
+    if (StateBeta < 0._RK) then
+      NewTheta = 0._RK
+
+    else
+      NewTheta = 1._RK
+
+    end if
 
     ! Gamma-Function
     N = 3._RK*this%Npart/2
@@ -8817,7 +8838,7 @@ loop2:        do nc = 1, this%NComponents
     Gamma = Gamma/((exp(-1._RK)*denom)**1.5)
     Gamma = Gamma/(this%Temperature**1.5)
 
-    acceptance =  ((StateBeta)**1.5) * ( StateBeta/StateAlpha )**((3*this%Npart-5)/2._RK)
+    acceptance =  NewTheta * ((StateBeta)**1.5) * ( StateBeta/StateAlpha )**((3*this%Npart-5)/2._RK)
     if( rnd( 0._RK, 1._RK ) .lt. ( Gamma * acceptance * this%Volume0 / np )) then
       ! Accept Insertion
       this%NInsertSuccesses = this%NInsertSuccesses + 1
@@ -8863,6 +8884,7 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     integer                   :: i, np
     real(RK)                  :: s
+    real(RK)                  :: TotalChemPot, NewTheta
     real(RK)                  :: acceptance, StateAlpha, StateBeta
     real(RK)                  :: Gamma, enum, denom, N
 #if MPI_VER > 0
@@ -8919,8 +8941,21 @@ loop2:        do nc = 1, this%NComponents
       EPotIns = EPotIns + this%Density * pc%EPotTestCorrTT68
     endif
 
-    StateAlpha = this%RefRay - this%Refpressure * this%Volume0 - this%Epot + pc%ChemPot0 * (this%NPart-1)
-    StateBeta = this%RefRay - this%Refpressure * this%Volume0 - this%Epot - EPotIns + pc%ChemPot0 * this%NPart
+    TotalChemPot = 0
+    do i = 1, this%NComponents
+      TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
+    end do
+
+    StateAlpha = this%RefRay - this%Refpressure * this%Volume0 - this%Epot + TotalChemPot * (this%NPart-1)
+    StateBeta = this%RefRay - this%Refpressure * this%Volume0 - this%Epot - EPotIns + TotalChemPot * (this%NPart-1) + pc%ChemPot0
+
+    if (StateBeta < 0._RK) then
+      NewTheta = 0._RK
+
+    else
+      NewTheta = 1._RK
+
+    end if
 
     ! Gamma-Function
     N = 3._RK*this%Npart/2
@@ -8932,7 +8967,7 @@ loop2:        do nc = 1, this%NComponents
     Gamma = Gamma/((exp(-1._RK)*denom)**1.5)
     Gamma = Gamma/(this%Temperature**1.5)
 
-    acceptance =  ((StateBeta)**1.5) * ( StateBeta/StateAlpha )**((3*this%Npart-5)/2._RK)
+    acceptance = NewTheta * ((StateBeta)**1.5) * ( StateBeta/StateAlpha )**((3*this%Npart-5)/2._RK)
 
     if( rnd( 0._RK, 1._RK ) .lt. ( Gamma * acceptance * this%Volume0 / np )) then
       ! Accept Insertion
@@ -9125,15 +9160,14 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer   :: pc
     real(RK)                    :: acceptance, StateAlpha, StateBeta
     real(RK)                    :: Gamma, enum, denom, N
-    real(RK)                    :: ChemPot
+    real(RK)                    :: TotalChemPot, NewTheta
+    integer                     :: i
 
     ! Assign local variables
     pc => this%Component(nc)
 
     ! Update number of delete attempts
     this%NDeleteAttempts = this%NDeleteAttempts + 1
-
-    ChemPot = pc%ChemPot0 !log( this%Density/pc%ChemPot )
 
     ! ReactionField
     ! Calculate particle energy
@@ -9157,14 +9191,21 @@ loop2:        do nc = 1, this%NComponents
       EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT68
     endif
 
-    ! StateAlpha = ((this%RefHamiltonian-pc%ChemPot0)*this%NPartInitial &
-    ! &              - this%Epot + ChemPot*this%NPart )
-    ! StateBeta = ((this%RefHamiltonian-pc%ChemPot0)*this%NPartInitial &
-    ! & - this%Epot + EPotDel + ChemPot*(this%NPart-1) )
+    TotalChemPot = 0
+    do i = 1, this%NComponents
+      TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
+    end do
 
-    StateAlpha = this%RefHill - this%Epot + pc%ChemPot0 * this%NPart
-    StateBeta = this%RefHill - this%Epot + EPotDel + pc%ChemPot0 * (this%NPart-1)
+    StateAlpha = this%RefHill - this%Epot + TotalChemPot * this%NPart
+    StateBeta = this%RefHill - this%Epot + EPotDel + TotalChemPot * this%NPart - pc%ChemPot0
 
+    if (StateBeta < 0._RK) then
+      NewTheta = 0._RK
+
+    else
+      NewTheta = 1._RK
+
+    end if
 
     ! Gamma-Function
     N = 3._RK*this%Npart/2
@@ -9176,9 +9217,9 @@ loop2:        do nc = 1, this%NComponents
     Gamma = Gamma*((exp(-1._RK)*denom)**1.5)
     Gamma = Gamma*(this%Temperature**1.5)
 
-    acceptance =  ( StateBeta/StateAlpha )**((3*this%Npart-2)/2._RK) / ((StateBeta)**1.5)
+    acceptance = NewTheta * ( StateBeta/StateAlpha )**((3*this%Npart-2)/2._RK) / ((StateBeta)**1.5)
     ! Apply acceptance criterion
-    if( rnd( 0._RK, 1._RK ) .lt. ( Gamma * acceptance * (this%NPart-1) / this%Volume0 )) then
+    if( rnd( 0._RK, 1._RK ) .lt. ( Gamma * acceptance * this%Density * pc%Fraction )) then
       ! Accept Deletion
       this%NDeleteSuccesses = this%NDeleteSuccesses + 1
       call RemoveParticle( pc, np )
@@ -9222,6 +9263,9 @@ loop2:        do nc = 1, this%NComponents
     type(TComponent), pointer   :: pc
     real(RK)                    :: acceptance, StateAlpha, StateBeta
     real(RK)                    :: Gamma, enum, denom, N
+    real(RK)                    :: TotalChemPot, NewTheta
+    integer                     :: i
+
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -9251,8 +9295,21 @@ loop2:        do nc = 1, this%NComponents
       EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT68
     endif
 
-    StateAlpha =  this%RefRay - this%Refpressure * this%Volume0 - this%Epot + pc%ChemPot0 * this%NPart
-    StateBeta =  this%RefRay - this%Refpressure * this%Volume0 - this%Epot + EPotDel + pc%ChemPot0 * (this%NPart-1)
+    TotalChemPot = 0
+    do i = 1, this%NComponents
+      TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
+    end do
+
+    StateAlpha =  this%RefRay - this%Refpressure * this%Volume0 - this%Epot + TotalChemPot * this%NPart
+    StateBeta =  this%RefRay - this%Refpressure * this%Volume0 - this%Epot + EPotDel + TotalChemPot * this%NPart - pc%ChemPot0
+
+    if (StateBeta < 0._RK) then
+      NewTheta = 0._RK
+
+    else
+      NewTheta = 1._RK
+
+    end if
 
     ! Gamma-Function
     N = 3._RK*this%Npart/2
@@ -9264,10 +9321,10 @@ loop2:        do nc = 1, this%NComponents
     Gamma = Gamma*((exp(-1._RK)*denom)**1.5)
     Gamma = Gamma*(this%Temperature**1.5)
 
-    acceptance =  ( StateBeta/StateAlpha )**((3*this%Npart-2)/2._RK) / ((StateBeta)**1.5)
+    acceptance = NewTheta * ( StateBeta/StateAlpha )**((3*this%Npart-2)/2._RK) / ((StateBeta)**1.5)
 
     ! Apply acceptance criterion
-    if( rnd( 0._RK, 1._RK ) .lt. ( Gamma * acceptance * (this%NPart-1) / this%Volume0 )) then
+    if( rnd( 0._RK, 1._RK ) .lt. ( Gamma * acceptance * this%Density * pc%Fraction )) then
       ! Accept Deletion
       this%NDeleteSuccesses = this%NDeleteSuccesses + 1
       call RemoveParticle( pc, np )
@@ -9313,8 +9370,8 @@ loop2:        do nc = 1, this%NComponents
     real(RK) :: UIntra, EVirialintra
     logical  :: accepted
     real(RK) :: EPot, d2EdV2, Virial
-    real(RK) :: ChemPot, acceptance, NewTheta, StateAlpha, StateBeta
-
+    real(RK) :: TotalChemPot, acceptance, NewTheta, StateAlpha, StateBeta
+    integer  :: i
 
     ! Update number of resizing attempts
     this%NResizeAttempts = this%NResizeAttempts + 1
@@ -9405,9 +9462,13 @@ loop2:        do nc = 1, this%NComponents
     !mupR
     else if( EnsembleType .eq. EnsembleTypeMUPR ) then 
 
-      ChemPot = this%Component(1)%ChemPot0
-      StateAlpha = this%RefRay - this%Refpressure * VolumeOld - EPotOld + ChemPot * this%NPart
-      StateBeta = this%RefRay - this%Refpressure * this%Volume0 - this%Epot + ChemPot * this%NPart
+      TotalChemPot = 0
+      do i = 1, this%NComponents
+        TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
+      end do
+
+      StateAlpha = this%RefRay - this%Refpressure * VolumeOld - EPotOld + TotalChemPot * this%NPart
+      StateBeta = this%RefRay - this%Refpressure * this%Volume0 - this%Epot + TotalChemPot * this%NPart
 
       if( StateBeta < 0._RK ) then
         NewTheta = 0._RK
@@ -10828,7 +10889,7 @@ loop2:        do nc = 1, this%NComponents
     real(RK)                  :: currentdEpotdV,currentd2EpotdV2
     real(RK)                  :: A10res, A01res, A20res, A11res, A02res, A30res, A21res, A12res
     real(RK)                  :: Psi001res, Psi002res, Psi100res, Psi200res, Psi020res, Psi101res, Psi010res, Psi110res, Psi011res
-    real(RK)                  :: CV, BetaT, GammaV, Totalmu, CP, AlphaP
+    real(RK)                  :: CV, BetaT, GammaV, TotalChemPot, CP, AlphaP
     real(RK)                  :: Z01, Z10, Z11, Z02, Z20, V, V2, H, H2, HV
     real(RK)                  :: specv, specv2, Beta, Beta2, Beta3, InvBeta, InvBeta2, Numb, Numb2, Numb3, NU, N2U, NU2, NdUdV, U, U2, U3, dUdV, UdUdV, dUdV2, U2dUdV, UdUdV2, d2UdV2, Ud2UdV2, InvVol
     real(RK)                  :: currentHmU, currentHmUm1, currentH
@@ -11271,9 +11332,9 @@ loop2:        do nc = 1, this%NComponents
     if( OpenSystem .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Update( this%SumNPart, real( this%NPart, RK ) )
       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
-        Totalmu = 0
+        TotalChemPot = 0
         do i = 1, this%NComponents
-          Totalmu = Totalmu + this%Component(i)%Chempot0*this%Component(i)%Fraction
+          TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
         end do
         call Update( this%SumNPart2, real( this%NPart, RK )**2 )
         call Update( this%SumNPart3, real( this%NPart, RK )**3 )
@@ -11309,12 +11370,12 @@ loop2:        do nc = 1, this%NComponents
         UdUdV   = this%SumUdEpotdVTot%Average
         d2UdV2  = this%Sumd2EpotdV2Tot%Average
 
-        factor    = Totalmu-1.5*InvBeta
+        factor    = TotalChemPot-1.5*InvBeta
         Psi100res = factor*Numb-U
-        Psi200res = factor*factor*Numb2+1.5*InvBeta2*Numb+(3*InvBeta-2*Totalmu)*NU+U2
+        Psi200res = factor*factor*Numb2+1.5*InvBeta2*Numb+(3*InvBeta-2*TotalChemPot)*NU+U2
         Psi001res = Numb*Beta
         Psi002res = Beta2*Numb2
-        Psi101res = (Totalmu*beta-1.5)*Numb2+Numb-Beta*NU
+        Psi101res = (TotalChemPot*beta-1.5)*Numb2+Numb-Beta*NU
         Psi010res = Numb*InvVol-beta*dUdV
         Psi020res = InvVol*( InvVol*( Numb2-Numb )-2*Beta*NdUdV )-Beta*d2UdV2+Beta2*dUdV2
         Psi011res = beta*InvVol*Numb2-Beta2*NdUdV
@@ -11350,12 +11411,12 @@ loop2:        do nc = 1, this%NComponents
 
       else if( EnsembleType .eq. EnsembleTypeMUVL ) then
 
-        Totalmu = 0
+        TotalChemPot = 0
         do i = 1, this%NComponents
-          Totalmu = Totalmu + this%Component(i)%Chempot0*this%Component(i)%Fraction
+          TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
         end do
 
-        LmUpmuN = this%RefHill - this%Epot + Totalmu * this%NPart
+        LmUpmuN = this%RefHill - this%Epot + TotalChemPot * this%NPart
         InvVol  = this%RefDensity
         dUdV = -this%Density*this%Virial
         specv   = 1._RK/this%RefDensity
@@ -11430,12 +11491,12 @@ loop2:        do nc = 1, this%NComponents
 
       else if( EnsembleType .eq. EnsembleTypeMUPR ) then
 
-        Totalmu = 0
+        TotalChemPot = 0
         do i = 1, this%NComponents
-          Totalmu = Totalmu + this%Component(i)%Chempot0*this%Component(i)%Fraction
+          TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
         end do
 
-        RmUmpVpmuN = this%RefRay - this%Epot - this%Refpressure * this%Volume0 + Totalmu * this%NPart
+        RmUmpVpmuN = this%RefRay - this%Epot - this%Refpressure * this%Volume0 + TotalChemPot * this%NPart
         specv   = 1._RK/this%RefDensity
 
         call Update( this%SumOmega000, 2*RmUmpVpmuN/(3*this%NPart) )
@@ -11497,12 +11558,12 @@ loop2:        do nc = 1, this%NComponents
 
       else if( EnsembleType .eq. EnsembleTypeMUPT ) then
 
-        Totalmu = 0
+        TotalChemPot = 0
         do i = 1, this%NComponents
-          Totalmu = Totalmu + this%Component(i)%Chempot0*this%Component(i)%Fraction
+          TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
         end do
 
-        Zero = this%Epot + this%Refpressure * this%Volume0 - Totalmu * this%NPart
+        Zero = this%Epot + this%Refpressure * this%Volume0 - TotalChemPot * this%NPart
         Beta    = 1._RK/this%RefTemperature
         Beta2   = Beta*Beta
         InvBeta = this%RefTemperature
@@ -14760,7 +14821,7 @@ else
       call writeValue("Vapor enthalpy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
       DeltaHv = Average - DeltaHv
-      VarDeltaHv = Variance + VarDeltaHv
+      VarDeltaHv = SQRT(Variance**2 + VarDeltaHv**2)
 
       ! Evaporation enthalpy
 
@@ -15898,7 +15959,7 @@ end if
         call writeValue("Vapor enthalpy", Average, Variance, dimensionFactor, "J/mol", this%errorsFile)
 
       DeltaHv = Average - DeltaHv
-      VarDeltaHv = Variance + VarDeltaHv
+      VarDeltaHv = SQRT(Variance**2 + VarDeltaHv**2)
 
         ! Evaporation enthalpy
 
@@ -21798,6 +21859,20 @@ end if
             pc => this%Component(i)
             call RestartSave( pc%SumFraction )
           end do
+          call RestartSave( this%SumP100 )
+          call RestartSave( this%SumP200 )
+          call RestartSave( this%SumP001 )
+          call RestartSave( this%SumP002 )
+          call RestartSave( this%SumP020 )
+          call RestartSave( this%SumP101 )
+          call RestartSave( this%SumP010 )
+          call RestartSave( this%SumP110 )
+          call RestartSave( this%SumP011 )
+          call RestartSave( this%SumCVsm )
+          call RestartSave( this%SumBetaTsm )
+          call RestartSave( this%SumGammaVsm )
+          call RestartSave( this%SumCPsm )
+          call RestartSave( this%SumAlphaPsm )
           if ( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
             call RestartSave( this%SumNPart2 )
             call RestartSave( this%SumNPart3 )
@@ -21811,20 +21886,42 @@ end if
             call RestartSave( this%SumNPart2EPot )
             call RestartSave( this%SumNPartEpot2 )
             call RestartSave( this%SumNPartdEpotdV )
-            call RestartSave( this%SumP100 )
-            call RestartSave( this%SumP200 )
-            call RestartSave( this%SumP001 )
-            call RestartSave( this%SumP002 )
-            call RestartSave( this%SumP020 )
-            call RestartSave( this%SumP101 )
-            call RestartSave( this%SumP010 )
-            call RestartSave( this%SumP110 )
-            call RestartSave( this%SumP011 )
-            call RestartSave( this%SumCVsm )
-            call RestartSave( this%SumBetaTsm )
-            call RestartSave( this%SumGammaVsm )
-            call RestartSave( this%SumCPsm )
-            call RestartSave( this%SumAlphaPsm )
+          else if( EnsembleType .eq. EnsembleTypeMUVL ) then
+            call RestartSave( this%SumOmega000 )
+            call RestartSave( this%SumOmega200 )
+            call RestartSave( this%SumOmega010 )
+            call RestartSave( this%SumdEPotdVTot )
+            call RestartSave( this%SumOmega0201 )
+            call RestartSave( this%Sumd2EPotdV2Tot )
+            call RestartSave( this%SumOmega0202 )
+            call RestartSave( this%Sum2NVdUdV )
+            call RestartSave( this%SumOmega002 )
+            call RestartSave( this%SumOmega101 )
+            call RestartSave( this%SumOmega110 )
+            call RestartSave( this%SumOmega011 )
+            call RestartSave( this%SumNPartV )
+            call RestartSave( this%SumNPart2V )
+          else if( EnsembleType .eq. EnsembleTypeMUPR ) then
+            call RestartSave( this%SumOmega000 )
+            call RestartSave( this%SumOmega200 )
+            call RestartSave( this%SumOmega010 )
+            call RestartSave( this%SumOmega020 )
+            call RestartSave( this%SumOmega002 )
+            call RestartSave( this%SumOmega101 )
+            call RestartSave( this%SumOmega110 )
+            call RestartSave( this%SumOmega011 )
+          else if ( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUPT ) then
+            call RestartSave( this%SumNPart2 )
+            call RestartSave( this%SumZero )
+            call RestartSave( this%SumZeroN )
+            call RestartSave( this%SumZeroV )
+            call RestartSave( this%SumZero2 )
+            call RestartSave( this%SumVext )
+            call RestartSave( this%SumVext2 )
+            call RestartSave( this%SumN2pN )
+            call RestartSave( this%SumNVmV )
+            call RestartSave( this%SumNmN2 )
+            call RestartSave( this%SumNV )
           end if
         end if
 
@@ -22575,6 +22672,20 @@ if( RootProc .and. this%CorrfunMode ) then
         pc => this%Component(i)
         call RestartRead( pc%SumFraction )
       end do
+      call RestartRead( this%SumP100 )
+      call RestartRead( this%SumP200 )
+      call RestartRead( this%SumP001 )
+      call RestartRead( this%SumP002 )
+      call RestartRead( this%SumP020 )
+      call RestartRead( this%SumP101 )
+      call RestartRead( this%SumP010 )
+      call RestartRead( this%SumP110 )
+      call RestartRead( this%SumP011 )
+      call RestartRead( this%SumCVsm )
+      call RestartRead( this%SumBetaTsm )
+      call RestartRead( this%SumGammaVsm )
+      call RestartRead( this%SumCPsm )
+      call RestartRead( this%SumAlphaPsm )
       if ( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
         call RestartRead( this%SumNPart2 )
         call RestartRead( this%SumNPart3 )
@@ -22588,20 +22699,42 @@ if( RootProc .and. this%CorrfunMode ) then
         call RestartRead( this%SumNPart2EPot )
         call RestartRead( this%SumNPartEpot2 )
         call RestartRead( this%SumNPartdEpotdV )
-        call RestartRead( this%SumP100 )
-        call RestartRead( this%SumP200 )
-        call RestartRead( this%SumP001 )
-        call RestartRead( this%SumP002 )
-        call RestartRead( this%SumP020 )
-        call RestartRead( this%SumP101 )
-        call RestartRead( this%SumP010 )
-        call RestartRead( this%SumP110 )
-        call RestartRead( this%SumP011 )
-        call RestartRead( this%SumCVsm )
-        call RestartRead( this%SumBetaTsm )
-        call RestartRead( this%SumGammaVsm )
-        call RestartRead( this%SumCPsm )
-        call RestartRead( this%SumAlphaPsm )
+      else if( EnsembleType .eq. EnsembleTypeMUVL ) then
+        call RestartRead( this%SumOmega000 )
+        call RestartRead( this%SumOmega200 )
+        call RestartRead( this%SumOmega010 )
+        call RestartRead( this%SumdEPotdVTot )
+        call RestartRead( this%SumOmega0201 )
+        call RestartRead( this%Sumd2EPotdV2Tot )
+        call RestartRead( this%SumOmega0202 )
+        call RestartRead( this%Sum2NVdUdV )
+        call RestartRead( this%SumOmega002 )
+        call RestartRead( this%SumOmega101 )
+        call RestartRead( this%SumOmega110 )
+        call RestartRead( this%SumOmega011 )
+        call RestartRead( this%SumNPartV )
+        call RestartRead( this%SumNPart2V )
+      else if( EnsembleType .eq. EnsembleTypeMUPR ) then
+        call RestartRead( this%SumOmega000 )
+        call RestartRead( this%SumOmega200 )
+        call RestartRead( this%SumOmega010 )
+        call RestartRead( this%SumOmega020 )
+        call RestartRead( this%SumOmega002 )
+        call RestartRead( this%SumOmega101 )
+        call RestartRead( this%SumOmega110 )
+        call RestartRead( this%SumOmega011 )
+      else if ( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUPT ) then
+        call RestartRead( this%SumNPart2 )
+        call RestartRead( this%SumZero )
+        call RestartRead( this%SumZeroN )
+        call RestartRead( this%SumZeroV )
+        call RestartRead( this%SumZero2 )
+        call RestartRead( this%SumVext )
+        call RestartRead( this%SumVext2 )
+        call RestartRead( this%SumN2pN )
+        call RestartRead( this%SumNVmV )
+        call RestartRead( this%SumNmN2 )
+        call RestartRead( this%SumNV )
       end if
     end if
 
