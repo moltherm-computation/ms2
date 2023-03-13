@@ -18,13 +18,10 @@
 		<case name="MC_commonequi" file="MC_commonequi.xml" />
 		<case name="MC_GE_aceton" file="MC_GE_aceton.xml" />
 		<case name="MC_GE_methaneCO2_250_x009_serial" file="MC_GE_methaneCO2_250_x009_serial.xml" />
-		<case name="MC_gradins_GradInsInitialization" file="MC_gradins_GradInsInitialization.xml" />
-		<case name="MC_gradins_methaneCO2_250_serial" file="MC_gradins_methaneCO2_250_serial.xml" />
 		<case name="MChybrid_scalar_ReactionField" file="MChybrid_scalar_ReactionField.xml" />
 		<case name="MC_leap_aceton" file="MC_leap_aceton.xml" />
 		<case name="MC_leap_aceton_MeOH_KBI" file="MC_leap_aceton_MeOH_KBI.xml" />
 		<case name="MC_NVE_gear_o2ace_fl-T400-x008" file="MC_NVE_gear_o2ace_fl-T400-x008.xml" />
-		<case name="MC_NVT_gradins_CO2" file="MC_NVT_gradins_CO2.xml" />
 		<case name="MC_optpressure" file="MC_optpressure.xml" />
 		<case name="MC_optpressure_site" file="MC_optpressure_site.xml" />
 		<case name="MC_thermoInt_meoh" file="MC_thermoInt_meoh.xml" />
