@@ -394,8 +394,6 @@ module ms2_global
   character(*), parameter :: IdCmax                        = 'ClusterMaximumAllowed'
 
   !Koester
-  character(*), parameter :: IdGradInsInit                 = 'GISteps'
-  character(*), parameter :: IdWeightFactors               = 'WeightFactors'
   character(*), parameter :: IdNTest                       = 'NTest'
   character(*), parameter :: IdLiqFraction                 = 'LiqMolarFract:LiqMoleFract'
   character(*), parameter :: IdChemPot                     = 'ChemPot'
@@ -414,7 +412,6 @@ module ms2_global
   character(*), parameter :: IdRFEpsilon                   = 'Epsilon'
   character(*), parameter :: IdFluctFreq                   = 'FluctFreq'
   character(*), parameter :: IdNFullFluct                  = 'NFullFluct'
-  character(*), parameter :: IdMaxCounter                  = 'MaxCounter'
 
   character(*), parameter :: IdLambdaMin                   = 'LambdaMin'
   character(*), parameter :: IdLambdaMax                   = 'LambdaMax'
@@ -625,14 +622,7 @@ module ms2_global
   ! Type of method for chemical potential
   integer, parameter :: ChemPotMethodNone    = 0
   integer, parameter :: ChemPotMethodWidom   = 1
-  integer, parameter :: ChemPotMethodGradIns = 2
   integer, parameter :: ChemPotMethodThermoInt = 3
-
-  ! Type of method for weighting factors
-  integer, parameter :: WFMethodNone   = 0
-  integer, parameter :: WFMethodAuto   = 1
-  integer, parameter :: WFMethodGuess  = 2
-  integer, parameter :: WFMethodOptSet = 3
 
   integer, parameter :: CCritTypeGridvap = 1
   integer, parameter :: CCritTypeGridliq = 2
@@ -676,9 +666,6 @@ module ms2_global
   ! Number of NPH equilibration time steps
   integer :: NStepsH
 
-  ! Number of gradual insertion initialization steps
-  integer :: GradInsInit
-
   ! Number of orientations for second virial coefficient
   integer :: NOrient
 
@@ -689,7 +676,7 @@ module ms2_global
   integer :: Step, StepTotal
 
   ! Equilibration flags
-  logical :: Equilibration, NVTEquilibration, MCOverlapReduction, GradInsInitialization
+  logical :: Equilibration, NVTEquilibration, MCOverlapReduction
 
   ! Restart flag
   logical :: Restart
@@ -711,8 +698,6 @@ module ms2_global
    real(RK) :: BmixSVCtemp, dBdTmixtemp
    real(RK) :: StartTemperature, StartPressure
    integer  :: EnsembleNum
-  ! Parameters of gradual insertion
-  integer :: GradInsFrequency, NFullFluct, MaxCounter
 
   ! Maximum number of blocks
   integer :: NBlocksMax

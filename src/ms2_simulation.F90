@@ -1354,10 +1354,6 @@ contains
     endif
 #endif
 
-  GradInsFrequency = BlockSize
-  NFullFluct = 20
-  maxcounter = 0
-
   ! Close parameter file
   call FileClose(paramsFile)
   write( IOBuffer, '(T18, "Reading Simulation Input successful")')
@@ -1613,7 +1609,7 @@ contains
 
     ! Declare local variables
     integer :: StepStart, StepEnd
-    integer :: i, j, s, t, NGradInsInit
+    integer :: i, j, s, t
     logical :: NPartsOk
     type(TStopwatch) :: RunTimer,RunStepsTimer
     integer :: k
@@ -2296,56 +2292,6 @@ eqloop: do
     endif
 #endif
 
-     GradInsInitialization = .false.
-     do j = this%firstEnsembleIdx, this%lastEnsembleIdx
-       do i = 1, this%Ensemble(j)%NComponents
-           if( (this%Ensemble(j)%Component(i)%WFMethod .eq. WFMethodGuess) .and. &
-&              (this%Ensemble(j)%Component(i)%ChemPotMethod .eq. ChemPotMethodGradIns) ) then
-             GradInsInitialization = .true.
-           endif
-       enddo
-     enddo
-
-      if( GradInsInitialization) then
-       call LogWriteBlank
-
-       if( Restart ) then
-         write( IOBuffer, '("Resuming GradIns initialization")' )
-         Restart = .false.
-         StepStart = Step + 1
-
-       else
-         StepStart = 1
-         write( IOBuffer, '("Starting GradIns initialization")' )
-         call LogWrite
-         write( IOBuffer, '("  (adjustment of weighting factors)")' )
-       end if
-       call LogWriteTime
-
-       NGradInsInit = 1
-       do j= this%firstEnsembleIdx, this%lastEnsembleIdx
-        do i = 1, this%Ensemble(j)%NComponents
-         NGradInsInit = NGradInsInit + this%Ensemble(j)%Component(i)%GradInsInit
-        end do
-       end do
-
-       do j= this%firstEnsembleIdx, this%lastEnsembleIdx
-        do Step = StepStart, NGradInsInit
-        call ChemicalPotential( this%Ensemble(j) )
-        end do
-       end do
-
-       Step = 1
-       if( .not. TerminateProgram ) then
-         write( IOBuffer, '("GradIns initialization completed")' )
-         GradInsInitialization = .false.
-       else
-         write( IOBuffer, '("GradIns initialization TERMINATED")' )
-       end if
-
-       call LogWriteTime
-       StepStart = 1
-     end if
 
     ! Run production
     if( .not. TerminateProgram ) then

@@ -135,7 +135,7 @@ module ms2_ensemble
     real(RK), pointer, contiguous :: P0Test(:, :), Q0Test(:, :)
 
     ! Number of components in ensemble
-    integer :: NComponents, NRealComponents, NGradInsComp
+    integer :: NComponents, NRealComponents
 
     ! Maximum numbers of sites in components
     integer :: NMIEnmMax, NTT68Max, NChargeMax, NDipoleMax, NQuadrupoleMax
@@ -449,10 +449,6 @@ module ms2_ensemble
     type(TAccumulator) :: SumCPsm
     type(TAccumulator) :: SumBetaTsm
     type(TAccumulator) :: SumGammaVsm
-
-    ! BiasedPartners
-    integer            :: NGradIns
-    integer,pointer, contiguous    :: BiasedPartners(:)
 
     ! Ewald Parameters
     real(RK),pointer, contiguous :: Ewald_Prefac(:)
@@ -775,30 +771,6 @@ module ms2_ensemble
     module procedure TEnsemble_EwaldEnergy1
   end interface
 
-  interface Move
-    module procedure TEnsemble_Move
-  end interface
-
-  interface Rotate
-    module procedure TEnsemble_Rotate
-  end interface
-
-  interface MoveBiased
-    module procedure TEnsemble_MoveBiased
-  end interface
-
-  interface RotateBiased
-    module procedure TEnsemble_RotateBiased
-  end interface
-
-  interface BiasedPartners
-    module procedure TEnsemble_PartnersBiased
-  end interface
-
-  interface ChangeFluct
-    module procedure TEnsemble_ChangeFluct
-  end interface
-
   interface ScaleInteractionThermoInt
     module procedure TEnsemble_ScaleInteractionThermoInt
   end interface
@@ -1097,8 +1069,8 @@ contains
     integer :: i, j
     integer :: stat
     character( IOBufferLength ) :: str
-    real(RK) :: EPot, d2EdV2, Virial, TotalChemPot
-    integer :: counter
+    real(RK) :: d2EdV2, Virial, TotalChemPot
+    !integer :: counter
 
     ! Nullify EPot, d2EPotdV2 and Virial
     this%EPot = 0._RK
@@ -2476,38 +2448,9 @@ contains
     end do
 
     ! Create components for fluctuating particle states
-    this%NGradInsComp = 0
     this%NRealComponents = ncomp
     do i = 1, this%NRealComponents
       q = 0._RK
-
-      if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-        ! LongRange Check
-        do j=1,this%Component(i)%Molecule%NCharge
-          q = q + this%Component(i)%Molecule%SiteCharge(j)%e
-        end do
-
-        if (abs(q) .gt. 1e-7) call Error ('Gradual Insertion not possible for charged molecule! No Electroneutrality')
-
-        this%Component(i)%NGradThis = this%NGradInsComp
-        this%NGradInsComp = this%NGradInsComp + 1
-        nfluct = this%Component(i)%Molecule%NFluct
-        ncomp = ncomp + nfluct
-
-        ! Reallocate component array
-        allocate( reallocate(ncomp), STAT = stat )
-        ! reallocate will be stored in this%Component, which thus has to be deallocated
-        call AllocationError( stat, 'components', ncomp )
-        reallocate( 1:size(this%Component) ) = this%Component(:)
-        deallocate( this%Component )
-        this%Component => reallocate
-
-        do j = 1, nfluct
-          call Construct( this%Component(ncomp - nfluct + j), this%Component(i), j )
-          this%Component(i)%NFluctComp(j) = ncomp - nfluct + j
-        end do
-        this%Component(i)%NFluctComp(0) = i
-      end if
 
       if( this%Component(i)%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
 
@@ -3709,7 +3652,6 @@ contains
     nullify( this%P0Test )
     nullify( this%Q0Test )
     nullify( this%EPotTest )
-    nullify( this%BiasedPartners )
     nullify( this%ODFvalue )
     nullify( this%RDFValue )
     nullify( this%RDFVSchale )
@@ -3753,8 +3695,7 @@ contains
     call AllocationError( stat, 'components', this%NComponents )
     allocate( this%ScaleEpsilon(this%NComponents, this%NComponents), STAT = stat )
     call AllocationError( stat, 'components', this%NComponents )
-    allocate( this%BiasedPartners(this%NPartMax), STAT = stat )
-    call AllocationError( stat, 'NPartMax', this%NPartMax )
+!    call AllocationError( stat, 'NPartMax', this%NPartMax )
 
     ! Allocate ODF arrays
     if( ODFUpdateFrequency > 0 ) then
@@ -4231,10 +4172,6 @@ contains
 
     if( associated( this%ScaleSigma ) ) then
       deallocate( this%ScaleSigma )
-    end if
-
-    if( associated( this%BiasedPartners ) ) then
-      deallocate( this%BiasedPartners )
     end if
 
     if( associated( this%ODFvalue ) ) then
@@ -4916,10 +4853,10 @@ xloop:do i = 1, NCells1dim(1)
   contains
 
     ! Select component randomly
-    function select_component(comp) result(nc)
+    function select_component(com) result(nc)
 
       ! Declare arguments
-      integer :: comp(:)
+      integer :: com(:)
 
       ! Declare result
       integer :: nc
@@ -4930,11 +4867,11 @@ xloop:do i = 1, NCells1dim(1)
       integer  :: i
 
       ! Initialize level array
-      level(1) = comp(1)
+      level(1) = com(1)
       do i = 2, this%NComponents
-        level(i) = level(i - 1) + comp(i)
+        level(i) = level(i - 1) + com(i)
       end do
-      level = level / sum(comp)
+      level = level / sum(com)
 
       ! Generate random number
       harvest = rnd( 0._RK, 1._RK )
@@ -4944,7 +4881,7 @@ xloop:do i = 1, NCells1dim(1)
       do while( harvest > level(nc) )
         nc = nc + 1
       end do
-      comp(nc) = comp(nc) - 1
+      com(nc) = com(nc) - 1
 
     end function select_component
 
@@ -6580,224 +6517,13 @@ loop7:        do nc = 1, this%NComponents
     tempComm = Communicator
 #endif
 
-    t = this%NRealComponents+1  ! pseudo component identifier for ThermoInt (ThermoInt does not function together with GradIns)
+    t = this%NRealComponents+1  ! pseudo component identifier for ThermoInt 
 
     ! Outer loop over components
 componentLoop:       do i = 1, this%NRealComponents
       pc => this%Component(i)
-      if( Equilibration .and. pc%WFMethod .ne. WFMethodGuess ) cycle
+      if( Equilibration ) cycle
       select case( pc%ChemPotMethod )
-
-      ! Chemical potential by gradual insertion
-      case( ChemPotMethodGradIns )
-        if( (((pc%GradInsInit .eq. 0) .or. (Step .gt. pc%GradInsInit)) .and. GradInsInitialization) .or. (pc%WFMethod .ne. WFMethodGuess)) cycle componentLoop
-
-        ! Reset variables
-        if( Step == 1 ) then
-          pc%ProbW0      = 0._RK
-          pc%ProbW1      = 0._RK
-          pc%ProbW0V     = 0._RK
-          pc%ProbW1Rho   = 0._RK
-          pc%NStateWF(:) = 0
-        end if
-
-        ! determine, if chemical potential has to be calculated
-        pc%CalcChemPot = .false.
-
-        if( GradInsFrequency > 0 ) then
-          if( mod( Step, GradInsFrequency ) == 0 ) pc%CalcChemPot = .true.
-        end if
-
-        if (GradInsInitialization) then
-          pc%CalcChemPot = .true.
-        end if
-
-#if MPI_VER > 0
-        ! Per Process we calculate GI only for one component
-        if (mod(NProc,this%NGradInsComp)/= pc%NGradThis) pc%CalcChemPot = .false.
-#endif
-
-        if( pc%CalcChemPot ) then
-
-          ! Set fluctuating particle
-          ncf = pc%NFluctComp( pc%NFluctState )
-          if( ncf == i ) then
-            npf = rnd( pc%NPart )
-            call Move2End(pc, npf)
-          else
-            npf = 1
-          end if
-
-          ! Specify max amount of biased interaction partners
-          call BiasedPartners(this, ncf, npf)
-
-          ! Specify ratio of biased Moves
-          ratio = (this%NGradIns * 50 / this%NDF )
-          ndfmove = this%NDF
-          ndfbiased = this%NDF * ratio
-          ndffluct = this%NDF * 10
-          ndfchange = this%NDF * 10
-          ndfcp = ndfmove + ndfbiased + ndffluct + ndfchange
-          pc%NState(:) = 1
-          nstate = 0
-
-giloop:   do j = 1, NFullFluct * ndfcp
-
-            ! Update List for Biased Moves
-            if (mod(j,ndfcp) == 0) call BiasedPartners(this, ncf, npf)
-
-            ! Choose particle randomly
-            s = 0
-            sndf = 0
-            r = rnd( ndfcp )
-
-            if( r <= ndfmove ) then
-loop1:        do nc = 1, this%NComponents
-                s = s + this%Component(nc)%NDF
-                if( r <= s ) exit loop1
-              end do loop1
-              ndf = this%Component(nc)%Molecule%NDF
-              np = 1 + (s - r) / ndf
-
-              ! Acceleration of MC Moves
-              if (np .gt. this%Component(nc)%NPart) cycle
-
-              ! Move or rotate
-              if( mod( s - r, ndf ) < 3 ) then
-                call Move( this, nc, np )
-              else
-                call Rotate( this, nc, np )
-              end if
-
-            else if( r <= (ndfmove + ndfbiased) ) then
-              r = (r - ndfmove - 1) / ratio + 1
-              nuh = int( (r-1)* this%NGradIns / (ndfbiased/ratio) )
-loop2:        do nc = 1, this%NComponents
-                s = s + this%Component(nc)%BiasedPartners
-                if( nuh < s ) exit loop2
-                sndf = sndf + this%Component(nc)%BiasedPartners
-              end do loop2
-              ndf = this%Component(nc)%Molecule%NDF
-              np = this%BiasedPartners(int((nuh-sndf)*this%Component(nc)%BiasedPartnersNum / this%Component(nc)%BiasedPartners)+1)
-
-              ! Acceleration of MC Moves
-              if (np .gt. this%Component(nc)%NPart) cycle
-
-              ! Move or rotate biased
-              if( mod( sndf - r, ndf ) < 3 ) then
-                call MoveBiased( this, nc, np, ncf, npf )
-              else
-                call RotateBiased( this, nc, np, ncf, npf )
-              end if
-
-            else if( r <= (ndfmove + ndfbiased + ndffluct) ) then
-              r = r - ndfmove - ndfbiased
-              ndf = this%Component(ncf)%Molecule%NDF
-
-              ! Move or rotate fluctuating particle
-              if( mod( r, ndf ) < 3 ) then
-                call Move( this, ncf, npf )
-              else
-                call Rotate( this, ncf, npf )
-              end if
-
-            else
-
-              ! Change fluctuating particle
-              call ChangeFluct( this, i, ncf, npf )
-              nstate(pc%NFluctState) = nstate(pc%NFluctState) + 1
-
-            end if
-
-          end do giloop
-
-          pc%NStateWF = pc%NStateWF + nstate(0:pc%NFluctMax)
-          pc%NState = pc%NState + nstate(0:pc%NFluctMax)
-
-
-          ! Calculate weighted propabilities
-          pc%ProbW0 = pc%ProbW0 + real(pc%NState(0), RK)
-          pc%ProbW1 = pc%ProbW1 + real( pc%NState(pc%NFluctMax), RK ) / pc%WF( pc%NFluctMax )
-          pc%ProbW0V = pc%ProbW0V + real(pc%NState(0), RK) / this%Density
-          pc%ProbW1Rho = pc%ProbW1Rho + real( pc%NState(pc%NFluctMax), RK ) / pc%WF(pc%NFluctMax) * this%Density
-
-          ! Calculate chemical potential
-          ! (long range correction already done in ChangeFluct)
-          pc%ChemPot = pc%ProbW0 / pc%ProbW1Rho
-          pc%ChemPot1 = pc%ProbW0 / pc%ProbW1
-          pc%ChemPot2 = pc%ProbW0V / pc%ProbW1
-
-        else
-!           pc%CalcChemPot = .false.
-          pc%ChemPot = 0._RK
-        end if
-
-         if( mod( Step, ErrorsUpdateFrequency ) == 0 .or. ( GradInsInitialization))  then
-          ! Here we sum up the NStateWF over all processes
-          ! dealing with a specific component to improve statistics
-#if MPI_VER > 0
-          call MPI_Allreduce(pc%NStateWF,tempVec(0:pc%NFluctMax),size(pc%NStateWF),MPI_INTEGER, MPI_SUM, Communicator, ierror)
-          pc%NStateWF = tempVec(0:pc%NFluctMax)
-          call MPI_Reduce( pc%NFluctUpSuccesses(:),tempVec1(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
-          call MPI_Reduce( pc%NFluctUpAttempts(:),tempVec2(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER,  MPI_SUM, NRootProc, Communicator, ierror )
-          call MPI_Reduce( pc%NFluctDownSuccesses(:),tempVec3(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
-          call MPI_Reduce( pc%NFluctDownAttempts(:),tempVec4(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
-
-           do j = 1, pc%NFluctMax
-            pc%WF(j) = pc%WF(j) * real(pc%NStateWF(0) + 1, RK) / real(pc%NStateWF(j) + 1, RK)
-           end do
-          write( IOBuffer, '("New weighting factors for ",A," calculated:")' ) trim( pc%PotModFileName )
-          call LogWrite
-          write( IOBuffer, '("   State      NState      new WF     up        down (%)")' )
-          call LogWrite
-          write( IOBuffer, '("   --------------------------------  --------  --------")' )
-          call LogWrite
-          j = pc%NFluctMax
-          write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), pc%WF(j), 0._RK, real(tempVec3(j), RK) / &
-&             real(tempVec4(j), RK) * 100._RK
-            call LogWrite
-
-          do j = pc%NFluctMax - 1, 1, -1
-            write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), pc%WF(j), real(tempVec1(j+1), RK) / &
-&               real(tempVec2(j+1), RK) * 100._RK, real(tempVec3(j), RK) / real(tempVec4(j), RK) * 100._RK
-            call LogWrite
-          end do
-          write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) 0, pc%NStateWF(0), pc%WF(0), real(tempVec1(1), RK) / &
-&             real(tempVec2(1), RK) * 100._RK, 0._RK
-          call LogWrite
-          call LogWriteBlank
-          pc%NStateWF(:) = 0
-
-#else
-          do j = 1, pc%NFluctMax
-            pc%WF(j) = pc%WF(j) * real(pc%NStateWF(0) + 1, RK) / real(pc%NStateWF(j) + 1, RK)
-          end do
-          write( IOBuffer, '("New weighting factors for ",A," calculated:")' ) trim( pc%PotModFileName )
-          call LogWrite
-          write( IOBuffer, '("   State      NState      new WF     up        down (%)")' )
-          call LogWrite
-          write( IOBuffer, '("   --------------------------------  --------  --------")' )
-          call LogWrite
-          j = pc%NFluctMax
-          write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), pc%WF(j), 0._RK, real(pc%NFluctDownSuccesses(j), RK) / &
-&             real(pc%NFluctDownAttempts(j), RK) * 100._RK
-            call LogWrite
-
-          do j = pc%NFluctMax - 1, 1, -1
-            write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) j, pc%NStateWF(j), pc%WF(j), real(pc%NFluctUpSuccesses(j+1), RK) / &
-&               real(pc%NFluctUpAttempts(j+1), RK) * 100._RK, real(pc%NFluctDownSuccesses(j), RK) / &
-&               real(pc%NFluctDownAttempts(j), RK) * 100._RK
-            call LogWrite
-          end do
-
-          write( IOBuffer, '(I8, I12, F15.2, 2F10.4)' ) 0, pc%NStateWF(0), pc%WF(0), &
-&           real(pc%NFluctUpSuccesses(1), RK) / real(pc%NFluctUpAttempts(1), RK) * 100._RK, 0._RK
-          call LogWrite
-          call LogWriteBlank
-          pc%NStateWF(:) = 0
-#endif
-        end if
-
 
       ! Chemical potential by Widom's test particle method
       ! Just applicable for ReactionField Method.
@@ -7221,134 +6947,9 @@ loop2:        do nc = 1, this%NComponents
   end subroutine TEnsemble_Energy1_CF
 
 
-
 !==============================================================!
-!  Subroutine TEnsemble_Move                                   !
+!  Subroutine TEnsemble_moveOrRotateParticle                   !
 !==============================================================!
-
-  subroutine TEnsemble_Move( this, nc, np )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TEnsemble)     :: this
-    integer, intent(in) :: nc, np
-
-    ! Declare local variables
-    real(RK)                  :: r(3)
-    real(RK)                  :: EPotOld, EPotNew
-    real(RK)                  :: EFourier, EVirial
-    real(RK)                  :: EPotDelta
-    type(TComponent), pointer :: pc
-    integer                   :: i
-    logical                   :: accepted
-
-    ! Assign local variables
-    pc => this%Component(nc)
-
-    ! Update number of move attempts
-    pc%NMoveAttempts = pc%NMoveAttempts + 1
-
-    ! Save current particle position and energy
-    r(:) = pc%P0(np, :)
-
-    call EnergyinRC( this, nc, np, EPotOld )
-
-    ! Save the Energies and Virials for a faster MoveRejection
-    if (LongRange .eq. Ewald) then
-      EFourier = this%UFourier
-      DO i=1,pc%Molecule%NCharge
-        this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
-        this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
-        this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
-      END DO
-
-#if SPME > 0
-    else if (LongRange .eq. PME) then
-      EFourier = this%UFourier
-      EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
-#endif
-    end if
-
-    ! Generate a trial displacement
-    do i = 1, 3
-      pc%P0(np, i) = pc%P0(np, i) + rnd( -pc%DispTran, pc%DispTran )
-    end do
-
-    ! Apply periodic boundary conditions
-    pc%P0(np, :) = pc%P0(np, :) - anint( pc%P0(np, :) )
-
-    ! Convert molecular coordinates to atom positions
-    call Mol2Atom1( pc, np )
-
-#if SPME > 0
-    ! Calculate changes in the SPME grid
-    if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
-    end if
-#endif
-
-    ! Calculate particle energy at trial position
-    MCOverlapDetected = .FALSE.
-    call EnergyinRC( this, nc, np, EPotNew )
-
-    ! Apply Metropolis acceptance criterion
-#if MPI_VER > 0
-    if ( (Equilibration .and. CommonEqui) .or. (mpiMCCommonGroups > 0)) then
-      call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-
-    else
-          EPotDelta = EPotOld - EPotNew
-    endif
-#else
-    EPotDelta = EPotOld - EPotNew
-#endif
-
-    accepted = EPotDelta > 0._RK
-    if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK ) .AND. .NOT. MCOverlapDetected
-    if( accepted ) then
-      ! Accept move
-      pc%NMoveSuccesses = pc%NMoveSuccesses + 1
-
-    else
-
-      ! Reject move
-      if (LongRange .eq. Ewald) then
-          this%UFourier = EFourier
-
-          DO i=1,pc%Molecule%NCharge
-            this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
-            this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
-            this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
-          END DO
-
-          pc%P0(np, :) = r(:)
-          call Mol2Atom1( pc, np )
-          call EwaldFourierEnergy(this,nc,np)
-
-#if SPME > 0
-      else if (LongRange .eq. PME) then
-          this%UFourier = EFourier
-          this%EVirial  = EVirial
-          call chargegrid_min  (this, nc, np)
-          pc%P0(np, :) = r(:)
-          call Mol2Atom1( pc, np )
-          call chargegrid_plus (this, nc, np)
-#endif
-      else
-          pc%P0(np, :) = r(:)
-          call Mol2Atom1( pc, np )
-      end if
-    end if
-
-  end subroutine TEnsemble_Move
-
 
   subroutine moveOrRotateParticle(this, nc, s, randomNumber)
 
@@ -7671,672 +7272,7 @@ loop2:        do nc = 1, this%NComponents
    end subroutine moveOrRotateParticle
 
 
-!==============================================================!
-!  Subroutine TEnsemble_Rotate                                 !
-!==============================================================!
 
-  subroutine TEnsemble_Rotate( this, nc, np )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments03
-    type(TEnsemble)     :: this
-    integer, intent(in) :: nc, np
-
-    ! Declare local variables
-    real(RK)                  :: q(4), dq(3)
-    real(RK)                  :: EPotOld, EPotNew
-    real(RK)                  :: EFourier, EVirial
-    type(TComponent), pointer :: pc
-    integer                   :: i
-    real(RK)                  :: EPotDelta
-    logical                   :: accepted
-
-    ! Assign local variables
-    pc => this%Component(nc)
-
-    ! Update number of rotation attempts
-    pc%NRotateAttempts = pc%NRotateAttempts + 1
-
-    ! Save current particle orientation and energy
-    q(:) = pc%Q0(np, :)
-    call EnergyinRC( this, nc, np, EPotOld )
-
-    ! Save the Energies and Virials for a faster MoveRejction
-    if (LongRange .eq. Ewald) then
-      EFourier = this%UFourier
-      DO i=1,pc%Molecule%NCharge
-        this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
-        this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
-        this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
-      END DO
-
-#if SPME > 0
-    else if (LongRange .eq. PME) then
-      EFourier = this%UFourier
-      EVirial  = this%EVirial
-      call chargegrid_min  (this, nc, np)
-#endif
-    end if
-
-    ! Generate a trial rotation
-    do i = 1, 3
-      dq(i) = rnd( -pc%DispRot, pc%DispRot )
-    end do
-    pc%Q0(np, 1) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
-    pc%Q0(np, 2) = q(2) + dq(1) * q(1) - dq(2) * q(4) + dq(3) * q(3)
-    pc%Q0(np, 3) = q(3) + dq(1) * q(4) + dq(2) * q(1) - dq(3) * q(2)
-    pc%Q0(np, 4) = q(4) - dq(1) * q(3) + dq(2) * q(2) + dq(3) * q(1)
-
-
-    ! Convert molecular coordinates to atom positions
-    call Mol2Atom1( pc, np )
-
-#if SPME > 0
-    if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
-    end if
-#endif
-
-    ! Calculate particle energy with trial orientation
-    MCOverlapDetected = .FALSE.
-    call EnergyinRC( this, nc, np, EPotNew )
-
-    ! Apply Metropolis acceptance criterion
-#if MPI_VER > 0
-    if ( (Equilibration .and. CommonEqui) .or. (mpiMCCommonGroups > 0)) then
-      call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-    else
-      EPotDelta = EPotOld - EPotNew
-    endif
-
-#else
-    EPotDelta = EPotOld - EPotNew
-#endif
-
-    accepted = EPotDelta > 0._RK
-    if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK ) .AND. .NOT. MCOverlapDetected
-    if( accepted ) then
-      ! Accept rotation
-      pc%NRotateSuccesses = pc%NRotateSuccesses + 1
-
-    else
-
-      ! Reject move
-      if (LongRange .eq. Ewald) then
-        this%UFourier = EFourier
-        DO i=1,pc%Molecule%NCharge
-          this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
-          this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
-          this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
-        END DO
-        pc%Q0(np, :) = q(:)
-        call Mol2Atom1( pc, np )
-        call EwaldFourierEnergy(this,nc,np)
-
-#if SPME > 0
-      else if (LongRange .eq. PME) then
-        this%UFourier = EFourier
-        this%EVirial  = EVirial
-        call chargegrid_min  (this, nc, np)
-        pc%Q0(np, :) = q(:)
-        call Mol2Atom1( pc, np )
-        call chargegrid_plus (this, nc, np)
-#endif
-
-      else
-        pc%Q0(np, :) = q(:)
-        call Mol2Atom1( pc, np )
-      end if
-
-    end if
-
-  end subroutine TEnsemble_Rotate
-
-
-!==============================================================!
-!  Subroutine TEnsemble_MoveBiased                             !
-!==============================================================!
-
-  subroutine TEnsemble_MoveBiased( this, nc, np, ncf, npf )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TEnsemble)     :: this
-    integer, intent(in) :: nc, np, ncf, npf
-
-    ! Declare local variables
-    real(RK)                  :: r(3), dr(3), f1, f2
-    real(RK)                  :: EPotOld, EPotNew
-    real(RK)                  :: EFourier, EVirial
-    type(TComponent), pointer :: pc, pcf
-    integer                   :: i
-    real(RK)                  :: EPotDelta
-    logical                   :: accepted
-
-    ! Test for fluctuating particle
-    if( nc .eq. ncf .and. np .eq. npf ) return
-
-    ! Assign local variables
-    pc => this%Component(nc)
-    pcf => this%Component(ncf)
-
-    ! Save current particle position and energy
-    r(:) = pc%P0(np, :)
-    call EnergyinRC( this, nc, np, EPotOld )
-
-    ! Apply distance criterion
-    dr(:) = r(:) - pcf%P0(npf, :)
-    dr(:) = ( dr(:) - anint( dr(:) ) ) * this%BoxLength
-    f1 = 1._RK / ( dr(1)**2 + dr(2)**2 + dr(3)**2 )**2
-    if( rnd(0._RK, 1._RK) < (1._RK - f1) ) return
-
-    ! Update number of move attempts
-    pc%NMoveBiasedAttempts = pc%NMoveBiasedAttempts + 1
-
-    ! Save the Energies and Virials for a faster MoveRejction
-    if (LongRange .eq. Ewald) then
-      EFourier = this%UFourier
-      DO i=1,pc%Molecule%NCharge
-        this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
-        this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
-        this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
-      END DO
-
-#if SPME > 0
-    else if (LongRange .eq. PME) then
-      EFourier = this%UFourier
-      EVirial  = this%EVirial
-      this%qgrida_old = this%qgrida
-      call chargegrid_min  (this, nc, np)
-#endif
-    end if
-
-    ! Generate a trial displacement
-    do i = 1, 3
-      pc%P0(np, i) = pc%P0(np, i) + rnd( -pc%DispTran, pc%DispTran )
-    end do
-
-    ! Apply periodic boundary conditions
-    pc%P0(np, :) = pc%P0(np, :) - anint( pc%P0(np, :) )
-
-    ! Apply direction criterion
-    dr(:) = pc%P0(np, :) - pcf%P0(npf, :)
-    dr(:) = ( dr(:) - anint( dr(:) ) ) * this%BoxLength
-    f2 = 1._RK / ( dr(1)**2 + dr(2)**2 + dr(3)**2 )**2
-    if( rnd(0._RK, 1._RK) < (1._RK - f2/f1) ) then
-      pc%P0(np, :) = r(:)
-      return
-    end if
-
-    ! Convert molecular coordinates to atom positions
-    call Mol2Atom1( pc, np )
-
-#if SPME > 0
-    ! Save Energies, Virials for faster Rejection
-    if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
-    end if
-#endif
-
-    ! Calculate particle energy at trial position
-    call EnergyinRC( this, nc, np, EPotNew )
-
-    ! Apply Metropolis acceptance criterion
-#if MPI_VER > 0
-    if ( (Equilibration .and. CommonEqui) .or. (mpiMCCommonGroups > 0) ) then
-      call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-    else
-          EPotDelta = EPotOld - EPotNew
-    endif
-
-#else
-    EPotDelta = EPotOld - EPotNew
-#endif
-
-    accepted = EPotDelta > 0._RK
-    if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
-    if( accepted ) then
-
-      ! Accept move
-      pc%NMoveBiasedSuccesses = pc%NMoveBiasedSuccesses + 1
-
-    else
-
-      ! Reject move
-      if (LongRange .eq. Ewald) then
-          this%UFourier = EFourier
-          DO i=1,pc%Molecule%NCharge
-            this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
-            this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
-            this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
-          END DO
-          pc%P0(np, :) = r(:)
-          call Mol2Atom1( pc, np )
-          call EwaldFourierEnergy(this,nc,np)
-
-#if SPME > 0
-      else if (LongRange .eq. PME) then
-        this%UFourier = EFourier
-        this%EVirial  = EVirial
-        this%qgrida   = this%qgrida_old
-#endif
-      else
-        pc%P0(np, :) = r(:)
-        call Mol2Atom1( pc, np )
-      end if
-
-    end if
-
-  end subroutine TEnsemble_MoveBiased
-
-
-
-!==============================================================!
-!  Subroutine TEnsemble_RotateBiased                           !
-!==============================================================!
-
-  subroutine TEnsemble_RotateBiased( this, nc, np, ncf, npf )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments03
-    type(TEnsemble)     :: this
-    integer, intent(in) :: nc, np, ncf, npf
-
-    ! Declare local variables
-    real(RK)                  :: dr(3), q(4), dq(3), f1
-    real(RK)                  :: EPotOld, EPotNew
-    real(RK)                  :: EFourier, EVirial
-    type(TComponent), pointer :: pc, pcf
-    integer                   :: i
-    real(RK)                  :: EPotDelta
-    logical                   :: accepted
-
-    ! Test for fluctuating particle
-    if( nc .eq. ncf .and. np .eq. npf ) return
-
-    ! Assign local variables
-    pc => this%Component(nc)
-    pcf => this%Component(ncf)
-
-    ! Save current particle orientation and energy
-    q(:) = pc%Q0(np, :)
-    call EnergyinRC( this, nc, np, EPotOld )
-
-    ! Apply distance criterion
-    dr(:) = pc%P0(np, :) - pcf%P0(npf, :)
-    dr(:) = ( dr(:) - anint( dr(:) ) ) * this%BoxLength
-    f1 = 1._RK / ( dr(1)**2 + dr(2)**2 + dr(3)**2 )**2
-    if( rnd(0._RK, 1._RK) < (1._RK - f1) ) return
-
-    ! Update number of rotation attempts
-    pc%NRotateBiasedAttempts = pc%NRotateBiasedAttempts + 1
-
-    ! Save the Energies and Virials for a faster MoveRejction
-    if (LongRange .eq. Ewald) then
-      EFourier = this%UFourier
-      DO i=1,pc%Molecule%NCharge
-        this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
-        this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
-        this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
-      END DO
-
-#if SPME > 0
-    else if (LongRange .eq. PME) then
-      EFourier = this%UFourier
-      EVirial  = this%EVirial
-      this%qgrida_old = this%qgrida
-      call chargegrid_min  (this, nc, np)
-#endif
-    end if
-
-    ! Generate a trial rotation
-    do i = 1, 3
-      dq(i) = rnd( -pc%DispRot, pc%DispRot )
-    end do
-    pc%Q0(np, 1) = q(1) - dq(1) * q(2) - dq(2) * q(3) - dq(3) * q(4)
-    pc%Q0(np, 2) = q(2) + dq(1) * q(1) - dq(2) * q(4) + dq(3) * q(3)
-    pc%Q0(np, 3) = q(3) + dq(1) * q(4) + dq(2) * q(1) - dq(3) * q(2)
-    pc%Q0(np, 4) = q(4) - dq(1) * q(3) + dq(2) * q(2) + dq(3) * q(1)
-
-    ! Convert molecular coordinates to atom positions
-    call Mol2Atom1( pc, np )
-
-#if SPME > 0
-    ! Save Energies, Virials for faster Rejection
-    if (LongRange .eq. PME) then
-      call chargegrid_plus (this, nc, np)
-    end if
-#endif
-
-    ! Calculate particle energy with trial orientation
-    call EnergyinRC( this, nc, np, EPotNew )
-
-    ! Apply Metropolis acceptance criterion
-#if MPI_VER > 0
-    if ( (Equilibration .and. CommonEqui) .or. (mpiMCCommonGroups > 0) ) then
-      call MPI_Allreduce( EPotOld - EPotNew, EPotDelta, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-    else
-      EPotDelta = EPotOld - EPotNew
-    endif
-
-#else
-    EPotDelta = EPotOld - EPotNew
-#endif
-
-    accepted = EPotDelta > 0._RK
-    if( .not. accepted ) accepted = exp( EPotDelta / this%Temperature ) > rnd( 0._RK, 1._RK )
-    if( accepted ) then
-      ! Accept rotation
-      pc%NRotateBiasedSuccesses = pc%NRotateBiasedSuccesses + 1
-
-    else
-
-      ! Reject move
-      if (LongRange .eq. Ewald) then
-        this%UFourier = EFourier
-        DO i=1,pc%Molecule%NCharge
-          this%rold(i,1) = pc%Molecule%SiteCharge(i)%RX(np)
-          this%rold(i,2) = pc%Molecule%SiteCharge(i)%RY(np)
-          this%rold(i,3) = pc%Molecule%SiteCharge(i)%RZ(np)
-        END DO
-        pc%Q0(np, :) = q(:)
-        call Mol2Atom1( pc, np )
-        call EwaldFourierEnergy(this,nc,np)
-
-#if SPME > 0
-      else if (LongRange .eq. PME) then
-        this%UFourier = EFourier
-        this%EVirial  = EVirial
-        this%qgrida   = this%qgrida_old
-
-#endif
-      else
-        pc%Q0(np, :) = q(:)
-        call Mol2Atom1( pc, np )
-      end if
-
-    end if
-
-  end subroutine TEnsemble_RotateBiased
-
-
-
-!==============================================================!
-!  Subroutine TEnsemble_PartnersBiased                         !
-!==============================================================!
-
-  subroutine TEnsemble_PartnersBiased ( this, ncf, npf )
-
-    implicit none
-
-    ! Declare arguments
-    type(TEnsemble)         :: this
-    integer, intent(in)     :: ncf, npf
-
-    real(RK)            :: BoxLength
-    real(RK)            :: dxf, dyf, dzf
-    real(RK)            :: dx, dy, dz, dr2
-    integer             :: NGradIns
-    integer             :: counter, counter1
-    integer             :: i, j
-    type(TComponent),pointer :: pc, pcf
-
-    BoxLength = this%BoxLength
-    counter   = 0
-    counter1  = 0
-    NGradIns  = 0
-
-    pcf => this%Component(ncf)
-    dxf = pcf%P0(npf,1)
-    dyf = pcf%P0(npf,2)
-    dzf = pcf%P0(npf,3)
-
-    do i=1, this%NComponents
-      pc => this%Component(i)
-      counter1=0
-      do j=1,pc%NPart
-        if (i .eq. ncf .and. npf .eq. j) cycle
-        dx = pc%P0(j,1) - dxf
-        dy = pc%P0(j,2) - dyf
-        dz = pc%P0(j,3) - dzf
-
-        dx  = (dx-anint(dx))*BoxLength
-        dy  = (dy-anint(dy))*BoxLength
-        dz  = (dz-anint(dz))*BoxLength
-        dr2 = dx**2 + dy**2 + dz**2
-
-        if ( dr2 .le. 25._RK ) then
-          counter = counter + 1
-          counter1= counter1+ 1
-          this%BiasedPartners(counter) = j
-        end if
-      end do
-      pc%BiasedPartners = counter1*pc%Molecule%NDF
-      pc%BiasedPartnersNum = counter1
-      NGradIns = NGradIns + counter1*pc%Molecule%NDF
-    end do
-
-    this%NGradIns = NGradIns
-
-  end subroutine TEnsemble_PartnersBiased
-
-
-!==============================================================!
-!  Subroutine TEnsemble_ChangeFluct                            !
-!==============================================================!
-
-  subroutine TEnsemble_ChangeFluct( this, nc, ncf, npf )
-
-    implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
-    ! Declare arguments
-    type(TEnsemble)        :: this
-    integer, intent(in)    :: nc
-    integer, intent(inout) :: ncf, npf
-    integer                :: i
-
-    ! Declare local variables
-    type(TComponent), pointer :: pc, pcf, pcfnew
-    integer                   :: oldstate, newstate
-    integer                   :: ncfnew, npfnew
-    real(RK)                  :: EPotOld, EPotNew
-    real(RK)                  :: EPotDeltaAll
-
-    ! Assign local variables
-    pc => this%Component(nc)
-    pcf => this%Component(ncf)
-    oldstate = pc%NFluctState
-
-    if( oldstate .eq. 0 ) then
-      if( rnd( 0._RK, 1._RK ) < .5_RK ) then
-        npf = rnd( pcf%NPart )
-        call Move2End(pcf, npf)
-      end if
-      newstate = 1
-      pc%NFluctUpAttempts( newstate ) = pc%NFluctUpAttempts( newstate ) + 1
-
-    elseif( oldstate .eq. pc%NFluctMax ) then
-      newstate = oldstate - 1
-      pc%NFluctDownAttempts( oldstate ) = pc%NFluctDownAttempts( oldstate ) + 1
-
-    else
-
-      if( rnd( 0._RK, 1._RK ) < .5_RK ) then
-        newstate = oldstate + 1
-        pc%NFluctUpAttempts( newstate ) = pc%NFluctUpAttempts( newstate ) + 1
-      else
-        newstate = oldstate - 1
-        pc%NFluctDownAttempts( oldstate ) = pc%NFluctDownAttempts( oldstate ) + 1
-      end if
-
-    end if
-
-    ! Get old energy of fluctuating particle
-    call EnergyinRC( this, ncf, npf, EPotOld )
-
-    ! Change state of fluctuating particle
-    ncfnew = pc%NFluctComp( newstate )
-    pcfnew => this%Component( ncfnew )
-    if( pcf%Molecule%IsElongated ) then
-      call AddParticle( pcfnew, pcf%P0( npf, : ), pcf%Q0( npf, : ) )
-    else
-      call AddParticle( pcfnew, pcf%P0( npf, : ) )
-    end if
-    call RemoveParticle( pcf, npf )
-    npfnew = pcfnew%NPart
-
-! Save states for the Ewald Summation and/or derivates
-    if (LongRange .eq. Ewald) then     ! Ewald Summation
-       ! Save the initial state
-       EPotOld = EPotOld  + this%USelbstTerm + this%UIntra
-!  Sufficient, since no call to Mol2Atom1 yet
-
-       DO i=1,pcf%Molecule%NCharge
-         this%rold(i,1) = pcf%Molecule%SiteCharge(i)%RX(npf)
-         this%rold(i,2) = pcf%Molecule%SiteCharge(i)%RY(npf)
-         this%rold(i,3) = pcf%Molecule%SiteCharge(i)%RZ(npf)
-       END DO
-
-       ! Calculate new energies
-       call EwaldSelfTerm_Energy(this)
-
-       ! Convert molecular coordinates to atom positions
-       call Mol2Atom1( pcfnew, npfnew )
-
-       ! Calculate particle energy at new fluctuating state
-       call Energy( this, ncfnew, npfnew, ncf, npf, EPotNew )
-
-       ! Acceptance Criteria
-#if MPI_VER > 0
-    if ( (Equilibration .and. CommonEqui) .or. (mpiMCCommonGroups > 0) ) then
-       call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-       EPotDeltaAll = EPotDeltaAll + this%Density * ( pcf%EPotTestCorrMIE - pcfnew%EPotTestCorrMIE )
-    else
-       EPotOld = EPotOld + this%Density * ( pcf%EPotTestCorrMIE - pcfnew%EPotTestCorrMIE )
-       EPotDeltaAll = EPotOld - EPotNew
-    end if
-
-#else
-       EPotOld = EPotOld + this%Density * ( pcf%EPotTestCorrMIE - pcfnew%EPotTestCorrMIE )
-       EPotDeltaAll = EPotOld - EPotNew
-#endif
-
-       if( rnd( 0._RK, 1._RK ) < pc%WF(newstate) / pc%WF(oldstate) * exp( ( EPotDeltaAll ) / this%Temperature ) ) then
-         ! Accept
-         pc%NFluctState = newstate
-         ncf = ncfnew
-         npf = npfnew
-         if( newstate > oldstate ) then
-           pc%NFluctUpSuccesses( newstate ) = pc%NFluctUpSuccesses( newstate ) + 1
-         else
-           pc%NFluctDownSuccesses( oldstate ) = pc%NFluctDownSuccesses( oldstate ) + 1
-         end if
-
-       else
-         ! Reject
-         if( pcf%Molecule%IsElongated ) then
-           call AddParticle( pcf, pcfnew%P0( npfnew, : ), pcfnew%Q0( npfnew, : ) )
-         else
-           call AddParticle( pcf, pcfnew%P0( npfnew, : ) )
-         end if
-         call RemoveParticle( pcfnew, npfnew )
-         call EwaldSelfTerm_Energy(this)
-         DO i=1,pcfnew%Molecule%NCharge
-           this%rold(i,1) = pcfnew%Molecule%SiteCharge(i)%RX(npfnew)
-           this%rold(i,2) = pcfnew%Molecule%SiteCharge(i)%RY(npfnew)
-           this%rold(i,3) = pcfnew%Molecule%SiteCharge(i)%RZ(npfnew)
-         END DO
-         call Energy( this, ncf, npf, ncfnew, npfnew, EPotNew )
-
-       end if       ! Acceptance Criteria
-
-#if SPME > 0
-! ----------------------------------------------------------------
-    else if (LongRange .eq. PME) then ! SPME
-      call PMESetup(this)
-      write (*,*) 'Gradual Insertion does not yet work with SPME'
-      STOP
-#endif
-! ----------------------------------------------------------------
-    else   ! REACTION FIELD
-       ! Convert molecular coordinates to atom positions
-       call Mol2Atom1( pcfnew, npfnew )
-
-       ! Calculate particle energy at new fluctuating state
-       call EnergyinRC( this, ncfnew, npfnew, EPotNew )
-
-    ! Apply acceptance criterion
-#if MPI_VER > 0
-    if ( (Equilibration .and. CommonEqui) .or. (mpiMCCommonGroups > 0) ) then
-       call MPI_Allreduce( EPotOld - EPotNew, EPotDeltaAll, 1, MPI_RK, MPI_SUM, Communicator, ierror )
-       EPotDeltaAll = EPotDeltaAll + this%Density * ( pcf%EPotTestCorrMIE - pcfnew%EPotTestCorrMIE ) &
-&        + pcf%EPotTestCorrRF - pcfnew%EPotTestCorrRF
-
-    else
-       EPotOld = EPotOld + this%Density * ( pcf%EPotTestCorrMIE - pcfnew%EPotTestCorrMIE ) &
-&        + pcf%EPotTestCorrRF - pcfnew%EPotTestCorrRF
-
-       EPotDeltaAll = EPotOld - EPotNew
-    end if
-#else
-       EPotOld = EPotOld + this%Density * ( pcf%EPotTestCorrMIE - pcfnew%EPotTestCorrMIE ) &
-&        + pcf%EPotTestCorrRF - pcfnew%EPotTestCorrRF
-
-       EPotDeltaAll = EPotOld - EPotNew
-#endif
-       if( rnd( 0._RK, 1._RK ) < pc%WF(newstate) / pc%WF(oldstate) * exp( ( EPotDeltaAll ) / this%Temperature ) ) then
-
-         ! Accept
-         pc%NFluctState = newstate
-         ncf = ncfnew
-         npf = npfnew
-
-         if( newstate > oldstate ) then
-           pc%NFluctUpSuccesses(newstate) = pc%NFluctUpSuccesses(newstate)+1
-         else
-           pc%NFluctDownSuccesses(oldstate) = pc%NFluctDownSuccesses(oldstate)+1
-         end if
-
-        if ( newstate .eq. 0 ) call BiasedPartners ( this, ncf, npf )
-
-       else
-
-         ! Reject
-         if( pcf%Molecule%IsElongated ) then
-           call AddParticle( pcf, pcfnew%P0( npfnew, : ),pcfnew%Q0( npfnew, : ) )
-         else
-           call AddParticle( pcf, pcfnew%P0( npfnew, : ) )
-         end if
-         call RemoveParticle( pcfnew, npfnew )
-
-       end if
-
-    end if      ! LongRange - Correction
-
-  end subroutine TEnsemble_ChangeFluct
 
 !==============================================================!
 !  Subroutine TEnsemble_ScaleInteractionThermoInt              !
@@ -11192,9 +10128,6 @@ loop2:        do nc = 1, this%NComponents
       ! 4.) Chemical potential and partial molar volumes
       do i = 1, this%NRealComponents
         select case( this%Component(i)%ChemPotMethod )
-        case( ChemPotMethodGradIns )
-          call Reset( this%Component(i)%SumInvChemPotRho )
-          call Reset( this%Component(i)%SumInvChemPot )
         case( ChemPotMethodWidom )
           call Reset( this%Component(i)%SumChemPotV )
           call Reset( this%Component(i)%SumChemPotVV )
@@ -12073,21 +11006,13 @@ loop2:        do nc = 1, this%NComponents
     end if
 #endif
 
-    t = this%NRealComponents+1  ! pseudo component identifier for ThermoInt (ThermoInt does not function together with GradIns)
+    t = this%NRealComponents+1  ! pseudo component identifier for ThermoInt 
 
     ! 4.) Chemical potential and partial molar volumes
     do i = 1, this%NRealComponents
       pc => this%Component(i)
       if( pc%CalcChemPot ) then
         select case( pc%ChemPotMethod )
-        case( ChemPotMethodGradins )
-#if MPI_VER > 0
-          ! Per Process we calculate GI only for one component
-          if (mod(NProc,this%NGradInsComp)/=pc%NGradThis) cycle
-!           if (mod(NProc,this%NRealComponents)/=i-1) cycle
-#endif
-          call Update( pc%SumInvChemPotRho, 1._RK / pc%ChemPot )
-          call Update( pc%SumInvChemPot, 1._RK / pc%ChemPot1 )
         case( ChemPotMethodWidom )
           call Update( pc%SumChemPotV, pc%ChemPot / this%Density )
           call Update( pc%SumChemPotVV, pc%ChemPot / this%Density**2 )
@@ -12151,15 +11076,6 @@ loop2:        do nc = 1, this%NComponents
         pc => this%Component(i)
         if( pc%CalcChemPot ) then
           select case( pc%ChemPotMethod )
-          case( ChemPotMethodGradIns )
-
-#if MPI_VER > 0
-          ! Per Process we calculate GI only for one component
-          if (mod(NProc,this%NGradInsComp)/=pc%NGradThis) cycle
-#endif
-          call Update( pc%SumVW, this%NPart * ( this%SumVolume%Average &
-&                    - pc%SumInvChemPot%Average / pc%SumInvChemPotRho%Average ) )
-
           case( ChemPotMethodWidom )
             call Update( pc%SumVW, this%NPart * ( pc%SumChemPotVV%Average / pc%SumChemPotV%Average &
 &                      - this%SumVolume%Average ) )
@@ -12500,19 +11416,6 @@ loop2:        do nc = 1, this%NComponents
                 if( pc%NPart > 1 ) then
                   select case( pc%ChemPotMethod )
 
-                  case( ChemPotMethodGradIns )
-                    if (mod(NProc,this%NGradInsComp)/=pc%NGradThis) then
-                      write( IOBuffer, '(" ",A10)' ) '----------'
-                      call FileWriteNoAdvance_parallel(this%resultFile)
-                      write( IOBuffer, '(" ",A10)' ) '----------'
-                      call FileWriteNoAdvance_parallel(this%runaveFile)
-                    else
-                      write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
-                      call FileWriteNoAdvance_parallel(this%resultFile)
-                      write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
-                      call FileWriteNoAdvance_parallel(this%runaveFile)
-                    endif
-
                   case( ChemPotMethodWidom )
                     write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
                     call FileWriteNoAdvance_parallel(this%resultFile)
@@ -12527,19 +11430,6 @@ loop2:        do nc = 1, this%NComponents
 
                 else
                   select case( pc%ChemPotMethod )
-
-                  case( ChemPotMethodGradIns )
-                    if (mod(NProc,this%NGradInsComp)/=pc%NGradThis) then
-                      write( IOBuffer, '(" ",A10)' ) '----------'
-                      call FileWriteNoAdvance_parallel(this%resultFile)
-                      write( IOBuffer, '(" ",A10)' ) '----------'
-                      call FileWriteNoAdvance_parallel(this%runaveFile)
-                    else
-                      write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
-                      call FileWriteNoAdvance_parallel(this%resultFile)
-                      write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
-                      call FileWriteNoAdvance_parallel(this%runaveFile)
-                    endif
 
                   case( ChemPotMethodWidom )
                     write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%BlockAverage )
@@ -12636,12 +11526,6 @@ loop2:        do nc = 1, this%NComponents
               if( pc%NPart > 1 ) then
                 select case( pc%ChemPotMethod )
 
-                case( ChemPotMethodGradIns )
-                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
-                  call FileWriteNoAdvance(this%resultFile)
-                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
-                  call FileWriteNoAdvance(this%runaveFile)
-
                 case( ChemPotMethodWidom )
                   write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
                   call FileWriteNoAdvance(this%resultFile)
@@ -12656,12 +11540,6 @@ loop2:        do nc = 1, this%NComponents
 
               else
                 select case( pc%ChemPotMethod )
-
-                case( ChemPotMethodGradIns )
-                  write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
-                  call FileWriteNoAdvance(this%resultFile)
-                  write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
-                  call FileWriteNoAdvance(this%runaveFile)
 
                 case( ChemPotMethodWidom )
                   write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%BlockAverage )
@@ -12776,12 +11654,6 @@ loop2:        do nc = 1, this%NComponents
               if( pc%NPart > 1 ) then
                 select case( pc%ChemPotMethod )
 
-                case( ChemPotMethodGradIns )
-                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%BlockAverage )
-                  call FileWriteNoAdvance(this%resultFile)
-                  write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction * pc%SumInvChemPotRho%Average )
-                  call FileWriteNoAdvance(this%runaveFile)
-
                 case( ChemPotMethodWidom )
                   write( IOBuffer, '(" ",F10.5)' ) log( pc%Fraction / pc%SumChemPotV%BlockAverage )
                   call FileWriteNoAdvance(this%resultFile)
@@ -12797,12 +11669,6 @@ loop2:        do nc = 1, this%NComponents
 
               else
                 select case( pc%ChemPotMethod )
-
-                case( ChemPotMethodGradIns )
-                  write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%BlockAverage )
-                  call FileWriteNoAdvance(this%resultFile)
-                  write( IOBuffer, '(" ",F10.5)' ) log( pc%SumInvChemPotRho%Average )
-                  call FileWriteNoAdvance(this%runaveFile)
 
                 case( ChemPotMethodWidom )
                   write( IOBuffer, '(" ",F10.5)' ) -log( pc%SumChemPotV%BlockAverage )
@@ -13691,34 +12557,6 @@ loop2:        do nc = 1, this%NComponents
       do i = 1, this%NRealComponents
         pc => this%Component(i)
         select case( pc%ChemPotMethod )
-        case( ChemPotMethodGradIns )
-
-#if MPI_VER > 0
-           if (mod(NProc,this%NGradInsComp)==pc%NGradThis) then
-            color = i
-          else
-            color = 100000
-          endif
-
-          NProc_W = NProc
-          RootProc_W = Rootproc
-          call MPI_COMM_SPLIT(Communicator,color,NProc,Communicator,ierror)
-           ! Careful, Nproc and NProcs are now specific for Communicator
-          call SetCommunicator( Communicator )
-          NBlockSizes = int( sqrt( real( Step*NProcs / BlockSize, RK ) ) )
-          NBlocks = tempVal*NProcs
-          RootProc = NProc_W==(pc%NGradThis)
-          NRootProc_W = (pc%NGradThis)
-
-#endif
-
-          call ErrorGI( pc%SumInvChemPotRho )
-          call ErrorGI( pc%SumVW )
-
-#if MPI_VER > 0
-          call SetCommunicator(MPI_COMM_WORLD)
-          RootProc = Rootproc_W
-#endif
 
         case( ChemPotMethodWidom )
           call Error( pc%SumChemPotV )
@@ -13883,9 +12721,6 @@ loop2:        do nc = 1, this%NComponents
 
         call FileWrite(this%errorsFile)
         select case( this%Component(i)%ChemPotMethod )
-        case( ChemPotMethodGradIns )
-          write( IOBuffer, '("Chemical potential calculated by gradual insertion")' )
-          call FileWrite(this%errorsFile)
         case( ChemPotMethodWidom )
           if (SimulationType .eq. MolecularDynamics) then
             write( IOBuffer, '("Number of test particles", T36, ":", I10)' ) this%Component(i)%NTestAll
@@ -14083,28 +12918,6 @@ loop2:        do nc = 1, this%NComponents
       do i = 1, this%NRealComponents
         pc => this%Component(i)
         select case( pc%ChemPotMethod )
-
-        case( ChemPotMethodGradIns )
-          if( pc%NPart > 1 ) then
-            Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
-            Average = log( pc%Fraction * pc%SumInvChemPotRho%Average )
-            write( IOBuffer, '("Chemical potential of ", A, T33, "r`d:", 2F20.9)' ) &
-&                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
-          else
-            Variance = pc%SumInvChemPotRho%Variance / pc%SumInvChemPotRho%Average
-            Average = -log( 1/pc%SumInvChemPotRho%Average )
-            write( IOBuffer, '("Chem. pot. at inf. dilution of ", A, T33, "r`d:", 2F20.9)' ) &
-&                  trim( this%Component(i)%Molecule%PotModFileName ), Average, Variance
-            call FileWrite(this%errorsFile)
-            Average = this%Temperature*pc%SumInvChemPotRho%Average
-            Variance = this%Temperature*pc%SumInvChemPotRho%Variance
-            write( IOBuffer, '("Henrys law constant of ", A, T33, "r`d:", 2F20.9)' ) &
-&                  trim( pc%Molecule%PotModFileName ), Average, Variance
-            call FileWrite(this%errorsFile)
-            write( IOBuffer, '(T30, "in MPa:", 2F20.9)' ) &
-&                  Average * UnitPressure * 1E-6_RK, Variance * UnitPressure * 1E-6_RK
-          end if
-          call FileWrite(this%errorsFile)
 
         case( ChemPotMethodWidom )
           Variance = pc%SumChemPotV%Variance / pc%SumChemPotV%Average
@@ -16136,37 +14949,6 @@ end if
           call FileWrite(this%errorsFile)
         end if
 
-        if( pc%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-          ! Biased move and rotate acceptance rates
-#if MPI_VER > 0
-          call MPI_Reduce( pc%NMoveBiasedSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
-          call MPI_Reduce( pc%NMoveBiasedAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
-          if (Nproc == NRootProc) then
-            write( IOBuffer, '(T17, "biased trans.", T32, "in %:", F20.9)' ) 100._RK * real(tempVal, RK ) / &
-&                  real ( tempVal2, RK )
-          endif
-#else
-          write( IOBuffer, '(T17, "biased trans.", T32, "in %:", F20.9)' ) &
-&                100._RK * real( pc%NMoveBiasedSuccesses, RK ) / real ( pc%NMoveBiasedAttempts, RK )
-#endif
-          call FileWrite(this%errorsFile)
-
-          if( pc%Molecule%IsElongated ) then
-#if MPI_VER > 0
-            call MPI_Reduce( pc%NRotateBiasedSuccesses,tempVal, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
-            call MPI_Reduce( pc%NRotateBiasedAttempts,tempVal2, 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
-            if (Nproc == NRootProc) then
-              write( IOBuffer, '(T17, "biased rotates", T32, "in %:", F20.9)' ) &
-&                    100._RK * real(tempVal, RK ) / real (tempVal2, RK )
-            endif
-#else
-            write( IOBuffer, '(T17, "biased rotates", T32, "in %:", F20.9)' ) &
-&                  100._RK * real( pc%NRotateBiasedSuccesses, RK ) / real ( pc%NRotateBiasedAttempts, RK )
-#endif
-
-            call FileWrite(this%errorsFile)
-          end if
-        end if
 
         ! Maximum translational and rotational displacements
 #if MPI_VER > 0
@@ -16200,62 +14982,6 @@ end if
         endif
         call FileWriteBlank(this%errorsFile)
 
-        ! Gradual insertion change fluctuating particle acceptance rates
-        if( pc%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-          write(IOBuffer, '("Acceptance rate gradual insertion change fluctuating particle moves:")')
-          call FileWrite(this%errorsFile)
-          write(IOBuffer, '("  up        down (%)")')
-          call FileWrite(this%errorsFile)
-          write(IOBuffer, '("  --------  --------")')
-          call FileWrite(this%errorsFile)
-
-#if MPI_VER > 0
-          call MPI_Reduce( pc%NFluctUpSuccesses(:),tempVec1(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, &
-&              MPI_SUM, NRootProc, Communicator, ierror )
-          call MPI_Reduce( pc%NFluctUpAttempts(:),tempVec2(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, &
-&              MPI_SUM, NRootProc, Communicator, ierror )
-          call MPI_Reduce( pc%NFluctDownSuccesses(:),tempVec3(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, &
-&              MPI_SUM, NRootProc, Communicator, ierror )
-          call MPI_Reduce( pc%NFluctDownAttempts(:),tempVec4(1:pc%NFluctMax), pc%NFluctMax, MPI_INTEGER, &
-&              MPI_SUM, NRootProc, Communicator, ierror )
-
-          if (Nproc == NRootProc) then
-            write(IOBuffer, '(2F10.4)') 0._RK, real(tempVec3(pc%NFluctMax), RK) / &
-&                 real(tempVec4(pc%NFluctMax), RK) * 100._RK
-            call FileWrite(this%errorsFile)
-
-           do j = pc%NFluctMax -1, 1, -1
-             write(IOBuffer, '(2F10.4)') real(tempVec1(j+1), RK) / &
-&                  real(tempVec2(j+1), RK) * 100._RK, real(tempVec3(j), RK) / &
-&                  real(tempVec4(j), RK) * 100._RK
-             call FileWrite(this%errorsFile)
-           end do
-
-           write(IOBuffer, '(2F10.4)') real(tempVec1(1), RK) / real(tempVec2(1), RK) * 100._RK, 0._RK
-           call FileWrite(this%errorsFile)
-           call FileWriteBlank(this%errorsFile)
-           call FileWriteBlank(this%errorsFile)
-          endif
-
-#else
-          write(IOBuffer, '(2F10.4)') 0._RK, real(pc%NFluctDownSuccesses(pc%NFluctMax), RK) / &
-&               real(pc%NFluctDownAttempts(pc%NFluctMax), RK) * 100._RK
-          call FileWrite(this%errorsFile)
-          do j = pc%NFluctMax -1, 1, -1
-            write(IOBuffer, '(2F10.4)') real(pc%NFluctUpSuccesses(j+1), RK) / &
-&                 real(pc%NFluctUpAttempts(j+1), RK) * 100._RK, real(pc%NFluctDownSuccesses(j), RK) / &
-&                 real(pc%NFluctDownAttempts(j), RK) * 100._RK
-            call FileWrite(this%errorsFile)
-          end do
-
-          write(IOBuffer, '(2F10.4)') real(pc%NFluctUpSuccesses(1), RK) / &
-&               real(pc%NFluctUpAttempts(1), RK) * 100._RK, 0._RK
-          call FileWrite(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-          call FileWriteBlank(this%errorsFile)
-
-#endif
-        end if
       end do
 
       ! Inserts and deletes acceptance rates
@@ -22022,9 +20748,6 @@ end if
         do i = 1, this%NRealComponents
           pc => this%Component(i)
           select case( pc%ChemPotMethod )
-          case( ChemPotMethodGradIns )
-            call RestartSave( pc%SumInvChemPotRho )
-            call RestartSave( pc%SumInvChemPot )
           case( ChemPotMethodWidom )
             call RestartSave( pc%SumChemPotV )
             call RestartSave( pc%SumChemPotVV )
@@ -22838,17 +21561,6 @@ if( RootProc .and. this%CorrfunMode ) then
     do i = 1, this%NRealComponents
       pc => this%Component(i)
       select case( pc%ChemPotMethod )
-      case( ChemPotMethodGradIns )
-        call RestartRead( pc%SumInvChemPotRho )
-        call RestartRead( pc%SumInvChemPot )
-        pc%NFluctState = 0
-        do j = counter,counter + this%Component(i)%Molecule%NFluct-1
-          if (this%Component(j)%NPart .eq. 1) then
-            pc%NFluctState = j-counter+1
-          end if
-        end do
-        counter = counter + this%Component(i)%Molecule%NFluct
-
       case( ChemPotMethodWidom )
         call RestartRead( pc%SumChemPotV )
         call RestartRead( pc%SumChemPotVV )
