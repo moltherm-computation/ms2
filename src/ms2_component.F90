@@ -217,9 +217,7 @@ module ms2_component
 
     ! Chemical potential
     logical  :: CalcChemPot
-    integer  :: ChemPotMethod, WFMethod, NGradThis
-    integer  :: FluctState
-    integer  :: GradInsInit
+    integer  :: ChemPotMethod, NGradThis
     real(RK) :: ChemPot, WidomContribution
     real (RK) :: HW_counter, HW_denom
 !DEBUG
@@ -228,16 +226,12 @@ module ms2_component
     real(RK) :: ChemPot0, PartialMolarVolume
     real(RK) :: VarChemPot, VarPartialMolarVolume
 
-    integer  :: BiasedPartners
-    integer  :: BiasedPartnersNum
-
 ! Ewald
     real(RK) :: EPotTestSelf
 
     ! Fluctuating components and weighting factors
     integer           :: NFluctState, NFluctMax
-    integer, pointer, contiguous  :: NState(:), NStateWF(:), NFluctComp(:)
-    real(RK), pointer, contiguous :: WF(:)
+    integer, pointer, contiguous  :: NState(:), NFluctComp(:)
     real(RK)          :: ProbW0, ProbW1, ProbW0V, ProbW1Rho
 !DEBUG
     integer, pointer, contiguous  :: NFluctUpAttempts(:), NFluctUpSuccesses(:)
@@ -261,8 +255,6 @@ module ms2_component
     real(RK) :: EPotTestCorrRF
 
     ! Accumulated sums, averages and errors
-    type(TAccumulator) :: SumInvChemPotRho
-    type(TAccumulator) :: SumInvChemPot
     type(TAccumulator) :: SumChemPotV
     type(TAccumulator) :: SumChemPotVV
     type(TAccumulator) :: SumChemPotGE
@@ -511,10 +503,6 @@ contains
     this%CalcChemPot = .false.
     this%NTest = 0
 
-    ! Initialize fluctuating state (for GradIns)
-    this%FluctState = -1
-
-
 
     if( EnsembleType .eq. EnsembleTypeGE ) then
       ! Read mole fraction of liquid simulation
@@ -564,30 +552,17 @@ contains
       case( 'WIDOM', 'Widom', 'widom' )
         this%ChemPotMethod = ChemPotMethodWidom
         str = 'Widom''s test particle method'
-      case( 'GRADINS', 'GradIns', 'Gradins', 'gradins' )
-        this%ChemPotMethod = ChemPotMethodGradIns
-        this%FluctState = 0
-        str = 'gradual insertion'
       case( 'THERMOINT', 'ThermoInt', 'Thermoint', 'thermoint' )
         this%ChemPotMethod = ChemPotMethodThermoInt
         str = 'thermodynamic integration'
       case default
         call Error( trim( str )//  ' method for calculation of chemical potential is not implemented' )
       end select
-      if( this%ChemPotMethod .eq. ChemPotMethodGradIns .and. .not. SimulationType .eq. MonteCarlo ) &
-&       call Error( 'Gradual insertion is only allowed for MonteCarlo simulation' )
       write( IOBuffer, '("Chemical potential of ", A, " will be calculated by: ", A)' ) &
 &       trim( this%PotModFilename )
       call LogWrite
       write( IOBuffer, '(T10, "-> ", A)' ) trim( str )
       call LogWrite
-
-      ! Read Gradual Insertion Initialization Steps
-      if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-        call FileReadParameter( this%GradInsInit, paramsFile%iounit , IdGradInsInit, .false., 0 )
-        write( IOBuffer, '("Grad. Ins. initialization Steps: ", T40, I7)' ) this%GradInsInit
-        call LogWrite
-      end if
 
       ! Read number of test particles
       if( this%ChemPotMethod .eq. ChemPotMethodWidom ) then
@@ -604,25 +579,6 @@ contains
       end if
 
       ! Read weighting factors method
-      this%WFMethod = WFMethodNone
-      if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-        call FileReadParameter( str, paramsFile%iounit, IdWeightFactors, .false. )
-        select case(str)
-        case( 'auto', 'Auto' )
-          call Error( 'Method "auto" for weighting factors is not implemented' )
-          str = 'automatic method'
-        case( 'guess', 'Guess' )
-          this%WFMethod = WFMethodGuess
-          str = 'first guess'
-        case( 'optset', 'Optset', 'OptSet' )
-          this%WFMethod = WFMethodOptSet
-          str = 'optimized set'
-        case default
-          call Error( trim( str )// ' method for weighting factors is not implemented' )
-        end select
-        write( IOBuffer, '("Estimation of weighting factors: using ", A )' ) trim( str )
-        call LogWrite
-      end if
       if (this%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
         call FileReadParameter( this%LaMin, paramsFile%iounit , IdLambdaMin, .false., 0.2_RK )
         write( IOBuffer, '("Thermo. Int. LambdaMin: ", T40, F7.5)' ) this%LaMin
@@ -679,7 +635,7 @@ contains
 
     ! Create potential model
     call Construct( this%Molecule, this%PotModFileName, &
-&     merge(0, -1, this%ChemPotMethod .eq. ChemPotMethodGradIns) )
+&     merge(0, -1, .False.) )
     this%NFluctMax = this%Molecule%NFluct
     this%NFluctState = 0
 
@@ -689,20 +645,6 @@ contains
       call AllocationError( stat, 'maximum MC displacement' )
       allocate( this%DispRot, STAT = stat )
       call AllocationError( stat, 'maximum MC displacement' )
-    end if
-
-    ! Allocate and read weighting factors
-    if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-      allocate( this%WF( 0:this%NFluctMax ), STAT = stat )
-      call AllocationError( stat, 'fluctuating particle states', &
-&       this%NFluctMax + 1 )
-      if( this%WFMethod .eq. WFMethodGuess .or. this%WFMethod .eq. WFMethodOptSet ) then
-        if( RootProc ) read( paramsFile%iounit, * ) this%WF
-#if MPI_VER > 0
-        call MPI_Bcast( this%WF, size( this%WF ), MPI_RK, &
-&         NRootProc, Communicator, ierror )
-#endif
-      end if
     end if
 
     ! Allocate fluctuating particle components vector
@@ -806,7 +748,6 @@ contains
     this%Lambda = 1.0_RK - Zero
 
     ! Set fluctuating state (for GradIns)
-    this%FluctState = 0
     this%ChemPotMethod = ChemPotMethodNone
 
     ! Set chemical potential flag
@@ -862,7 +803,6 @@ contains
     this%Fraction = 0._RK
 
     ! Set fluctuating state (for GradIns)
-    this%FluctState = state
     this%ChemPotMethod = ChemPotMethodNone
 
     ! Set chemical potential flag
@@ -990,11 +930,6 @@ contains
 
     ! Construct accumulators
     select case( this%ChemPotMethod )
-    case( ChemPotMethodGradIns )
-      call Construct( this%SumInvChemPotRho, .true. )
-      call Construct( this%SumInvChemPot, .true. )
-      call Construct( this%SumVW, .true. )
-      call Construct( this%SumHM, .true. )
     case( ChemPotMethodWidom )
       call Construct( this%SumChemPotV, .false. )
       call Construct( this%SumChemPotVV, .false. )
@@ -1051,11 +986,6 @@ contains
 
     ! Destruct accumulators
     select case( this%ChemPotMethod )
-    case( ChemPotMethodGradIns )
-      call Destruct( this%SumInvChemPotRho )
-      call Destruct( this%SumInvChemPot )
-      call Destruct( this%SumVW )
-      call Destruct( this%SumHM )
     case( ChemPotMethodWidom )
       call Destruct( this%SumChemPotV )
       call Destruct( this%SumChemPotVV )
@@ -1165,7 +1095,6 @@ contains
     nullify( this%Corr0 )
     nullify( this%Corr1 )
     nullify( this%NState )
-    nullify( this%NStateWF )
 #if  TRANS == 1
     nullify(this%KinETran)
     nullify(this%KinEPart)
@@ -1575,25 +1504,6 @@ contains
 #endif
     end do
 
-    ! Fluctuating particle states
-    if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-      nf = this%NFluctMax
-      allocate( this%NState( 0: nf ), STAT = stat )
-      call AllocationError( stat, 'fluctuating particle states', nf + 1 )
-      allocate( this%NStateWF( 0: nf ), STAT = stat )
-      call AllocationError( stat, 'fluctuating particle states', nf + 1 )
-
-!DEBUG
-      allocate( this%NFluctUpAttempts( nf ), STAT = stat )
-      call AllocationError( stat, 'fluctuating particle states', nf )
-      allocate( this%NFluctUpSuccesses( nf ), STAT = stat )
-      call AllocationError( stat, 'fluctuating particle states', nf )
-      allocate( this%NFluctDownAttempts( nf ), STAT = stat )
-      call AllocationError( stat, 'fluctuating particle states', nf )
-      allocate( this%NFluctDownSuccesses( nf ), STAT = stat )
-      call AllocationError( stat, 'fluctuating particle states', nf )
-!DEBUG
-    end if
 
     if( this%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
       allocate( this%BinsVisit( 0: this%NBins-1 ), STAT = stat )
@@ -1879,35 +1789,6 @@ contains
       call Deallocate( this%Molecule%SiteQuadrupole(i) )
     end do
 
-    if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-     ! Fluctuating particle states
-      if( associated( this%NState ) ) then
-        deallocate( this%NState )
-      end if
-      if( associated( this%NStateWF ) ) then
-        deallocate( this%NStateWF )
-      end if
-      if( associated( this%NFluctComp ) ) then
-        deallocate( this%NFluctComp )
-      end if
-      if( associated( this%WF ) ) then
-        deallocate( this%WF )
-      end if
-!DEBUG
-      if( associated( this%NFluctUpAttempts ) ) then
-        deallocate( this%NFluctUpAttempts )
-      end if
-      if( associated( this%NFluctUpSuccesses ) ) then
-        deallocate( this%NFluctUpSuccesses )
-      end if
-      if( associated( this%NFluctDownAttempts ) ) then
-        deallocate( this%NFluctDownAttempts )
-      end if
-      if( associated( this%NFluctDownSuccesses ) ) then
-        deallocate( this%NFluctDownSuccesses )
-      end if
-!DEBUG
-    end if
 
     if( this%ChemPotMethod .eq. ChemPotMethodThermoInt ) then
       if( associated( this%BinsVisit ) ) then
@@ -4164,19 +4045,6 @@ loop1:do i = 1, this%NPart
     this%NRotateAttempts = 0
     this%NRotateSuccesses = 0
 
-    if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-      this%NMoveBiasedAttempts = 0
-      this%NMoveBiasedSuccesses = 0
-      this%NRotateBiasedAttempts = 0
-      this%NRotateBiasedSuccesses = 0
-!DEBUG
-      this%NFLuctUpAttempts(:) = 0
-      this%NFluctUpSuccesses(:) = 0
-      this%NFluctDownAttempts(:) = 0
-      this%NFluctDownSuccesses(:) = 0
-!DEBUG
-    end if
-
   end subroutine TComponent_ZeroNAttempts
 
 
@@ -4464,11 +4332,6 @@ loop1:do i = 1, this%NPart
 
     end if
 
-    if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-      write( restartFile%iounit, '(ES20.12E3)' ) this%WF(:)
-      write( restartFile%iounit, '(I10)' ) this%NState(:)
-      write( restartFile%iounit, '(I10)' ) this%NStateWF(:)
-    end if
 
   end subroutine TComponent_RestartSave
 
@@ -4613,12 +4476,6 @@ loop1:do i = 1, this%NPart
         end if
       end if
 
-      if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-        read( restartFile%iounit, '(ES20.12E3)' ) this%WF(:)
-        read( restartFile%iounit, '(I10)' ) this%NState(:)
-        read( restartFile%iounit, '(I10)' ) this%NStateWF(:)
-      end if
-
     end if
 
 #if MPI_VER > 0
@@ -4645,11 +4502,6 @@ loop1:do i = 1, this%NPart
       end if
     end if
 
-    if( this%ChemPotMethod .eq. ChemPotMethodGradIns ) then
-      call MPI_Bcast( this%WF, size( this%WF ), MPI_RK, NRootProc, Communicator, ierror )
-      call MPI_BCast( this%NState, size( this%NState ), MPI_INTEGER, NRootProc, Communicator, ierror )
-      call MPI_BCast( this%NStateWF, size( this%NStateWF ), MPI_INTEGER, NRootProc, Communicator, ierror )
-    end if
 #endif
 
   end subroutine TComponent_RestartRead
