@@ -622,7 +622,7 @@ module ms2_global
   ! Type of method for chemical potential
   integer, parameter :: ChemPotMethodNone    = 0
   integer, parameter :: ChemPotMethodWidom   = 1
-  integer, parameter :: ChemPotMethodThermoInt = 3
+  integer, parameter :: ChemPotMethodThermoInt = 2
 
   integer, parameter :: CCritTypeGridvap = 1
   integer, parameter :: CCritTypeGridliq = 2

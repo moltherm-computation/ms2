@@ -9713,11 +9713,6 @@ componentLoop:       do i = 1, this%NRealComponents
           call Reset( this%SumNPartEPot2 )
           call Reset( this%SumNPart2EPot )
           call Reset( this%SumNPartdEpotdV )
-          call Reset( this%SumCVsm )
-          call Reset( this%SumCPsm )
-          call Reset( this%SumGammaVsm )
-          call Reset( this%SumBetaTsm )
-          call Reset( this%SumAlphaPsm )
         else if( EnsembleType .eq. EnsembleTypeMUVL ) then
           call Reset( this%SumOmega000 )
           call Reset( this%SumOmega200 )
@@ -9733,11 +9728,6 @@ componentLoop:       do i = 1, this%NRealComponents
           call Reset( this%SumOmega011 )
           call Reset( this%SumNPartV )
           call Reset( this%SumNPart2V )
-          call Reset( this%SumCVsm )
-          call Reset( this%SumCPsm )
-          call Reset( this%SumGammaVsm )
-          call Reset( this%SumBetaTsm )
-          call Reset( this%SumAlphaPsm )
         else if( EnsembleType .eq. EnsembleTypeMUPR ) then
           call Reset( this%SumOmega000 )
           call Reset( this%SumOmega200 )
@@ -9747,11 +9737,6 @@ componentLoop:       do i = 1, this%NRealComponents
           call Reset( this%SumOmega101 )
           call Reset( this%SumOmega110 )
           call Reset( this%SumOmega011 )
-          call Reset( this%SumCVsm )
-          call Reset( this%SumCPsm )
-          call Reset( this%SumGammaVsm )
-          call Reset( this%SumBetaTsm )
-          call Reset( this%SumAlphaPsm )
         else if( EnsembleType .eq. EnsembleTypeMUPT ) then
           call Reset( this%SumNPart2 )
           call Reset( this%SumZero )
@@ -9764,11 +9749,6 @@ componentLoop:       do i = 1, this%NRealComponents
           call Reset( this%SumNVmV )
           call Reset( this%SumNmN2 )
           call Reset( this%SumNV )
-          call Reset( this%SumCVsm )
-          call Reset( this%SumCPsm )
-          call Reset( this%SumGammaVsm )
-          call Reset( this%SumBetaTsm )
-          call Reset( this%SumAlphaPsm )
         end if
         do i = 1, this%NComponents
           call Reset( this%Component(i)%SumFraction )
@@ -10014,11 +9994,14 @@ componentLoop:       do i = 1, this%NRealComponents
 
     if( OpenSystem .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Update( this%SumNPart, real( this%NPart, RK ) )
+
+      TotalChemPot = 0
+      do i = 1, this%NComponents
+        TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
+      end do
+    
       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
-        TotalChemPot = 0
-        do i = 1, this%NComponents
-          TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
-        end do
+
         call Update( this%SumNPart2, real( this%NPart, RK )**2 )
         call Update( this%SumNPart3, real( this%NPart, RK )**3 )
         call Update( this%SumNPartEPot, real( this%NPart, RK )*this%EPot )
@@ -10086,18 +10069,9 @@ componentLoop:       do i = 1, this%NRealComponents
 
         CP = CV + specv*InvBeta*BetaT*(GammaV**2)
 
-        call Update( this%SumCVsm, CV )
-        call Update( this%SumGammaVsm, GammaV )
-        call Update( this%SumBetaTsm, BetaT )
-        call Update( this%SumAlphaPsm, BetaT*GammaV )
-        call Update( this%SumCPsm, CP )
+        AlphaP = BetaT*GammaV
 
       else if( EnsembleType .eq. EnsembleTypeMUVL ) then
-
-        TotalChemPot = 0
-        do i = 1, this%NComponents
-          TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
-        end do
 
         LmUpmuN = this%RefHill - this%Epot + TotalChemPot * this%NPart
         InvVol  = this%RefDensity
@@ -10153,9 +10127,6 @@ componentLoop:       do i = 1, this%NRealComponents
         dNdV = O011 - O001*O110
         dNdmu = O002 - O001*O101
 
-
-        ! CV = (O002-2*O001*O101+O001*O001*O200) / ( O001*((1-O000*O200)*(O002-O001*O101)-(O101-O001*O200)*(O001-O000*O101)) )
-
         CV = (dNdmu-this%SumNPart%Average*dNdL ) / ( this%SumNPart%Average*( dTdL*dNdmu - dNdL*dTdmu))
 
         GammaV = ( dpdL*dNdmu - dpdmu*dNdL ) / ( this%SumNPart%Average*( dTdL*dNdmu-dTdmu*dNdL ) )
@@ -10166,18 +10137,9 @@ componentLoop:       do i = 1, this%NRealComponents
 
         CP = CV + specv*InvBeta*BetaT*(GammaV**2)
 
-        call Update( this%SumCVsm, CV )
-        call Update( this%SumGammaVsm, GammaV )
-        call Update( this%SumBetaTsm, BetaT )
-        call Update( this%SumAlphaPsm, BetaT*GammaV )
-        call Update( this%SumCPsm, CP )
+        AlphaP = BetaT*GammaV
 
       else if( EnsembleType .eq. EnsembleTypeMUPR ) then
-
-        TotalChemPot = 0
-        do i = 1, this%NComponents
-          TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
-        end do
 
         RmUmpVpmuN = this%RefRay - this%Epot - this%Refpressure * this%Volume0 + TotalChemPot * this%NPart
         specv   = 1._RK/this%RefDensity
@@ -10233,18 +10195,9 @@ componentLoop:       do i = 1, this%NRealComponents
 
         CV = CP - specv*this%RefTemperature*BetaT*(AlphaP/BetaT)**2
 
-        call Update( this%SumCVsm, CV )
-        call Update( this%SumGammaVsm, AlphaP/BetaT )
-        call Update( this%SumBetaTsm, BetaT )
-        call Update( this%SumAlphaPsm, AlphaP )
-        call Update( this%SumCPsm, CP )
+        GammaV = AlphaP/BetaT
 
       else if( EnsembleType .eq. EnsembleTypeMUPT ) then
-
-        TotalChemPot = 0
-        do i = 1, this%NComponents
-          TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
-        end do
 
         Zero = this%Epot + this%Refpressure * this%Volume0 - TotalChemPot * this%NPart
         Beta    = 1._RK/this%RefTemperature
@@ -10293,13 +10246,15 @@ componentLoop:       do i = 1, this%NRealComponents
 
         CV = CP - specv*this%RefTemperature*BetaT*(AlphaP/BetaT)**2
 
-        call Update( this%SumCVsm, CV )
-        call Update( this%SumGammaVsm, AlphaP/BetaT )
-        call Update( this%SumBetaTsm, BetaT )
-        call Update( this%SumAlphaPsm, AlphaP )
-        call Update( this%SumCPsm, CP )
+        GammaV = AlphaP/BetaT
 
       end if
+
+      call Update( this%SumCVsm, CV )
+      call Update( this%SumGammaVsm, GammaV )
+      call Update( this%SumBetaTsm, BetaT )
+      call Update( this%SumAlphaPsm, AlphaP )
+      call Update( this%SumCPsm, CP )
 
       do i = 1, this%NComponents
         pc => this%Component(i)
@@ -10361,27 +10316,27 @@ componentLoop:       do i = 1, this%NRealComponents
       if( ConstantPressure ) then
 
         call Update( this%SumBetaT, real( this%NPart, RK ) / this%RefTemperature &
-  &                * ( this%SumVolumeSquared%Average / this%SumVolume%Average - this%SumVolume%Average ) )
+&                * ( this%SumVolumeSquared%Average / this%SumVolume%Average - this%SumVolume%Average ) )
 
         call Update( this%SumdHdP, this%SumVolume%Average - real( this%NPart, RK ) / this%RefTemperature &
-  &                * ( this%SumEPotV%Average - this%SumEPot%Average * this%SumVolume%Average + this%RefPressure &
-  &                * ( this%SumVolumeSquared%Average - this%SumVolume%Average**2 ) ) )
+&                * ( this%SumEPotV%Average - this%SumEPot%Average * this%SumVolume%Average + this%RefPressure &
+&                * ( this%SumVolumeSquared%Average - this%SumVolume%Average**2 ) ) )
 
         call Update( this%SumCP, real( this%NPart, RK ) / this%RefTemperature**2 &
-  &                * ( this%SumEnthalpySquared%Average - this%SumEnthalpy%Average**2 ) )
+&                * ( this%SumEnthalpySquared%Average - this%SumEnthalpy%Average**2 ) )
 
         call Update( this%SumAlphaP, real( this%NPart, RK ) / this%RefTemperature**2 &
-  &                * this%SumDensity%Average * ( this%SumEnthalpyV%Average &
-  &                - this%SumEnthalpy%Average * this%SumVolume%Average ) )
+&                * this%SumDensity%Average * ( this%SumEnthalpyV%Average &
+&                - this%SumEnthalpy%Average * this%SumVolume%Average ) )
 
       else
 
         call Update( this%SumdUdV, this%Density / ( 3. * real( this%NPart, RK )) * (this%NPart / this%RefTemperature &
-  &                * ( this%SumVirial%Average * this%SumEPot%Average - this%SumEPotVirial%Average )&
-  &                + this%SumVirial%Average ) )
+&                * ( this%SumVirial%Average * this%SumEPot%Average - this%SumEPotVirial%Average )&
+&                + this%SumVirial%Average ) )
 
         call Update( this%SumCV, real( this%NPart, RK ) / this%RefTemperature**2 &
-  &                * ( this%SumEPotSquared%Average - this%SumEPot%Average**2 ) )
+&                * ( this%SumEPotSquared%Average - this%SumEPot%Average**2 ) )
         call Update( this%SumCorCoefR, (-1_RK)*this%SumEPotDeltaVirialDelta%Average/sqrt(this%SumVirialDeltaSquared%Average*this%SumEPotDeltaSquared%Average) )
       endif
     endif
@@ -10426,7 +10381,7 @@ componentLoop:       do i = 1, this%NRealComponents
       call Update( this%SumA21resI, A21res )
       call Update( this%SumA12resI, A12res )
 
-      CV = -A20res
+      CV = -A20res 
 
       CP = - 1._RK - A20res + ((1._RK+A01res-A11res)**2)/ &
 &             (1._RK+2._RK*A01res+A02res)
@@ -12201,7 +12156,6 @@ componentLoop:       do i = 1, this%NRealComponents
         call Error( this%SumHmUm2d2UdV2 )
         call Error( this%SumHmUm3dUdV )
         call Error( this%SumHmUm3dUdV2 )
-
         call Error( this%SumA10resI )
         call Error( this%SumA01resI )
         call Error( this%SumA20resI )
@@ -12254,43 +12208,15 @@ componentLoop:       do i = 1, this%NRealComponents
         pc => this%Component(i)
         call Error( pc%SumFraction )
       end do
-
-      if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
-        call Error( this%SumP001 )
-        call Error( this%SumP002 )
-        call Error( this%SumP100 )
-        call Error( this%SumP200 )
-        call Error( this%SumP020 )
-        call Error( this%SumP101 )
-        call Error( this%SumP010 )
-        call Error( this%SumP110 )
-        call Error( this%SumP011 )
-        call Error( this%SumCVsm )
-        call Error( this%SumGammaVsm )
-        call Error( this%SumBetaTsm )
-        call Error( this%SumAlphaPsm )
-        call Error( this%SumCPsm )
-      else if( EnsembleType .eq. EnsembleTypeMUVL .or. EnsembleType .eq. EnsembleTypeMUPR ) then
-        call Error( this%SumP001 )
-        call Error( this%SumP002 )
-        call Error( this%SumP100 )
-        call Error( this%SumP200 )
-        call Error( this%SumP020 )
-        call Error( this%SumP101 )
-        call Error( this%SumP010 )
-        call Error( this%SumP110 )
-        call Error( this%SumP011 )
-      else if( EnsembleType .eq. EnsembleTypeMUPT ) then
-        call Error( this%SumP001 )
-        call Error( this%SumP002 )
-        call Error( this%SumP100 )
-        call Error( this%SumP200 )
-        call Error( this%SumP020 )
-        call Error( this%SumP101 )
-        call Error( this%SumP010 )
-        call Error( this%SumP110 )
-        call Error( this%SumP011 )
-      end if
+      call Error( this%SumP001 )
+      call Error( this%SumP002 )
+      call Error( this%SumP100 )
+      call Error( this%SumP200 )
+      call Error( this%SumP020 )
+      call Error( this%SumP101 )
+      call Error( this%SumP010 )
+      call Error( this%SumP110 )
+      call Error( this%SumP011 )
 
     else
       if( ConstantPressure ) then
@@ -22861,6 +22787,7 @@ if( RootProc .and. this%CorrfunMode ) then
 !==============================================================!
 !  Subroutine TSimulation_Ewald_FourierTermAddDel              !
 !==============================================================!
+  
    subroutine TEnsemble_EwaldFourierAddDel(this,nc,np,m)
 
    implicit none
