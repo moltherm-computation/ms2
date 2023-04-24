@@ -89,15 +89,15 @@ module ms2_site
 
 
 !==============================================================!
-!  Type TSiteTT                                              !
+!  Type TSiteTT                                                !
 !==============================================================!
 
   type TSiteTT
 
     real(RK)          :: r(3)
     real(RK)          :: tt_a, tt_b
-    real(RK)          :: alph
-    real(RK)          :: c6, c8
+    real(RK)          :: a1, a2, am1, am2
+    real(RK)          :: c6, c8, c10, c12, c14, c16
     real(RK)          :: mass
     real(RK)          :: shield
     integer, pointer  :: NPartMax, NPart, NTest
@@ -680,19 +680,50 @@ contains
     call FileReadParameter( this%r(3), potmodFile%iounit, IdSite_z, .false. )
     call FileReadParameter( this%tt_a, potmodFile%iounit, IdTT_A, .false. )
     call FileReadParameter( this%tt_b, potmodFile%iounit, IdTT_b, .false. )
-    call FileReadParameter( this%alph, potmodFile%iounit, IdTT_alpha, .false. )
-    call FileReadParameter( this%c6, potmodFile%iounit, IdTT_C6, .false. )
-    call FileReadParameter( this%c8, potmodFile%iounit, IdTT_C8, .false. )
+    select case( TT68orEXT )
+    case( 'TT68' ) !Case: TT68-Potential
+      call FileReadParameter( this%a1, potmodFile%iounit, IdTT_alpha, .false. )
+      this%a2 = 0
+      this%am1 = 0
+      this%am2 = 0
+      call FileReadParameter( this%c6, potmodFile%iounit, IdTT_C6, .false. )
+      call FileReadParameter( this%c8, potmodFile%iounit, IdTT_C8, .false. )
+      this%c10 = 0
+      this%c12 = 0
+      this%c14 = 0
+      this%c16 = 0
+    case( 'TTExt' ) !Case: extended TT-Potential
+      call FileReadParameter( this%a1, potmodFile%iounit, IdTT_a1, .false. )
+      this%a1 = -this%a1
+      call FileReadParameter( this%a2, potmodFile%iounit, IdTT_a2, .false. )
+      call FileReadParameter( this%am1, potmodFile%iounit, IdTT_am1, .false. )
+      call FileReadParameter( this%am2, potmodFile%iounit, IdTT_am2, .false. )
+      call FileReadParameter( this%c6, potmodFile%iounit, IdTT_C6, .false. )
+      call FileReadParameter( this%c8, potmodFile%iounit, IdTT_C8, .false. )
+      call FileReadParameter( this%c10, potmodFile%iounit, IdTT_C10, .false. )
+      call FileReadParameter( this%c12, potmodFile%iounit, IdTT_C12, .false. )
+      call FileReadParameter( this%c14, potmodFile%iounit, IdTT_C14, .false. )
+      call FileReadParameter( this%c16, potmodFile%iounit, IdTT_C16, .false. )
+    end select
+
     call FileReadParameter( this%mass, potmodFile%iounit, IdSite_mass, .false. )
     call FileReadParameter( this%shield, potmodFile%iounit, IdSite_shielding, .false. )
 
-    ! Convert to SI units
+
+  ! Convert to SI units
     this%r(:) = this%r(:) * Angstroem
     this%tt_a = this%tt_a * kBoltzmann
     this%tt_b = this%tt_b / Angstroem
-    this%alph = this%alph / Angstroem
+    this%a1 = this%a1 / Angstroem
+    this%a2 = this%a2 / Angstroem**2
+    this%am1 = this%am1 * Angstroem
+    this%am2 = this%am2 * Angstroem**2
     this%c6 = this%c6 * kBoltzmann * Angstroem**6
     this%c8 = this%c8 * kBoltzmann * Angstroem**8
+    this%c10 = this%c10 * kBoltzmann * Angstroem**10
+    this%c12 = this%c12 * kBoltzmann * Angstroem**12
+    this%c14 = this%c14 * kBoltzmann * Angstroem**14
+    this%c16 = this%c16 * kBoltzmann * Angstroem**16
     this%mass = this%mass * .001_RK / NAvogadro
     this%shield = this%shield * Angstroem
 
@@ -700,9 +731,16 @@ contains
     this%r(:) = this%r(:) / UnitLength
     this%tt_a = this%tt_a / UnitEnergy
     this%tt_b = this%tt_b * UnitLength
-    this%alph = this%alph * UnitLength
+    this%a1 = this%a1 * UnitLength
+    this%a2 = this%a2 * UnitLength**2
+    this%am1 = this%am1 / UnitLength
+    this%am2 = this%am2 / UnitLength**2
     this%c6 = this%c6 / ( UnitEnergy * UnitVolume**2 )
     this%c8 = this%c8 / ( UnitEnergy * UnitVolume**2 * UnitLength**2)
+    this%c10 = this%c10 / ( UnitEnergy * UnitVolume**2 * UnitLength**4)
+    this%c12 = this%c12 / ( UnitEnergy * UnitVolume**2 * UnitLength**6)
+    this%c14 = this%c14 / ( UnitEnergy * UnitVolume**2 * UnitLength**8)
+    this%c16 = this%c16 / ( UnitEnergy * UnitVolume**2 * UnitLength**10)
     this%mass = this%mass / UnitMass
     this%shield = this%shield / UnitLength
 
@@ -996,7 +1034,7 @@ contains
 
     call writeParameter(this%tt_a * UnitEnergy / kBoltzmann, this%tt_a, IdTT_A)
     call writeParameter(this%tt_b * Angstroem / UnitLength, this%tt_b, IdTT_b)
-    call writeParameter(this%alph * Angstroem / UnitLength, this%alph, IdTT_alpha)
+    call writeParameter(this%a1 * Angstroem / UnitLength, this%a1, IdTT_alpha)
     call writeParameter(this%c6 * UnitEnergy * UnitVolume**2 / ( kBoltzmann * Angstroem**6 ), this%c6, IdTT_C6)
     call writeParameter(this%c8 * UnitEnergy * UnitVolume**2 * UnitLength**2 / ( kBoltzmann * Angstroem**8 ), this%c8, IdTT_C8)
     call writeParameter(this%mass * UnitMass * 1000._RK * NAvogadro, this%mass, IdSite_mass)
