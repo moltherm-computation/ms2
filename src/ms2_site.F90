@@ -1034,9 +1034,22 @@ contains
 
     call writeParameter(this%tt_a * UnitEnergy / kBoltzmann, this%tt_a, IdTT_A)
     call writeParameter(this%tt_b * Angstroem / UnitLength, this%tt_b, IdTT_b)
-    call writeParameter(this%a1 * Angstroem / UnitLength, this%a1, IdTT_alpha)
+    select case( TT68orEXT )
+    case( 'TT68' ) !Case: TT68-Potential
+      call writeParameter(this%a1 * Angstroem / UnitLength, this%a1, IdTT_alpha)
+    case( 'TTExt' ) !Case: extended TT-Potential
+      call writeParameter(this%a1 * Angstroem / UnitLength, this%a1, IdTT_a1)
+    end select
+    call writeParameter(this%a2 * Angstroem**2 / UnitLength**2, this%a2, IdTT_a2)
+    call writeParameter(this%am1 * UnitLength / Angstroem, this%am1, IdTT_am1)
+    call writeParameter(this%am2 * UnitLength**2 / Angstroem**2, this%am2, IdTT_am2)
     call writeParameter(this%c6 * UnitEnergy * UnitVolume**2 / ( kBoltzmann * Angstroem**6 ), this%c6, IdTT_C6)
     call writeParameter(this%c8 * UnitEnergy * UnitVolume**2 * UnitLength**2 / ( kBoltzmann * Angstroem**8 ), this%c8, IdTT_C8)
+    call writeParameter(this%c10 * UnitEnergy * UnitVolume**2 * UnitLength**4 / ( kBoltzmann * Angstroem**10 ), this%c10, IdTT_C10)
+    call writeParameter(this%c12 * UnitEnergy * UnitVolume**2 * UnitLength**6 / ( kBoltzmann * Angstroem**12 ), this%c12, IdTT_C12)
+    call writeParameter(this%c14 * UnitEnergy * UnitVolume**2 * UnitLength**8 / ( kBoltzmann * Angstroem**14 ), this%c14, IdTT_C14)
+    call writeParameter(this%c16 * UnitEnergy * UnitVolume**2 * UnitLength**10 / ( kBoltzmann * Angstroem**16 ), this%c16, IdTT_C16)
+
     call writeParameter(this%mass * UnitMass * 1000._RK * NAvogadro, this%mass, IdSite_mass)
     call writeParameter(this%shield * UnitLength / Angstroem, this%shield, IdSite_shielding)
 
