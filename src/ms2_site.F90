@@ -89,10 +89,10 @@ module ms2_site
 
 
 !==============================================================!
-!  Type TSiteTT68                                              !
+!  Type TSiteTT                                              !
 !==============================================================!
 
-  type TSiteTT68
+  type TSiteTT
 
     real(RK)          :: r(3)
     real(RK)          :: tt_a, tt_b
@@ -122,26 +122,26 @@ module ms2_site
 !TRANSPORT_END
 #endif
 
-end type TSiteTT68
+end type TSiteTT
 
   interface Construct
-    module procedure TSiteTT68_Construct
+    module procedure TSiteTT_Construct
   end interface
 
   interface Destruct
-    module procedure TSiteTT68_Destruct
+    module procedure TSiteTT_Destruct
   end interface
 
   interface Allocate
-    module procedure TSiteTT68_Allocate
+    module procedure TSiteTT_Allocate
   end interface
 
   interface Deallocate
-    module procedure TSiteTT68_Deallocate
+    module procedure TSiteTT_Deallocate
   end interface
 
   interface Save
-    module procedure TSiteTT68_Save
+    module procedure TSiteTT_Save
   end interface
 
 
@@ -664,25 +664,25 @@ contains
 
 
 !==============================================================!
-!  Subroutine TSiteTT68_Construct                              !
+!  Subroutine TSiteTT_Construct                              !
 !==============================================================!
 
-  subroutine TSiteTT68_Construct( this )
+  subroutine TSiteTT_Construct( this )
 
     implicit none
 
     ! Declare arguments
-    type(TSiteTT68) :: this
+    type(TSiteTT) :: this
 
     ! Read site parameters
     call FileReadParameter( this%r(1), potmodFile%iounit, IdSite_x, .false. )
     call FileReadParameter( this%r(2), potmodFile%iounit, IdSite_y, .false. )
     call FileReadParameter( this%r(3), potmodFile%iounit, IdSite_z, .false. )
-    call FileReadParameter( this%tt_a, potmodFile%iounit, IdTT68_A, .false. )
-    call FileReadParameter( this%tt_b, potmodFile%iounit, IdTT68_b, .false. )
-    call FileReadParameter( this%alph, potmodFile%iounit, IdTT68_alpha, .false. )
-    call FileReadParameter( this%c6, potmodFile%iounit, IdTT68_C6, .false. )
-    call FileReadParameter( this%c8, potmodFile%iounit, IdTT68_C8, .false. )
+    call FileReadParameter( this%tt_a, potmodFile%iounit, IdTT_A, .false. )
+    call FileReadParameter( this%tt_b, potmodFile%iounit, IdTT_b, .false. )
+    call FileReadParameter( this%alph, potmodFile%iounit, IdTT_alpha, .false. )
+    call FileReadParameter( this%c6, potmodFile%iounit, IdTT_C6, .false. )
+    call FileReadParameter( this%c8, potmodFile%iounit, IdTT_C8, .false. )
     call FileReadParameter( this%mass, potmodFile%iounit, IdSite_mass, .false. )
     call FileReadParameter( this%shield, potmodFile%iounit, IdSite_shielding, .false. )
 
@@ -706,38 +706,38 @@ contains
     this%mass = this%mass / UnitMass
     this%shield = this%shield / UnitLength
 
-  end subroutine TSiteTT68_Construct
+  end subroutine TSiteTT_Construct
 
 
 
 !==============================================================!
-!  Subroutine TSiteTT68_Destruct                               !
+!  Subroutine TSiteTT_Destruct                               !
 !==============================================================!
 
-  subroutine TSiteTT68_Destruct( this )
+  subroutine TSiteTT_Destruct( this )
 
     implicit none
 
     ! Declare arguments
-    type(TSiteTT68) :: this
+    type(TSiteTT) :: this
 
     ! Destroy site
     continue
 
-  end subroutine TSiteTT68_Destruct
+  end subroutine TSiteTT_Destruct
 
 
 
 !==============================================================!
-!  Subroutine TSiteTT68_Allocate                               !
+!  Subroutine TSiteTT_Allocate                               !
 !==============================================================!
 
-  subroutine TSiteTT68_Allocate( this )
+  subroutine TSiteTT_Allocate( this )
 
     implicit none
 
     ! Declare arguments
-    type(TSiteTT68) :: this
+    type(TSiteTT) :: this
 
     ! Declare local variables
     integer :: np, nt
@@ -862,20 +862,20 @@ contains
       call AllocationError( stat, 'test particles', nt )
     end if
 
-  end subroutine TSiteTT68_Allocate
+  end subroutine TSiteTT_Allocate
 
 
 
 !==============================================================!
-!  Subroutine TSiteTT68_Deallocate                             !
+!  Subroutine TSiteTT_Deallocate                             !
 !==============================================================!
 
-  subroutine TSiteTT68_Deallocate( this )
+  subroutine TSiteTT_Deallocate( this )
 
     implicit none
 
     ! Declare arguments
-    type(TSiteTT68) :: this
+    type(TSiteTT) :: this
 
     ! Deallocate arrays
     if( associated( this%RX ) ) then
@@ -976,33 +976,33 @@ contains
     end if
 !TRANSPORT_END
 #endif
-  end subroutine TSiteTT68_Deallocate
+  end subroutine TSiteTT_Deallocate
 
 
 
 !==============================================================!
-!  Subroutine TSiteTT68_Save                                   !
+!  Subroutine TSiteTT_Save                                   !
 !==============================================================!
 
-  subroutine TSiteTT68_Save( this )
+  subroutine TSiteTT_Save( this )
 
     implicit none
 
     ! Declare arguments
-    type(TSiteTT68) :: this
+    type(TSiteTT) :: this
 
     ! Save site parameters
     call saveCoordinates(this%r)
 
-    call writeParameter(this%tt_a * UnitEnergy / kBoltzmann, this%tt_a, IdTT68_A)
-    call writeParameter(this%tt_b * Angstroem / UnitLength, this%tt_b, IdTT68_b)
-    call writeParameter(this%alph * Angstroem / UnitLength, this%alph, IdTT68_alpha)
-    call writeParameter(this%c6 * UnitEnergy * UnitVolume**2 / ( kBoltzmann * Angstroem**6 ), this%c6, IdTT68_C6)
-    call writeParameter(this%c8 * UnitEnergy * UnitVolume**2 * UnitLength**2 / ( kBoltzmann * Angstroem**8 ), this%c8, IdTT68_C8)
+    call writeParameter(this%tt_a * UnitEnergy / kBoltzmann, this%tt_a, IdTT_A)
+    call writeParameter(this%tt_b * Angstroem / UnitLength, this%tt_b, IdTT_b)
+    call writeParameter(this%alph * Angstroem / UnitLength, this%alph, IdTT_alpha)
+    call writeParameter(this%c6 * UnitEnergy * UnitVolume**2 / ( kBoltzmann * Angstroem**6 ), this%c6, IdTT_C6)
+    call writeParameter(this%c8 * UnitEnergy * UnitVolume**2 * UnitLength**2 / ( kBoltzmann * Angstroem**8 ), this%c8, IdTT_C8)
     call writeParameter(this%mass * UnitMass * 1000._RK * NAvogadro, this%mass, IdSite_mass)
     call writeParameter(this%shield * UnitLength / Angstroem, this%shield, IdSite_shielding)
 
-  end subroutine TSiteTT68_Save
+  end subroutine TSiteTT_Save
 
 
 

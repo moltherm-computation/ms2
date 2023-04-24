@@ -100,7 +100,7 @@ module ms2_potential
 
   type TPotTT68TT68
 
-    type(TSiteTT68), pointer   :: Site1, Site2
+    type(TSiteTT), pointer   :: Site1, Site2
     real(RK)                   :: TT_A, TT_b, Alpha, C6, C8
     real(RK)                   :: RCutoffSquared
     real(RK)                   :: RShieldSquared
@@ -2027,8 +2027,8 @@ loop2:  do j = 1, N2
     real(RK) :: Pi2CF6, Pi2CF8, Piminus23CF6, Piminus23CF8, Pi29CF6, Pi29CF8
 
     ! Construct potential
-    this%Site1 => Molecule1%SiteTT68(j1)
-    this%Site2 => Molecule2%SiteTT68(j2)
+    this%Site1 => Molecule1%SiteTT(j1)
+    this%Site2 => Molecule2%SiteTT(j2)
     this%SameComponent = i1 == i2
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
     this%Alpha = 2._RK * this%Site1%alph * this%Site2%alph / (this%Site1%alph + this%Site2%alph)

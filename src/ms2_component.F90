@@ -1410,26 +1410,26 @@ contains
     end do
 
     do i = 1, this%Molecule%NTT68
-      this%Molecule%SiteTT68(i)%NPartMax => this%NPartMax
-      this%Molecule%SiteTT68(i)%NPart => this%NPart
-      this%Molecule%SiteTT68(i)%NTest => this%NTest
-      this%Molecule%SiteTT68(i)%NPart0 => this%NPart0
-      this%Molecule%SiteTT68(i)%NPart1 => this%NPart1
-      this%Molecule%SiteTT68(i)%NPart2 => this%NPart2
+      this%Molecule%SiteTT(i)%NPartMax => this%NPartMax
+      this%Molecule%SiteTT(i)%NPart => this%NPart
+      this%Molecule%SiteTT(i)%NTest => this%NTest
+      this%Molecule%SiteTT(i)%NPart0 => this%NPart0
+      this%Molecule%SiteTT(i)%NPart1 => this%NPart1
+      this%Molecule%SiteTT(i)%NPart2 => this%NPart2
 
-      call Allocate( this%Molecule%SiteTT68(i) )
-      this%Molecule%SiteTT68(i)%PX => this%P0(:, 1)
-      this%Molecule%SiteTT68(i)%PY => this%P0(:, 2)
-      this%Molecule%SiteTT68(i)%PZ => this%P0(:, 3)
+      call Allocate( this%Molecule%SiteTT(i) )
+      this%Molecule%SiteTT(i)%PX => this%P0(:, 1)
+      this%Molecule%SiteTT(i)%PY => this%P0(:, 2)
+      this%Molecule%SiteTT(i)%PZ => this%P0(:, 3)
 
       if( ntest > 0 ) then
-        this%Molecule%SiteTT68(i)%PXTest => this%P0Test(:, 1)
-        this%Molecule%SiteTT68(i)%PYTest => this%P0Test(:, 2)
-        this%Molecule%SiteTT68(i)%PZTest => this%P0Test(:, 3)
+        this%Molecule%SiteTT(i)%PXTest => this%P0Test(:, 1)
+        this%Molecule%SiteTT(i)%PYTest => this%P0Test(:, 2)
+        this%Molecule%SiteTT(i)%PZTest => this%P0Test(:, 3)
       end if
 
 #if TRANS==1
-      this%Molecule%SiteTT68(i)%Q0r => this%Q0
+      this%Molecule%SiteTT(i)%Q0r => this%Q0
 #endif
     end do
     do i = 1, this%Molecule%NCharge
@@ -1777,7 +1777,7 @@ contains
       call Deallocate( this%Molecule%SiteMIEnm(i) )
     end do
     do i = 1, this%Molecule%NTT68
-      call Deallocate( this%Molecule%SiteTT68(i) )
+      call Deallocate( this%Molecule%SiteTT(i) )
     end do
     do i = 1, this%Molecule%NCharge
       call Deallocate( this%Molecule%SiteCharge(i) )
@@ -2084,7 +2084,7 @@ contains
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteMIEnm), pointer      :: pMIEnm
-    type(TSiteTT68), pointer       :: pTT68
+    type(TSiteTT), pointer       :: pTT68
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2160,7 +2160,7 @@ contains
 
       ! Loop over TT68 sites in molecule
       do j = 1, this%Molecule%NTT68
-        pTT68 => this%Molecule%SiteTT68(j)
+        pTT68 => this%Molecule%SiteTT(j)
         r1 = pTT68%r(1) * BoxLengthInv
         r2 = pTT68%r(2) * BoxLengthInv
         r3 = pTT68%r(3) * BoxLengthInv
@@ -2248,7 +2248,7 @@ contains
 
       ! Loop over TT68 sites in molecule
       do j = 1, this%Molecule%NTT68
-        pTT68 => this%Molecule%SiteTT68(j)
+        pTT68 => this%Molecule%SiteTT(j)
         do i = 1, l
           pTT68%RX(i-1+i0) = this%P0(i, 1)
           pTT68%RY(i-1+i0) = this%P0(i, 2)
@@ -2292,7 +2292,7 @@ contains
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteMIEnm), pointer      :: pMIEnm
-    type(TSiteTT68), pointer       :: pTT68
+    type(TSiteTT), pointer       :: pTT68
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2348,7 +2348,7 @@ contains
 
       ! Loop over TT68 sites in molecule
       do i = 1, this%Molecule%NTT68
-        pTT68 => this%Molecule%SiteTT68(i)
+        pTT68 => this%Molecule%SiteTT(i)
         r1 = pTT68%r(1) * BoxLengthInv
         r2 = pTT68%r(2) * BoxLengthInv
         r3 = pTT68%r(3) * BoxLengthInv
@@ -2424,7 +2424,7 @@ contains
 
       ! Loop over TT68 sites in molecule
       do i = 1, this%Molecule%NTT68
-        pTT68 => this%Molecule%SiteTT68(i)
+        pTT68 => this%Molecule%SiteTT(i)
         pTT68%RX(np) = PXi
         pTT68%RY(np) = PYi
         pTT68%RZ(np) = PZi
@@ -2467,7 +2467,7 @@ contains
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteMIEnm), pointer      :: pMIEnm
-    type(TSiteTT68), pointer       :: pTT68
+    type(TSiteTT), pointer       :: pTT68
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2517,7 +2517,7 @@ contains
 
       ! Loop over TT68 sites in molecule
       do j = 1, this%Molecule%NTT68
-        pTT68 => this%Molecule%SiteTT68(j)
+        pTT68 => this%Molecule%SiteTT(j)
         r1 = pTT68%r(1) * BoxLengthInv
         r2 = pTT68%r(2) * BoxLengthInv
         r3 = pTT68%r(3) * BoxLengthInv
@@ -2605,7 +2605,7 @@ contains
 
       ! Loop over TT68 sites in molecule
       do i = 1, this%Molecule%NTT68
-        pTT68 => this%Molecule%SiteTT68(i)
+        pTT68 => this%Molecule%SiteTT(i)
         do j = 1, np
           pTT68%RXTest(j) = this%P0Test(j, 1)
           pTT68%RYTest(j) = this%P0Test(j, 2)
@@ -2656,7 +2656,7 @@ contains
     real(RK)                       :: fx, fy, fz, tx, ty, tz
     real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     type(TSiteMIEnm), pointer      :: pMIEnm
-    type(TSiteTT68), pointer       :: pTT68
+    type(TSiteTT), pointer       :: pTT68
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2735,7 +2735,7 @@ contains
 
       ! Loop over TT68 sites in molecule
       do j = 1, this%Molecule%NTT68
-        pTT68 => this%Molecule%SiteTT68(j)
+        pTT68 => this%Molecule%SiteTT(j)
         do i = 1, l
           fx = pTT68%FX(i-1+i0)
           fy = pTT68%FY(i-1+i0)
@@ -2850,7 +2850,7 @@ contains
 
       ! Loop over TT68 sites in molecule
       do j = 1, this%Molecule%NTT68
-        pTT68 => this%Molecule%SiteTT68(j)
+        pTT68 => this%Molecule%SiteTT(j)
         do i = 1, l
           this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + pTT68%FX(i-1+i0)
           this%F(i-1+i0, 2) = this%F(i-1+i0, 2) + pTT68%FY(i-1+i0)
@@ -2923,7 +2923,7 @@ contains
     real(RK)                       :: fx, fy, fz, tx, ty, tz
     real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     type(TSiteMIEnm), pointer      :: pMIEnm
-    type(TSiteTT68), pointer       :: pTT68
+    type(TSiteTT), pointer       :: pTT68
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -3046,7 +3046,7 @@ contains
 
       ! Loop over TT68 sites in molecule
       do j = 1, this%Molecule%NTT68
-        pTT68 => this%Molecule%SiteTT68(j)
+        pTT68 => this%Molecule%SiteTT(j)
         do i = 1, np
           fx = pTT68%FX(i)
           fy = pTT68%FY(i)
@@ -3419,7 +3419,7 @@ contains
 
       ! Loop over TT68 sites in molecule
       do j = 1, this%Molecule%NTT68
-        pTT68 => this%Molecule%SiteTT68(j)
+        pTT68 => this%Molecule%SiteTT(j)
         do i = 1, np
 #if  TRANS == 1
           vsx = pTT68%vsTTx(i)
