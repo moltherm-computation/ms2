@@ -1712,7 +1712,7 @@ contains
 
       if( this%NTT68Max > 0 ) then
         call FileReadParameter( this%RCutoffTT68TT68, paramsFile%iounit , IdRCutoffTT68TT68, .false. )
-        write( IOBuffer, '("TT68 cutoff radius: ",T42, F8.3)' )  this%RCutoffTT68TT68
+        write( IOBuffer, '(A, " cutoff radius: ",T42, F8.3)' ) trim(TT68orEXT), this%RCutoffTT68TT68
         call LogWrite
       end if
 
@@ -1806,10 +1806,10 @@ contains
 
     if( this%NTT68Max > 0 ) then
       if ( SimulationType .eq. MonteCarlo .and. (.not.(mpiMCCommonGroups > 0)))  then
-        write( IOBuffer, '("- potential energy from TT68", T44, F12.8)' ) this%EPotCorrTT68  / this%NPart
+        write( IOBuffer, '("- potential energy from ", A, T44, F12.8)' ) TT68orEXT, this%EPotCorrTT68  / this%NPart
 
       else
-        write( IOBuffer, '("- potential energy from TT68", T44, F12.8)' )  this%EPotCorrTT68 * Nprocs/ this%NPart
+        write( IOBuffer, '("- potential energy from ", A, T44, F12.8)' ) TT68orEXT, this%EPotCorrTT68 * Nprocs/ this%NPart
       endif
     endif
 
@@ -1825,9 +1825,9 @@ contains
 
     if( this%NTT68Max > 0 ) then
       if ( SimulationType .eq. MonteCarlo .and. (.not.(mpiMCCommonGroups > 0)))  then
-        write( IOBuffer, '("- pressure from TT68", T44, F12.8)' )  this%VirialCorrTT68  / this%NPart
+        write( IOBuffer, '("- pressure from ", A, T44, F12.8)' ) TT68orEXT, this%VirialCorrTT68  / this%NPart
       else
-        write( IOBuffer, '("- pressure from TT68", T44, F12.8)' )  this%VirialCorrTT68 * NProcs / this%NPart
+        write( IOBuffer, '("- pressure from ", A, T44, F12.8)' ) TT68orEXT, this%VirialCorrTT68 * NProcs / this%NPart
       endif
     endif
 
@@ -1841,8 +1841,8 @@ contains
       endif
 
       if( this%NTT68Max > 0 ) then
-        write( IOBuffer, '("- chem. pot. of ", A, " from TT68", T44, F12.8)' ) trim( this%Component(i)%PotModFileName ), &
-  &        this%Component(i)%EPotTestCorrTT68
+        write( IOBuffer, '("- chem. pot. of ", A, " from ", A, T44, F12.8)' ) trim( this%Component(i)%PotModFileName ), &
+  &        trim(TT68orEXT), this%Component(i)%EPotTestCorrTT68
         call LogWrite
       endif
     end do
@@ -2260,9 +2260,9 @@ contains
 
         if( this%NTT68Max > 0 ) then
           this%Interaction(i, j)%EPotCorrTT68 = sum( this%Interaction(i, j)%PotTT68TT68(:, :)%EPotCorr )
-          write( IOBuffer, '("Cutoff correction to SVC of ", A, "-", A, " from  TT68:", F12.8)' ) &
+          write( IOBuffer, '("Cutoff correction to SVC of ", A, "-", A, " from ", A, ":", F12.8)' ) &
   &         trim( this%Component(i)%Molecule%PotModFileName ), trim( this%Component(j)%Molecule%PotModFileName ), &
-  &         .5_RK * this%Interaction(i, j)%EPotCorrTT68 / this%Temperature
+  &         trim(TT68orEXT), .5_RK * this%Interaction(i, j)%EPotCorrTT68 / this%Temperature
         endif
         call LogWrite
 
@@ -12491,8 +12491,8 @@ componentLoop:       do i = 1, this%NRealComponents
     end if
 
     if( this%NTT68Max > 0 ) then
-      write( IOBuffer, '("TT68-TT68 cutoff radius", T36, ":", F20.9, " A")' ) &
-&             this%RCutoffTT68TT68 * UnitLength / Angstroem
+      write( IOBuffer, '(A, " cutoff radius", T36, ":", F20.9, " A")' ) &
+&             trim(TT68orEXT), this%RCutoffTT68TT68 * UnitLength / Angstroem
       call FileWrite(this%errorsFile)
     end if
 
@@ -15248,7 +15248,7 @@ end if
       if( this%NTT68Max > 0 ) then
         do j = 1, this%Component(i)%Molecule%NTT68
           psTT68 => this%Component(i)%Molecule%SiteTT(j)
-          write( IOBuffer, '("~", I3, " TT", 4F8.4, "  1")' ) i, psTT68%r(:) * UnitLength / Angstroem, &
+          write( IOBuffer, '("~", I3, " ", A, 4F8.4, "  1")' ) i, trim(TT68orEXT), psTT68%r(:) * UnitLength / Angstroem, &
 &             UnitLength / Angstroem
           call FileWrite(this%visualFile)
         end do

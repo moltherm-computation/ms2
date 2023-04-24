@@ -539,6 +539,9 @@ module ms2_global
   ! LJ126 or Mie-Potential
   character(16) :: LJorMIE
 
+  ! TT68 or Extended Jäger potential
+  character(16) :: TT68orEXT
+
   ! Basic reduced units
   real(RK) :: UnitLength
   real(RK) :: UnitEnergy

@@ -198,7 +198,8 @@ contains
           end do
         end if
 
-      case( 'TT68', 'tt68', 'tt' )
+      case( 'TT68', 'tt68', 'tt' ) !Case: Tang-Tönnies-Potential
+      TT68orEXT = 'TT68'
         call FileReadParameter( this%NTT68, potmodFile%iounit, IdSite_NSites, .false. )
         if( this%NTT68 > 0 ) then
           allocate( this%SiteTT(this%NTT68), STAT = stat )
@@ -207,6 +208,17 @@ contains
             call Construct( this%SiteTT(j) )
           end do
         end if
+
+      case( 'TTExt', 'TText', 'ttext' ) !Case: Jäger-Potential
+        TT68orEXT = 'TTExt'
+          call FileReadParameter( this%NTT68, potmodFile%iounit, IdSite_NSites, .false. )
+          if( this%NTT68 > 0 ) then
+            allocate( this%SiteTT(this%NTT68), STAT = stat )
+            call AllocationError( stat, 'TT sites', this%NTT68 )
+            do j = 1, this%NTT68
+              call Construct( this%SiteTT(j) )
+            end do
+          end if
 
       case( 'CHARGE', 'Charge', 'charge', 'E', 'e' )
         call FileReadParameter( this%NCharge, potmodFile%iounit, IdSite_NSites, .false. )
