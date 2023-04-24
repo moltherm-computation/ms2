@@ -2031,9 +2031,9 @@ loop2:  do j = 1, N2
     this%Site2 => Molecule2%SiteTT(j2)
     this%SameComponent = i1 == i2
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
-    this%Alpha = 2._RK * this%Site1%alph * this%Site2%alph / (this%Site1%alph + this%Site2%alph)
-    this%TT_A = (((this%Site1%tt_a * this%Site1%alph)**(1/this%Site1%alph) * &
-&                 (this%Site2%tt_a * this%Site2%alph)**(1/this%Site2%alph))  &
+    this%Alpha = 2._RK * this%Site1%a1 * this%Site2%a1 / (this%Site1%a1 + this%Site2%a1)
+    this%TT_A = (((this%Site1%tt_a * this%Site1%a1)**(1/this%Site1%a1) * &
+&                 (this%Site2%tt_a * this%Site2%a1)**(1/this%Site2%a1))  &
 &                **(.5_RK * this%Alpha)) / this%Alpha
     this%TT_b = 2._RK * this%Site1%tt_b * this%Site2%tt_b / (this%Site1%tt_b + this%Site2%tt_b)
     this%C6 = (this%Site1%c6**(1/this%Site1%tt_b) * this%Site2%c6**(1/this%Site2%tt_b))**(.5_RK * this%TT_b)
