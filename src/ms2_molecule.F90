@@ -63,7 +63,7 @@ module ms2_molecule
 
     ! TT68 sites
     integer :: NTT68
-    type(TSiteTT68), pointer, contiguous :: SiteTT68(:)
+    type(TSiteTT), pointer, contiguous :: SiteTT(:)
 
     ! Coulomb sites
     integer :: NCharge
@@ -150,7 +150,7 @@ contains
 
     ! Nullify pointers.
     nullify( this%SiteMIEnm )
-    nullify( this%SiteTT68 )
+    nullify( this%SiteTT )
     nullify( this%SiteCharge )
     nullify( this%SiteDipole )
     nullify( this%SiteQuadrupole )
@@ -201,10 +201,10 @@ contains
       case( 'TT68', 'tt68', 'tt' )
         call FileReadParameter( this%NTT68, potmodFile%iounit, IdSite_NSites, .false. )
         if( this%NTT68 > 0 ) then
-          allocate( this%SiteTT68(this%NTT68), STAT = stat )
+          allocate( this%SiteTT(this%NTT68), STAT = stat )
           call AllocationError( stat, 'TT sites', this%NTT68 )
           do j = 1, this%NTT68
-            call Construct( this%SiteTT68(j) )
+            call Construct( this%SiteTT(j) )
           end do
         end if
 
@@ -300,8 +300,8 @@ contains
       end do
 
       do i = 1, this%NTT68
-        this%SiteTT68(i)%r = this%SiteTT68(i)%r * scalegeo
-        this%SiteTT68(i)%shield = this%SiteTT68(i)%shield * scalegeo
+        this%SiteTT(i)%r = this%SiteTT(i)%r * scalegeo
+        this%SiteTT(i)%shield = this%SiteTT(i)%shield * scalegeo
       end do
 
       do i = 1, this%NCharge
@@ -379,11 +379,11 @@ contains
       end do
       deallocate( this%SiteMIEnm )
     end if
-    if( associated( this%SiteTT68 ) ) then
+    if( associated( this%SiteTT ) ) then
       do i = 1, this%NTT68
-        call Destruct( this%SiteTT68(i) )
+        call Destruct( this%SiteTT(i) )
       end do
-      deallocate( this%SiteTT68 )
+      deallocate( this%SiteTT )
     end if
     if( associated( this%SiteCharge ) ) then
       do i = 1, this%NCharge
@@ -471,7 +471,7 @@ contains
       call FileWriteParameter( normalFile%iounit, IdSite_NSites )
       do i = 1, this%NTT68
         call FileWriteBlank(normalFile)
-        call Save( this%SiteTT68(i) )
+        call Save( this%SiteTT(i) )
       end do
     end if
 
@@ -577,8 +577,8 @@ contains
       r(:) = r(:) + this%SiteMIEnm(i)%mass * this%SiteMIEnm(i)%r(:)
     end do
     do i = 1, this%NTT68
-      this%Mass = this%Mass + this%SiteTT68(i)%mass
-      r(:) = r(:) + this%SiteTT68(i)%mass * this%SiteTT68(i)%r(:)
+      this%Mass = this%Mass + this%SiteTT(i)%mass
+      r(:) = r(:) + this%SiteTT(i)%mass * this%SiteTT(i)%r(:)
     end do
     do i = 1, this%NCharge
       this%Mass = this%Mass + this%SiteCharge(i)%mass
@@ -602,7 +602,7 @@ contains
     end do
     do i = 1, this%NTT68
       do j = 1, 3
-        this%SiteTT68(i)%r(j) = this%SiteTT68(i)%r(j) - r(j)
+        this%SiteTT(i)%r(j) = this%SiteTT(i)%r(j) - r(j)
       end do
     end do
     do i = 1, this%NCharge
@@ -652,12 +652,12 @@ contains
     end do
 
     do i = 1, this%NTT68
-      moi(1, 1) = moi(1, 1) + this%SiteTT68(i)%mass * ( this%SiteTT68(i)%r(2)**2 + this%SiteTT68(i)%r(3)**2 )
-      moi(1, 2) = moi(1, 2) - this%SiteTT68(i)%mass * this%SiteTT68(i)%r(1) * this%SiteTT68(i)%r(2)
-      moi(1, 3) = moi(1, 3) - this%SiteTT68(i)%mass * this%SiteTT68(i)%r(1) * this%SiteTT68(i)%r(3)
-      moi(2, 2) = moi(2, 2) + this%SiteTT68(i)%mass * ( this%SiteTT68(i)%r(1)**2 + this%SiteTT68(i)%r(3)**2 )
-      moi(2, 3) = moi(2, 3) - this%SiteTT68(i)%mass * this%SiteTT68(i)%r(2) * this%SiteTT68(i)%r(3)
-      moi(3, 3) = moi(3, 3) + this%SiteTT68(i)%mass * ( this%SiteTT68(i)%r(1)**2 + this%SiteTT68(i)%r(2)**2 )
+      moi(1, 1) = moi(1, 1) + this%SiteTT(i)%mass * ( this%SiteTT(i)%r(2)**2 + this%SiteTT(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteTT(i)%mass * this%SiteTT(i)%r(1) * this%SiteTT(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteTT(i)%mass * this%SiteTT(i)%r(1) * this%SiteTT(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteTT(i)%mass * ( this%SiteTT(i)%r(1)**2 + this%SiteTT(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteTT(i)%mass * this%SiteTT(i)%r(2) * this%SiteTT(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteTT(i)%mass * ( this%SiteTT(i)%r(1)**2 + this%SiteTT(i)%r(2)**2 )
     end do
 
     do i = 1, this%NCharge
@@ -695,7 +695,7 @@ contains
     end do
 
     do i = 1, this%NTT68
-      this%SiteTT68(i)%r(:) = matmul( this%SiteTT68(i)%r(:), rotation(:, :) )
+      this%SiteTT(i)%r(:) = matmul( this%SiteTT(i)%r(:), rotation(:, :) )
     end do
 
     do i = 1, this%NCharge

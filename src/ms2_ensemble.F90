@@ -6163,33 +6163,33 @@ loop5:        do nc = 1, this%NComponents
 #endif
       end do
       do j = 1, this%Component(i)%Molecule%NTT68
-        pc%Molecule%SiteTT68(j)%FX(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteTT68(j)%FY(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteTT68(j)%FZ(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteTT(j)%FX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteTT(j)%FY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteTT(j)%FZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
         if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
-          pc%Molecule%SiteTT68(j)%vsTTx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteTT68(j)%vsTTy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteTT68(j)%vsTTz(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteTT68(j)%vbTTx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteTT68(j)%vbTTy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteTT68(j)%vbTTz(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT(j)%vsTTx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT(j)%vsTTy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT(j)%vsTTz(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT(j)%vbTTx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT(j)%vbTTy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT(j)%vbTTz(1:pc%NPart) = 0._RK
     !        if ( this%Conductivity ) then
-            pc%Molecule%SiteTT68(j)%vsuTTx(1:pc%NPart)= 0._RK
-            pc%Molecule%SiteTT68(j)%vsuTTy(1:pc%NPart)= 0._RK
-            pc%Molecule%SiteTT68(j)%vsuTTz(1:pc%NPart)= 0._RK
-            pc%Molecule%SiteTT68(j)%cTTx(1:pc%NPart)  = 0._RK
-            pc%Molecule%SiteTT68(j)%cTTy(1:pc%NPart)  = 0._RK
-            pc%Molecule%SiteTT68(j)%cTTz(1:pc%NPart)  = 0._RK
-            pc%Molecule%SiteTT68(j)%tuTTx(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tuTTy(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tuTTz(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tlTTx(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tlTTy(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tlTTz(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tdTTx(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tdTTy(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tdTTz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%vsuTTx(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteTT(j)%vsuTTy(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteTT(j)%vsuTTz(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteTT(j)%cTTx(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteTT(j)%cTTy(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteTT(j)%cTTz(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteTT(j)%tuTTx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tuTTy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tuTTz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tlTTx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tlTTy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tlTTz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tdTTx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tdTTy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tdTTz(1:pc%NPart) = 0._RK
     !       end if
         end if
 #endif
@@ -8956,12 +8956,12 @@ componentLoop:       do i = 1, this%NRealComponents
         R2z = this%Component(this%ResidComp2)%Molecule%SiteMIEnm(this%ResidSite2)%RZ(Numb2)
       end if
       if( this%NTT68Max > 0 ) then
-        R1x = this%Component(this%ResidComp1)%Molecule%SiteTT68(this%ResidSite1)%RX(Numb1)
-        R1y = this%Component(this%ResidComp1)%Molecule%SiteTT68(this%ResidSite1)%RY(Numb1)
-        R1z = this%Component(this%ResidComp1)%Molecule%SiteTT68(this%ResidSite1)%RZ(Numb1)
-        R2x = this%Component(this%ResidComp2)%Molecule%SiteTT68(this%ResidSite2)%RX(Numb2)
-        R2y = this%Component(this%ResidComp2)%Molecule%SiteTT68(this%ResidSite2)%RY(Numb2)
-        R2z = this%Component(this%ResidComp2)%Molecule%SiteTT68(this%ResidSite2)%RZ(Numb2)
+        R1x = this%Component(this%ResidComp1)%Molecule%SiteTT(this%ResidSite1)%RX(Numb1)
+        R1y = this%Component(this%ResidComp1)%Molecule%SiteTT(this%ResidSite1)%RY(Numb1)
+        R1z = this%Component(this%ResidComp1)%Molecule%SiteTT(this%ResidSite1)%RZ(Numb1)
+        R2x = this%Component(this%ResidComp2)%Molecule%SiteTT(this%ResidSite2)%RX(Numb2)
+        R2y = this%Component(this%ResidComp2)%Molecule%SiteTT(this%ResidSite2)%RY(Numb2)
+        R2z = this%Component(this%ResidComp2)%Molecule%SiteTT(this%ResidSite2)%RZ(Numb2)
       end if
 
       drx = (R1x - R2x)
@@ -9034,12 +9034,12 @@ componentLoop:       do i = 1, this%NRealComponents
           R2z = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RZ(j)
         end if
         if( this%NTT68Max > 0 ) then
-          R1x = pc1%Molecule%SiteTT68(this%ResidSite1)%RX(i)
-          R1y = pc1%Molecule%SiteTT68(this%ResidSite1)%RY(i)
-          R1z = pc1%Molecule%SiteTT68(this%ResidSite1)%RZ(i)
-          R2x = pc2%Molecule%SiteTT68(this%ResidSite2)%RX(j)
-          R2y = pc2%Molecule%SiteTT68(this%ResidSite2)%RY(j)
-          R2z = pc2%Molecule%SiteTT68(this%ResidSite2)%RZ(j)
+          R1x = pc1%Molecule%SiteTT(this%ResidSite1)%RX(i)
+          R1y = pc1%Molecule%SiteTT(this%ResidSite1)%RY(i)
+          R1z = pc1%Molecule%SiteTT(this%ResidSite1)%RZ(i)
+          R2x = pc2%Molecule%SiteTT(this%ResidSite2)%RX(j)
+          R2y = pc2%Molecule%SiteTT(this%ResidSite2)%RY(j)
+          R2z = pc2%Molecule%SiteTT(this%ResidSite2)%RZ(j)
         end if
 
         drx = (R1x - R2x)
@@ -15190,7 +15190,7 @@ end if
     ! Declare local variables
     integer                   :: i, j
     type(TSiteMIEnm), pointer :: psMIEnm
-    type(TSiteTT68), pointer  :: psTT68
+    type(TSiteTT), pointer  :: psTT68
 
     ! Open visualization file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
@@ -15208,7 +15208,7 @@ end if
       end if
       if( this%NTT68Max > 0 ) then
         do j = 1, this%Component(i)%Molecule%NTT68
-          psTT68 => this%Component(i)%Molecule%SiteTT68(j)
+          psTT68 => this%Component(i)%Molecule%SiteTT(j)
           write( IOBuffer, '("~", I3, " TT", 4F8.4, "  1")' ) i, psTT68%r(:) * UnitLength / Angstroem, &
 &             UnitLength / Angstroem
           call FileWrite(this%visualFile)
@@ -15289,7 +15289,7 @@ end if
     ! Declare local variables
     integer                   :: i, j
     type(TSiteMIEnm), pointer :: psMIEnm
-    type(TSiteTT68), pointer  :: psTT68
+    type(TSiteTT), pointer  :: psTT68
 
     if (this%isCCSimulation .eqv. .true.) then
       !DC NOTE- Open visualization file
