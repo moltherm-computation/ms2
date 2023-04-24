@@ -227,7 +227,7 @@ contains
   subroutine TInteraction_Construct( this, i1, i2, &
 &                                    Component1, Component2, &
 &                                    RCutoffMIEnmMIEnm, &
-&                                    RCutoffTT68TT68, &
+&                                    RCutoffTT, &
 &                                    RCutoffDipoleDipole, &
 &                                    RCutoffDipoleQuadrupole, &
 &                                    RCutoffQuadrupoleQuadrupole, &
@@ -241,7 +241,7 @@ contains
     integer, intent(in)          :: i1, i2
     type(TComponent), intent(in) :: Component1, Component2
     real(RK), intent(in)         :: RCutoffMIEnmMIEnm
-    real(RK), intent(in)         :: RCutoffTT68TT68
+    real(RK), intent(in)         :: RCutoffTT
     real(RK), intent(in)         :: RCutoffDipoleDipole
     real(RK), intent(in)         :: RCutoffDipoleQuadrupole
     real(RK), intent(in)         :: RCutoffQuadrupoleQuadrupole
@@ -282,8 +282,8 @@ contains
     ! Set number of sites
     this%N1MIEnm = Component1%Molecule%NMIEnm
     this%N2MIEnm = Component2%Molecule%NMIEnm
-    this%N1TT68 = Component1%Molecule%NTT68
-    this%N2TT68 = Component2%Molecule%NTT68
+    this%N1TT68 = Component1%Molecule%NTT
+    this%N2TT68 = Component2%Molecule%NTT
     this%N1Charge = Component1%Molecule%NCharge
     this%N2Charge = Component2%Molecule%NCharge
     this%N1Dipole = Component1%Molecule%NDipole
@@ -349,8 +349,8 @@ contains
     if( RCutoffMIEnmMIEnm > 0 ) then
       this%RCutoffSquared = RCutoffMIEnmMIEnm**2
     endif
-    if( RCutoffTT68TT68 > 0 ) then
-      this%RCutoffSquared = RCutoffTT68TT68**2
+    if( RCutoffTT > 0 ) then
+      this%RCutoffSquared = RCutoffTT**2
     endif
 
     ! Create arrays
@@ -405,7 +405,7 @@ contains
         do j2 = 1, this%N2TT68
           call Construct( this%PotTT68TT68(j1, j2), &
 &              i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
-&              RCutoffTT68TT68 )
+&              RCutoffTT )
 
           this%PotTT68TT68(j1, j2)%NInCutoff => this%NInCutoff
           this%PotTT68TT68(j1, j2)%CutoffPartner => this%CutoffPartner

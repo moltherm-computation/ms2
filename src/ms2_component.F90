@@ -1409,7 +1409,7 @@ contains
 #endif
     end do
 
-    do i = 1, this%Molecule%NTT68
+    do i = 1, this%Molecule%NTT
       this%Molecule%SiteTT(i)%NPartMax => this%NPartMax
       this%Molecule%SiteTT(i)%NPart => this%NPart
       this%Molecule%SiteTT(i)%NTest => this%NTest
@@ -1776,7 +1776,7 @@ contains
     do i = 1, this%Molecule%NMIEnm
       call Deallocate( this%Molecule%SiteMIEnm(i) )
     end do
-    do i = 1, this%Molecule%NTT68
+    do i = 1, this%Molecule%NTT
       call Deallocate( this%Molecule%SiteTT(i) )
     end do
     do i = 1, this%Molecule%NCharge
@@ -2159,7 +2159,7 @@ contains
       end do
 
       ! Loop over TT68 sites in molecule
-      do j = 1, this%Molecule%NTT68
+      do j = 1, this%Molecule%NTT
         pTT68 => this%Molecule%SiteTT(j)
         r1 = pTT68%r(1) * BoxLengthInv
         r2 = pTT68%r(2) * BoxLengthInv
@@ -2247,7 +2247,7 @@ contains
       end do
 
       ! Loop over TT68 sites in molecule
-      do j = 1, this%Molecule%NTT68
+      do j = 1, this%Molecule%NTT
         pTT68 => this%Molecule%SiteTT(j)
         do i = 1, l
           pTT68%RX(i-1+i0) = this%P0(i, 1)
@@ -2347,7 +2347,7 @@ contains
       end do
 
       ! Loop over TT68 sites in molecule
-      do i = 1, this%Molecule%NTT68
+      do i = 1, this%Molecule%NTT
         pTT68 => this%Molecule%SiteTT(i)
         r1 = pTT68%r(1) * BoxLengthInv
         r2 = pTT68%r(2) * BoxLengthInv
@@ -2423,7 +2423,7 @@ contains
       end do
 
       ! Loop over TT68 sites in molecule
-      do i = 1, this%Molecule%NTT68
+      do i = 1, this%Molecule%NTT
         pTT68 => this%Molecule%SiteTT(i)
         pTT68%RX(np) = PXi
         pTT68%RY(np) = PYi
@@ -2516,7 +2516,7 @@ contains
       end do
 
       ! Loop over TT68 sites in molecule
-      do j = 1, this%Molecule%NTT68
+      do j = 1, this%Molecule%NTT
         pTT68 => this%Molecule%SiteTT(j)
         r1 = pTT68%r(1) * BoxLengthInv
         r2 = pTT68%r(2) * BoxLengthInv
@@ -2604,7 +2604,7 @@ contains
       end do
 
       ! Loop over TT68 sites in molecule
-      do i = 1, this%Molecule%NTT68
+      do i = 1, this%Molecule%NTT
         pTT68 => this%Molecule%SiteTT(i)
         do j = 1, np
           pTT68%RXTest(j) = this%P0Test(j, 1)
@@ -2734,7 +2734,7 @@ contains
       end do
 
       ! Loop over TT68 sites in molecule
-      do j = 1, this%Molecule%NTT68
+      do j = 1, this%Molecule%NTT
         pTT68 => this%Molecule%SiteTT(j)
         do i = 1, l
           fx = pTT68%FX(i-1+i0)
@@ -2849,7 +2849,7 @@ contains
       end do
 
       ! Loop over TT68 sites in molecule
-      do j = 1, this%Molecule%NTT68
+      do j = 1, this%Molecule%NTT
         pTT68 => this%Molecule%SiteTT(j)
         do i = 1, l
           this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + pTT68%FX(i-1+i0)
@@ -3045,7 +3045,7 @@ contains
       end do
 
       ! Loop over TT68 sites in molecule
-      do j = 1, this%Molecule%NTT68
+      do j = 1, this%Molecule%NTT
         pTT68 => this%Molecule%SiteTT(j)
         do i = 1, np
           fx = pTT68%FX(i)
@@ -3418,7 +3418,7 @@ contains
       end do
 
       ! Loop over TT68 sites in molecule
-      do j = 1, this%Molecule%NTT68
+      do j = 1, this%Molecule%NTT
         pTT68 => this%Molecule%SiteTT(j)
         do i = 1, np
 #if  TRANS == 1
