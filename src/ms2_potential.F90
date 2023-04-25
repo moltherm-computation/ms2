@@ -2024,8 +2024,10 @@ loop2:  do j = 1, N2
     ! Declare local variables
     real(RK) :: tau, tau1, tau2
     real(RK) :: RCutoffCS, RCutoffSS
-    real(RK) :: F6RC, F8RC
-    real(RK) :: Pi2CF6, Pi2CF8, Piminus23CF6, Piminus23CF8, Pi29CF6, Pi29CF8
+    real(RK) :: F6RC, F8RC, F10RC, F12RC, F14RC, F16RC
+    real(RK) :: Pi2CF6, Pi2CF8, Pi2CF10, Pi2CF12, Pi2CF14, Pi2CF16
+    real(RK) :: Piminus23CF6, Piminus23CF8, Piminus23CF10, Piminus23CF12, Piminus23CF14, Piminus23CF16
+    real(RK) :: Pi29CF6, Pi29CF8, Pi29CF10, Pi29CF12, Pi29CF14, Pi29CF16
 
     ! Construct potential
     this%Site1 => Molecule1%SiteTT(j1)
@@ -2039,6 +2041,28 @@ loop2:  do j = 1, N2
     this%TT_b = 2._RK * this%Site1%tt_b * this%Site2%tt_b / (this%Site1%tt_b + this%Site2%tt_b)
     this%C6 = (this%Site1%c6**(1/this%Site1%tt_b) * this%Site2%c6**(1/this%Site2%tt_b))**(.5_RK * this%TT_b)
     this%C8 = (this%Site1%c8**(1/this%Site1%tt_b) * this%Site2%c8**(1/this%Site2%tt_b))**(.5_RK * this%TT_b)
+    select case( TT68orEXT )
+    case( 'TT68' ) !Case: TT68-Potential
+      this%a2 = 0
+      this%am1 = 0
+      this%am2 = 0
+      this%C10 = 0
+      this%C12 = 0
+      this%C14 = 0
+      this%C16 = 0
+    case( 'TTExt' ) !Case: extended TT-Potential
+      if (i1 == i2) then
+        this%a2 = this%Site1%a2
+        this%am1 = this%Site1%am1
+        this%am2 = this%Site1%am2
+        this%C10 = this%Site1%c10
+        this%C12 = this%Site1%c12
+        this%C14 = this%Site1%c14
+        this%C16 = this%Site1%c16
+      else 
+        call Error( 'Extended TT potential is not implemented for mixtures.' )
+      end if
+    end select
 
     ! Calculate long-range corrections
     this%RCutoffSquared = RCutoff**2
@@ -2048,46 +2072,97 @@ loop2:  do j = 1, N2
 
     F6RC = FnRC(6, RCutoff, this%TT_b)
     F8RC = FnRC(8, RCutoff, this%TT_b)
+    F10RC = FnRC(10, RCutoff, this%TT_b)
+    F12RC = FnRC(12, RCutoff, this%TT_b)
+    F14RC = FnRC(14, RCutoff, this%TT_b)
+    F16RC = FnRC(16, RCutoff, this%TT_b)
 
     Pi2CF6 = Pi * 2._RK * this%C6 * F6RC
     Pi2CF8 = Pi * 2._RK * this%C8 * F8RC
+    Pi2CF10 = Pi * 2._RK * this%C10 * F10RC
+    Pi2CF12 = Pi * 2._RK * this%C12 * F12RC
+    Pi2CF14 = Pi * 2._RK * this%C14 * F14RC
+    Pi2CF16 = Pi * 2._RK * this%C16 * F16RC
     Piminus23CF6 = Pi * this%C6 * (-2._RK)/3._RK * F6RC
     Piminus23CF8 = Pi * this%C8 * (-2._RK)/3._RK * F8RC
+    Piminus23CF10 = Pi * this%C10 * (-2._RK)/3._RK * F10RC
+    Piminus23CF12 = Pi * this%C12 * (-2._RK)/3._RK * F12RC
+    Piminus23CF14 = Pi * this%C14 * (-2._RK)/3._RK * F14RC
+    Piminus23CF16 = Pi * this%C16 * (-2._RK)/3._RK * F16RC
     Pi29CF6 = Pi * this%C6 * (2._RK/9._RK) * F6RC
     Pi29CF8 = Pi * this%C8 * (2._RK/9._RK) * F8RC
+    Pi29CF10 = Pi * this%C10 * (2._RK/9._RK) * F10RC
+    Pi29CF12 = Pi * this%C12 * (2._RK/9._RK) * F12RC
+    Pi29CF14 = Pi * this%C14 * (2._RK/9._RK) * F14RC
+    Pi29CF16 = Pi * this%C16 * (2._RK/9._RK) * F16RC
 
     if( (CutoffMode .eq. CenterofMass) .and. (tau > 1E-10_RK) ) then
       if( (tau1 > 1E-10_RK) .and. (tau2 > 1E-10_RK) ) then
         this%EPotCorr = - Pi2CF6 * TISSu(-3._RK, RCutoff, tau1, tau2) &
-&                       - Pi2CF8 * TISSu(-4._RK, RCutoff, tau1, tau2)
+&                       - Pi2CF8 * TISSu(-4._RK, RCutoff, tau1, tau2) &
+&                       - Pi2CF10 * TISSu(-5._RK, RCutoff, tau1, tau2) &
+&                       - Pi2CF12 * TISSu(-6._RK, RCutoff, tau1, tau2) &
+&                       - Pi2CF14 * TISSu(-7._RK, RCutoff, tau1, tau2) &
+&                       - Pi2CF16 * TISSu(-8._RK, RCutoff, tau1, tau2) 
+
 
         this%VirialCorr = - Piminus23CF6 * TISSp(-3._RK, RCutoff, tau1, tau2) &
-&                         - Piminus23CF8 * TISSp(-4._RK, RCutoff, tau1, tau2)
+&                         - Piminus23CF8 * TISSp(-4._RK, RCutoff, tau1, tau2) & 
+&                         - Piminus23CF10 * TISSp(-5._RK, RCutoff, tau1, tau2) & 
+&                         - Piminus23CF12 * TISSp(-6._RK, RCutoff, tau1, tau2) & 
+&                         - Piminus23CF14 * TISSp(-7._RK, RCutoff, tau1, tau2) & 
+&                         - Piminus23CF16 * TISSp(-8._RK, RCutoff, tau1, tau2) 
 
         this%d2EpotdV2Corr = - Pi29CF6 * TISSd2EpotdV2(-3._RK, RCutoff, tau1, tau2) &
-&                            - Pi29CF8 * TISSd2EpotdV2(-4._RK, RCutoff, tau1, tau2)
+&                            - Pi29CF8 * TISSd2EpotdV2(-4._RK, RCutoff, tau1, tau2) & 
+&                            - Pi29CF10 * TISSd2EpotdV2(-5._RK, RCutoff, tau1, tau2) & 
+&                            - Pi29CF12 * TISSd2EpotdV2(-6._RK, RCutoff, tau1, tau2) & 
+&                            - Pi29CF14 * TISSd2EpotdV2(-7._RK, RCutoff, tau1, tau2) & 
+&                            - Pi29CF16 * TISSd2EpotdV2(-8._RK, RCutoff, tau1, tau2) 
 
       else
         this%EPotCorr = - Pi2CF6 * TICSu(-3._RK, RCutoff, tau) &
-&                       - Pi2CF8 * TICSu(-4._RK, RCutoff, tau)
+&                       - Pi2CF8 * TICSu(-4._RK, RCutoff, tau) &
+&                       - Pi2CF10 * TICSu(-5._RK, RCutoff, tau) &
+&                       - Pi2CF12 * TICSu(-6._RK, RCutoff, tau) &
+&                       - Pi2CF14 * TICSu(-7._RK, RCutoff, tau) &
+&                       - Pi2CF16 * TICSu(-8._RK, RCutoff, tau) 
 
         this%VirialCorr = - Piminus23CF6 * TICSp(-3._RK, RCutoff, tau) &
-&                         - Piminus23CF8 * TICSp(-4._RK, RCutoff, tau)
-
+&                         - Piminus23CF8 * TICSp(-4._RK, RCutoff, tau) &
+&                         - Piminus23CF10 * TICSp(-5._RK, RCutoff, tau) &
+&                         - Piminus23CF12 * TICSp(-6._RK, RCutoff, tau) &
+&                         - Piminus23CF14 * TICSp(-7._RK, RCutoff, tau) &
+&                         - Piminus23CF16 * TICSp(-8._RK, RCutoff, tau) 
+ 
         this%d2EpotdV2Corr = - Pi29CF6 * TICSd2EpotdV2(-3._RK, RCutoff, tau) &
-&                            - Pi29CF8 * TICSd2EpotdV2(-4._RK, RCutoff, tau)
-
+&                            - Pi29CF8 * TICSd2EpotdV2(-4._RK, RCutoff, tau) &
+&                            - Pi29CF10 * TICSd2EpotdV2(-5._RK, RCutoff, tau) &
+&                            - Pi29CF12 * TICSd2EpotdV2(-6._RK, RCutoff, tau) &
+&                            - Pi29CF14 * TICSd2EpotdV2(-7._RK, RCutoff, tau) &
+&                            - Pi29CF16 * TICSd2EpotdV2(-8._RK, RCutoff, tau) 
       endif
     else ! Site-site cutoff or both sites in center of mass
      this%EPotCorr = - Pi2CF6 * TICCu(-3._RK, RCutoff) &
-&                    - Pi2CF8 * TICCu(-4._RK, RCutoff)
+&                    - Pi2CF8 * TICCu(-4._RK, RCutoff) &
+&                    - Pi2CF10 * TICCu(-5._RK, RCutoff) &
+&                    - Pi2CF12 * TICCu(-6._RK, RCutoff) &
+&                    - Pi2CF14 * TICCu(-7._RK, RCutoff) &
+&                    - Pi2CF16 * TICCu(-8._RK, RCutoff) 
 
      this%VirialCorr = - Piminus23CF6 * TICCp(-3._RK, RCutoff) &
-&                      - Piminus23CF8 * TICCp(-4._RK, RCutoff)
+&                      - Piminus23CF8 * TICCp(-4._RK, RCutoff) &
+&                      - Piminus23CF10 * TICCp(-5._RK, RCutoff) &
+&                      - Piminus23CF12 * TICCp(-6._RK, RCutoff) &
+&                      - Piminus23CF14 * TICCp(-7._RK, RCutoff) &
+&                      - Piminus23CF16 * TICCp(-8._RK, RCutoff) 
 
      this%d2EpotdV2Corr = - Pi29CF6 * TICCd2EpotdV2(-3._RK, RCutoff) &
-&                         - Pi29CF8 * TICCd2EpotdV2(-4._RK, RCutoff)
-
+&                         - Pi29CF8 * TICCd2EpotdV2(-4._RK, RCutoff) &
+&                         - Pi29CF10 * TICCd2EpotdV2(-5._RK, RCutoff) &
+&                         - Pi29CF12 * TICCd2EpotdV2(-6._RK, RCutoff) &
+&                         - Pi29CF14 * TICCd2EpotdV2(-7._RK, RCutoff) &
+&                         - Pi29CF16 * TICCd2EpotdV2(-8._RK, RCutoff) 
     end if
     this%EPotTestCorr = 2._RK * this%EPotCorr
 
