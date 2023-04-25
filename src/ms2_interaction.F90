@@ -1948,7 +1948,7 @@ contains
           ptt68 => this%PotTT68TT68(s1, s2)
           A = ptt68%TT_A
           b = ptt68%TT_b
-          Alpha = ptt68%Alpha
+          Alpha = ptt68%a1
           C6 = ptt68%C6
           C6times56 = C6 * 56
           C8 = ptt68%C8
@@ -3058,7 +3058,7 @@ contains
           ptt68 => this%PotTT68TT68(s1, s2)
           A = ptt68%TT_A
           b = ptt68%TT_b
-          Alpha = ptt68%Alpha
+          Alpha = ptt68%a1
           C6 = ptt68%C6
           C6times56 = C6 * 56
           C8 = ptt68%C8
@@ -3728,7 +3728,7 @@ end subroutine TInteraction_Energy
           ptt68 => this%PotTT68TT68(s1, s2)
           A = ptt68%TT_A
           b = ptt68%TT_b
-          Alpha = ptt68%Alpha
+          Alpha = ptt68%a1
           C6 = ptt68%C6
           C6times56 = C6 * 56
           C8 = ptt68%C8

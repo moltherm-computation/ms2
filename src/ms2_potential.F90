@@ -101,7 +101,8 @@ module ms2_potential
   type TPotTT68TT68
 
     type(TSiteTT), pointer   :: Site1, Site2
-    real(RK)                   :: TT_A, TT_b, Alpha, C6, C8
+    real(RK)                   :: TT_A, TT_b, a1, a2, am1, am2
+    real(RK)                   :: C6, C8, C10, C12, C14, C16
     real(RK)                   :: RCutoffSquared
     real(RK)                   :: RShieldSquared
     real(RK)                   :: EPotCorr, VirialCorr, d2EpotdV2Corr, EPotTestCorr
@@ -2031,10 +2032,10 @@ loop2:  do j = 1, N2
     this%Site2 => Molecule2%SiteTT(j2)
     this%SameComponent = i1 == i2
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
-    this%Alpha = 2._RK * this%Site1%a1 * this%Site2%a1 / (this%Site1%a1 + this%Site2%a1)
+    this%a1 = 2._RK * this%Site1%a1 * this%Site2%a1 / (this%Site1%a1 + this%Site2%a1)
     this%TT_A = (((this%Site1%tt_a * this%Site1%a1)**(1/this%Site1%a1) * &
 &                 (this%Site2%tt_a * this%Site2%a1)**(1/this%Site2%a1))  &
-&                **(.5_RK * this%Alpha)) / this%Alpha
+&                **(.5_RK * this%a1)) / this%a1
     this%TT_b = 2._RK * this%Site1%tt_b * this%Site2%tt_b / (this%Site1%tt_b + this%Site2%tt_b)
     this%C6 = (this%Site1%c6**(1/this%Site1%tt_b) * this%Site2%c6**(1/this%Site2%tt_b))**(.5_RK * this%TT_b)
     this%C8 = (this%Site1%c8**(1/this%Site1%tt_b) * this%Site2%c8**(1/this%Site2%tt_b))**(.5_RK * this%TT_b)
@@ -2364,7 +2365,7 @@ loop2:  do j = 1, N2
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: FXij, FYij, FZij, Fij
-    real(RK)          :: A, b, Alpha, C6, C8
+    real(RK)          :: A, b, a1, C6, C8
     real(RK)          :: Rij, RijSquared, RijInv, RijInv2, RijInv3, RijInv6
     real(RK)          :: bRij, bRij2, bRij3, bRij6, bRij7
     real(RK)          :: ExpMinusbRij, F6, F8
@@ -2411,7 +2412,7 @@ loop2:  do j = 1, N2
     ! Assign local variables
     A = this%TT_A
     b = this%TT_b
-    Alpha = this%Alpha
+    a1 = this%a1
     C6 = this%C6
     C6times56 = C6 * 56
     C8 = this%C8
@@ -2512,12 +2513,12 @@ loop1:  do k = 1, this%NInCutoff(i)
 &              + InvFac5 * bRij2 * bRij3 + InvFac6 * bRij6 )
           F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij7 + InvFac8 * bRij * bRij7)
 
-          Rep = A * exp( -Alpha * Rij )
+          Rep = A * exp( -a1 * Rij )
           Attr1 = C6 * RijInv6 * F6
           Attr2 = C8 * RijInv6 * RijInv2 * F8
           EPotLocal = EpotLocal + Rep - Attr1 - Attr2
 
-          AlphaRep = Alpha * Rep
+          AlphaRep = a1 * Rep
           LongTerm = bRij7 * RijInv6 * RijInv * InvFac8 * ExpMinusbRij
           dEPotdRij = AlphaRep + LongTerm * (C6times56 + bRij2 * RijInv2 * C8) &
 &                     - ( 6 * Attr1 + 8 * Attr2 ) * RijInv
@@ -2553,7 +2554,7 @@ loop2:    do m=1,NBinsDen
           end if
 #endif
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdRij2 = Alpha * AlphaRep + LongTerm &
+          d2EpotdRij2 = a1 * AlphaRep + LongTerm &
 &            * ( (b + 6 * RijInv) * C6times56 + RijInv3 * (bRij3 + 8 * bRij2) * C8 ) &
 &            - ( 42 * Attr1 + 72 * Attr2) * RijInv2
           d2EpotdV2Local = d2EpotdV2Local + Ninth * ( -Fij * (sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) + d2EpotdRij2 * sitecorr*sitecorr) * RijSquared
@@ -2636,12 +2637,12 @@ loop3:  do j = j0, j1
 &              + InvFac5 * bRij2 * bRij3 + InvFac6 * bRij6 )
           F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij7 + InvFac8 * bRij * bRij7)
 
-          Rep = A * exp( -Alpha * Rij )
+          Rep = A * exp( -a1 * Rij )
           Attr1 = C6 * RijInv6 * F6
           Attr2 = C8 * RijInv6 * RijInv2 * F8
           EPotLocal = EpotLocal + Rep - Attr1 - Attr2
 
-          AlphaRep = Alpha * Rep
+          AlphaRep = a1 * Rep
           LongTerm = bRij7 * RijInv6 * RijInv * InvFac8 * ExpMinusbRij
           dEPotdRij = AlphaRep + LongTerm * (C6times56 + bRij2 * RijInv2 * C8) &
 &                     - ( 6 * Attr1 + 8 * Attr2 ) * RijInv
@@ -2652,7 +2653,7 @@ loop3:  do j = j0, j1
           VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
 
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdRij2 = Alpha * AlphaRep + LongTerm &
+          d2EpotdRij2 = a1 * AlphaRep + LongTerm &
 &            * ( (b + 6 * RijInv) * C6times56 + RijInv3 * (bRij3 + 8 * bRij2) * C8 ) &
 &            - ( 42 * Attr1 + 72 * Attr2) * RijInv2
           d2EpotdV2Local = d2EpotdV2Local + Ninth * ( -Fij * (sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) + d2EpotdRij2 * sitecorr*sitecorr) * RijSquared
@@ -2851,7 +2852,7 @@ loop3:  do j = j0, j1
 
     A = this%TT_A
     b = this%TT_b
-    Alpha = this%Alpha
+    Alpha = this%a1
     C6 = this%C6
     C6times56 = C6 * 56
     C8 = this%C8
@@ -3426,7 +3427,7 @@ loop1:do k = 1, this%NInCutoff(i)
     N2 = this%Site2%NPart
     A = this%TT_A
     b = this%TT_b
-    Alpha = this%Alpha
+    Alpha = this%a1
     C6 = this%C6
     C6times56 = C6 * 56
     C8 = this%C8
