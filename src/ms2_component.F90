@@ -2084,7 +2084,7 @@ contains
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteMIEnm), pointer      :: pMIEnm
-    type(TSiteTT), pointer       :: pTT68
+    type(TSiteTT), pointer         :: pTT
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2158,16 +2158,16 @@ contains
         end do
       end do
 
-      ! Loop over TT68 sites in molecule
+      ! Loop over TT sites in molecule
       do j = 1, this%Molecule%NTT
-        pTT68 => this%Molecule%SiteTT(j)
-        r1 = pTT68%r(1) * BoxLengthInv
-        r2 = pTT68%r(2) * BoxLengthInv
-        r3 = pTT68%r(3) * BoxLengthInv
+        pTT => this%Molecule%SiteTT(j)
+        r1 = pTT%r(1) * BoxLengthInv
+        r2 = pTT%r(2) * BoxLengthInv
+        r3 = pTT%r(3) * BoxLengthInv
         do i = 1, l
-          pTT68%RX(i-1+i0) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
-          pTT68%RY(i-1+i0) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
-          pTT68%RZ(i-1+i0) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+          pTT%RX(i-1+i0) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+          pTT%RY(i-1+i0) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+          pTT%RZ(i-1+i0) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
         end do
       end do
 
@@ -2246,13 +2246,13 @@ contains
         end do
       end do
 
-      ! Loop over TT68 sites in molecule
+      ! Loop over TT sites in molecule
       do j = 1, this%Molecule%NTT
-        pTT68 => this%Molecule%SiteTT(j)
+        pTT => this%Molecule%SiteTT(j)
         do i = 1, l
-          pTT68%RX(i-1+i0) = this%P0(i, 1)
-          pTT68%RY(i-1+i0) = this%P0(i, 2)
-          pTT68%RZ(i-1+i0) = this%P0(i, 3)
+          pTT%RX(i-1+i0) = this%P0(i, 1)
+          pTT%RY(i-1+i0) = this%P0(i, 2)
+          pTT%RZ(i-1+i0) = this%P0(i, 3)
         end do
       end do
 
@@ -2292,7 +2292,7 @@ contains
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteMIEnm), pointer      :: pMIEnm
-    type(TSiteTT), pointer       :: pTT68
+    type(TSiteTT), pointer         :: pTT
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2346,15 +2346,15 @@ contains
         pMIEnm%RZ(np) = PZi + r1 * A13 + r2 * A23 + r3 * A33
       end do
 
-      ! Loop over TT68 sites in molecule
+      ! Loop over TT sites in molecule
       do i = 1, this%Molecule%NTT
-        pTT68 => this%Molecule%SiteTT(i)
-        r1 = pTT68%r(1) * BoxLengthInv
-        r2 = pTT68%r(2) * BoxLengthInv
-        r3 = pTT68%r(3) * BoxLengthInv
-        pTT68%RX(np) = PXi + r1 * A11 + r2 * A21 + r3 * A31
-        pTT68%RY(np) = PYi + r1 * A12 + r2 * A22 + r3 * A32
-        pTT68%RZ(np) = PZi + r1 * A13 + r2 * A23 + r3 * A33
+        pTT => this%Molecule%SiteTT(i)
+        r1 = pTT%r(1) * BoxLengthInv
+        r2 = pTT%r(2) * BoxLengthInv
+        r3 = pTT%r(3) * BoxLengthInv
+        pTT%RX(np) = PXi + r1 * A11 + r2 * A21 + r3 * A31
+        pTT%RY(np) = PYi + r1 * A12 + r2 * A22 + r3 * A32
+        pTT%RZ(np) = PZi + r1 * A13 + r2 * A23 + r3 * A33
       end do
 
       ! Loop over charge sites in molecule
@@ -2422,12 +2422,12 @@ contains
         pMIEnm%RZ(np) = PZi
       end do
 
-      ! Loop over TT68 sites in molecule
+      ! Loop over TT sites in molecule
       do i = 1, this%Molecule%NTT
-        pTT68 => this%Molecule%SiteTT(i)
-        pTT68%RX(np) = PXi
-        pTT68%RY(np) = PYi
-        pTT68%RZ(np) = PZi
+        pTT => this%Molecule%SiteTT(i)
+        pTT%RX(np) = PXi
+        pTT%RY(np) = PYi
+        pTT%RZ(np) = PZi
       end do
 
       ! Loop over charge sites in molecule
@@ -2467,7 +2467,7 @@ contains
     real(RK)                       :: r1, r2, r3, or1, or2, or3
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteMIEnm), pointer      :: pMIEnm
-    type(TSiteTT), pointer       :: pTT68
+    type(TSiteTT), pointer         :: pTT
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2515,16 +2515,16 @@ contains
         end do
       end do
 
-      ! Loop over TT68 sites in molecule
+      ! Loop over TT sites in molecule
       do j = 1, this%Molecule%NTT
-        pTT68 => this%Molecule%SiteTT(j)
-        r1 = pTT68%r(1) * BoxLengthInv
-        r2 = pTT68%r(2) * BoxLengthInv
-        r3 = pTT68%r(3) * BoxLengthInv
+        pTT => this%Molecule%SiteTT(j)
+        r1 = pTT%r(1) * BoxLengthInv
+        r2 = pTT%r(2) * BoxLengthInv
+        r3 = pTT%r(3) * BoxLengthInv
         do i = 1, np
-          pTT68%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
-          pTT68%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
-          pTT68%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+          pTT%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+          pTT%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+          pTT%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
         end do
       end do
 
@@ -2603,13 +2603,13 @@ contains
         end do
       end do
 
-      ! Loop over TT68 sites in molecule
+      ! Loop over TT sites in molecule
       do i = 1, this%Molecule%NTT
-        pTT68 => this%Molecule%SiteTT(i)
+        pTT => this%Molecule%SiteTT(i)
         do j = 1, np
-          pTT68%RXTest(j) = this%P0Test(j, 1)
-          pTT68%RYTest(j) = this%P0Test(j, 2)
-          pTT68%RZTest(j) = this%P0Test(j, 3)
+          pTT%RXTest(j) = this%P0Test(j, 1)
+          pTT%RYTest(j) = this%P0Test(j, 2)
+          pTT%RZTest(j) = this%P0Test(j, 3)
         end do
       end do
 
@@ -2656,7 +2656,7 @@ contains
     real(RK)                       :: fx, fy, fz, tx, ty, tz
     real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     type(TSiteMIEnm), pointer      :: pMIEnm
-    type(TSiteTT), pointer       :: pTT68
+    type(TSiteTT), pointer         :: pTT
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2733,16 +2733,16 @@ contains
         end do
       end do
 
-      ! Loop over TT68 sites in molecule
+      ! Loop over TT sites in molecule
       do j = 1, this%Molecule%NTT
-        pTT68 => this%Molecule%SiteTT(j)
+        pTT => this%Molecule%SiteTT(j)
         do i = 1, l
-          fx = pTT68%FX(i-1+i0)
-          fy = pTT68%FY(i-1+i0)
-          fz = pTT68%FZ(i-1+i0)
-          r1x = ( pTT68%RX(i-1+i0) - rx(i) ) * BoxLength
-          r1y = ( pTT68%RY(i-1+i0) - ry(i) ) * BoxLength
-          r1z = ( pTT68%RZ(i-1+i0) - rz(i) ) * BoxLength
+          fx = pTT%FX(i-1+i0)
+          fy = pTT%FY(i-1+i0)
+          fz = pTT%FZ(i-1+i0)
+          r1x = ( pTT%RX(i-1+i0) - rx(i) ) * BoxLength
+          r1y = ( pTT%RY(i-1+i0) - ry(i) ) * BoxLength
+          r1z = ( pTT%RZ(i-1+i0) - rz(i) ) * BoxLength
           this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + fx
           this%F(i-1+i0, 2) = this%F(i-1+i0, 2) + fy
           this%F(i-1+i0, 3) = this%F(i-1+i0, 3) + fz
@@ -2848,13 +2848,13 @@ contains
         end do
       end do
 
-      ! Loop over TT68 sites in molecule
+      ! Loop over TT sites in molecule
       do j = 1, this%Molecule%NTT
-        pTT68 => this%Molecule%SiteTT(j)
+        pTT => this%Molecule%SiteTT(j)
         do i = 1, l
-          this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + pTT68%FX(i-1+i0)
-          this%F(i-1+i0, 2) = this%F(i-1+i0, 2) + pTT68%FY(i-1+i0)
-          this%F(i-1+i0, 3) = this%F(i-1+i0, 3) + pTT68%FZ(i-1+i0)
+          this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + pTT%FX(i-1+i0)
+          this%F(i-1+i0, 2) = this%F(i-1+i0, 2) + pTT%FY(i-1+i0)
+          this%F(i-1+i0, 3) = this%F(i-1+i0, 3) + pTT%FZ(i-1+i0)
         end do
       end do
 
@@ -2923,7 +2923,7 @@ contains
     real(RK)                       :: fx, fy, fz, tx, ty, tz
     real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     type(TSiteMIEnm), pointer      :: pMIEnm
-    type(TSiteTT), pointer       :: pTT68
+    type(TSiteTT), pointer         :: pTT
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -3044,40 +3044,40 @@ contains
         end do
       end do
 
-      ! Loop over TT68 sites in molecule
+      ! Loop over TT sites in molecule
       do j = 1, this%Molecule%NTT
-        pTT68 => this%Molecule%SiteTT(j)
+        pTT => this%Molecule%SiteTT(j)
         do i = 1, np
-          fx = pTT68%FX(i)
-          fy = pTT68%FY(i)
-          fz = pTT68%FZ(i)
+          fx = pTT%FX(i)
+          fy = pTT%FY(i)
+          fz = pTT%FZ(i)
 #if  TRANS == 1
 
-          vsx = pTT68%vsTTx(i)
-          vsy = pTT68%vsTTy(i)
-          vsz = pTT68%vsTTz(i)
-          vbx = pTT68%vbTTx(i)
-          vby = pTT68%vbTTy(i)
-          vbz = pTT68%vbTTz(i)
-          vsux= pTT68%vsuTTx(i)
-          vsuy= pTT68%vsuTTy(i)
-          vsuz= pTT68%vsuTTz(i)
-          cx  = pTT68%cTTx(i)
-          cy  = pTT68%cTTy(i)
-          cz  = pTT68%cTTz(i)
-          tux = pTT68%tuTTx(i)
-          tuy = pTT68%tuTTy(i)
-          tuz = pTT68%tuTTz(i)
-          tlx = pTT68%tlTTx(i)
-          tly = pTT68%tlTTy(i)
-          tlz = pTT68%tlTTz(i)
-          tdx = pTT68%tdTTx(i)
-          tdy = pTT68%tdTTy(i)
-          tdz = pTT68%tdTTz(i)
+          vsx = pTT%vsTTx(i)
+          vsy = pTT%vsTTy(i)
+          vsz = pTT%vsTTz(i)
+          vbx = pTT%vbTTx(i)
+          vby = pTT%vbTTy(i)
+          vbz = pTT%vbTTz(i)
+          vsux= pTT%vsuTTx(i)
+          vsuy= pTT%vsuTTy(i)
+          vsuz= pTT%vsuTTz(i)
+          cx  = pTT%cTTx(i)
+          cy  = pTT%cTTy(i)
+          cz  = pTT%cTTz(i)
+          tux = pTT%tuTTx(i)
+          tuy = pTT%tuTTy(i)
+          tuz = pTT%tuTTz(i)
+          tlx = pTT%tlTTx(i)
+          tly = pTT%tlTTy(i)
+          tlz = pTT%tlTTz(i)
+          tdx = pTT%tdTTx(i)
+          tdy = pTT%tdTTy(i)
+          tdz = pTT%tdTTz(i)
 #endif
-          r1x = ( pTT68%RX(i) - rx(i) ) * BoxLength
-          r1y = ( pTT68%RY(i) - ry(i) ) * BoxLength
-          r1z = ( pTT68%RZ(i) - rz(i) ) * BoxLength
+          r1x = ( pTT%RX(i) - rx(i) ) * BoxLength
+          r1y = ( pTT%RY(i) - ry(i) ) * BoxLength
+          r1z = ( pTT%RZ(i) - rz(i) ) * BoxLength
           this%F(i, 1) = this%F(i, 1) + fx
           this%F(i, 2) = this%F(i, 2) + fy
           this%F(i, 3) = this%F(i, 3) + fz
@@ -3417,27 +3417,27 @@ contains
         end do
       end do
 
-      ! Loop over TT68 sites in molecule
+      ! Loop over TT sites in molecule
       do j = 1, this%Molecule%NTT
-        pTT68 => this%Molecule%SiteTT(j)
+        pTT => this%Molecule%SiteTT(j)
         do i = 1, np
 #if  TRANS == 1
-          vsx = pTT68%vsTTx(i)
-          vsy = pTT68%vsTTy(i)
-          vsz = pTT68%vsTTz(i)
-          vbx = pTT68%vbTTx(i)
-          vby = pTT68%vbTTy(i)
-          vbz = pTT68%vbTTz(i)
-          vsux= pTT68%vsuTTx(i)
-          vsuy= pTT68%vsuTTy(i)
-          vsuz= pTT68%vsuTTz(i)
-          cx  = pTT68%cTTx(i)
-          cy  = pTT68%cTTy(i)
-          cz  = pTT68%cTTz(i)
+          vsx = pTT%vsTTx(i)
+          vsy = pTT%vsTTy(i)
+          vsz = pTT%vsTTz(i)
+          vbx = pTT%vbTTx(i)
+          vby = pTT%vbTTy(i)
+          vbz = pTT%vbTTz(i)
+          vsux= pTT%vsuTTx(i)
+          vsuy= pTT%vsuTTy(i)
+          vsuz= pTT%vsuTTz(i)
+          cx  = pTT%cTTx(i)
+          cy  = pTT%cTTy(i)
+          cz  = pTT%cTTz(i)
 #endif
-          this%F(i, 1) = this%F(i, 1) + pTT68%FX(i)
-          this%F(i, 2) = this%F(i, 2) + pTT68%FY(i)
-          this%F(i, 3) = this%F(i, 3) + pTT68%FZ(i)
+          this%F(i, 1) = this%F(i, 1) + pTT%FX(i)
+          this%F(i, 2) = this%F(i, 2) + pTT%FY(i)
+          this%F(i, 3) = this%F(i, 3) + pTT%FZ(i)
 
 #if  TRANS == 1
 
@@ -3547,7 +3547,7 @@ contains
     ! Initialize local arrays
     this%DensityProfileN(:) = 0
 
-    ! Loop over MIEnm or TT68 sites in molecule
+    ! Loop over MIEnm or TT sites in molecule
 #if MPI_VER > 0
 loop1:do i = this%NPart0, this%NPart2
 #else
