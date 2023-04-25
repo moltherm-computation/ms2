@@ -251,7 +251,7 @@ module ms2_component
 
     ! Long-range corrections
     real(RK) :: EPotTestCorrMIE
-    real(RK) :: EPotTestCorrTT68
+    real(RK) :: EPotTestCorrTT
     real(RK) :: EPotTestCorrRF
 
     ! Accumulated sums, averages and errors
