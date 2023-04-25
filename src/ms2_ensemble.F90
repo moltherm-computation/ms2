@@ -1842,7 +1842,7 @@ contains
 
       if( this%NTTMax > 0 ) then
         write( IOBuffer, '("- chem. pot. of ", A, " from ", A, T44, F12.8)' ) trim( this%Component(i)%PotModFileName ), &
-  &        trim(TT68orEXT), this%Component(i)%EPotTestCorrTT68
+  &        trim(TT68orEXT), this%Component(i)%EPotTestCorrTT
         call LogWrite
       endif
     end do
@@ -4588,7 +4588,7 @@ contains
     end do
 
     do i1 = 1, this%NComponents
-      this%Component(i1)%EPotTestCorrTT68 = 0._RK
+      this%Component(i1)%EPotTestCorrTT = 0._RK
     end do
 
     ! Calculate MIE long-range corrections
@@ -4626,7 +4626,7 @@ contains
               this%EPotCorrTT68 = this%EPotCorrTT68 + Scale * ptt68%EPotCorr
               this%VirialCorrTT68 = this%VirialCorrTT68 + Scale * ptt68%VirialCorr
               this%d2EpotdV2CorrTT68 = this%d2EpotdV2CorrTT68 + Scale * ptt68%d2EpotdV2Corr
-              this%Component(i1)%EPotTestCorrTT68 = this%Component(i1)%EPotTestCorrTT68 &
+              this%Component(i1)%EPotTestCorrTT = this%Component(i1)%EPotTestCorrTT &
 &                 + this%Component(i2)%Fraction * ptt68%EPotTestCorr
               this%RCutoffMax2 = max( this%RCutoffMax2, 2._RK * sqrt( ptt68%RCutoffSquared ) )
             end do
@@ -6505,7 +6505,7 @@ componentLoop:       do i = 1, this%NRealComponents
           this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         endif
         if( this%NTTMax > 0 ) then
-          this%EPotTest(:) = this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+          this%EPotTest(:) = this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF
         endif
 
         do j = 1, this%NRealComponents
@@ -6619,7 +6619,7 @@ componentLoop:       do i = 1, this%NRealComponents
           this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         endif
         if( this%NTTMax > 0 ) then
-          this%EPotTest(:) = this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+          this%EPotTest(:) = this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF
         endif
 
         do j = 1, this%NComponents
@@ -7372,7 +7372,7 @@ componentLoop:       do i = 1, this%NRealComponents
        EPotOld = (this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF)*pt%Lambda**pc%LambdaExponent
       endif
       if( this%NTTMax > 0 ) then
-       EPotOld = (this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF)*pt%Lambda**pc%LambdaExponent
+       EPotOld = (this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF)*pt%Lambda**pc%LambdaExponent
       endif
       call EnergyinRC(this, nt, 1, EPot)
 #if MPI_VER > 0
@@ -7525,7 +7525,7 @@ componentLoop:       do i = 1, this%NRealComponents
           EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
         endif
         if( this%NTTMax > 0 ) then
-          EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrTT68 + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+          EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrTT + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
         endif
 
       else
@@ -7533,7 +7533,7 @@ componentLoop:       do i = 1, this%NRealComponents
           EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
         endif
         if( this%NTTMax > 0 ) then
-          EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrTT68 + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+          EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrTT + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
         endif
       endif
 
@@ -7543,7 +7543,7 @@ componentLoop:       do i = 1, this%NRealComponents
           EPotIns = EPotIns + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
         endif
         if( this%NTTMax > 0 ) then
-          EPotIns = EPotIns + this%Density * pc%EPotTestCorrTT68 + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+          EPotIns = EPotIns + this%Density * pc%EPotTestCorrTT + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
         endif
 
       ! Apply acceptance criterion - SINGLE
@@ -7589,7 +7589,7 @@ componentLoop:       do i = 1, this%NRealComponents
           EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         endif
         if( this%NTTMax > 0 ) then
-          EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+          EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF
         endif
 
       else
@@ -7597,7 +7597,7 @@ componentLoop:       do i = 1, this%NRealComponents
           EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         endif
         if( this%NTTMax > 0 ) then
-          EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+          EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF
         endif
       endif
 
@@ -7608,7 +7608,7 @@ componentLoop:       do i = 1, this%NRealComponents
           EPotIns = EPotIns + this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         endif
         if( this%NTTMax > 0 ) then
-          EPotIns = EPotIns + this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+          EPotIns = EPotIns + this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF
         endif
       if( rnd( 0._RK, 1._RK ) .lt. ( exp( pc%ChemPot - EPotIns / this%Temperature ) * this%Volume0 / np )) then
 #endif
@@ -7711,7 +7711,7 @@ componentLoop:       do i = 1, this%NRealComponents
       EPotIns = EPotIns + this%Density * pc%EPotTestCorrMIE
     endif
     if( this%NTTMax > 0 ) then
-      EPotIns = EPotIns + this%Density * pc%EPotTestCorrTT68
+      EPotIns = EPotIns + this%Density * pc%EPotTestCorrTT
     endif
 
     TotalChemPot = 0
@@ -7831,7 +7831,7 @@ componentLoop:       do i = 1, this%NRealComponents
         EPotDel = EPotDel + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier
       endif
       if( this%NTTMax > 0 ) then
-        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT68 + this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier
+        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT + this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier
       endif
 
       ! Apply acceptance criterion
@@ -7893,7 +7893,7 @@ componentLoop:       do i = 1, this%NRealComponents
         EPotDel = EPotDel + this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
       endif
       if( this%NTTMax > 0 ) then
-        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF
       endif
 
       ! Apply acceptance criterion
@@ -7970,7 +7970,7 @@ componentLoop:       do i = 1, this%NRealComponents
       EPotDel = EPotDel + this%Density * pc%EPotTestCorrMIE
     endif
     if( this%NTTMax > 0 ) then
-      EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT68
+      EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT
     endif
 
     TotalChemPot = 0
@@ -8557,7 +8557,7 @@ componentLoop:       do i = 1, this%NRealComponents
 &                  this%Temperature*log(this%Volume0/(this%NPart) )
       end if
       if( this%NTTMax > 0 ) then
-        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT68 + NProcs*(this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier) - &
+        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT + NProcs*(this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier) - &
 &                  this%Temperature*log(this%Volume0/(this%NPart) )
       end if
 
@@ -8594,7 +8594,7 @@ componentLoop:       do i = 1, this%NRealComponents
         EPotDel = EPotDel + this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF - this%Temperature*log(this%Volume0/(this%NPart) )
       end if
       if( this%NTTMax > 0 ) then
-        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF - this%Temperature*log(this%Volume0/(this%NPart) )
+        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF - this%Temperature*log(this%Volume0/(this%NPart) )
       end if
 
     end if
@@ -8672,7 +8672,7 @@ componentLoop:       do i = 1, this%NRealComponents
 &            NProcs * this%UIntra + NProcs * UIntra - NProcs * this%USelbstTerm + NProcs * USelbst + NProcs * EFourier
       end if
       if( this%NTTMax > 0 ) then
-        EPotDelta = EpotDelta - EPotInsAll - this%Density * pc%EPotTestCorrTT68 - this%Temperature * log((this%NPart)/this%Volume0 ) - &
+        EPotDelta = EpotDelta - EPotInsAll - this%Density * pc%EPotTestCorrTT - this%Temperature * log((this%NPart)/this%Volume0 ) - &
 &            NProcs * this%UIntra + NProcs * UIntra - NProcs * this%USelbstTerm + NProcs * USelbst + NProcs * EFourier
       end if
 
@@ -8683,7 +8683,7 @@ componentLoop:       do i = 1, this%NRealComponents
 &            this%UIntra + UIntra - this%USelbstTerm + USelbst + EFourier
       end if
       if( this%NTTMax > 0 ) then
-        EPotDelta = EPotDelta - EPotIns - this%Density * pc%EPotTestCorrTT68  - this%Temperature * log((this%NPart)/this%Volume0 ) - &
+        EPotDelta = EPotDelta - EPotIns - this%Density * pc%EPotTestCorrTT  - this%Temperature * log((this%NPart)/this%Volume0 ) - &
 &            this%UIntra + UIntra - this%USelbstTerm + USelbst + EFourier
       end if
 
@@ -8720,7 +8720,7 @@ componentLoop:       do i = 1, this%NRealComponents
 &        - pc%EPotTestCorrRF - this%Temperature*log((this%NPart)/this%Volume0 )
       end if
       if( this%NTTMax > 0 ) then
-        EPotDelta = EpotDelta - EPotInsAll - this%Density * pc%EPotTestCorrTT68 &
+        EPotDelta = EpotDelta - EPotInsAll - this%Density * pc%EPotTestCorrTT &
 &        - pc%EPotTestCorrRF - this%Temperature*log((this%NPart)/this%Volume0 )
       end if
 
@@ -8731,7 +8731,7 @@ componentLoop:       do i = 1, this%NRealComponents
 &         - pc%EPotTestCorrRF - this%Temperature*log((this%NPart)/this%Volume0 )
       end if
       if( this%NTTMax > 0 ) then
-        EPotDelta = EPotDelta - EPotIns - this%Density * pc%EPotTestCorrTT68 &
+        EPotDelta = EPotDelta - EPotIns - this%Density * pc%EPotTestCorrTT &
 &         - pc%EPotTestCorrRF - this%Temperature*log((this%NPart)/this%Volume0 )
       end if
 
@@ -10732,7 +10732,7 @@ componentLoop:       do i = 1, this%NRealComponents
               currentBinsEn = (this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
             end if
             if( this%NTTMax > 0 ) then
-              currentBinsEn = (this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
+              currentBinsEn = (this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
             end if
 
             if (SimulationType .ne. MolecularDynamics ) then
