@@ -2029,6 +2029,7 @@ loop2:  do j = 1, N2
     real(RK) :: Piminus23CF6, Piminus23CF8, Piminus23CF10, Piminus23CF12, Piminus23CF14, Piminus23CF16
     real(RK) :: Pi29CF6, Pi29CF8, Pi29CF10, Pi29CF12, Pi29CF14, Pi29CF16
 
+
     ! Construct potential
     this%Site1 => Molecule1%SiteTT(j1)
     this%Site2 => Molecule2%SiteTT(j2)
@@ -3490,7 +3491,7 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: A, b, Alpha, C6, C8, C6times56, b2, b4
+    real(RK)          :: A, b, Alpha, C6, C8
     real(RK)          :: Rij, RijSquared, RijInv, RijInv2, RijInv3, RijInv6
     real(RK)          :: bRij, bRij2, bRij3, bRij4, bRij6, bRij7
     real(RK)          :: ExpMinusbRij, F6, F8, Attr1, Attr2
@@ -3504,7 +3505,6 @@ loop1:do k = 1, this%NInCutoff(i)
     b = this%TT_b
     Alpha = this%a1
     C6 = this%C6
-    C6times56 = C6 * 56
     C8 = this%C8
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
@@ -3564,30 +3564,8 @@ loop1:  do k = 1, this%NInCutoff(i)
           bRij6 = bRij4 * bRij2
           bRij7 = bRij6 * bRij
           if( RijSquared <= RShieldSquared ) then
-            b2 = b * b
-            b4 = b2 * b2
-            Attr1 = InvFac7 * bRij - InvFac8 * 7._RK * bRij2 &
-&                   + InvFac9 * 28._RK * bRij2 * bRij &
-&                   - InvFac10 * 84._RK * bRij4 &
-&                   + InvFac11 * 210._RK * bRij4 * bRij &
-&                   - InvFac12 * 462._RK * bRij6 &
-&                   + InvFac13 * 924._RK * bRij7 &
-&                   - InvFac14 * 1716._RK * bRij6 * bRij2 &
-&                   + InvFac15 * 3003._RK * bRij7 * bRij2 &
-&                   - InvFac16 * 5005._RK * bRij6 * bRij4 &
-&                   + InvFac17 * 8008._RK * bRij7 * bRij4 &
-&                   - InvFac18 * 12376._RK * bRij6 * bRij6
-            Attr1 = Attr1 * C6 * b2 * b4
-            Attr2 = InvFac9 * bRij - InvFac10 * 9._RK * bRij2 &
-&                   + InvFac11 * 45._RK * bRij2 * bRij &
-&                   - InvFac12 * 165._RK * bRij4 &
-&                   + InvFac13 * 495._RK * bRij4 * bRij &
-&                   - InvFac14 * 1287._RK * bRij6 &
-&                   + InvFac15 * 3003._RK * bRij7 &
-&                   - InvFac16 * 6435._RK * bRij6 * bRij2 &
-&                   + InvFac17 * 12870._RK * bRij7 * bRij2 &
-&                   - InvFac18 * 24310._RK * bRij6 * bRij4
-            Attr2 = Attr2 * C8 * b4 * b4
+            Attr1 = 0
+            Attr2 = 0
           else
             RijInv = 1._RK / Rij
             RijInv2 = RijInv * RijInv
