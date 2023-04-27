@@ -103,6 +103,7 @@ module ms2_potential
     type(TSiteTT), pointer   :: Site1, Site2
     real(RK)                   :: TT_A, TT_b, a1, a2, am1, am2
     real(RK)                   :: C6, C8, C10, C12, C14, C16
+    real(RK)                   :: Deriv1Factor, Deriv2Factor
     real(RK)                   :: RCutoffSquared
     real(RK)                   :: RShieldSquared
     real(RK)                   :: EPotCorr, VirialCorr, d2EpotdV2Corr, EPotTestCorr
@@ -2035,6 +2036,7 @@ loop2:  do j = 1, N2
     this%Site2 => Molecule2%SiteTT(j2)
     this%SameComponent = i1 == i2
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
+    print*, this%RShieldSquared
     this%a1 = 2._RK * this%Site1%a1 * this%Site2%a1 / (this%Site1%a1 + this%Site2%a1)
     this%TT_A = (((this%Site1%tt_a * this%Site1%a1)**(1/this%Site1%a1) * &
 &                 (this%Site2%tt_a * this%Site2%a1)**(1/this%Site2%a1))  &
@@ -2064,6 +2066,16 @@ loop2:  do j = 1, N2
         call Error( 'Extended TT potential is not implemented for mixtures.' )
       end if
     end select
+
+    this%Deriv1Factor = this%C6 * this%TT_b**7 * InvFac6 + this%C8 * this%TT_b**9 * InvFac8 &
+&                    + this%C10 * this%TT_b**11 * InvFac10 + this%C12 * this%TT_b**13 * InvFac12 &
+&                    + this%C14 * this%TT_b**15 * InvFac14 + this%C16 * this%TT_b**17 * InvFac16 
+
+    this%Deriv2Factor = this%C6 * this%TT_b**7 * InvFac5 + this%C8 * this%TT_b**9 * InvFac7 &
+&                    + this%C10 * this%TT_b**11 * InvFac9 + this%C12 * this%TT_b**13 * InvFac11 &
+&                    + this%C14 * this%TT_b**15 * InvFac13 + this%C16 * this%TT_b**17 * InvFac15 
+
+
 
     ! Calculate long-range corrections
     this%RCutoffSquared = RCutoff**2
