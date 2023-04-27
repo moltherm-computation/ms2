@@ -509,8 +509,6 @@ module ms2_global
   real(RK), parameter :: InvFac14 = 1._RK / 87178291200._RK
   real(RK), parameter :: InvFac15 = 1._RK / 1307674368000._RK
   real(RK), parameter :: InvFac16 = 1._RK / 20922789888000._RK
-  real(RK), parameter :: InvFac17 = 1._RK / 355687428096000._RK
-  real(RK), parameter :: InvFac18 = 1._RK / 6402373705728000._RK
 
   ! General physical constants
   real(RK), parameter :: NAvogadro = 6.022137E23_RK
