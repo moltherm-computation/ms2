@@ -125,7 +125,7 @@ module ms2_interaction
     real(RK) :: EPotCorrMIE
 
     ! Cutoff correction to TT68-interaction
-    real(RK) :: EPotCorrTT68
+    real(RK) :: EPotCorrTT
 
     ! Flag for reaction field
     logical :: ReactionField
