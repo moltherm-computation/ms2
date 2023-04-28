@@ -1800,7 +1800,7 @@ contains
     real(RK)          :: BoxLengthThird
     real(RK)          :: A, b, a1, a2, am1, am2, C6, C8, C10, C12, C14, C16
     real(RK)          :: Aux1, Aux2, Aux3, Aux4, Deriv1Factor, Deriv2Factor, dRepdR, d2RepdR2
-    real(RK)          :: Rep, Attr6, Attr8, Attr10, Attr12, Attr14, Attr16, C6times56, LongTerm
+    real(RK)          :: Rep, Attr6, Attr8, Attr10, Attr12, Attr14, Attr16
     real(RK)          :: dEPotdRij, d2EpotdRij2
     real(RK)          :: Rij, RijInv, RijInv2, RijInv3, RijInv6, RijInv8, RijInv10
     real(RK)          :: bRij, bRij2, bRij3, bRij4, bRij6, bRij8, bRij10, bRij12, bRij14, bRij16
@@ -3103,9 +3103,19 @@ contains
           A = ptt%TT_A
           b = ptt%TT_b
           a1 = ptt%a1
+          a2 = ptt%a2
+          am1 = ptt%am1
+          am2 = ptt%am2
           C6 = ptt%C6
-          C6times56 = C6 * 56
           C8 = ptt%C8
+          C10 = ptt%C10
+          C12 = ptt%C12
+          C14 = ptt%C14
+          C16 = ptt%C16
+          Deriv1Factor = ptt%Deriv1Factor
+          Deriv2Factor = ptt%Deriv2Factor
+          RCutoffSquared = ptt%RCutoffSquared
+          RShieldSquared = ptt%RShieldSquared
 
           ! Assign pointers to site positions
           RX1 => ptt%Site1%RX
@@ -3150,40 +3160,72 @@ contains
             RijInv2 = RijInv * RijInv
             RijInv3 = RijInv * RijInv2
             RijInv6 = RijInv3 * RijInv3
+            RijInv8 = RijInv6 * RijInv2
+            RijInv10 = RijInv8 * RijInv2
             bRij = b * Rij
             bRij2 = bRij * bRij
             bRij3 = bRij2 * bRij
             bRij4 = bRij2 * bRij2
-            bRij6 = bRij3 * bRij3
-            bRij8 = bRij2 * bRij6
+            bRij6 = bRij2 * bRij4
+            bRij8 = bRij4 * bRij4
+            bRij10 = bRij4 * bRij6
+            bRij12 = bRij6 * bRij6
+            bRij14 = bRij4 * bRij10
+            bRij16 = bRij6 * bRij10
             ExpMinusbRij = exp( -bRij )
 
-            F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
-&              + InvFac3 * bRij3 + InvFac4 * bRij4 &
-&              + InvFac5 * bRij * bRij4 + InvFac6 * bRij6 )
-            F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
+            if( RijSquared <= RShieldSquared ) then
+              EPot = 1E33_RK
+            else
+              F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
+&                + InvFac3 * bRij3 + InvFac4 * bRij4 &
+&                + InvFac5 * bRij * bRij4 + InvFac6 * bRij6 )
+              F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
+              F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
+              F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
+              F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
+              F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
 
-            Rep = A * exp( -a1 * Rij )
-            Attr6 = C6 * RijInv6 * F6
-            Attr8 = C8 * RijInv6 * RijInv2 * F8
-            EPot = Epot + Rep - Attr6 - Attr8
+              Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
+              Attr6 = C6 * RijInv6 * F6
+              Attr8 = C8 * RijInv8 * F8
+              Attr10 = C10 * RijInv10 * F10
+              Attr12 = C12 * RijInv6 * RijInv6 * F12
+              Attr14 = C14 * RijInv8 * RijInv6 * F14
+              Attr16 = C16 * RijInv10 * RijInv6 * F16
 
-            dRepdR = a1 * Rep
-            LongTerm = bRij6 * bRij * RijInv6 * RijInv * InvFac8 * ExpMinusbRij
-            dEPotdRij = dRepdR + LongTerm * (C6times56 + bRij2 * RijInv2 * C8) &
-&                     - ( 6 * Attr6 + 8 * Attr8 ) * RijInv
+              EPot = Epot + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
+
+            end if
+
+            ! 1st derivative
+
+            Aux1 = -a1 - am1 * RijInv2 + 2 * ( a2 * Rij - am2 * RijInv3 )
+            dRepdR = -Aux1 * Rep
+
+            Aux2 = ( 6*Attr6 + 8*Attr8 + 10*Attr10 + 12*Attr12 + 14*Attr14 + 16*Attr16 ) * RijInv
+
+            Aux3 = Deriv1Factor * ExpMinusbRij
+
+            dEPotdRij =  dRepdR - Aux2 + Aux3
 
             Fij = dEpotdRij * RijInv
-
+                                   
             FXij = Fij * RXij
             FYij = Fij * RYij
             FZij = Fij * RZij
             Virial = Virial + (PXij * FXij + PYij * FYij + PZij * FZij) * Third
 
+            ! 2nd derivative
+
+            d2RepdR2 = -Aux1 * dRepdR + Rep * 2 * ( a2 + am1*RijInv3 + 3*am2*RijInv2*RijInv2 )
+
+            Aux4 = ( 42*Attr6 + 72*Attr8 + 110*Attr10 + 156*Attr12 + 210*Attr14 + 272*Attr16 ) * RijInv2
+              
+            d2EpotdRij2 = d2RepdR2 + b * Aux3 + Deriv2Factor * ExpMinusbRij * RijInv - Aux4
+
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-            d2EpotdRij2 = a1 * dRepdR + LongTerm &
-&            * ( (b + 6 * RijInv) * C6times56 + RijInv3 * (bRij3 + 8 * bRij2) * C8 ) &
-&            - ( 42 * Attr6 + 72 * Attr8) * RijInv2
+
             d2EpotdV2 = d2EpotdV2 + Ninth * ( -Fij * (sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) + d2EpotdRij2 * sitecorr*sitecorr) * RijSquared
 
           end do
@@ -3641,7 +3683,7 @@ end subroutine TInteraction_Energy
 
     ! Declare local variables
     type(TPotMIEnmMIEnm), pointer           :: pmie
-    type(TPotTT68TT68), pointer             :: ptt68
+    type(TPotTT68TT68), pointer             :: ptt
     type(TPotChargeCharge), pointer         :: pcc
     type(TPotChargeDipole), pointer         :: pcd
     type(TPotChargeQuadrupole), pointer     :: pcq
@@ -3658,11 +3700,11 @@ end subroutine TInteraction_Energy
     real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
-    real(RK)          :: A, b, Alpha, C6, C8
-    real(RK)          :: Rep, Attr1, Attr2, C6times56
-    real(RK)          :: Rij, RijInv, RijInv2, RijInv3, RijInv6
-    real(RK)          :: bRij, bRij2, bRij3, bRij6, bRij7
-    real(RK)          :: ExpMinusbRij, F6, F8
+    real(RK)          :: A, b, a1, a2, am1, am2, C6, C8, C10, C12, C14, C16
+    real(RK)          :: Rep, Attr6, Attr8, Attr10, Attr12, Attr14, Attr16
+    real(RK)          :: Rij, RijInv, RijInv2, RijInv3, RijInv6, RijInv8, RijInv10
+    real(RK)          :: bRij, bRij2, bRij3, bRij4, bRij6, bRij8, bRij10, bRij12, bRij14, bRij16
+    real(RK)          :: ExpMinusbRij, F6, F8, F10, F12, F14, F16
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
@@ -3770,21 +3812,29 @@ end subroutine TInteraction_Energy
         do s2 = 1, this%N2TT68
 
           ! Set site specific variables
-          ptt68 => this%PotTT68TT68(s1, s2)
-          A = ptt68%TT_A
-          b = ptt68%TT_b
-          Alpha = ptt68%a1
-          C6 = ptt68%C6
-          C6times56 = C6 * 56
-          C8 = ptt68%C8
+          ptt => this%PotTT68TT68(s1, s2)
+          A = ptt%TT_A
+          b = ptt%TT_b
+          a1 = ptt%a1
+          a2 = ptt%a2
+          am1 = ptt%am1
+          am2 = ptt%am2
+          C6 = ptt%C6
+          C8 = ptt%C8
+          C10 = ptt%C10
+          C12 = ptt%C12
+          C14 = ptt%C14
+          C16 = ptt%C16
+          RCutoffSquared = ptt%RCutoffSquared
+          RShieldSquared = ptt%RShieldSquared
 
           ! Assign pointers to site positions
-          RX1 => ptt68%Site1%RX
-          RY1 => ptt68%Site1%RY
-          RZ1 => ptt68%Site1%RZ
-          RX2 => ptt68%Site2%RX
-          RY2 => ptt68%Site2%RY
-          RZ2 => ptt68%Site2%RZ
+          RX1 => ptt%Site1%RX
+          RY1 => ptt%Site1%RY
+          RZ1 => ptt%Site1%RZ
+          RX2 => ptt%Site2%RX
+          RY2 => ptt%Site2%RY
+          RZ2 => ptt%Site2%RZ
 
           RXi = RX1(np)
           RYi = RY1(np)
@@ -3813,22 +3863,43 @@ end subroutine TInteraction_Energy
             RijInv2 = RijInv * RijInv
             RijInv3 = RijInv * RijInv2
             RijInv6 = RijInv3 * RijInv3
+            RijInv8 = RijInv6 * RijInv2
+            RijInv10 = RijInv8 * RijInv2
             bRij = b * Rij
             bRij2 = bRij * bRij
-            bRij3 = bRij * bRij2
-            bRij6 = bRij3 * bRij3
-            bRij7 = bRij * bRij6
+            bRij3 = bRij2 * bRij
+            bRij4 = bRij2 * bRij2
+            bRij6 = bRij2 * bRij4
+            bRij8 = bRij4 * bRij4
+            bRij10 = bRij4 * bRij6
+            bRij12 = bRij6 * bRij6
+            bRij14 = bRij4 * bRij10
+            bRij16 = bRij6 * bRij10
             ExpMinusbRij = exp( -bRij )
 
-            F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
-&              + InvFac3 * bRij3 + InvFac4 * bRij2 * bRij2 &
-&              + InvFac5 * bRij2 * bRij3 + InvFac6 * bRij6 )
-            F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij7 + InvFac8 * bRij * bRij7)
+            if( RijSquared <= RShieldSquared ) then
+              EPot = 1E33_RK
+            else
+              F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
+&                + InvFac3 * bRij3 + InvFac4 * bRij4 &
+&                + InvFac5 * bRij * bRij4 + InvFac6 * bRij6 )
+              F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
+              F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
+              F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
+              F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
+              F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
 
-            Rep = A * exp( -Alpha * Rij )
-            Attr1 = C6 * RijInv6 * F6
-            Attr2 = C8 * RijInv6 * RijInv2 * F8
-            EPot(j) = Epot(j) + Rep - Attr1 - Attr2
+              Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
+              Attr6 = C6 * RijInv6 * F6
+              Attr8 = C8 * RijInv8 * F8
+              Attr10 = C10 * RijInv10 * F10
+              Attr12 = C12 * RijInv6 * RijInv6 * F12
+              Attr14 = C14 * RijInv8 * RijInv6 * F14
+              Attr16 = C16 * RijInv10 * RijInv6 * F16
+
+              EPot = Epot + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
+
+            end if
           end do
         end do
       end do

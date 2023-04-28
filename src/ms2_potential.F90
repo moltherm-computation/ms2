@@ -3539,7 +3539,7 @@ loop1:do k = 1, this%NInCutoff(i)
 !$OMP PRIVATE (RXi,RYi,RZi,PXi,PYi,PZi) &
 !$OMP PRIVATE (RXij,RYij,RZij,PXij,PYij,PZij) &
 !$OMP PRIVATE (RijSquared, RijInv2, RijInv3, RijInv6 )&
-!$OMP PRIVATE (ExpMinusbRij, Attr1, Attr2, C6times56) &
+!$OMP PRIVATE (ExpMinusbRij, Attr1, Attr2) &
 !$OMP PRIVATE (EpotLocal,i,j,k)
 
     if( CutoffMode .eq. CenterofMass ) then
