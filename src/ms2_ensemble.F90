@@ -278,7 +278,7 @@ module ms2_ensemble
 
     ! Long-range corrections
     real(RK) :: EPotCorrMIE, VirialCorrMIE, d2EpotdV2CorrMIE
-    real(RK) :: EPotCorrTT68, VirialCorrTT68, d2EpotdV2CorrTT68
+    real(RK) :: EPotCorrTT, VirialCorrTT, d2EpotdV2CorrTT
     real(RK) :: EPotCorrRF
     real(RK) :: EPotCorrRFPart, EPotCorrRFVol
     real(RK) :: VirialCorrRF
@@ -1806,10 +1806,10 @@ contains
 
     if( this%NTTMax > 0 ) then
       if ( SimulationType .eq. MonteCarlo .and. (.not.(mpiMCCommonGroups > 0)))  then
-        write( IOBuffer, '("- potential energy from ", A, T44, F12.8)' ) TT68orEXT, this%EPotCorrTT68  / this%NPart
+        write( IOBuffer, '("- potential energy from ", A, T44, F12.8)' ) TT68orEXT, this%EPotCorrTT  / this%NPart
 
       else
-        write( IOBuffer, '("- potential energy from ", A, T44, F12.8)' ) TT68orEXT, this%EPotCorrTT68 * Nprocs/ this%NPart
+        write( IOBuffer, '("- potential energy from ", A, T44, F12.8)' ) TT68orEXT, this%EPotCorrTT * Nprocs/ this%NPart
       endif
     endif
 
@@ -1825,9 +1825,9 @@ contains
 
     if( this%NTTMax > 0 ) then
       if ( SimulationType .eq. MonteCarlo .and. (.not.(mpiMCCommonGroups > 0)))  then
-        write( IOBuffer, '("- pressure from ", A, T44, F12.8)' ) TT68orEXT, this%VirialCorrTT68  / this%NPart
+        write( IOBuffer, '("- pressure from ", A, T44, F12.8)' ) TT68orEXT, this%VirialCorrTT  / this%NPart
       else
-        write( IOBuffer, '("- pressure from ", A, T44, F12.8)' ) TT68orEXT, this%VirialCorrTT68 * NProcs / this%NPart
+        write( IOBuffer, '("- pressure from ", A, T44, F12.8)' ) TT68orEXT, this%VirialCorrTT * NProcs / this%NPart
       endif
     endif
 
@@ -2259,10 +2259,10 @@ contains
         endif
 
         if( this%NTTMax > 0 ) then
-          this%Interaction(i, j)%EPotCorrTT68 = sum( this%Interaction(i, j)%PotTT68TT68(:, :)%EPotCorr )
+          this%Interaction(i, j)%EPotCorrTT = sum( this%Interaction(i, j)%PotTT68TT68(:, :)%EPotCorr )
           write( IOBuffer, '("Cutoff correction to SVC of ", A, "-", A, " from ", A, ":", F12.8)' ) &
   &         trim( this%Component(i)%Molecule%PotModFileName ), trim( this%Component(j)%Molecule%PotModFileName ), &
-  &         trim(TT68orEXT), .5_RK * this%Interaction(i, j)%EPotCorrTT68 / this%Temperature
+  &         trim(TT68orEXT), .5_RK * this%Interaction(i, j)%EPotCorrTT / this%Temperature
         endif
         call LogWrite
 
@@ -4551,7 +4551,7 @@ contains
     real(RK)                        :: NPartInv, Scale, RFConst
     type(TComponent), pointer       :: pc
     type(TPotMIEnmMIEnm), pointer   :: pmie
-    type(TPotTT68TT68), pointer     :: ptt68
+    type(TPotTT68TT68), pointer     :: ptt
     integer                         :: i1, i2, j1, j2
     real(RK)                        :: fac
     real(RK)                        :: fac_neutral, fac_charge1, fac_charge2
@@ -4575,13 +4575,13 @@ contains
 
     ! Zero long-range corrections
     this%EPotCorrMIE   = 0._RK
-    this%EPotCorrTT68   = 0._RK
+    this%EPotCorrTT   = 0._RK
     this%EPotCorrRF   = 0._RK
     this%VirialCorrMIE = 0._RK
-    this%VirialCorrTT68 = 0._RK
+    this%VirialCorrTT = 0._RK
     this%VirialCorrRF = 0._RK
     this%d2EpotdV2CorrMIE   = 0._RK
-    this%d2EpotdV2CorrTT68   = 0._RK
+    this%d2EpotdV2CorrTT   = 0._RK
 
     do i1 = 1, this%NComponents
       this%Component(i1)%EPotTestCorrMIE = 0._RK
@@ -4622,21 +4622,21 @@ contains
           Scale = this%Component(i1)%NPart * this%Component(i2)%NPart * NPartInv
           do j1 = 1, this%Component(i1)%Molecule%NTT
             do j2 = 1, this%Component(i2)%Molecule%NTT
-              ptt68 => this%Interaction(i1, i2)%PotTT68TT68(j1, j2)
-              this%EPotCorrTT68 = this%EPotCorrTT68 + Scale * ptt68%EPotCorr
-              this%VirialCorrTT68 = this%VirialCorrTT68 + Scale * ptt68%VirialCorr
-              this%d2EpotdV2CorrTT68 = this%d2EpotdV2CorrTT68 + Scale * ptt68%d2EpotdV2Corr
+              ptt => this%Interaction(i1, i2)%PotTT68TT68(j1, j2)
+              this%EPotCorrTT = this%EPotCorrTT + Scale * ptt%EPotCorr
+              this%VirialCorrTT = this%VirialCorrTT + Scale * ptt%VirialCorr
+              this%d2EpotdV2CorrTT = this%d2EpotdV2CorrTT + Scale * ptt%d2EpotdV2Corr
               this%Component(i1)%EPotTestCorrTT = this%Component(i1)%EPotTestCorrTT &
-&                 + this%Component(i2)%Fraction * ptt68%EPotTestCorr
-              this%RCutoffMax2 = max( this%RCutoffMax2, 2._RK * sqrt( ptt68%RCutoffSquared ) )
+&                 + this%Component(i2)%Fraction * ptt%EPotTestCorr
+              this%RCutoffMax2 = max( this%RCutoffMax2, 2._RK * sqrt( ptt%RCutoffSquared ) )
             end do
           end do
         end do
       end do
 
-      this%EPotCorrTT68 = this%EPotCorrTT68 / NProcs
-      this%VirialCorrTT68 = this%VirialCorrTT68 / NProcs
-      this%d2EpotdV2CorrTT68 = this%d2EpotdV2CorrTT68 / NProcs
+      this%EPotCorrTT = this%EPotCorrTT / NProcs
+      this%VirialCorrTT = this%VirialCorrTT / NProcs
+      this%d2EpotdV2CorrTT = this%d2EpotdV2CorrTT / NProcs
     end if
 
     ! Calculate electrostatic long-range corrections
@@ -4705,9 +4705,9 @@ contains
       endif
 
       if( this%NTTMax > 0 ) then
-        this%EPotCorrTT68 = this%EPotCorrTT68 * NProcs
-        this%VirialCorrTT68 = this%VirialCorrTT68 * NProcs
-        this%d2EpotdV2CorrTT68 = this%d2EpotdV2CorrTT68 * NProcs
+        this%EPotCorrTT = this%EPotCorrTT * NProcs
+        this%VirialCorrTT = this%VirialCorrTT * NProcs
+        this%d2EpotdV2CorrTT = this%d2EpotdV2CorrTT * NProcs
       endif
 
       if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
@@ -5732,7 +5732,7 @@ loop5:        do nc = 1, this%NComponents
     end if
     if( this%NTTMax > 0 ) then
       do m = 1, NBinsDen
-         this%VirialProfile(m) = this%VirialProfile(m) + (TotalDenProfile(m) * this%VirialCorrTT68 * NProcs)/NBinsDen
+         this%VirialProfile(m) = this%VirialProfile(m) + (TotalDenProfile(m) * this%VirialCorrTT * NProcs)/NBinsDen
       end do
     end if
 
@@ -6335,13 +6335,13 @@ loop5:        do nc = 1, this%NComponents
     endif
     if( this%NTTMax > 0 ) then
      ! potential energy correction
-      EPot = this%Density * this%EPotCorrTT68 + this%EPotCorrRF
+      EPot = this%Density * this%EPotCorrTT + this%EPotCorrRF
 
       ! virial correction
-      Virial = this%Density * this%VirialCorrTT68 + Third*this%VirialCorrRF
+      Virial = this%Density * this%VirialCorrTT + Third*this%VirialCorrRF
 
       ! d2Epot/dV2 correction
-      d2EpotdV2 = this%Density * this%d2EpotdV2CorrTT68
+      d2EpotdV2 = this%Density * this%d2EpotdV2CorrTT
     endif
 
     ! Loop over components
@@ -6766,9 +6766,9 @@ componentLoop:       do i = 1, this%NRealComponents
     if( this%NTTMax > 0 ) then
       !selfterm ReactionField contribution to pressure and EPot was turned off for MC
       !because it does not need selfterm correction
-      E = E + this%Density * this%EPotCorrTT68 !+ this%EPotCorrRF
-      d2EdV2 = d2EdV2 + this%Density * this%d2EpotdV2CorrTT68
-      V = V + this%Density * this%VirialCorrTT68 !+ Third*this%VirialCorrRF
+      E = E + this%Density * this%EPotCorrTT !+ this%EPotCorrRF
+      d2EdV2 = d2EdV2 + this%Density * this%d2EpotdV2CorrTT
+      V = V + this%Density * this%VirialCorrTT !+ Third*this%VirialCorrRF
     endif
 
 
@@ -7275,9 +7275,17 @@ componentLoop:       do i = 1, this%NRealComponents
         this%Interaction(nt, i)%PotTT68TT68(:, :)%TT_A  = this%Interaction(nt, i)%PotTT68TT68(:, :)%TT_A * Factor
         this%Interaction(nt, i)%PotTT68TT68(:, :)%C6    = this%Interaction(nt, i)%PotTT68TT68(:, :)%C6 * Factor
         this%Interaction(nt, i)%PotTT68TT68(:, :)%C8    = this%Interaction(nt, i)%PotTT68TT68(:, :)%C8 * Factor
+        this%Interaction(nt, i)%PotTT68TT68(:, :)%C10    = this%Interaction(nt, i)%PotTT68TT68(:, :)%C10 * Factor
+        this%Interaction(nt, i)%PotTT68TT68(:, :)%C12    = this%Interaction(nt, i)%PotTT68TT68(:, :)%C12 * Factor
+        this%Interaction(nt, i)%PotTT68TT68(:, :)%C14    = this%Interaction(nt, i)%PotTT68TT68(:, :)%C14 * Factor
+        this%Interaction(nt, i)%PotTT68TT68(:, :)%C16    = this%Interaction(nt, i)%PotTT68TT68(:, :)%C16 * Factor
         this%Interaction(i, nt)%PotTT68TT68(:, :)%TT_A  = this%Interaction(i, nt)%PotTT68TT68(:, :)%TT_A * Factor
         this%Interaction(i, nt)%PotTT68TT68(:, :)%C6    = this%Interaction(i, nt)%PotTT68TT68(:, :)%C6 * Factor
         this%Interaction(i, nt)%PotTT68TT68(:, :)%C8    = this%Interaction(i, nt)%PotTT68TT68(:, :)%C8 * Factor
+        this%Interaction(i, nt)%PotTT68TT68(:, :)%C10    = this%Interaction(i, nt)%PotTT68TT68(:, :)%C10 * Factor
+        this%Interaction(i, nt)%PotTT68TT68(:, :)%C12    = this%Interaction(i, nt)%PotTT68TT68(:, :)%C12 * Factor
+        this%Interaction(i, nt)%PotTT68TT68(:, :)%C14    = this%Interaction(i, nt)%PotTT68TT68(:, :)%C14 * Factor
+        this%Interaction(i, nt)%PotTT68TT68(:, :)%C16    = this%Interaction(i, nt)%PotTT68TT68(:, :)%C16 * Factor
       endif
       if( associated(this%Interaction(nt, i)%PotChargeCharge)) then
         this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon * Factor
@@ -15131,7 +15139,7 @@ end if
         end if
         if( this%NTTMax > 0 ) then
             value = this%Interaction(i, j)%IntFFunction(NSteps) + &
-&               .5_RK * this%Interaction(i, j)%EPotCorrTT68 / this%Temperature
+&               .5_RK * this%Interaction(i, j)%EPotCorrTT / this%Temperature
         end if
         if (EnsembleType .eq. EnsembleTypeNPTSVC) then
            ArrSVC(i, j, this%EnsembleNumber) = value
@@ -15190,7 +15198,7 @@ end if
     ! Declare local variables
     integer                   :: i, j
     type(TSiteMIEnm), pointer :: psMIEnm
-    type(TSiteTT), pointer  :: psTT68
+    type(TSiteTT), pointer  :: psTT
 
     ! Open visualization file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
@@ -15208,8 +15216,8 @@ end if
       end if
       if( this%NTTMax > 0 ) then
         do j = 1, this%Component(i)%Molecule%NTT
-          psTT68 => this%Component(i)%Molecule%SiteTT(j)
-          write( IOBuffer, '("~", I3, " ", A, 4F8.4, "  1")' ) i, trim(TT68orEXT), psTT68%r(:) * UnitLength / Angstroem, &
+          psTT => this%Component(i)%Molecule%SiteTT(j)
+          write( IOBuffer, '("~", I3, " ", A, 4F8.4, "  1")' ) i, trim(TT68orEXT), psTT%r(:) * UnitLength / Angstroem, &
 &             UnitLength / Angstroem
           call FileWrite(this%visualFile)
         end do
@@ -15288,8 +15296,6 @@ end if
 
     ! Declare local variables
     integer                   :: i, j
-    type(TSiteMIEnm), pointer :: psMIEnm
-    type(TSiteTT), pointer  :: psTT68
 
     if (this%isCCSimulation .eqv. .true.) then
       !DC NOTE- Open visualization file
@@ -15990,7 +15996,7 @@ end if
         end do
       end do
     end if
-    ! TT68
+    ! TT
     if( this%NTTMax > 0 ) then
       do i= 1, this%NComponents
         do j= i, this%NComponents
