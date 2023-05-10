@@ -2615,29 +2615,24 @@ loop1:  do k = 1, this%NInCutoff(i)
           bRij16 = bRij6 * bRij10
           ExpMinusbRij = exp( -bRij )
 
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-          else
-            F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
+          F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
 &                + InvFac3 * bRij3 + InvFac4 * bRij4 &
 &                + InvFac5 * bRij * bRij4 + InvFac6 * bRij6 )
-            F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
-            F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
-            F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
-            F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
-            F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
+          F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
+          F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
+          F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
+          F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
+          F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
 
-            Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
-            Attr6 = C6 * RijInv6 * F6
-            Attr8 = C8 * RijInv8 * F8
-            Attr10 = C10 * RijInv10 * F10
-            Attr12 = C12 * RijInv6 * RijInv6 * F12
-            Attr14 = C14 * RijInv8 * RijInv6 * F14
-            Attr16 = C16 * RijInv10 * RijInv6 * F16
+          Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
+          Attr6 = C6 * RijInv6 * F6
+          Attr8 = C8 * RijInv8 * F8
+          Attr10 = C10 * RijInv10 * F10
+          Attr12 = C12 * RijInv6 * RijInv6 * F12
+          Attr14 = C14 * RijInv8 * RijInv6 * F14
+          Attr16 = C16 * RijInv10 * RijInv6 * F16
 
-            EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
-
-          end if
+          EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
 
           ! 1st derivative
 
@@ -2775,29 +2770,24 @@ loop3:  do j = j0, j1
           bRij16 = bRij6 * bRij10
           ExpMinusbRij = exp( -bRij )
 
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-          else
-            F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
+          F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
 &                + InvFac3 * bRij3 + InvFac4 * bRij4 &
 &                + InvFac5 * bRij * bRij4 + InvFac6 * bRij6 )
-            F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
-            F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
-            F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
-            F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
-            F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
+          F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
+          F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
+          F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
+          F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
+          F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
 
-            Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
-            Attr6 = C6 * RijInv6 * F6
-            Attr8 = C8 * RijInv8 * F8
-            Attr10 = C10 * RijInv10 * F10
-            Attr12 = C12 * RijInv6 * RijInv6 * F12
-            Attr14 = C14 * RijInv8 * RijInv6 * F14
-            Attr16 = C16 * RijInv10 * RijInv6 * F16
+          Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
+          Attr6 = C6 * RijInv6 * F6
+          Attr8 = C8 * RijInv8 * F8
+          Attr10 = C10 * RijInv10 * F10
+          Attr12 = C12 * RijInv6 * RijInv6 * F12
+          Attr14 = C14 * RijInv8 * RijInv6 * F14
+          Attr16 = C16 * RijInv10 * RijInv6 * F16
 
-            EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
-
-          end if
+          EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
 
           ! 1st derivative
 
@@ -3207,29 +3197,24 @@ loop1:  do k = 1, this%NInCutoff(i)
           bRij16 = bRij6 * bRij10
           ExpMinusbRij = exp( -bRij )
 
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-          else
-            F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
+          F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
 &                + InvFac3 * bRij3 + InvFac4 * bRij4 &
 &                + InvFac5 * bRij * bRij4 + InvFac6 * bRij6 )
-            F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
-            F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
-            F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
-            F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
-            F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
+          F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
+          F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
+          F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
+          F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
+          F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
 
-            Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
-            Attr6 = C6 * RijInv6 * F6
-            Attr8 = C8 * RijInv8 * F8
-            Attr10 = C10 * RijInv10 * F10
-            Attr12 = C12 * RijInv6 * RijInv6 * F12
-            Attr14 = C14 * RijInv8 * RijInv6 * F14
-            Attr16 = C16 * RijInv10 * RijInv6 * F16
+          Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
+          Attr6 = C6 * RijInv6 * F6
+          Attr8 = C8 * RijInv8 * F8
+          Attr10 = C10 * RijInv10 * F10
+          Attr12 = C12 * RijInv6 * RijInv6 * F12
+          Attr14 = C14 * RijInv8 * RijInv6 * F14
+          Attr16 = C16 * RijInv10 * RijInv6 * F16
 
-            EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
-
-          end if
+          EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
 
           ! 1st derivative
 
@@ -3469,29 +3454,24 @@ loop3:  do j = j0, j1
           bRij16 = bRij6 * bRij10
           ExpMinusbRij = exp( -bRij )
 
-          if( RijSquared <= RShieldSquared ) then
-            EPotLocal = 1E33_RK
-          else
-            F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
+          F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
 &                + InvFac3 * bRij3 + InvFac4 * bRij4 &
 &                + InvFac5 * bRij * bRij4 + InvFac6 * bRij6 )
-            F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
-            F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
-            F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
-            F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
-            F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
+          F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
+          F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
+          F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
+          F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
+          F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
 
-            Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
-            Attr6 = C6 * RijInv6 * F6
-            Attr8 = C8 * RijInv8 * F8
-            Attr10 = C10 * RijInv10 * F10
-            Attr12 = C12 * RijInv6 * RijInv6 * F12
-            Attr14 = C14 * RijInv8 * RijInv6 * F14
-            Attr16 = C16 * RijInv10 * RijInv6 * F16
+          Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
+          Attr6 = C6 * RijInv6 * F6
+          Attr8 = C8 * RijInv8 * F8
+          Attr10 = C10 * RijInv10 * F10
+          Attr12 = C12 * RijInv6 * RijInv6 * F12
+          Attr14 = C14 * RijInv8 * RijInv6 * F14
+          Attr16 = C16 * RijInv10 * RijInv6 * F16
 
-            EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
-
-          end if
+          EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
 
           ! 1st derivative
 
