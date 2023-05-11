@@ -3718,7 +3718,7 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
 
   ! Zero energy
   EPot=0._RK
-  d2EpotdV2=0._RK
+  ! d2EpotdV2=0._RK
 
   ! Assign local variables
                                            
@@ -3730,7 +3730,7 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   N = this%NPart2
   RCutoffSquared = this%RCutoffSquared
   RCutoffSquaredScaled = this%RCutoffSquaredScaled
-  RShieldSquared = 0.02    !ToDo
+  RShieldSquared = 0.2    !ToDo
   BoxLengthThird = Third * BoxLength
   InvBoxLength = 1/BoxLength
   PXi = this%PX1(np)
@@ -3747,6 +3747,24 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   ! A10 = 0.0
   alpha = 1.378382
 
+  ! Convert to SI units
+  CATM = CATM * kBoltzmann * Angstroem**9
+  A0 = A0 * kBoltzmann 
+  A2 = A2 * kBoltzmann / Angstroem**2
+  A4 = A4 * kBoltzmann / Angstroem**4
+  A6 = A6 * kBoltzmann / Angstroem**6
+  A8 = A8 * kBoltzmann / Angstroem**8
+  alpha = alpha / Angstroem
+
+  ! Convert to derived units
+  CATM = CATM / ( UnitEnergy * UnitVolume**3 )
+  A0 = A0 / UnitEnergy
+  A2 = A2 * UnitLength**2 / ( UnitEnergy )
+  A4 = A4 * UnitLength**4 / ( UnitEnergy )
+  A6 = A6 * UnitVolume**2 / ( UnitEnergy )
+  A8 = A8 * UnitVolume**2 * UnitLength**2 / ( UnitEnergy )
+  alpha = alpha * UnitLength
+
   ! Assign pointers to COM positions
   PX2 => this%PX2
   PY2 => this%PY2
@@ -3759,9 +3777,9 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
     RXij = PXi - PX2(j)
     RYij = PYi - PY2(j)
     RZij = PZi - PZ2(j)
-    RXij = RXij - anint( RXij*InvBoxLength ) * BoxLength
-    RYij = RYij - anint( RYij*InvBoxLength ) * BoxLength
-    RZij = RZij - anint( RZij*InvBoxLength ) * BoxLength
+    RXij = (RXij - anint( RXij )) * BoxLength
+    RYij = (RYij - anint( RYij )) * BoxLength
+    RZij = (RZij - anint( RZij )) * BoxLength
     RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
     if (RijSquared > RShieldSquared) then 
       do l = i+1, this%NInCutoff(np) !ik
@@ -3769,16 +3787,16 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
         RXik = PXi - PX2(k)
         RYik = PYi - PY2(k)
         RZik = PZi - PZ2(k)
-        RXik = RXik - anint( RXik*InvBoxLength ) * BoxLength
-        RYik = RYik - anint( RYik*InvBoxLength ) * BoxLength
-        RZik = RZik - anint( RZik*InvBoxLength ) * BoxLength
+        RXik = (RXik - anint( RXik )) * BoxLength
+        RYik = (RYik - anint( RYik )) * BoxLength
+        RZik = (RZik - anint( RZik )) * BoxLength
         RikSquared = RXik*RXik + RYik*RYik + RZik*RZik
         if (RikSquared > RShieldSquared) then 
           RXjk = RXij - RXik !jk
           RYjk = RYij - RYik
           RZjk = RZij - RZik
           RjkSquared = RXjk*RXjk + RYjk*RYjk + RZjk*RZjk
-          if (RjkSquared > RShieldSquared) then 
+          if ((RjkSquared > RShieldSquared) .and. (RjkSquared < RCutoffSquared)) then 
             Rij = sqrt( RijSquared )
             Rik = sqrt( RikSquared )
             Rjk = sqrt( RjkSquared )
@@ -3793,6 +3811,7 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
             expAlphaR = exp( -alpha * ( Rij + Rjk + Rik ))
             
             Epot = Epot + cosFactor * ( CATM/(Rijk**3) + expAlphaR * SumA2n )
+            ! print*, cosFactor * ( CATM/(Rijk**3) + expAlphaR * SumA2n )
 
 
           end if
@@ -3801,7 +3820,7 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
     end if
   end do
 
-  print*, '3B: ', np, Epot
+  !print*, '3B: ', np, Epot
 
 
   ! this%EPot = EPot
