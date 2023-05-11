@@ -193,6 +193,10 @@ module ms2_interaction
   interface Energy
     module procedure TInteraction_Energy
   end interface
+
+  interface Energy3BKr
+    module procedure TInteraction_Energy3BKr
+  end interface
   
   interface EnergySVC
     module procedure TInteraction_EnergySVC
@@ -3665,6 +3669,148 @@ contains
           
     
 end subroutine TInteraction_Energy
+
+
+
+
+!==============================================================!
+!  Subroutine TInteraction_Energy3BKr                          !
+!==============================================================!
+
+subroutine TInteraction_Energy3BKr( this, np, BoxLength )
+
+  implicit none
+
+  ! Declare arguments
+  type(TInteraction)   :: this
+  integer, intent(in)  :: np
+  real(RK), intent(in) :: BoxLength
+
+  ! Declare local variables
+  real(RK)          :: EPot
+  real(RK)          :: Virial
+  real(RK)          :: d2EpotdV2
+  real(RK)          :: EPotLocal
+  real(RK)          :: VirialLocal
+  real(RK)          :: d2EpotdV2Local
+  real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
+  real(RK)          :: BoxLengthThird, InvBoxLength
+  ! real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+  real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+  real(RK)          :: PXi, PYi, PZi
+  real(RK)          :: Rij, Rik, Rjk, RijSquared, RikSquared, RjkSquared
+  real(RK)          :: Rijk, Rijk23
+  real(RK)          :: RXij, RYij, RZij
+  ! real(RK)          :: FXij, FYij, FZij, Fij
+  real(RK)          :: RXik, RYik, RZik
+  ! real(RK)          :: PXij, PYij, PZij
+  ! real(RK)          :: FXik, FYik, FZik, Fik
+  ! real(RK)          :: PXik, PYik, PZik
+  real(RK)          :: RXjk, RYjk, RZjk
+  ! real(RK)          :: FXjk, FYjk, FZjk, Fjk
+  ! real(RK)          :: PXjk, PYjk, PZjk
+  real(RK)          :: cosThetai, cosThetaj, cosThetak
+  real(RK)          :: cosFactor, ATM, SumA2n, expAlphaR
+  real(RK)          :: CATM, A0, A2, A4, A6, A8, A10, alpha
+  integer           :: N
+  integer           :: j, k, i, l
+                                  
+
+  ! Zero energy
+  EPot=0._RK
+  d2EpotdV2=0._RK
+
+  ! Assign local variables
+                                           
+  ! Virial=0._RK
+  ! VirialLocal = 1E33_RK
+        
+  ! d2EpotdV2Local = 1E33_RK
+
+  N = this%NPart2
+  RCutoffSquared = this%RCutoffSquared
+  RCutoffSquaredScaled = this%RCutoffSquaredScaled
+  RShieldSquared = 0.02    !ToDo
+  BoxLengthThird = Third * BoxLength
+  InvBoxLength = 1/BoxLength
+  PXi = this%PX1(np)
+  PYi = this%PY1(np)
+  PZi = this%PZ1(np)
+
+  ! Potential paramters
+  CATM = 1615250.0
+  A0 = -30813040.0
+  A2 = -35194420.0
+  A4 = 4928052
+  A6 = -218241.1
+  A8 = 3430.88
+  ! A10 = 0.0
+  alpha = 1.378382
+
+  ! Assign pointers to COM positions
+  PX2 => this%PX2
+  PY2 => this%PY2
+  PZ2 => this%PZ2
+
+  ! Calculate interactions partners within cutoff sphere
+
+  do i = 1, this%NInCutoff(np)-1 ! ij
+    j = this%CutoffPartner(i, np)
+    RXij = PXi - PX2(j)
+    RYij = PYi - PY2(j)
+    RZij = PZi - PZ2(j)
+    RXij = RXij - anint( RXij*InvBoxLength ) * BoxLength
+    RYij = RYij - anint( RYij*InvBoxLength ) * BoxLength
+    RZij = RZij - anint( RZij*InvBoxLength ) * BoxLength
+    RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
+    if (RijSquared > RShieldSquared) then 
+      do l = i+1, this%NInCutoff(np) !ik
+        k = this%CutoffPartner(l, np)
+        RXik = PXi - PX2(k)
+        RYik = PYi - PY2(k)
+        RZik = PZi - PZ2(k)
+        RXik = RXik - anint( RXik*InvBoxLength ) * BoxLength
+        RYik = RYik - anint( RYik*InvBoxLength ) * BoxLength
+        RZik = RZik - anint( RZik*InvBoxLength ) * BoxLength
+        RikSquared = RXik*RXik + RYik*RYik + RZik*RZik
+        if (RikSquared > RShieldSquared) then 
+          RXjk = RXij - RXik !jk
+          RYjk = RYij - RYik
+          RZjk = RZij - RZik
+          RjkSquared = RXjk*RXjk + RYjk*RYjk + RZjk*RZjk
+          if (RjkSquared > RShieldSquared) then 
+            Rij = sqrt( RijSquared )
+            Rik = sqrt( RikSquared )
+            Rjk = sqrt( RjkSquared )
+            cosThetai = RjkSquared - RijSquared - RikSquared
+            cosThetaj = RikSquared - RijSquared - RjkSquared
+            cosThetak = RijSquared - RikSquared - RjkSquared
+            cosFactor = 1 + ( 3*cosThetai*cosThetaj*cosThetak )/( 8*RjkSquared*RijSquared*RikSquared )
+
+            Rijk = Rij * Rik * Rjk
+            Rijk23 = Rijk**(2/3)
+            SumA2n = A0 + Rijk23 * (A2 + Rijk23 * (A4 + Rijk23 * (A6 + Rijk23 * A8)))
+            expAlphaR = exp( -alpha * ( Rij + Rjk + Rik ))
+            
+            Epot = Epot + cosFactor * ( CATM/(Rijk**3) + expAlphaR * SumA2n )
+
+
+          end if
+        end if
+      end do
+    end if
+  end do
+
+  print*, '3B: ', np, Epot
+
+
+  ! this%EPot = EPot
+  ! this%d2EpotdV2 = d2EpotdV2
+                         
+  ! this%Virial = Virial
+        
+  
+end subroutine TInteraction_Energy3BKr
 
 
 
