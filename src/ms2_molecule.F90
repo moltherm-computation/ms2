@@ -144,7 +144,7 @@ contains
     ! Declare local variables
     integer       :: i, j
     integer       :: ntypes
-    character(16) :: stype
+    character(16) :: stype, threebodytype
     integer       :: stat
     real(RK)      :: scalegeo, scalesig, scaleeps, scaleest
 
@@ -270,6 +270,15 @@ contains
       this%NDFRot = -1
     case default
       call Error( IdSite_NDFRot//' cannot be equal to '//trim( stype ) )
+    end select
+
+    ! 3 Body potential
+    call FileReadParameter( threebodytype, potmodFile%iounit, Id3body, .false. )
+    select case( threebodytype )
+    case( 'Kr', 'KR', 'kr', 'Krypton' ) !Case: Krypton
+      ThreeBody = 'Kr'
+    case default
+      ThreeBody = 'None'
     end select
 
     ! Find center of mass position

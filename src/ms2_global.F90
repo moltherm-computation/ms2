@@ -458,6 +458,7 @@ module ms2_global
   character(*), parameter :: IdTT_C12                      = 'C12'
   character(*), parameter :: IdTT_C14                      = 'C14'
   character(*), parameter :: IdTT_C16                      = 'C16'
+  character(*), parameter :: Id3body                       = '3body'
   character(*), parameter :: IdCharge_e                    = 'charge'
   character(*), parameter :: IdDipole_D                    = 'dipole'
   character(*), parameter :: IdQuadrupole_Q                = 'quadrupole'
@@ -539,6 +540,9 @@ module ms2_global
 
   ! TT68 or Extended Jäger potential
   character(16) :: TT68orEXT
+
+  ! 3 Body interaction
+  character(16) :: ThreeBody
 
   ! Basic reduced units
   real(RK) :: UnitLength
