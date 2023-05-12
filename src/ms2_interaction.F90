@@ -48,6 +48,7 @@ module ms2_interaction
     ! Site-site potentials
     type(TPotMIEnmMIEnm), pointer, contiguous           :: PotMIEnmMIEnm(:, :)
     type(TPotTT68TT68), pointer, contiguous             :: PotTT68TT68(:, :)
+    type(TPot3BodyKr), pointer, contiguous              :: Pot3BodyKr(:, :)
     type(TPotChargeCharge), pointer, contiguous         :: PotChargeCharge(:, :)
     type(TPotChargeDipole), pointer, contiguous         :: PotChargeDipole(:, :)
     type(TPotChargeQuadrupole), pointer, contiguous     :: PotChargeQuadrupole(:, :)
@@ -370,6 +371,7 @@ contains
     ! Nullify pointers
     nullify( this%PotMIEnmMIEnm )
     nullify( this%PotTT68TT68 )
+    nullify( this%Pot3BodyKr )
     nullify( this%PotChargeCharge )
     nullify( this%PotChargeDipole )
     nullify( this%PotChargeQuadrupole )
@@ -417,6 +419,11 @@ contains
           if( RDFUpdateFrequency > 0 ) then
             allocate( this%PotTT68TT68(j1, j2)%RDFSum(RDFNumberShells), STAT = stat )
             call AllocationError( stat, 'RDFSum', RDFNumberShells)
+          end if
+          if ( ThreeBody .eq. 'Kr' ) then
+            allocate(this%Pot3BodyKr(1, 1), STAT = stat )
+            call AllocationError( stat, 'sites', 2 )
+            call Construct( this%Pot3BodyKr(1, 1), RCutoffTT)
           end if
         end do
       end do
@@ -614,6 +621,12 @@ contains
     end do
     if( associated( this%PotTT68TT68 ) ) then
       deallocate( this%PotTT68TT68 )
+    end if
+
+    ! Destroy TPot3BodyKr
+    call Destruct( this%Pot3BodyKr(1, 1) )
+    if( associated( this%Pot3BodyKr ) ) then
+      deallocate( this%Pot3BodyKr )
     end if
 
     ! Destroy charge-charge potentials
@@ -3687,6 +3700,7 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   real(RK), intent(in) :: BoxLength
 
   ! Declare local variables
+  type(TPot3BodyKr), pointer             :: p3b
   real(RK)          :: EPot
   real(RK)          :: Virial
   real(RK)          :: d2EpotdV2
@@ -3737,33 +3751,16 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   PYi = this%PY1(np)
   PZi = this%PZ1(np)
 
+  p3b => this%Pot3BodyKr(1,1)
+
   ! Potential paramters
-  CATM = 1615250.0
-  A0 = -30813040.0
-  A2 = -35194420.0
-  A4 = 4928052
-  A6 = -218241.1
-  A8 = 3430.88
-  ! A10 = 0.0
-  alpha = 1.378382
-
-  ! Convert to SI units
-  CATM = CATM * kBoltzmann * Angstroem**9
-  A0 = A0 * kBoltzmann 
-  A2 = A2 * kBoltzmann / Angstroem**2
-  A4 = A4 * kBoltzmann / Angstroem**4
-  A6 = A6 * kBoltzmann / Angstroem**6
-  A8 = A8 * kBoltzmann / Angstroem**8
-  alpha = alpha / Angstroem
-
-  ! Convert to derived units
-  CATM = CATM / ( UnitEnergy * UnitVolume**3 )
-  A0 = A0 / UnitEnergy
-  A2 = A2 * UnitLength**2 / ( UnitEnergy )
-  A4 = A4 * UnitLength**4 / ( UnitEnergy )
-  A6 = A6 * UnitVolume**2 / ( UnitEnergy )
-  A8 = A8 * UnitVolume**2 * UnitLength**2 / ( UnitEnergy )
-  alpha = alpha * UnitLength
+  CATM = p3b%CATM
+  A0 = p3b%A0
+  A2 = p3b%A2
+  A4 = p3b%A4
+  A6 = p3b%A6
+  A8 = p3b%A8
+  alpha = p3b%alpha
 
   ! Assign pointers to COM positions
   PX2 => this%PX2
@@ -3811,8 +3808,6 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
             expAlphaR = exp( -alpha * ( Rij + Rjk + Rik ))
             
             Epot = Epot + cosFactor * ( CATM/(Rijk**3) + expAlphaR * SumA2n )
-            ! print*, cosFactor * ( CATM/(Rijk**3) + expAlphaR * SumA2n )
-
 
           end if
         end if
@@ -3820,7 +3815,7 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
     end if
   end do
 
-  !print*, '3B: ', np, Epot
+  print*, '3B: ', np, Epot
 
 
   ! this%EPot = EPot

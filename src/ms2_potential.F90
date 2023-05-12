@@ -143,6 +143,49 @@ end type TPotTT68TT68
   end interface
 
 
+!==============================================================!
+!  Type TPot3BodyKr                                          !
+!==============================================================!
+
+  type TPot3BodyKr
+
+   type(TSiteTT), pointer   :: Site1, Site2
+    real(RK)                 :: CATM, A0, A2, A4, A6, A8, A10, alpha
+    real(RK)                   :: RCutoffSquared
+    real(RK)                   :: RShieldSquared
+    real(RK)                   :: EPotCorr, VirialCorr, d2EpotdV2Corr, EPotTestCorr
+    logical                    :: SameComponent
+
+    integer, pointer, contiguous          :: NInCutoff(:), CutoffPartner(:, :)
+    integer(KIND=8), pointer, contiguous          :: RDFSum(:)
+#if OSMOP == 2
+    real(RK), pointer, contiguous         :: VirialProfile(:)
+#endif
+
+
+end type TPot3BodyKr
+
+  interface Construct
+    module procedure TPot3BodyKr_Construct
+  end interface
+
+  interface Destruct
+    module procedure TPot3BodyKr_Destruct
+  end interface
+
+  ! interface Force
+  !   module procedure TPot3BodyKr_Force
+  ! end interface
+
+  ! interface Force_Trans
+  !   module procedure TPot3BodyKr_Force_Trans
+  ! end interface
+
+  ! interface ChemicalPotential
+  !   module procedure TPot3BodyKr_ChemicalPotential
+  ! end interface
+
+
 
 !==============================================================!
 !  Type TPotChargeCharge                                       !
@@ -2075,7 +2118,6 @@ loop2:  do j = 1, N2
 &                    + this%C14 * this%TT_b**15 * InvFac13 + this%C16 * this%TT_b**17 * InvFac15 
 
 
-
     ! Calculate long-range corrections
     this%RCutoffSquared = RCutoff**2
     tau1 = sqrt( sum( this%Site1%r(:)**2 ))
@@ -2107,6 +2149,7 @@ loop2:  do j = 1, N2
     Pi29CF12 = Pi * this%C12 * (2._RK/9._RK) * F12RC
     Pi29CF14 = Pi * this%C14 * (2._RK/9._RK) * F14RC
     Pi29CF16 = Pi * this%C16 * (2._RK/9._RK) * F16RC
+
 
     if( (CutoffMode .eq. CenterofMass) .and. (tau > 1E-10_RK) ) then
       if( (tau1 > 1E-10_RK) .and. (tau2 > 1E-10_RK) ) then
@@ -2157,26 +2200,27 @@ loop2:  do j = 1, N2
     else ! Site-site cutoff or both sites in center of mass
      this%EPotCorr = - Pi2CF6 * TICCu(-3._RK, RCutoff) &
 &                    - Pi2CF8 * TICCu(-4._RK, RCutoff) &
-&                    - Pi2CF10 * TICCu(-5._RK, RCutoff) &
-&                    - Pi2CF12 * TICCu(-6._RK, RCutoff) &
-&                    - Pi2CF14 * TICCu(-7._RK, RCutoff) &
-&                    - Pi2CF16 * TICCu(-8._RK, RCutoff) 
+&                    - Pi2CF10 * TICCu(-3._RK, RCutoff) &
+&                    - Pi2CF12 * TICCu(-4._RK, RCutoff) &
+&                    - Pi2CF14 * TICCu(-3._RK, RCutoff) &
+&                    - Pi2CF16 * TICCu(-4._RK, RCutoff) 
 
      this%VirialCorr = - Piminus23CF6 * TICCp(-3._RK, RCutoff) &
 &                      - Piminus23CF8 * TICCp(-4._RK, RCutoff) &
-&                      - Piminus23CF10 * TICCp(-5._RK, RCutoff) &
-&                      - Piminus23CF12 * TICCp(-6._RK, RCutoff) &
-&                      - Piminus23CF14 * TICCp(-7._RK, RCutoff) &
-&                      - Piminus23CF16 * TICCp(-8._RK, RCutoff) 
+&                      - Piminus23CF10 * TICCp(-3._RK, RCutoff) &
+&                      - Piminus23CF12 * TICCp(-4._RK, RCutoff) &
+&                      - Piminus23CF14 * TICCp(-3._RK, RCutoff) &
+&                      - Piminus23CF16 * TICCp(-4._RK, RCutoff) 
 
      this%d2EpotdV2Corr = - Pi29CF6 * TICCd2EpotdV2(-3._RK, RCutoff) &
 &                         - Pi29CF8 * TICCd2EpotdV2(-4._RK, RCutoff) &
-&                         - Pi29CF10 * TICCd2EpotdV2(-5._RK, RCutoff) &
-&                         - Pi29CF12 * TICCd2EpotdV2(-6._RK, RCutoff) &
-&                         - Pi29CF14 * TICCd2EpotdV2(-7._RK, RCutoff) &
-&                         - Pi29CF16 * TICCd2EpotdV2(-8._RK, RCutoff) 
+&                         - Pi29CF10 * TICCd2EpotdV2(-3._RK, RCutoff) &
+&                         - Pi29CF12 * TICCd2EpotdV2(-4._RK, RCutoff) &
+&                         - Pi29CF14 * TICCd2EpotdV2(-3._RK, RCutoff) &
+&                         - Pi29CF16 * TICCd2EpotdV2(-4._RK, RCutoff) 
     end if
     this%EPotTestCorr = 2._RK * this%EPotCorr
+
 
   contains
 
@@ -3834,6 +3878,71 @@ loop2:  do j = 1, N2
     end if
 !$OMP END PARALLEL
   end subroutine TPotTT68TT68_ChemicalPotential
+
+
+
+!==============================================================!
+!  Subroutine TPot3BodyKr_Construct                            !
+!==============================================================!
+
+  subroutine TPot3BodyKr_Construct( this, RCutoff )
+    
+        implicit none
+    
+        ! Declare arguments
+        type(TPot3BodyKr)      :: this
+        real(RK), intent(in)        :: RCutoff
+    
+        ! Construct potential
+        this%RCutoffSquared = RCutoff**2
+        this%RShieldSquared = 0.4 ! ToDo
+
+        ! Potential paramters
+        this%CATM = 1615250
+        this%A0 = -30813040
+        this%A2 = -35194420
+        this%A4 = 4928052
+        this%A6 = -218241.1
+        this%A8 = 3430.88
+        this%alpha = 1.378382
+
+        ! Convert to SI units
+        this%CATM = this%CATM * kBoltzmann * Angstroem**9
+        this%A0 = this%A0 * kBoltzmann
+        this%A2 = this%A2 * kBoltzmann / Angstroem**2
+        this%A4 = this%A4 * kBoltzmann / Angstroem**4
+        this%A6 = this%A6 * kBoltzmann / Angstroem**6
+        this%A8 = this%A8 * kBoltzmann / Angstroem**8
+        this%alpha = this%alpha / Angstroem
+
+        ! Convert to derived units
+        this%CATM = this%CATM / ( UnitEnergy * UnitVolume**3 )
+        this%A0 = this%A0 / UnitEnergy
+        this%A2 = this%A2 * UnitLength**2 / ( UnitEnergy )
+        this%A4 = this%A4 * UnitLength**4 / ( UnitEnergy )
+        this%A6 = this%A6 * UnitVolume**2 / ( UnitEnergy )
+        this%A8 = this%A8 * UnitVolume**2 * UnitLength**2 / ( UnitEnergy )
+        this%alpha = this%alpha * UnitLength
+    
+      end subroutine TPot3BodyKr_Construct
+    
+    
+    
+  !==============================================================!
+  !  Subroutine TPot3BodyKr_Destruct                             !
+  !==============================================================!
+  
+    subroutine TPot3BodyKr_Destruct( this )
+  
+      implicit none
+  
+      ! Declare arguments
+      type(TPot3BodyKr) :: this
+  
+      ! Destroy potential
+      continue
+  
+    end subroutine TPot3BodyKr_Destruct
 
 
 
