@@ -6747,10 +6747,13 @@ componentLoop:       do i = 1, this%NRealComponents
         ! Loop over particles
         do np = 1, this%Component(nc)%NPart
           call Energy( pi, np, this%BoxLength, matrixhalf )
+          if ( ThreeBody=='Kr' ) then 
+            call Energy3BKr( pi, np, this%BoxLength )
+          end if
           ! Sum energy
-          E = E + pi%EPot
+          E = E + pi%EPot + pi%EPot3B
           d2EdV2 = d2EdV2 + pi%d2EpotdV2
-          V = V + pi%Virial
+          V = V + pi%Virial + pi%Virial3B
         end do
       end do
     end do
@@ -6814,9 +6817,12 @@ componentLoop:       do i = 1, this%NRealComponents
       pi => this%Interaction(nc, i)
 
       call Energy( pi, np, this%BoxLength, .false. )
+      if ( ThreeBody=='Kr' ) then 
+        call Energy3BKr( pi, np, this%BoxLength )
+      end if
 
       ! Calculate new energy
-      EPotNew = EPotNew + pi%EPot
+      EPotNew = EPotNew + pi%EPot + pi%EPot3B
     end do
 
     if (LongRange .eq. Ewald) then
@@ -6950,7 +6956,7 @@ componentLoop:       do i = 1, this%NRealComponents
     moveParticle = mod(s - randomNumber, pc%Molecule%NDF) < 3
 
     call EnergyinRC(this, nc, np, EPotOld)
-
+    
     ! Save the Energies and Virials for a faster MoveRejction
     if (LongRange .eq. Ewald) then
 
