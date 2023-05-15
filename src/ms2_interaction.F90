@@ -62,6 +62,7 @@ module ms2_interaction
     ! Potential energy
     real(RK) :: EPot
     real(RK) :: d2EpotdV2
+    real(RK) :: Epot3B
 
     ! Mayer f-function for second virial coefficient
     real(RK), pointer, contiguous :: MayerFFunction(:), IntFFunction(:)
@@ -76,7 +77,7 @@ module ms2_interaction
     integer                               :: ODFErrSum
 
     ! Virial
-    real(RK) :: Virial
+    real(RK) :: Virial, Virial3B
                                     
 
     ! Arrays for center of mass cutoff
@@ -363,8 +364,11 @@ contains
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) .or. MCOverlapReduction ) then
       this%EPot = 0._RK
       this%d2EpotdV2 = 0._RK
+      this%Epot3B = 0._RK
                                  
       this%Virial = 0._RK
+      this%Virial3B = 0._RK
+
             
     end if
 
@@ -423,7 +427,7 @@ contains
           if ( ThreeBody .eq. 'Kr' ) then
             allocate(this%Pot3BodyKr(1, 1), STAT = stat )
             call AllocationError( stat, 'sites', 2 )
-            call Construct( this%Pot3BodyKr(1, 1), RCutoffTT)
+            call Construct( this%Pot3BodyKr(1, 1),Component1%Molecule, Component2%Molecule, RCutoffTT)
           end if
         end do
       end do
@@ -1362,6 +1366,7 @@ contains
     real(RK)          :: mueXi, mueYi, mueZi, mueXj, mueYj, mueZj
     real(RK)          :: RFTX, RFTY, RFTZ
     real(RK)          :: EPotLocal, TXi, TYi, TZi
+    real(RK)          :: Epot3B, Virial3B
     integer           :: i, j, k, i1
 #if MPI_VER > 0
     integer           :: i0
@@ -1387,7 +1392,10 @@ contains
     ! Calculate TT68 forces
     do i = 1, this%N1TT68
       do j = 1, this%N2TT68
-       call Force( this%PotTT68TT68( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+        call Force( this%PotTT68TT68( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+        if (ThreeBody=='Kr') then 
+          call Force( this%Pot3BodyKr( i, j ), EPot3B, Virial3B, BoxLength )
+        end if
       end do
     end do
 
@@ -3701,7 +3709,7 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
 
   ! Declare local variables
   type(TPot3BodyKr), pointer             :: p3b
-  real(RK)          :: EPot
+  real(RK)          :: EPot, dEpotdRij, dEpotdRik, dEpotdRjk
   real(RK)          :: Virial
   real(RK)          :: d2EpotdV2
   real(RK)          :: EPotLocal
@@ -3712,20 +3720,22 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   ! real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
   real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
   real(RK)          :: PXi, PYi, PZi
-  real(RK)          :: Rij, Rik, Rjk, RijSquared, RikSquared, RjkSquared
-  real(RK)          :: Rijk, Rijk23
+  real(RK)          :: Rij, Rik, Rjk, RijSquared, RikSquared, RjkSquared, Rij5, Rik5, Rjk5
+  real(RK)          :: Rijk, Rijk23, Rijk2
   real(RK)          :: RXij, RYij, RZij
-  ! real(RK)          :: FXij, FYij, FZij, Fij
+  real(RK)          :: FXij, FYij, FZij, Fij
   real(RK)          :: RXik, RYik, RZik
   ! real(RK)          :: PXij, PYij, PZij
-  ! real(RK)          :: FXik, FYik, FZik, Fik
+  real(RK)          :: FXik, FYik, FZik, Fik
   ! real(RK)          :: PXik, PYik, PZik
   real(RK)          :: RXjk, RYjk, RZjk
-  ! real(RK)          :: FXjk, FYjk, FZjk, Fjk
+  real(RK)          :: FXjk, FYjk, FZjk, Fjk
   ! real(RK)          :: PXjk, PYjk, PZjk
-  real(RK)          :: cosThetai, cosThetaj, cosThetak
-  real(RK)          :: cosFactor, ATM, SumA2n, expAlphaR
-  real(RK)          :: CATM, A0, A2, A4, A6, A8, A10, alpha
+  real(RK)          :: cosThetai, cosThetaj, cosThetak, cosThetaProd
+  real(RK)          :: FactorI, FactorII, FactorIII,  dI, dII, dIij, dIik, dIjk 
+  real(RK)          :: SumA2n, expAlphaR, expSumA2n
+  real(RK)          :: InvRij, InvRik, InvRjk, InvRijk3, InvRijk2
+  real(RK)          :: CATM, A0, A2, A4, A6, A8, alpha
   integer           :: N
   integer           :: j, k, i, l
                                   
@@ -3736,7 +3746,7 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
 
   ! Assign local variables
                                            
-  ! Virial=0._RK
+  Virial=0._RK
   ! VirialLocal = 1E33_RK
         
   ! d2EpotdV2Local = 1E33_RK
@@ -3797,17 +3807,75 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
             Rij = sqrt( RijSquared )
             Rik = sqrt( RikSquared )
             Rjk = sqrt( RjkSquared )
+            Rij5 = Rij**5
+            Rik5 = Rik**5
+            Rjk5 = Rjk**5
+            InvRij = 1 / Rij
+            InvRik = 1 / Rik
+            InvRjk = 1 / Rjk
             cosThetai = RjkSquared - RijSquared - RikSquared
             cosThetaj = RikSquared - RijSquared - RjkSquared
             cosThetak = RijSquared - RikSquared - RjkSquared
-            cosFactor = 1 + ( 3*cosThetai*cosThetaj*cosThetak )/( 8*RjkSquared*RijSquared*RikSquared )
-
+            cosThetaProd = 2 * cosThetai*cosThetaj*cosThetak
             Rijk = Rij * Rik * Rjk
-            Rijk23 = Rijk**(2/3)
+            Rijk2 = Rijk * Rijk
+            InvRijk2 = 1 / Rijk2
+            FactorI = 1 + FourThird * cosThetaProd * InvRijk2
+
+            Rijk23 = Rijk**(TwoThird)
             SumA2n = A0 + Rijk23 * (A2 + Rijk23 * (A4 + Rijk23 * (A6 + Rijk23 * A8)))
             expAlphaR = exp( -alpha * ( Rij + Rjk + Rik ))
+            InvRijk3 = 1/(Rijk**3)
+            FactorII = CATM*InvRijk3 + expAlphaR * SumA2n
             
-            Epot = Epot + cosFactor * ( CATM/(Rijk**3) + expAlphaR * SumA2n )
+            Epot = Epot + FactorI * FactorII
+
+            ! 1st derivative u' = I'*II + I*II' , I=FactorI, II=FactorII
+
+            ! Rij
+            dIij = Rij * ( RjkSquared - RikSquared )**2
+            dIik = Rik * ( RijSquared - RjkSquared )**2
+            dIjk = Rjk * ( RijSquared - RikSquared )**2
+
+            dI = EightThird * ( 6*Rij5 - 4*Rij**3*(RikSquared+RjkSquared) -2*Rij*(RikSquared-RjkSquared)**2 - cosThetaProd * InvRij ) * InvRijk2
+
+            Rijk23 = TwoThird * Rijk23
+            expSumA2n = expAlphaR * (Rijk23 * (A2 + Rijk23 * (A4 + Rijk23 * (A6 + Rijk23 * A8))))
+            FactorIII = -3*CATM*InvRijk3 + expSumA2n 
+            dII = FactorIII * InvRij - alpha*expAlphaR * SumA2n
+
+            dEpotdRij = dI * FactorII + FactorI * dII
+            
+            Fij = -dEpotdRij * InvRij
+            FXij = Fij * RXij
+            FYij = Fij * RYij
+            FZij = Fij * RZij
+
+            Virial = Virial + (RXij * FXij + RYij * FYij + RZij * FZij) * Third
+
+            ! Rik
+            dI = EightThird * ( 6*Rik5 - 4*Rik**3*(RijSquared+RjkSquared) -2*Rik*(RijSquared-RjkSquared)**2 - cosThetaProd * InvRik ) * InvRijk2
+            dII = FactorIII * InvRik - alpha*expAlphaR * SumA2n
+            dEpotdRik = dI * FactorII + FactorI * dII
+
+            Fik = -dEpotdRik * InvRik
+            FXik = Fik * RXik
+            FYik = Fik * RYik
+            FZik = Fik * RZik
+
+            Virial = Virial + (RXik * FXik + RYik * FYik + RZik * FZik) * Third
+
+            ! Rjk
+            dI = EightThird * ( 6*Rjk5 - 4*Rjk**3*(RikSquared+RijSquared) -2*Rjk*(RikSquared-RijSquared)**2 - cosThetaProd * InvRjk ) * InvRijk2
+            dII = FactorIII * InvRjk - alpha*expAlphaR * SumA2n
+            dEpotdRjk = dI * FactorII + FactorI * dII
+
+            Fjk = -dEpotdRjk * InvRjk
+            FXjk = Fjk * RXjk
+            FYjk = Fjk * RYjk
+            FZjk = Fjk * RZjk
+
+            Virial = Virial + (RXjk * FXjk + RYjk * FYjk + RZjk * FZjk) * Third
 
           end if
         end if
@@ -3815,13 +3883,11 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
     end if
   end do
 
-  print*, '3B: ', np, Epot
 
-
-  ! this%EPot = EPot
+  this%EPot3B = EPot
   ! this%d2EpotdV2 = d2EpotdV2
                          
-  ! this%Virial = Virial
+  this%Virial3B = Virial
         
   
 end subroutine TInteraction_Energy3BKr

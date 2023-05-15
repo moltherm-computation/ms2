@@ -273,13 +273,18 @@ contains
     end select
 
     ! 3 Body potential
-    call FileReadParameter( threebodytype, potmodFile%iounit, Id3body, .false. )
-    select case( threebodytype )
-    case( 'Kr', 'KR', 'kr', 'Krypton' ) !Case: Krypton
-      ThreeBody = 'Kr'
-    case default
-      ThreeBody = 'None'
-    end select
+    if (TT68orEXT == 'TTExt') then
+      call FileReadParameter( threebodytype, potmodFile%iounit, Id3body, .false. )
+      select case( threebodytype )
+      case( 'Kr', 'KR', 'kr', 'Krypton' ) !Case: Krypton
+        ThreeBody = 'Kr'
+        write( IOBuffer, '("Three body interactions for ", A, " will be calculated. ", A)' ) &
+  &       trim( ThreeBody )
+        call LogWrite
+      case default
+        ThreeBody = 'None'
+      end select
+    end if
 
     ! Find center of mass position
     call FindCOM( this )

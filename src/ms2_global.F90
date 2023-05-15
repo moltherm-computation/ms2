@@ -493,8 +493,10 @@ module ms2_global
   real(RK), parameter :: Piminus2 = Pi * (-2._RK)
   real(RK), parameter :: Piminus83 = Pi * (-8._RK) / 3._RK
   real(RK), parameter :: Third = 1._RK / 3._RK
+  real(RK), parameter :: TwoThird = 2._RK / 3._RK
   real(RK), parameter :: FourThird = 4._RK / 3._RK
   real(RK), parameter :: FiveThird = 5._RK / 3._RK
+  real(RK), parameter :: EightThird = 8._RK / 3._RK
   real(RK), parameter :: Ninth = 1._RK / 9._RK
   real(RK), parameter :: InvFac3 = 1._RK / 6._RK
   real(RK), parameter :: InvFac4 = 1._RK / 24._RK
