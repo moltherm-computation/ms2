@@ -173,9 +173,9 @@ end type TPot3BodyKr
     module procedure TPot3BodyKr_Destruct
   end interface
 
-  ! interface Force
-  !   module procedure TPot3BodyKr_Force
-  ! end interface
+  interface Force
+    module procedure TPot3BodyKr_Force
+  end interface
 
   ! interface Force_Trans
   !   module procedure TPot3BodyKr_Force_Trans
@@ -2207,17 +2207,17 @@ loop2:  do j = 1, N2
 
      this%VirialCorr = - Piminus23CF6 * TICCp(-3._RK, RCutoff) &
 &                      - Piminus23CF8 * TICCp(-4._RK, RCutoff) &
-&                      - Piminus23CF10 * TICCp(-3._RK, RCutoff) &
-&                      - Piminus23CF12 * TICCp(-4._RK, RCutoff) &
-&                      - Piminus23CF14 * TICCp(-3._RK, RCutoff) &
-&                      - Piminus23CF16 * TICCp(-4._RK, RCutoff) 
+&                      - Piminus23CF10 * TICCp(-5._RK, RCutoff) &
+&                      - Piminus23CF12 * TICCp(-6._RK, RCutoff) &
+&                      - Piminus23CF14 * TICCp(-7._RK, RCutoff) &
+&                      - Piminus23CF16 * TICCp(-8._RK, RCutoff) 
 
      this%d2EpotdV2Corr = - Pi29CF6 * TICCd2EpotdV2(-3._RK, RCutoff) &
 &                         - Pi29CF8 * TICCd2EpotdV2(-4._RK, RCutoff) &
-&                         - Pi29CF10 * TICCd2EpotdV2(-3._RK, RCutoff) &
-&                         - Pi29CF12 * TICCd2EpotdV2(-4._RK, RCutoff) &
-&                         - Pi29CF14 * TICCd2EpotdV2(-3._RK, RCutoff) &
-&                         - Pi29CF16 * TICCd2EpotdV2(-4._RK, RCutoff) 
+&                         - Pi29CF10 * TICCd2EpotdV2(-5._RK, RCutoff) &
+&                         - Pi29CF12 * TICCd2EpotdV2(-6._RK, RCutoff) &
+&                         - Pi29CF14 * TICCd2EpotdV2(-7._RK, RCutoff) &
+&                         - Pi29CF16 * TICCd2EpotdV2(-8._RK, RCutoff) 
     end if
     this%EPotTestCorr = 2._RK * this%EPotCorr
 
@@ -3885,17 +3885,20 @@ loop2:  do j = 1, N2
 !  Subroutine TPot3BodyKr_Construct                            !
 !==============================================================!
 
-  subroutine TPot3BodyKr_Construct( this, RCutoff )
+  subroutine TPot3BodyKr_Construct( this, Molecule1, Molecule2, RCutoff )
     
         implicit none
     
         ! Declare arguments
         type(TPot3BodyKr)      :: this
+        type(TMolecule), intent(in) :: Molecule1, Molecule2
         real(RK), intent(in)        :: RCutoff
     
         ! Construct potential
+        this%Site1 => Molecule1%SiteTT(1)
+        this%Site2 => Molecule2%SiteTT(1)
         this%RCutoffSquared = RCutoff**2
-        this%RShieldSquared = 0.4 ! ToDo
+        this%RShieldSquared = 0.2 ! ToDo
 
         ! Potential paramters
         this%CATM = 1615250
@@ -3928,21 +3931,128 @@ loop2:  do j = 1, N2
     
     
     
-  !==============================================================!
-  !  Subroutine TPot3BodyKr_Destruct                             !
-  !==============================================================!
-  
-    subroutine TPot3BodyKr_Destruct( this )
-  
-      implicit none
-  
-      ! Declare arguments
-      type(TPot3BodyKr) :: this
-  
-      ! Destroy potential
-      continue
-  
-    end subroutine TPot3BodyKr_Destruct
+!==============================================================!
+!  Subroutine TPot3BodyKr_Destruct                             !
+!==============================================================!
+
+  subroutine TPot3BodyKr_Destruct( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPot3BodyKr) :: this
+
+    ! Destroy potential
+    continue
+
+  end subroutine TPot3BodyKr_Destruct
+
+
+
+!==============================================================!
+!  Subroutine TPot3BodyKr_Force                                !
+!==============================================================!
+
+  subroutine TPot3BodyKr_Force( this, EPot3B, Virial3B, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPot3BodyKr)       :: this
+    real(RK), intent(in out) :: EPot3B
+    real(RK), intent(in out) :: Virial3B
+    real(RK), intent(in)     :: BoxLength
+
+
+  ! Declare local variables
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK)          :: dEpotdRij, dEpotdRik, dEpotdRjk
+    real(RK)          :: EPotLocal
+    real(RK)          :: VirialLocal
+    real(RK)          :: d2EpotdV2Local
+    real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
+    real(RK)          :: BoxLengthThird, InvBoxLength
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: Rij, Rik, Rjk, RijSquared, RikSquared, RjkSquared, Rij5, Rik5, Rjk5
+    real(RK)          :: Rijk, Rijk23, Rijk2
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: FXij, FYij, FZij, Fij
+    real(RK)          :: RXik, RYik, RZik
+    real(RK)          :: FXik, FYik, FZik, Fik
+    real(RK)          :: RXjk, RYjk, RZjk
+    real(RK)          :: FXjk, FYjk, FZjk, Fjk
+    real(RK)          :: cosThetai, cosThetaj, cosThetak, cosThetaProd
+    real(RK)          :: FactorI, FactorII, FactorIII,  dI, dII, dIij, dIik, dIjk 
+    real(RK)          :: SumA2n, expAlphaR, expSumA2n
+    real(RK)          :: InvRij, InvRik, InvRjk, InvRijk3, InvRijk2
+    real(RK)          :: CATM, A0, A2, A4, A6, A8, alpha
+    real(RK)          :: forceTempX(1:this%Site2%NPart)
+    real(RK)          :: forceTempY(1:this%Site2%NPart)
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)
+    integer           :: N
+    integer           :: j, k, i, l, i1, j0, j1
+
+! #if MPI_VER > 0
+!     integer           :: i0, N1, N2, ji
+!     logical           :: EvenN
+! #endif
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+
+  ! Potential paramters
+    CATM = this%CATM
+    A0 = this%A0
+    A2 = this%A2
+    A4 = this%A4
+    A6 = this%A6
+    A8 = this%A8
+    alpha = this%alpha
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    RCutoffSquared = this%RCutoffSquared
+    RShieldSquared = this%RShieldSquared
+
+! #if MPI_VER > 0
+!     N1 = this%Site2%NPart
+!     N2 = N1 / 2
+!     EvenN = mod( N1, 2 ) == 0
+!     i0 = this%Site1%NPart0
+!     i1 = this%Site1%NPart2
+!     j1 = 0
+!     ji = 0
+! #else
+    i1 = this%Site1%NPart
+    j1 = this%Site2%NPart
+! #endif
+
+
+  end subroutine TPot3BodyKr_Force
+
+
+
 
 
 
