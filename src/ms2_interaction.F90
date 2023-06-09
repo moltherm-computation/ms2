@@ -81,7 +81,7 @@ module ms2_interaction
                                     
 
     ! Arrays for center of mass cutoff
-    integer, pointer, contiguous :: NInCutoff(:), CutoffPartner(:, :), CutoffPartnerAll(:,:)
+    integer, pointer, contiguous :: NInCutoff(:), CutoffPartner(:, :), CutoffPartnerGlobal(:,:)
 
     ! Center of mass positions
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
@@ -428,7 +428,7 @@ contains
             allocate(this%Pot3BodyKr(1, 1), STAT = stat )
             call AllocationError( stat, 'sites', 2 )
             call Construct( this%Pot3BodyKr(1, 1),Component1%Molecule, Component2%Molecule, RCutoffTT)
-            this%PotTT68TT68(j1, j2)%CutoffPartner => this%CutoffPartnerAll
+            this%PotTT68TT68(j1, j2)%CutoffPartner => this%CutoffPartnerGlobal
 
           end if
         end do
@@ -750,7 +750,7 @@ contains
     nullify( this%KBISum )
     nullify( this%NInCutoff )
     nullify( this%CutoffPartner )
-    nullify( this%CutoffPartnerAll )
+    nullify( this%CutoffPartnerGlobal )
 
     ! allocated only for SimulationType .eq. SecondVirialCoeff
     nullify( this%MayerFFunction )
@@ -805,7 +805,7 @@ contains
       call AllocationError( stat, 'particles', N1 )
       allocate( this%CutoffPartner(N2, N1), STAT = stat )
       call AllocationError( stat, 'particles', N1 * N2 )
-      allocate( this%CutoffPartnerAll(N2, N1), STAT = stat )
+      allocate( this%CutoffPartnerGlobal(N2, N1), STAT = stat )
       call AllocationError( stat, 'particles', N1 * N2  )
 
     end if
@@ -853,8 +853,8 @@ contains
     if( associated( this%CutoffPartner ) ) then
       deallocate( this%CutoffPartner )
     end if
-    if( associated( this%CutoffPartnerAll ) ) then
-      deallocate( this%CutoffPartnerAll )
+    if( associated( this%CutoffPartnerGlobal ) ) then
+      deallocate( this%CutoffPartnerGlobal )
     end if
     if( associated( this%KBISum ) ) then
       deallocate( this%KBISum )
@@ -3745,7 +3745,7 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   real(RK)          :: SumA2n, expAlphaR, expSumA2n
   real(RK)          :: InvRij, InvRik, InvRjk, InvRijk3, InvRijk2
   real(RK)          :: CATM, A0, A2, A4, A6, A8, alpha
-  integer          :: NPartners(1:NProcs), NPartnersSum(1:NProcs), NPartnersNums(1:this%Npart2)
+  integer          :: NInCutoffGlobal(1:NProcs), NInCutoffGlobalSum(1:NProcs), CutoffPartnerGlobal(1:this%Npart2) ! array ca. 2-4x too large
   integer           :: N, NCutoff
   integer           :: j, k, i, l, m
                                   
@@ -3764,7 +3764,7 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   N = this%NPart2
   RCutoffSquared = this%RCutoffSquared
   RCutoffSquaredScaled = this%RCutoffSquaredScaled
-  RShieldSquared = 0.2    !ToDo
+  RShieldSquared = 0.5    !ToDo
   BoxLengthThird = Third * BoxLength
   InvBoxLength = 1/BoxLength
   PXi = this%PX1(np)
@@ -3791,42 +3791,43 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
 !     call MPI_Allreduce( this%NInCutoff(np), NCutoff, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
 
 !     call MPI_Gather(this%CutoffPartner(1:this%NInCutoff(np), np),this%NInCutoff(np), MPI_RK , &
-!     &         this%CutoffPartnerAll(1:NCutoff, np), NCutoff,MPI_RK,NRootProc,Communicator,ierror )
+!     &         this%CutoffPartnerGlobal(1:NCutoff, np), NCutoff,MPI_RK,NRootProc,Communicator,ierror )
     
 ! #else
 !     NCutoff = this%NInCutoff(np)
-!     this%CutoffPartnerAll(1:NinCutoff,np) = this%CutoffPartner(1:this%NInCutoff(np), np)
+!     this%CutoffPartnerGlobal(1:NinCutoff,np) = this%CutoffPartner(1:this%NInCutoff(np), np)
 ! #endif
 
-print*, 'N', NProcs, NProc, this%NInCutoff(np)
-print*, 'P', NProc, this%CutoffPartner(:, np)
+! print*, 'N', NProcs, NProc, this%NInCutoff(np)
 
 #if MPI_VER > 0
 
-    call MPI_Allgather(this%NInCutoff(np), 1, MPI_INTEGER, NPartners, 1, MPI_INTEGER, Communicator, ierror )
+    call MPI_Allgather( this%NInCutoff(np), 1, MPI_INTEGER, NInCutoffGlobal, 1, MPI_INTEGER, Communicator, ierror )
     NCutoff = 0
     do i=1, NProcs
-      NCutoff = NCutoff + NPartners(i)
-      NPartnersSum(i) = NCutoff
+      NInCutoffGlobalSum(i) = NCutoff
+      NCutoff = NCutoff + NInCutoffGlobal(i)
     end do
-    call MPI_ALLGATHERV(this%CutoffPartner(1:this%NInCutoff(np), np), NPartners(NProc+1), MPI_INTEGER, NPartnersNums, NPartners(NProc+1),  NPartnersSum(NProc+1), MPI_INTEGER, Communicator, ierror )
+
+    call MPI_Allgatherv( this%CutoffPartner(1:this%NInCutoff(np), np), NInCutoffGlobal(NProc+1), MPI_INTEGER, & 
+    & CutoffPartnerGlobal, NInCutoffGlobal,  NInCutoffGlobalSum, MPI_INTEGER, Communicator, ierror )
     
 #else
     NCutoff = this%NInCutoff(np)
-    this%CutoffPartnerAll(1:NinCutoff,np) = this%CutoffPartner(1:this%NInCutoff(np), np)
+    this%CutoffPartnerGlobal(1:NCutoff,np) = this%CutoffPartner(1:this%NInCutoff(np), np)
 #endif
 
-print*, 'Test1'
-print*, 'NP2', NPartners
-print*, 'NPS', NPartnersSum
+! print*, 'Test1'
+! print*, 'NP2', NInCutoffGlobal
+! print*, 'NPS', NInCutoffGlobalSum
 
 
 
-  ! do i = 1, this%NInCutoff(np)-1 ! ij
-  !   j = this%CutoffPartner(i, np)
+    ! do i = 1, this%NInCutoff(np)-1 ! ij
+    !   j = this%CutoffPartner(i, np)
   if (NCutoff > 0) then
     do i = 1, NCutoff ! ij
-      j = this%CutoffPartnerAll(i,np)
+      j = this%CutoffPartnerGlobal(i,np)
       RXij = PXi - PX2(j)
       RYij = PYi - PY2(j)
       RZij = PZi - PZ2(j)
