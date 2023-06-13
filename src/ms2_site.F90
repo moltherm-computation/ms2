@@ -664,7 +664,7 @@ contains
 
 
 !==============================================================!
-!  Subroutine TSiteTT_Construct                              !
+!  Subroutine TSiteTT_Construct                                !
 !==============================================================!
 
   subroutine TSiteTT_Construct( this )
@@ -749,7 +749,7 @@ contains
 
 
 !==============================================================!
-!  Subroutine TSiteTT_Destruct                               !
+!  Subroutine TSiteTT_Destruct                                 !
 !==============================================================!
 
   subroutine TSiteTT_Destruct( this )
@@ -767,7 +767,7 @@ contains
 
 
 !==============================================================!
-!  Subroutine TSiteTT_Allocate                               !
+!  Subroutine TSiteTT_Allocate                                 !
 !==============================================================!
 
   subroutine TSiteTT_Allocate( this )
