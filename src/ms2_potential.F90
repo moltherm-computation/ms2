@@ -3962,13 +3962,18 @@ loop2:  do j = 1, N2
         ! Declare arguments
         type(TPot3BodyKr)      :: this
         type(TMolecule), intent(in) :: Molecule1, Molecule2
-        real(RK), intent(in)        :: RCutoff
+        real(RK), intent(in)        :: RCutoff 
+        real(RK)                    :: RShield
     
         ! Construct potential
         this%Site1 => Molecule1%SiteTT(1)
         this%Site2 => Molecule2%SiteTT(1)
         this%RCutoffSquared = RCutoff**2
-        this%RShieldSquared = 0.2 ! ToDo
+        RShield = 2.2
+        RShield = RShield * Angstroem
+        RShield = RShield / UnitLength
+        
+        this%RShieldSquared = RShield**2
 
         ! Potential paramters
         this%CATM = 1615250

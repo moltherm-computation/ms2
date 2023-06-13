@@ -3764,7 +3764,6 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   N = this%NPart2
   RCutoffSquared = this%RCutoffSquared
   RCutoffSquaredScaled = this%RCutoffSquaredScaled
-  RShieldSquared = 0.5    !ToDo
   BoxLengthThird = Third * BoxLength
   InvBoxLength = 1/BoxLength
   PXi = this%PX1(np)
@@ -3781,24 +3780,14 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   A6 = p3b%A6
   A8 = p3b%A8
   alpha = p3b%alpha
+  RShieldSquared = p3b%RShieldSquared
+
 
   ! Assign pointers to COM positions
   PX2 => this%PX2
   PY2 => this%PY2
   PZ2 => this%PZ2
 
-! #if MPI_VER > 0
-!     call MPI_Allreduce( this%NInCutoff(np), NCutoff, 1 , MPI_RK, MPI_SUM, Communicator, ierror )
-
-!     call MPI_Gather(this%CutoffPartner(1:this%NInCutoff(np), np),this%NInCutoff(np), MPI_RK , &
-!     &         this%CutoffPartnerGlobal(1:NCutoff, np), NCutoff,MPI_RK,NRootProc,Communicator,ierror )
-    
-! #else
-!     NCutoff = this%NInCutoff(np)
-!     this%CutoffPartnerGlobal(1:NinCutoff,np) = this%CutoffPartner(1:this%NInCutoff(np), np)
-! #endif
-
-! print*, 'N', NProcs, NProc, this%NInCutoff(np)
 
 #if MPI_VER > 0
 
@@ -3817,14 +3806,7 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
     this%CutoffPartnerGlobal(1:NCutoff,np) = this%CutoffPartner(1:this%NInCutoff(np), np)
 #endif
 
-! print*, 'Test1'
-! print*, 'NP2', NInCutoffGlobal
-! print*, 'NPS', NInCutoffGlobalSum
 
-
-
-    ! do i = 1, this%NInCutoff(np)-1 ! ij
-    !   j = this%CutoffPartner(i, np)
   if (NCutoff > 0) then
     do i = 1, NCutoff ! ij
       j = this%CutoffPartnerGlobal(i,np)
@@ -3933,8 +3915,6 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
 
 
   this%EPot3B = EPot
-  ! print*, EPot
-  ! this%d2EpotdV2 = d2EpotdV2
                          
   this%Virial3B = Virial
         
