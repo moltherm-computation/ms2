@@ -2192,10 +2192,17 @@ loop2:  do j = 1, N2
       this%EPotTestCorr = 2._RK * this%EPotCorr
 
       VirialCorr = VirialCorr / 1000
-      this%VirialCorr = VirialCorr * Pi * 2._RK/3._RK
+      this%VirialCorr = VirialCorr * Pi23
 
       d2EPotdR2 = d2EPotdR2 / 1000
       this%d2EpotdV2Corr = d2EPotdR2 * Pi * (2._RK/9._RK)
+
+
+      ! do i = 1, 11
+      !   Rij = 2.5_RK + (i-1)*0.25
+      !   fun = Kr_3B(Rij)
+      !   print*, fun
+      ! end do
 
     end select
 
@@ -2291,6 +2298,61 @@ loop2:  do j = 1, N2
         this%d2EpotdV2_aux = this%d2EpotdV2_aux * RijSquared * RijSquared
 
       end function TTExt_CC
+
+
+      ! real(RK) function Kr_3B(Rij)
+
+      !   ! Declare arguments
+      !   real(RK), intent(in) :: Rij
+
+      !   real(RK)          :: cosThetai, cosThetaj, cosThetak, cosThetaProd
+      !   real(RK)          :: FactorI, FactorII, FactorIII,  dI, dII, dIij, dIik, dIjk 
+      !   real(RK)          :: SumA2n, expAlphaR, expSumA2n
+      !   real(RK)          :: InvRij, InvRik, InvRjk, InvRijk3, InvRijk2
+      !   real(RK)          :: CATM, A0, A2, A4, A6, A8, alpha
+      !   real(RK)          :: Rik, Rjk, RijSquared, RikSquared, RjkSquared, Rij5, Rik5, Rjk5
+      !   real(RK)          :: Rijk, Rijk23, Rijk2
+
+      !   CATM = 1615250
+      !   A0 = -30813040
+      !   A2 = -35194420
+      !   A4 = 4928052
+      !   A6 = -218241.1
+      !   A8 = 3430.88
+      !   alpha = 1.378382
+
+      !   Rik = Rij
+      !   Rjk = Rij
+      !   RijSquared = Rij*Rij
+      !   RikSquared = Rij*Rij
+      !   RjkSquared = Rij*Rij
+      !   Rij5 = Rij**5
+      !   Rik5 = Rik**5
+      !   Rjk5 = Rjk**5
+      !   InvRij = 1 / Rij
+      !   InvRik = 1 / Rik
+      !   InvRjk = 1 / Rjk
+      !   cosThetai = RijSquared + RikSquared - RjkSquared
+      !   cosThetaj = RijSquared + RjkSquared - RikSquared
+      !   cosThetak = RikSquared + RjkSquared - RijSquared
+      !   cosThetaProd = cosThetai*cosThetaj*cosThetak
+      !   Rijk = Rij * Rik * Rjk
+      !   Rijk2 = Rijk * Rijk
+      !   InvRijk2 = 1 / Rijk2
+      !   FactorI = 1 + ThreeEight * cosThetaProd * InvRijk2
+
+      !   Rijk23 = Rijk**(TwoThird)
+      !   SumA2n = A0 + Rijk23 * (A2 + Rijk23 * (A4 + Rijk23 * (A6 + Rijk23 * A8)))
+      !   expAlphaR = exp( -alpha * ( Rij + Rjk + Rik ))
+      !   InvRijk3 = 1/(Rijk**3)
+      !   FactorII = CATM*InvRijk3 + expAlphaR * SumA2n
+        
+      !   Kr_3B = FactorI * FactorII
+
+
+      ! end function Kr_3B
+
+
 
 
 
