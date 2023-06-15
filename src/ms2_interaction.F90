@@ -81,7 +81,7 @@ module ms2_interaction
                                     
 
     ! Arrays for center of mass cutoff
-    integer, pointer, contiguous :: NInCutoff(:), CutoffPartner(:, :), CutoffPartnerGlobal(:,:)
+    integer, pointer, contiguous :: NInCutoff(:), CutoffPartner(:, :)
 
     ! Center of mass positions
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
@@ -428,7 +428,6 @@ contains
             allocate(this%Pot3BodyKr(1, 1), STAT = stat )
             call AllocationError( stat, 'sites', 2 )
             call Construct( this%Pot3BodyKr(1, 1),Component1%Molecule, Component2%Molecule, RCutoffTT)
-            this%PotTT68TT68(j1, j2)%CutoffPartner => this%CutoffPartnerGlobal
 
           end if
         end do
@@ -750,7 +749,6 @@ contains
     nullify( this%KBISum )
     nullify( this%NInCutoff )
     nullify( this%CutoffPartner )
-    nullify( this%CutoffPartnerGlobal )
 
     ! allocated only for SimulationType .eq. SecondVirialCoeff
     nullify( this%MayerFFunction )
@@ -805,8 +803,6 @@ contains
       call AllocationError( stat, 'particles', N1 )
       allocate( this%CutoffPartner(N2, N1), STAT = stat )
       call AllocationError( stat, 'particles', N1 * N2 )
-      allocate( this%CutoffPartnerGlobal(N2, N1), STAT = stat )
-      call AllocationError( stat, 'particles', N1 * N2  )
 
     end if
 
@@ -852,9 +848,6 @@ contains
     end if
     if( associated( this%CutoffPartner ) ) then
       deallocate( this%CutoffPartner )
-    end if
-    if( associated( this%CutoffPartnerGlobal ) ) then
-      deallocate( this%CutoffPartnerGlobal )
     end if
     if( associated( this%KBISum ) ) then
       deallocate( this%KBISum )
@@ -3745,10 +3738,12 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   real(RK)          :: SumA2n, expAlphaR, expSumA2n
   real(RK)          :: InvRij, InvRik, InvRjk, InvRijk3, InvRijk2
   real(RK)          :: CATM, A0, A2, A4, A6, A8, alpha
-  integer          :: NInCutoffGlobal(1:NProcs), NInCutoffGlobalSum(1:NProcs), CutoffPartnerGlobal(1:this%Npart2) ! array ca. 2-4x too large
+  integer          :: NInCutoffGlobal(1:NProcs), NInCutoffGlobalSum(1:NProcs)
+  integer, allocatable :: concatenated_array(:)
   integer           :: N, NCutoff
-  integer           :: j, k, i, l, m
+  integer           :: j, k, i, l, m, dummy
                                   
+
 
   ! Zero energy
   EPot=0._RK
@@ -3788,28 +3783,30 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   PY2 => this%PY2
   PZ2 => this%PZ2
 
-
 #if MPI_VER > 0
-
     call MPI_Allgather( this%NInCutoff(np), 1, MPI_INTEGER, NInCutoffGlobal, 1, MPI_INTEGER, Communicator, ierror )
-    NCutoff = 0
-    do i=1, NProcs
+    NInCutoffGlobalSum(1) = 0
+    NCutoff = NInCutoffGlobal(1)
+    do i=2, NProcs
       NInCutoffGlobalSum(i) = NCutoff
       NCutoff = NCutoff + NInCutoffGlobal(i)
     end do
+    allocate(concatenated_array(NCutoff))
 
     call MPI_Allgatherv( this%CutoffPartner(1:this%NInCutoff(np), np), NInCutoffGlobal(NProc+1), MPI_INTEGER, & 
-    & CutoffPartnerGlobal, NInCutoffGlobal,  NInCutoffGlobalSum, MPI_INTEGER, Communicator, ierror )
-    
+    & concatenated_array, NInCutoffGlobal, NInCutoffGlobalSum, MPI_INTEGER, Communicator, ierror )
+
 #else
     NCutoff = this%NInCutoff(np)
-    this%CutoffPartnerGlobal(1:NCutoff,np) = this%CutoffPartner(1:this%NInCutoff(np), np)
+    allocate(concatenated_array(NCutoff))
+
+    concatenated_array(1:NCutoff) = this%CutoffPartner(1:this%NInCutoff(np), np)
 #endif
 
 
   if (NCutoff > 0) then
     do i = 1, NCutoff ! ij
-      j = this%CutoffPartnerGlobal(i,np)
+      j = concatenated_array(i)
       RXij = PXi - PX2(j)
       RYij = PYi - PY2(j)
       RZij = PZi - PZ2(j)
@@ -3820,92 +3817,94 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
       if (RijSquared > RShieldSquared) then 
         do l = 1, this%NInCutoff(np) !ik
           k = this%CutoffPartner(l, np)
-          RXik = PXi - PX2(k)
-          RYik = PYi - PY2(k)
-          RZik = PZi - PZ2(k)
-          RXik = (RXik - anint( RXik )) * BoxLength
-          RYik = (RYik - anint( RYik )) * BoxLength
-          RZik = (RZik - anint( RZik )) * BoxLength
-          RikSquared = RXik*RXik + RYik*RYik + RZik*RZik
-          if (RikSquared > RShieldSquared) then 
-            RXjk = RXij - RXik !jk
-            RYjk = RYij - RYik
-            RZjk = RZij - RZik
-            RjkSquared = RXjk*RXjk + RYjk*RYjk + RZjk*RZjk
-            if ((RjkSquared > RShieldSquared) .and. (RjkSquared < RCutoffSquared)) then 
-              Rij = sqrt( RijSquared )
-              Rik = sqrt( RikSquared )
-              Rjk = sqrt( RjkSquared )
-              Rij5 = Rij**5
-              Rik5 = Rik**5
-              Rjk5 = Rjk**5
-              InvRij = 1 / Rij
-              InvRik = 1 / Rik
-              InvRjk = 1 / Rjk
-              cosThetai = RjkSquared - RijSquared - RikSquared
-              cosThetaj = RikSquared - RijSquared - RjkSquared
-              cosThetak = RijSquared - RikSquared - RjkSquared
-              cosThetaProd = 2 * cosThetai*cosThetaj*cosThetak
-              Rijk = Rij * Rik * Rjk
-              Rijk2 = Rijk * Rijk
-              InvRijk2 = 1 / Rijk2
-              FactorI = 1 + FourThird * cosThetaProd * InvRijk2
+          if ( k > j ) then
+            RXik = PXi - PX2(k)
+            RYik = PYi - PY2(k)
+            RZik = PZi - PZ2(k)
+            RXik = (RXik - anint( RXik )) * BoxLength
+            RYik = (RYik - anint( RYik )) * BoxLength
+            RZik = (RZik - anint( RZik )) * BoxLength
+            RikSquared = RXik*RXik + RYik*RYik + RZik*RZik
+            if (RikSquared > RShieldSquared) then 
+              RXjk = RXij - RXik !jk
+              RYjk = RYij - RYik
+              RZjk = RZij - RZik
+              RjkSquared = RXjk*RXjk + RYjk*RYjk + RZjk*RZjk
+              if ((RjkSquared > RShieldSquared) .and. (RjkSquared < RCutoffSquared)) then 
+                Rij = sqrt( RijSquared )
+                Rik = sqrt( RikSquared )
+                Rjk = sqrt( RjkSquared )
+                Rij5 = Rij**5
+                Rik5 = Rik**5
+                Rjk5 = Rjk**5
+                InvRij = 1 / Rij
+                InvRik = 1 / Rik
+                InvRjk = 1 / Rjk
+                cosThetai = RijSquared + RikSquared - RjkSquared
+                cosThetaj = RijSquared + RjkSquared - RikSquared
+                cosThetak = RikSquared + RjkSquared - RijSquared
+                cosThetaProd = cosThetai*cosThetaj*cosThetak
+                Rijk = Rij * Rik * Rjk
+                Rijk2 = Rijk * Rijk
+                InvRijk2 = 1 / Rijk2
+                FactorI = 1 + ThreeEight * cosThetaProd * InvRijk2
 
-              Rijk23 = Rijk**(TwoThird)
-              SumA2n = A0 + Rijk23 * (A2 + Rijk23 * (A4 + Rijk23 * (A6 + Rijk23 * A8)))
-              expAlphaR = exp( -alpha * ( Rij + Rjk + Rik ))
-              InvRijk3 = 1/(Rijk**3)
-              FactorII = CATM*InvRijk3 + expAlphaR * SumA2n
-              
-              Epot = Epot + FactorI * FactorII
+                Rijk23 = Rijk**(TwoThird)
+                SumA2n = A0 + Rijk23 * (A2 + Rijk23 * (A4 + Rijk23 * (A6 + Rijk23 * A8)))
+                expAlphaR = exp( -alpha * ( Rij + Rjk + Rik ))
+                InvRijk3 = 1/(Rijk**3)
+                FactorII = CATM*InvRijk3 + expAlphaR * SumA2n
+                
+                Epot = Epot + FactorI * FactorII
 
-              ! 1st derivative u' = I'*II + I*II' , I=FactorI, II=FactorII
+                ! ! 1st derivative u' = I'*II + I*II' , I=FactorI, II=FactorII
 
-              ! Rij
-              dIij = Rij * ( RjkSquared - RikSquared )**2
-              dIik = Rik * ( RijSquared - RjkSquared )**2
-              dIjk = Rjk * ( RijSquared - RikSquared )**2
+                ! ! Rij
+                ! dIij = Rij * ( RjkSquared - RikSquared )**2
+                ! dIik = Rik * ( RijSquared - RjkSquared )**2
+                ! dIjk = Rjk * ( RijSquared - RikSquared )**2
 
-              dI = EightThird * ( 6*Rij5 - 4*Rij**3*(RikSquared+RjkSquared) -2*Rij*(RikSquared-RjkSquared)**2 - cosThetaProd * InvRij ) * InvRijk2
+                ! dI = ThreeEight * ( 6*Rij5 - 4*Rij**3*(RikSquared+RjkSquared) -2*Rij*(RikSquared-RjkSquared)**2 - 2 * cosThetaProd * InvRij ) * InvRijk2
 
-              Rijk23 = TwoThird * Rijk23
-              expSumA2n = expAlphaR * (Rijk23 * (A2 + Rijk23 * (A4 + Rijk23 * (A6 + Rijk23 * A8))))
-              FactorIII = -3*CATM*InvRijk3 + expSumA2n 
-              dII = FactorIII * InvRij - alpha*expAlphaR * SumA2n
+                ! Rijk23 = TwoThird * Rijk23
+                ! expSumA2n = expAlphaR * (Rijk23 * (A2 + Rijk23 * (A4 + Rijk23 * (A6 + Rijk23 * A8))))
+                ! FactorIII = -3*CATM*InvRijk3 + expSumA2n 
+                ! dII = FactorIII * InvRij - alpha*expAlphaR * SumA2n
 
-              dEpotdRij = dI * FactorII + FactorI * dII
-              
-              Fij = -dEpotdRij * InvRij
-              FXij = Fij * RXij
-              FYij = Fij * RYij
-              FZij = Fij * RZij
+                ! dEpotdRij = dI * FactorII + FactorI * dII
+                
+                ! Fij = -dEpotdRij * InvRij
+                ! FXij = Fij * RXij
+                ! FYij = Fij * RYij
+                ! FZij = Fij * RZij
 
-              Virial = Virial + (RXij * FXij + RYij * FYij + RZij * FZij) * Third
+                ! Virial = Virial + (RXij * FXij + RYij * FYij + RZij * FZij) * Third
 
-              ! Rik
-              dI = EightThird * ( 6*Rik5 - 4*Rik**3*(RijSquared+RjkSquared) -2*Rik*(RijSquared-RjkSquared)**2 - cosThetaProd * InvRik ) * InvRijk2
-              dII = FactorIII * InvRik - alpha*expAlphaR * SumA2n
-              dEpotdRik = dI * FactorII + FactorI * dII
+                ! ! Rik
+                ! dI = ThreeEight * ( 6*Rik5 - 4*Rik**3*(RijSquared+RjkSquared) -2*Rik*(RijSquared-RjkSquared)**2 - 2 * cosThetaProd * InvRik ) * InvRijk2
+                ! dII = FactorIII * InvRik - alpha*expAlphaR * SumA2n
+                ! dEpotdRik = dI * FactorII + FactorI * dII
 
-              Fik = -dEpotdRik * InvRik
-              FXik = Fik * RXik
-              FYik = Fik * RYik
-              FZik = Fik * RZik
+                ! Fik = -dEpotdRik * InvRik
+                ! FXik = Fik * RXik
+                ! FYik = Fik * RYik
+                ! FZik = Fik * RZik
 
-              Virial = Virial + (RXik * FXik + RYik * FYik + RZik * FZik) * Third
+                ! Virial = Virial + (RXik * FXik + RYik * FYik + RZik * FZik) * Third
 
-              ! Rjk
-              dI = EightThird * ( 6*Rjk5 - 4*Rjk**3*(RikSquared+RijSquared) -2*Rjk*(RikSquared-RijSquared)**2 - cosThetaProd * InvRjk ) * InvRijk2
-              dII = FactorIII * InvRjk - alpha*expAlphaR * SumA2n
-              dEpotdRjk = dI * FactorII + FactorI * dII
+                ! ! Rjk
+                ! dI = ThreeEight * ( 6*Rjk5 - 4*Rjk**3*(RikSquared+RijSquared) -2*Rjk*(RikSquared-RijSquared)**2 - 2 * cosThetaProd * InvRjk ) * InvRijk2
+                ! dII = FactorIII * InvRjk - alpha*expAlphaR * SumA2n
+                ! dEpotdRjk = dI * FactorII + FactorI * dII
 
-              Fjk = -dEpotdRjk * InvRjk
-              FXjk = Fjk * RXjk
-              FYjk = Fjk * RYjk
-              FZjk = Fjk * RZjk
+                ! Fjk = -dEpotdRjk * InvRjk
+                ! FXjk = Fjk * RXjk
+                ! FYjk = Fjk * RYjk
+                ! FZjk = Fjk * RZjk
 
-              Virial = Virial + (RXjk * FXjk + RYjk * FYjk + RZjk * FZjk) * Third
+                ! Virial = Virial + (RXjk * FXjk + RYjk * FYjk + RZjk * FZjk) * Third
 
+              end if
             end if
           end if
         end do
@@ -3913,10 +3912,11 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
     end do
   end if
 
-
   this%EPot3B = EPot
                          
   this%Virial3B = Virial
+
+  deallocate(concatenated_array)
         
   
 end subroutine TInteraction_Energy3BKr
