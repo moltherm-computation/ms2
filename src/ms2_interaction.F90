@@ -3734,10 +3734,11 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   real(RK)          :: FXjk, FYjk, FZjk, Fjk
   ! real(RK)          :: PXjk, PYjk, PZjk
   real(RK)          :: cosThetai, cosThetaj, cosThetak, cosThetaProd
+  real(RK)          :: cosTicosTj, cosTicosTk, cosTjcosTk
   real(RK)          :: FactorI, FactorII, FactorIII,  dI, dII, dIij, dIik, dIjk 
   real(RK)          :: SumA2n, expAlphaR, expSumA2n
   real(RK)          :: InvRij, InvRik, InvRjk, InvRijk3, InvRijk2
-  real(RK)          :: CATM, A0, A2, A4, A6, A8, alpha
+  real(RK)          :: CATM, A0, A2, A4, A6, A8, alpha, A2Rijk23, A4Rijk43, A6Rijk62, A8Rijk83
   integer          :: NInCutoffGlobal(1:NProcs), NInCutoffGlobalSum(1:NProcs)
   integer, allocatable :: concatenated_array(:)
   integer           :: N, NCutoff
@@ -3843,14 +3844,18 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
                 cosThetai = RijSquared + RikSquared - RjkSquared
                 cosThetaj = RijSquared + RjkSquared - RikSquared
                 cosThetak = RikSquared + RjkSquared - RijSquared
-                cosThetaProd = cosThetai*cosThetaj*cosThetak
+                cosThetaProd = cosThetai * cosThetaj * cosThetak
                 Rijk = Rij * Rik * Rjk
                 Rijk2 = Rijk * Rijk
                 InvRijk2 = 1 / Rijk2
                 FactorI = 1 + ThreeEight * cosThetaProd * InvRijk2
 
                 Rijk23 = Rijk**(TwoThird)
-                SumA2n = A0 + Rijk23 * (A2 + Rijk23 * (A4 + Rijk23 * (A6 + Rijk23 * A8)))
+                A2Rijk23 = A2*Rijk23
+                A4Rijk43 = A4*RijK23*Rijk23
+                A6Rijk62 = A6*Rijk2
+                A8Rijk83 = A8*Rijk2*Rijk23
+                SumA2n = A0 + A2Rijk23 + A4Rijk43 + A6Rijk62 + A8Rijk83
                 expAlphaR = exp( -alpha * ( Rij + Rjk + Rik ))
                 InvRijk3 = 1/(Rijk**3)
                 FactorII = CATM*InvRijk3 + expAlphaR * SumA2n
@@ -3859,50 +3864,59 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
 
                 ! ! 1st derivative u' = I'*II + I*II' , I=FactorI, II=FactorII
 
-                ! ! Rij
-                ! dIij = Rij * ( RjkSquared - RikSquared )**2
-                ! dIik = Rik * ( RijSquared - RjkSquared )**2
-                ! dIjk = Rjk * ( RijSquared - RikSquared )**2
+                cosTicosTj = cosThetai * cosThetaj
+                cosTicosTk = cosThetai * cosThetak
+                cosTjcosTk = cosThetaj * cosThetak
+                expSumA2n = expAlphaR * (TwoThird*A2Rijk23 + FourThird*A4Rijk43 + 2*A6Rijk62 + EightThird*A8Rijk83)
+                FactorIII = -3*CATM*InvRijk3 + expSumA2n 
 
-                ! dI = ThreeEight * ( 6*Rij5 - 4*Rij**3*(RikSquared+RjkSquared) -2*Rij*(RikSquared-RjkSquared)**2 - 2 * cosThetaProd * InvRij ) * InvRijk2
 
-                ! Rijk23 = TwoThird * Rijk23
-                ! expSumA2n = expAlphaR * (Rijk23 * (A2 + Rijk23 * (A4 + Rijk23 * (A6 + Rijk23 * A8))))
-                ! FactorIII = -3*CATM*InvRijk3 + expSumA2n 
-                ! dII = FactorIII * InvRij - alpha*expAlphaR * SumA2n
+                ! Rij 
 
-                ! dEpotdRij = dI * FactorII + FactorI * dII
+                dI = ThreeEight * 2 * Rij * (cosTjcosTk + cosTicosTk - cosTicosTj - cosThetaProd * InvRij * InvRij) * InvRijk2
+
+                dII = FactorIII * InvRij - alpha*expAlphaR * SumA2n
+
+                dEpotdRij = dI * FactorII + FactorI * dII
                 
-                ! Fij = -dEpotdRij * InvRij
-                ! FXij = Fij * RXij
-                ! FYij = Fij * RYij
-                ! FZij = Fij * RZij
+                Fij = -dEpotdRij * InvRij
+                FXij = Fij * RXij
+                FYij = Fij * RYij
+                FZij = Fij * RZij
 
-                ! Virial = Virial + (RXij * FXij + RYij * FYij + RZij * FZij) * Third
+                Virial = Virial + (RXij * FXij + RYij * FYij + RZij * FZij) * Third
 
-                ! ! Rik
-                ! dI = ThreeEight * ( 6*Rik5 - 4*Rik**3*(RijSquared+RjkSquared) -2*Rik*(RijSquared-RjkSquared)**2 - 2 * cosThetaProd * InvRik ) * InvRijk2
-                ! dII = FactorIII * InvRik - alpha*expAlphaR * SumA2n
-                ! dEpotdRik = dI * FactorII + FactorI * dII
+                ! Rik
 
-                ! Fik = -dEpotdRik * InvRik
-                ! FXik = Fik * RXik
-                ! FYik = Fik * RYik
-                ! FZik = Fik * RZik
+                dI = ThreeEight * 2 * Rik * (cosTjcosTk + cosTicosTj - cosTicosTk - cosThetaProd * InvRik * InvRik) * InvRijk2
 
-                ! Virial = Virial + (RXik * FXik + RYik * FYik + RZik * FZik) * Third
+                dII = FactorIII * InvRik - alpha*expAlphaR * SumA2n
+                dEpotdRik = dI * FactorII + FactorI * dII
 
-                ! ! Rjk
-                ! dI = ThreeEight * ( 6*Rjk5 - 4*Rjk**3*(RikSquared+RijSquared) -2*Rjk*(RikSquared-RijSquared)**2 - 2 * cosThetaProd * InvRjk ) * InvRijk2
-                ! dII = FactorIII * InvRjk - alpha*expAlphaR * SumA2n
-                ! dEpotdRjk = dI * FactorII + FactorI * dII
+                Fik = -dEpotdRik * InvRik
+                FXik = Fik * RXik
+                FYik = Fik * RYik
+                FZik = Fik * RZik
 
-                ! Fjk = -dEpotdRjk * InvRjk
-                ! FXjk = Fjk * RXjk
-                ! FYjk = Fjk * RYjk
-                ! FZjk = Fjk * RZjk
+                Virial = Virial + (RXik * FXik + RYik * FYik + RZik * FZik) * Third
 
-                ! Virial = Virial + (RXjk * FXjk + RYjk * FYjk + RZjk * FZjk) * Third
+                ! Rjk
+
+                dI = ThreeEight * 2 * Rjk * (cosTicosTj + cosTicosTk - cosTjcosTk - cosThetaProd * InvRjk * InvRjk) * InvRijk2
+
+                dII = FactorIII * InvRjk - alpha*expAlphaR * SumA2n
+                dEpotdRjk = dI * FactorII + FactorI * dII
+
+                Fjk = -dEpotdRjk * InvRjk
+                FXjk = Fjk * RXjk
+                FYjk = Fjk * RYjk
+                FZjk = Fjk * RZjk
+
+                Virial = Virial + (RXjk * FXjk + RYjk * FYjk + RZjk * FZjk) * Third
+
+
+
+
 
               end if
             end if
