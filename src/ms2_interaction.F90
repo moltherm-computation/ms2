@@ -60,9 +60,8 @@ module ms2_interaction
     type(TPotQuadrupoleQuadrupole), pointer, contiguous :: PotQuadrupoleQuadrupole(:, :)
 
     ! Potential energy
-    real(RK) :: EPot
-    real(RK) :: d2EpotdV2
-    real(RK) :: Epot3B
+    real(RK) :: EPot, Epot3B
+    real(RK) :: d2EpotdV2, d2EpotdV23B
 
     ! Mayer f-function for second virial coefficient
     real(RK), pointer, contiguous :: MayerFFunction(:), IntFFunction(:)
@@ -363,9 +362,9 @@ contains
     call Allocate( this )
     if( (SimulationType .eq. MonteCarlo) .or. (SimulationType .eq. Gibbs) .or. MCOverlapReduction ) then
       this%EPot = 0._RK
-      this%d2EpotdV2 = 0._RK
       this%Epot3B = 0._RK
-                                 
+      this%d2EpotdV2 = 0._RK
+      this%d2EpotdV23B = 0._RK                                
       this%Virial = 0._RK
       this%Virial3B = 0._RK
 
@@ -1368,7 +1367,7 @@ contains
     real(RK)          :: mueXi, mueYi, mueZi, mueXj, mueYj, mueZj
     real(RK)          :: RFTX, RFTY, RFTZ
     real(RK)          :: EPotLocal, TXi, TYi, TZi
-    real(RK)          :: Epot3B, Virial3B
+    real(RK)          :: Epot3B, Virial3B, d2EpotdV23B
     integer           :: i, j, k, i1
 #if MPI_VER > 0
     integer           :: i0
@@ -3704,6 +3703,11 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
 
   implicit none
 
+  ! Include MPI header
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+  include 'mpif.h'
+#endif
+
   ! Declare arguments
   type(TInteraction)   :: this
   integer, intent(in)  :: np
@@ -3735,10 +3739,14 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   ! real(RK)          :: PXjk, PYjk, PZjk
   real(RK)          :: cosThetai, cosThetaj, cosThetak, cosThetaProd
   real(RK)          :: cosTicosTj, cosTicosTk, cosTjcosTk
-  real(RK)          :: FactorI, FactorII, FactorIII,  dI, dII, dIij, dIik, dIjk 
-  real(RK)          :: SumA2n, expAlphaR, expSumA2n
-  real(RK)          :: InvRij, InvRik, InvRjk, InvRijk3, InvRijk2
-  real(RK)          :: CATM, A0, A2, A4, A6, A8, alpha, A2Rijk23, A4Rijk43, A6Rijk62, A8Rijk83
+  real(RK)          :: FactorI, FactorII, FactorIII
+  real(RK)          :: FactorIIIii, FactorIIIij, dIIij, dIIik, dIIjk, dIij, dIik, dIjk
+  real(RK)          :: ddIIij2, ddIIik2, ddIIjk2, ddIIijik, ddIIijjk, ddIIikjk
+  real(RK)          :: ddIij2, ddIik2, ddIjk2, ddIijik, ddIijjk, ddIikjk
+  real(RK)          :: SumA2n, expAlphaR, expdSumA2n, expSumA2n, expddsumA2nii, expddsumA2nij
+  real(RK)          :: InvRij, InvRik, InvRjk, InvRij2, InvRik2, InvRjk2, InvRijk2
+  real(RK)          :: CATM, A0, A2, A4, A6, A8, alpha, alpha2expdsum
+  real(RK)          :: CATMInvRijk3, A2Rijk23, A4Rijk43, A6Rijk62, A8Rijk83
   integer          :: NInCutoffGlobal(1:NProcs), NInCutoffGlobalSum(1:NProcs)
   integer, allocatable :: concatenated_array(:)
   integer           :: N, NCutoff
@@ -3748,14 +3756,14 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
 
   ! Zero energy
   EPot=0._RK
-  ! d2EpotdV2=0._RK
+  d2EpotdV2=0._RK
 
   ! Assign local variables
                                            
   Virial=0._RK
   ! VirialLocal = 1E33_RK
         
-  ! d2EpotdV2Local = 1E33_RK
+  d2EpotdV2Local = 1E33_RK
 
   N = this%NPart2
   RCutoffSquared = this%RCutoffSquared
@@ -3841,9 +3849,12 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
                 InvRij = 1 / Rij
                 InvRik = 1 / Rik
                 InvRjk = 1 / Rjk
-                cosThetai = RijSquared + RikSquared - RjkSquared
-                cosThetaj = RijSquared + RjkSquared - RikSquared
-                cosThetak = RikSquared + RjkSquared - RijSquared
+                InvRij2 = InvRij * InvRij
+                InvRik2 = InvRik * InvRik
+                InvRjk2 = InvRjk * InvRjk
+                cosThetai = RijSquared + RikSquared - RjkSquared ! A
+                cosThetaj = RijSquared + RjkSquared - RikSquared ! B
+                cosThetak = RikSquared + RjkSquared - RijSquared ! C
                 cosThetaProd = cosThetai * cosThetaj * cosThetak
                 Rijk = Rij * Rik * Rjk
                 Rijk2 = Rijk * Rijk
@@ -3857,27 +3868,27 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
                 A8Rijk83 = A8*Rijk2*Rijk23
                 SumA2n = A0 + A2Rijk23 + A4Rijk43 + A6Rijk62 + A8Rijk83
                 expAlphaR = exp( -alpha * ( Rij + Rjk + Rik ))
-                InvRijk3 = 1/(Rijk**3)
-                FactorII = CATM*InvRijk3 + expAlphaR * SumA2n
+                CATMInvRijk3 = CATM / (Rijk**3)
+                expSumA2n = expAlphaR * SumA2n
+                FactorII = CATMInvRijk3 + expSumA2n
                 
                 Epot = Epot + FactorI * FactorII
 
-                ! ! 1st derivative u' = I'*II + I*II' , I=FactorI, II=FactorII
+                ! 1st derivative u' = I'*II + I*II' , I=FactorI, II=FactorII
 
                 cosTicosTj = cosThetai * cosThetaj
                 cosTicosTk = cosThetai * cosThetak
                 cosTjcosTk = cosThetaj * cosThetak
-                expSumA2n = expAlphaR * (TwoThird*A2Rijk23 + FourThird*A4Rijk43 + 2*A6Rijk62 + EightThird*A8Rijk83)
-                FactorIII = -3*CATM*InvRijk3 + expSumA2n 
-
+                expdSumA2n = expAlphaR * (TwoThird*A2Rijk23 + FourThird*A4Rijk43 + 2*A6Rijk62 + EightThird*A8Rijk83)
+                FactorIII = -3*CATMInvRijk3 + expdSumA2n
 
                 ! Rij 
 
-                dI = ThreeEight * 2 * Rij * (cosTjcosTk + cosTicosTk - cosTicosTj - cosThetaProd * InvRij * InvRij) * InvRijk2
+                dIij = ThreeEight * 2 * Rij * (cosTjcosTk + cosTicosTk - cosTicosTj - cosThetaProd * InvRij2) * InvRijk2
 
-                dII = FactorIII * InvRij - alpha*expAlphaR * SumA2n
+                dIIij = FactorIII * InvRij - alpha*expSumA2n
 
-                dEpotdRij = dI * FactorII + FactorI * dII
+                dEpotdRij = dIij * FactorII + FactorI * dIIij
                 
                 Fij = -dEpotdRij * InvRij
                 FXij = Fij * RXij
@@ -3888,10 +3899,10 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
 
                 ! Rik
 
-                dI = ThreeEight * 2 * Rik * (cosTjcosTk + cosTicosTj - cosTicosTk - cosThetaProd * InvRik * InvRik) * InvRijk2
+                dIik = ThreeEight * 2 * Rik * (cosTjcosTk + cosTicosTj - cosTicosTk - cosThetaProd * InvRik2) * InvRijk2
 
-                dII = FactorIII * InvRik - alpha*expAlphaR * SumA2n
-                dEpotdRik = dI * FactorII + FactorI * dII
+                dIIik = FactorIII * InvRik - alpha*expSumA2n
+                dEpotdRik = dIik * FactorII + FactorI * dIIik
 
                 Fik = -dEpotdRik * InvRik
                 FXik = Fik * RXik
@@ -3902,10 +3913,10 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
 
                 ! Rjk
 
-                dI = ThreeEight * 2 * Rjk * (cosTicosTj + cosTicosTk - cosTjcosTk - cosThetaProd * InvRjk * InvRjk) * InvRijk2
+                dIjk = ThreeEight * 2 * Rjk * (cosTicosTj + cosTicosTk - cosTjcosTk - cosThetaProd * InvRjk2) * InvRijk2
 
-                dII = FactorIII * InvRjk - alpha*expAlphaR * SumA2n
-                dEpotdRjk = dI * FactorII + FactorI * dII
+                dIIjk = FactorIII * InvRjk - alpha*expSumA2n
+                dEpotdRjk = dIjk * FactorII + FactorI * dIIjk 
 
                 Fjk = -dEpotdRjk * InvRjk
                 FXjk = Fjk * RXjk
@@ -3914,8 +3925,63 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
 
                 Virial = Virial + (RXjk * FXjk + RYjk * FYjk + RZjk * FZjk) * Third
 
+                ! 2nd derivative u'' = I''*II + 2*I'*II' + I*II'' , I=FactorI, II=FactorII
+
+                expddsumA2nii = expAlphaR * ( -TwoNinth*A2Rijk23 + FourNinth*A4Rijk43 + 2*A6Rijk62 + 10*FourNinth*A8Rijk83 )
+                expddsumA2nij = expAlphaR * ( FourNinth*A2Rijk23 + 4*FourNinth*A4Rijk43 + 4*A6Rijk62 + 16*FourNinth*A8Rijk83 )
+                FactorIIIii = 12*CATMInvRijk3 + expddsumA2nii
+                FactorIIIij = 9*CATMInvRijk3 + expddsumA2nij
+                alpha2expdsum = alpha*alpha*expSumA2n
 
 
+                ! Rij Rij
+
+                ddIij2 = -3*dIij*InvRij + 3*( cosThetak-cosThetai-cosThetaj )*InvRik2*InvRjk2
+
+                ddIIij2 = FactorIIIii*InvRij2 + alpha2expdsum - 2*alpha*expdSumA2n*InvRij
+
+                ! Rik Rik
+
+                ddIik2 = -3*dIik*InvRik + 3*( cosThetaj-cosThetai-cosThetak )*InvRij2*InvRjk2
+
+                ddIIik2 = FactorIIIii*InvRik2 + alpha2expdsum - 2*alpha*expdSumA2n*InvRik
+
+                ! Rjk Rjk
+
+                ddIjk2 = -3*dIjk*InvRjk + 3*( cosThetai-cosThetaj-cosThetak )*InvRij2*InvRik2
+
+                ddIIjk2 = FactorIIIii*InvRjk2 + alpha2expdsum - 2*alpha*expdSumA2n*InvRjk
+
+                ! Rij Rik
+
+                ddIijik = -2*dIik*InvRij + 3*cosThetai*InvRij*InvRik*InvRjk2 
+                ddIijik = ddIijik - 1.5*Rij*InvRik*(cosTjcosTk + cosTicosTk - cosTicosTj) * InvRijk2
+        
+                ddIIijik = FactorIIIij*InvRij*InvRik + alpha2expdsum - alpha*expdSumA2n*(InvRij+InvRik)
+
+                ! Rij Rjk
+
+                ddIijjk = -2*dIjk*InvRij + 3*cosThetaj*InvRij*InvRjk*InvRik2  
+                ddIijjk = ddIijjk - 1.5*Rij*InvRjk*(cosTjcosTk + cosTicosTk - cosTicosTj) * InvRijk2
+                
+                ddIIijjk = FactorIIIij*InvRij*InvRjk + alpha2expdsum - alpha*expdSumA2n*(InvRij+InvRjk)
+
+                ! Rik Rjk
+
+                ddIikjk = -2*dIjk*InvRik + 3*cosThetak*InvRij2*InvRik*InvRjk 
+                ddIikjk = ddIikjk - 1.5*Rik*InvRjk*(cosTjcosTk + cosTicosTj - cosTicosTk) * InvRijk2
+
+                ddIIikjk = FactorIIIij*InvRik*InvRjk + alpha2expdsum - alpha*expdSumA2n*(InvRik+InvRjk)
+
+                d2EpotdV2Local = RijSquared*(ddIij2*FactorII + 2* dIij*dIIij + FactorI*ddIIij2)
+                d2EpotdV2Local = d2EpotdV2Local + RikSquared*(ddIik2*FactorII + 2* dIik*dIIik + FactorI*ddIIik2)
+                d2EpotdV2Local = d2EpotdV2Local + RjkSquared*(ddIjk2*FactorII + 2* dIjk*dIIjk + FactorI*ddIIjk2)
+                d2EpotdV2Local = d2EpotdV2Local + 2*Rij*Rik * (ddIijik*FactorII + dIij*dIIik + dIik*dIIij + FactorI*ddIIijik)
+                d2EpotdV2Local = d2EpotdV2Local + 2*Rij*Rjk * (ddIijjk*FactorII + dIij*dIIjk + dIjk*dIIij + FactorI*ddIIijjk)
+                d2EpotdV2Local = d2EpotdV2Local + 2*Rik*Rjk * (ddIikjk*FactorII + dIik*dIIjk + dIjk*dIIik + FactorI*ddIIikjk)
+                d2EpotdV2Local = d2EpotdV2Local - 2 * (Rij*dEpotdRij + Rik*dEpotdRik + Rjk*dEpotdRjk)
+
+                d2EpotdV2 = d2EpotdV2 + Ninth * d2EpotdV2Local
 
 
               end if
@@ -3929,6 +3995,8 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   this%EPot3B = EPot
                          
   this%Virial3B = Virial
+
+  this%d2EpotdV23B = d2EpotdV2
 
   deallocate(concatenated_array)
         

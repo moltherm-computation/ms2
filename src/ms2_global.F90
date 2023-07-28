@@ -499,6 +499,8 @@ module ms2_global
   real(RK), parameter :: ThreeEight = 3._RK / 8._RK
   real(RK), parameter :: FiveThird = 5._RK / 3._RK
   real(RK), parameter :: Ninth = 1._RK / 9._RK
+  real(RK), parameter :: TwoNinth = 2._RK / 9._RK
+  real(RK), parameter :: FourNinth = 4._RK / 9._RK
   real(RK), parameter :: InvFac3 = 1._RK / 6._RK
   real(RK), parameter :: InvFac4 = 1._RK / 24._RK
   real(RK), parameter :: InvFac5 = 1._RK / 120._RK

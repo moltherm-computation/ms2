@@ -4552,6 +4552,7 @@ contains
     type(TComponent), pointer       :: pc
     type(TPotMIEnmMIEnm), pointer   :: pmie
     type(TPotTT68TT68), pointer     :: ptt
+    type(TPot3BodyKr), pointer      :: p3b
     integer                         :: i1, i2, j1, j2
     real(RK)                        :: fac
     real(RK)                        :: fac_neutral, fac_charge1, fac_charge2
@@ -4629,6 +4630,12 @@ contains
               this%Component(i1)%EPotTestCorrTT = this%Component(i1)%EPotTestCorrTT &
 &                 + this%Component(i2)%Fraction * ptt%EPotTestCorr
               this%RCutoffMax2 = max( this%RCutoffMax2, 2._RK * sqrt( ptt%RCutoffSquared ) )
+              if ( ThreeBody=='Kr' ) then 
+                p3b => this%Interaction(i1, i2)%Pot3BodyKr(1,1)
+                this%EPotCorrTT = this%EPotCorrTT + Scale * p3B%EPotCorr
+                this%VirialCorrTT = this%VirialCorrTT + Scale * p3B%VirialCorr
+
+              end if
             end do
           end do
         end do
@@ -6752,7 +6759,7 @@ componentLoop:       do i = 1, this%NRealComponents
           end if
           ! Sum energy
           E = E + pi%EPot + pi%EPot3B
-          d2EdV2 = d2EdV2 + pi%d2EpotdV2
+          d2EdV2 = d2EdV2 + pi%d2EpotdV2 + pi%d2EpotdV23B
           V = V + pi%Virial + pi%Virial3B
         end do
       end do
