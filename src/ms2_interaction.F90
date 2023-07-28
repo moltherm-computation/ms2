@@ -1394,9 +1394,6 @@ contains
     do i = 1, this%N1TT68
       do j = 1, this%N2TT68
         call Force( this%PotTT68TT68( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
-        if (ThreeBody=='Kr') then 
-          call Force( this%Pot3BodyKr( i, j ), EPot3B, Virial3B, BoxLength )
-        end if
       end do
     end do
 
