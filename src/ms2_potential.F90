@@ -150,7 +150,7 @@ end type TPotTT68TT68
 
   type TPot3BodyKr
 
-   type(TSiteTT), pointer   :: Site1, Site2
+    type(TSiteTT), pointer   :: Site1, Site2
     real(RK)                 :: CATM, A0, A2, A4, A6, A8, A10, alpha
     real(RK)                   :: RCutoffSquared
     real(RK)                   :: RShieldSquared
@@ -175,9 +175,9 @@ end type TPot3BodyKr
     module procedure TPot3BodyKr_Destruct
   end interface
 
-  ! interface ChemicalPotential
-  !   module procedure TPot3BodyKr_ChemicalPotential
-  ! end interface
+  interface ChemicalPotential
+    module procedure TPot3BodyKr_ChemicalPotential
+  end interface
 
 
 
@@ -3804,6 +3804,7 @@ loop1:do k = 1, this%NInCutoff(i)
 
       ! Loop over test particles
 !$OMP DO
+
       do i = 1, this%Site1%NTest
         RXi = RX1(i)
         RYi = RY1(i)
@@ -3814,6 +3815,7 @@ loop1:do k = 1, this%NInCutoff(i)
         EPotLocal = 0._RK
 !CDIR NODEP
 !NEC$ ivdep
+
 loop1:  do k = 1, this%NInCutoff(i)
           j = this%CutoffPartner(k, i)
           RXij = RXi - RX2(j)
@@ -3959,7 +3961,6 @@ loop2:  do j = 1, N2
         real(RK)                    :: RShield
         real(RK) :: EpotCorr, Rij, Rik, Rjk, VirialCorr, d2EPotdR2, fun, costheta
         integer :: i, k
-        type(TPotTT68TT68), pointer             :: ptt
 
 
         ! Construct potential
@@ -4205,6 +4206,157 @@ loop2:  do j = 1, N2
   end subroutine TPot3BodyKr_Destruct
 
 
+
+!==============================================================!
+!  Subroutine TPot3BodyKR_ChemicalPotential                   !
+!==============================================================!
+
+  subroutine TPot3BodyKr_ChemicalPotential( this, EPotTest, BoxLength )
+
+    implicit none
+
+    ! Declare arguments
+    type(TPot3BodyKr)   :: this
+    real(RK), pointer, contiguous    :: EPotTest(:)
+    real(RK), intent(in) :: BoxLength
+
+    ! Declare local variables
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK)          :: RijSquared, RikSquared, RjkSquared, RCutoffSquared, RShieldSquared
+    real(RK)          :: Rij, Rik, Rjk, Rij5, Rik5, Rjk5
+
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: RXik, RYik, RZik
+    real(RK)          :: RXjk, RYjk, RZjk
+
+    real(RK)          :: CATM, A0, A2, A4, A6, A8, alpha, alpha2expdsum
+    real(RK)          :: cosThetai, cosThetaj, cosThetak, cosThetaProd
+    real(RK)          :: CATMInvRijk3, A2Rijk23, A4Rijk43, A6Rijk62, A8Rijk83
+    real(RK)          :: FactorI, FactorII
+    real(RK)          :: SumA2n, expAlphaR, expSumA2n, expddsumA2nij
+    real(RK)          :: InvRij, InvRik, InvRjk, InvRij2, InvRik2, InvRjk2, InvRijk2
+    real(RK)          :: Rijk, Rijk23, Rijk2
+
+    real(RK)          :: EPotLocal
+    integer           :: N2
+    integer           :: i, j, k, l, s, np
+    integer          :: NInCutoffGlobal(1:NProcs), NInCutoffGlobalSum(1:NProcs)
+    integer, allocatable :: concatenated_array(:)
+    integer           :: N, NCutoff
+  
+
+    ! Assign local variables
+    N2 = this%Site2%NPart
+    CATM = this%CATM
+    A0 = this%A0
+    A2 = this%A2
+    A4 = this%A4
+    A6 = this%A6
+    A8 = this%A8
+    alpha = this%alpha
+    RCutoffSquared = this%RCutoffSquared
+    RShieldSquared = this%RShieldSquared
+
+    ! Assign pointers
+    RX1 => this%Site1%RXTest
+    RY1 => this%Site1%RYTest
+    RZ1 => this%Site1%RZTest
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    PX1 => this%Site1%PXTest
+    PY1 => this%Site1%PYTest
+    PZ1 => this%Site1%PZTest
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+
+
+      ! Loop over test particles
+
+    do np = 1, this%Site1%NTest
+      RXi = RX1(np)
+      RYi = RY1(np)
+      RZi = RZ1(np)
+      PXi = PX1(np)
+      PYi = PY1(np)
+      PZi = PZ1(np)
+      EPotLocal = 0._RK
+
+      do i = 1, this%NInCutoff(np) ! ij
+        j = this%CutoffPartner(i, np)
+        RXij = PXi - PX2(j)
+        RYij = PYi - PY2(j)
+        RZij = PZi - PZ2(j)
+        RXij = (RXij - anint( RXij )) * BoxLength
+        RYij = (RYij - anint( RYij )) * BoxLength
+        RZij = (RZij - anint( RZij )) * BoxLength
+        RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
+        if (RijSquared > RShieldSquared) then
+          do l = 1, this%NInCutoff(np) !ik
+            k = this%CutoffPartner(l, np)
+            if ( k > j ) then
+              RXik = PXi - PX2(k)
+              RYik = PYi - PY2(k)
+              RZik = PZi - PZ2(k)
+              RXik = (RXik - anint( RXik )) * BoxLength
+              RYik = (RYik - anint( RYik )) * BoxLength
+              RZik = (RZik - anint( RZik )) * BoxLength
+              RikSquared = RXik*RXik + RYik*RYik + RZik*RZik
+              if (RikSquared > RShieldSquared) then
+                RXjk = RXij - RXik !jk
+                RYjk = RYij - RYik
+                RZjk = RZij - RZik
+                RjkSquared = RXjk*RXjk + RYjk*RYjk + RZjk*RZjk
+                if ((RjkSquared > RShieldSquared) .and. (RjkSquared < RCutoffSquared)) then
+                  Rij = sqrt( RijSquared )
+                  Rik = sqrt( RikSquared )
+                  Rjk = sqrt( RjkSquared )
+                  Rij5 = Rij**5
+                  Rik5 = Rik**5
+                  Rjk5 = Rjk**5
+                  InvRij = 1 / Rij
+                  InvRik = 1 / Rik
+                  InvRjk = 1 / Rjk
+                  InvRij2 = InvRij * InvRij
+                  InvRik2 = InvRik * InvRik
+                  InvRjk2 = InvRjk * InvRjk
+                  cosThetai = RijSquared + RikSquared - RjkSquared ! A
+                  cosThetaj = RijSquared + RjkSquared - RikSquared ! B
+                  cosThetak = RikSquared + RjkSquared - RijSquared ! C
+                  cosThetaProd = cosThetai * cosThetaj * cosThetak
+                  Rijk = Rij * Rik * Rjk
+                  Rijk2 = Rijk * Rijk
+                  InvRijk2 = 1 / Rijk2
+                  FactorI = 1 + ThreeEight * cosThetaProd * InvRijk2
+
+                  Rijk23 = Rijk**(TwoThird)
+                  A2Rijk23 = A2*Rijk23
+                  A4Rijk43 = A4*RijK23*Rijk23
+                  A6Rijk62 = A6*Rijk2
+                  A8Rijk83 = A8*Rijk2*Rijk23
+                  SumA2n = A0 + A2Rijk23 + A4Rijk43 + A6Rijk62 + A8Rijk83
+                  expAlphaR = exp( -alpha * ( Rij + Rjk + Rik ))
+                  CATMInvRijk3 = CATM / (Rijk**3)
+                  expSumA2n = expAlphaR * SumA2n
+                  FactorII = CATMInvRijk3 + expSumA2n
+
+                  EpotLocal = EpotLocal + FactorI * FactorII
+                end if
+              end if
+            end if
+          end do
+        end if
+      end do
+      EPotTest(np) = EPotTest(np) + EPotLocal
+    end do
+
+
+  end subroutine TPot3BodyKr_ChemicalPotential
 
 
 
