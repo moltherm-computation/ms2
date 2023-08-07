@@ -427,7 +427,9 @@ contains
             allocate(this%Pot3BodyKr(1, 1), STAT = stat )
             call AllocationError( stat, 'sites', 2 )
             call Construct( this%Pot3BodyKr(1, 1),Component1%Molecule, Component2%Molecule, RCutoffTT)
-
+            this%Pot3BodyKr(j1, j2)%NInCutoff => this%NInCutoff
+            this%Pot3BodyKr(j1, j2)%CutoffPartner => this%CutoffPartner
+  
           end if
         end do
       end do
@@ -1716,6 +1718,9 @@ contains
     do i = 1, this%N1TT68
       do j = 1, this%N2TT68
         call ChemicalPotential( this%PotTT68TT68( i, j ), EPotTest, BoxLength )
+        if ( ThreeBody .eq. 'Kr' ) then
+          call ChemicalPotential( this%Pot3BodyKr( i, j ), EPotTest, BoxLength )
+        end if
       end do
     end do
 
