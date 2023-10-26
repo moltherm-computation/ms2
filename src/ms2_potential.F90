@@ -3973,7 +3973,7 @@ loop2:  do j = 1, N2
         
         this%RShieldSquared = RShield**2
 
-        ! Potential paramters
+        ! ! Potential paramters
         this%CATM = 1615250
         this%A0 = -30813040
         this%A2 = -35194420
@@ -3981,6 +3981,15 @@ loop2:  do j = 1, N2
         this%A6 = -218241.1
         this%A8 = 3430.88
         this%alpha = 1.378382
+
+        ! Potential paramters for ATM
+        ! this%CATM = 531112
+        ! this%A0 = 0
+        ! this%A2 = 0
+        ! this%A4 = 0
+        ! this%A6 = 0
+        ! this%A8 = 0
+        ! this%alpha = 0
 
         ! Convert to SI units
         this%CATM = this%CATM * kBoltzmann * Angstroem**9
@@ -4179,7 +4188,7 @@ loop2:  do j = 1, N2
       ! d2EpotdV2Local = d2EpotdV2Local + 2*Rij*Rik * (ddIijik*FactorII + dIij*dIIik + dIik*dIIij + FactorI*ddIIijik)
       ! d2EpotdV2Local = d2EpotdV2Local + 2*Rij*Rjk * (ddIijjk*FactorII + dIij*dIIjk + dIjk*dIIij + FactorI*ddIIijjk)
       ! d2EpotdV2Local = d2EpotdV2Local + 2*Rik*Rjk * (ddIikjk*FactorII + dIik*dIIjk + dIjk*dIIik + FactorI*ddIIikjk)
-      ! ! d2EpotdV2Local = d2EpotdV2Local - 2 * (Rij*dEpotdRij + Rik*dEpotdRik + Rjk*dEpotdRjk)
+      ! d2EpotdV2Local = d2EpotdV2Local - 2 * (Rij*dEpotdRij + Rik*dEpotdRik + Rjk*dEpotdRjk)
 
       ! d2EpotdV2 = d2EpotdV2 + Ninth * d2EpotdV2Local
 
@@ -4357,7 +4366,6 @@ loop2:  do j = 1, N2
 
 
   end subroutine TPot3BodyKr_ChemicalPotential
-
 
 
 

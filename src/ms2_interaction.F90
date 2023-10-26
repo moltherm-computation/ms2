@@ -2023,7 +2023,10 @@ contains
             PZij = (PZij - anint( PZij )) * BoxLength
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             Rij = sqrt( RijSquared )
-            RijInv = 1._RK / Rij
+            ! if ( np ==18 ) then
+            !   print*, 'Rij', Rij
+            ! end if
+              RijInv = 1._RK / Rij
             RijInv2 = RijInv * RijInv
             RijInv3 = RijInv * RijInv2
             RijInv6 = RijInv3 * RijInv3
@@ -2064,8 +2067,8 @@ contains
 
               EPot = Epot + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
 
-            end if
-
+            end if 
+              
             ! 1st derivative
 
             Aux1 = -a1 - am1 * RijInv2 + 2 * ( a2 * Rij - am2 * RijInv3 )
@@ -2089,7 +2092,7 @@ contains
             d2RepdR2 = -Aux1 * dRepdR + Rep * 2 * ( a2 + am1*RijInv3 + 3*am2*RijInv2*RijInv2 )
 
             Aux4 = ( 42*Attr6 + 72*Attr8 + 110*Attr10 + 156*Attr12 + 210*Attr14 + 272*Attr16 ) * RijInv2
-              
+
             d2EpotdRij2 = d2RepdR2 + b * Aux3 + Deriv2Factor * ExpMinusbRij * RijInv - Aux4
 
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
@@ -3814,7 +3817,6 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
     concatenated_array(1:NCutoff) = this%CutoffPartner(1:this%NInCutoff(np), np)
 #endif
 
-
   if (NCutoff > 0) then
     do i = 1, NCutoff ! ij
       j = concatenated_array(i)
@@ -5044,7 +5046,7 @@ end subroutine TInteraction_EnergySVC
 
     ! Set cutoff radius
     RCutoff = this%RCutoffSquaredScaled
-    N = this%NPart1
+
     this%NInCutoff(:) = 0
 
 !$OMP PARALLEL PRIVATE(PX1, PY1, PZ1, PX2, PY2, PZ2, i, j ,NInCutoff, N2, RijSquared,PXi, PYi, PZi, PXij, PYij, PZij)
@@ -5242,6 +5244,11 @@ end subroutine TInteraction_EnergySVC
 
     implicit none
 
+  ! Include MPI header
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+  include 'mpif.h'
+#endif
+
     ! Declare arguments
     type(TInteraction)  :: this
     integer, intent(in) :: np
@@ -5252,7 +5259,7 @@ end subroutine TInteraction_EnergySVC
     real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
     real(RK)          :: RijSquared
     real(RK)          :: RCutoffSquaredScaled
-    integer           :: j, NInCutoff
+    integer           :: j, NInCutoff, k, Nmax
     
 
     ! Set cutoff radius
@@ -5268,16 +5275,21 @@ end subroutine TInteraction_EnergySVC
     PYi = this%PY1(np)
     PZi = this%PZ1(np)
     NInCutoff = 0
-#if MPI_VER > 0
-    do j = this%NPart20, this%NPart22
-#else
-    do j = 1, this%NPart2
-#endif
-      if( this%SameComponent .and. j == np ) cycle
-      if( (matrixhalf .eqv. .true.) .and. (j > np) ) exit
-      PXij = PXi - PX2(j)
-      PYij = PYi - PY2(j)
-      PZij = PZi - PZ2(j)
+    
+! #if MPI_VER > 0
+!     do j = this%NPart20, this%NPart22
+! #else
+!     do j = 1, this%NPart2
+! #endif
+
+    Nmax = this%NPart2/NProcs
+    do j = 1, Nmax
+      k = (j-1)*NProcs + NProc +1
+      if( this%SameComponent .and. k == np ) cycle
+      if( (matrixhalf .eqv. .true.) .and. (k > np) ) exit
+      PXij = PXi - PX2(k)
+      PYij = PYi - PY2(k)
+      PZij = PZi - PZ2(k)
       PXij = PXij - anint( PXij )
       PYij = PYij - anint( PYij )
       PZij = PZij - anint( PZij )
@@ -5285,10 +5297,36 @@ end subroutine TInteraction_EnergySVC
 
       if( RijSquared < RCutoffSquaredScaled ) then
         NInCutoff = NInCutoff + 1
-        this%CutoffPartner(NInCutoff, np) = j
+        this%CutoffPartner(NInCutoff, np) = k
       end if
     end do
+
+    if ( Nmax*NProcs < this%NPart2 ) then 
+      do j = 1, (this%Npart2 - Nmax*NProcs)
+        if ((NProc+1) == j) then 
+          k = this%NPart2 - j + 1
+          if( this%SameComponent .and. k == np ) cycle
+          if( (matrixhalf .eqv. .true.) .and. (k > np) ) exit
+          PXij = PXi - PX2(k)
+          PYij = PYi - PY2(k)
+          PZij = PZi - PZ2(k)
+          PXij = PXij - anint( PXij )
+          PYij = PYij - anint( PYij )
+          PZij = PZij - anint( PZij )
+          RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
+    
+          if( RijSquared < RCutoffSquaredScaled ) then
+            NInCutoff = NInCutoff + 1
+            this%CutoffPartner(NInCutoff, np) = k
+          end if
+        end if
+      end do
+    end if
+
     this%NInCutoff(np) = NInCutoff
+
+    ! print*, 'Proc 1', rank, this%NPart20, this%NPart22
+  
 
   end subroutine TInteraction_CalcPartners1
 
