@@ -1396,6 +1396,9 @@ contains
     do i = 1, this%N1TT68
       do j = 1, this%N2TT68
         call Force( this%PotTT68TT68( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+        if ( ThreeBody=='Kr' ) then 
+          call Force( this%Pot3BodyKr( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+        end if
       end do
     end do
 
@@ -1565,7 +1568,10 @@ contains
     ! Calculate TT68 forces
     do i = 1, this%N1TT68
       do j = 1, this%N2TT68
-       call Force_Trans( this%PotTT68TT68( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+        call Force_Trans( this%PotTT68TT68( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+        if ( ThreeBody=='Kr' ) then 
+          call Force( this%Pot3BodyKr( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+        end if
       end do
     end do
 
@@ -3752,7 +3758,7 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   real(RK)          :: InvRij, InvRik, InvRjk, InvRij2, InvRik2, InvRjk2, InvRijk2
   real(RK)          :: CATM, A0, A2, A4, A6, A8, alpha, alpha2expdsum
   real(RK)          :: CATMInvRijk3, A2Rijk23, A4Rijk43, A6Rijk62, A8Rijk83
-  integer          :: NInCutoffGlobal(1:NProcs), NInCutoffGlobalSum(1:NProcs)
+  integer           :: NInCutoffGlobal(1:NProcs), NInCutoffGlobalSum(1:NProcs)
   integer, allocatable :: concatenated_array(:)
   integer           :: N, NCutoff
   integer           :: j, k, i, l, m, dummy
@@ -3770,7 +3776,7 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
         
   d2EpotdV2Local = 1E33_RK
 
-  N = this%NPart2
+  ! N = this%NPart2
   RCutoffSquared = this%RCutoffSquared
   RCutoffSquaredScaled = this%RCutoffSquaredScaled
   BoxLengthThird = Third * BoxLength

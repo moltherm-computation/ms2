@@ -175,6 +175,10 @@ end type TPot3BodyKr
     module procedure TPot3BodyKr_Destruct
   end interface
 
+  interface Force
+    module procedure TPot3BodyKr_Force
+  end interface
+
   interface ChemicalPotential
     module procedure TPot3BodyKr_ChemicalPotential
   end interface
@@ -3967,7 +3971,7 @@ loop2:  do j = 1, N2
         this%Site1 => Molecule1%SiteTT(1)
         this%Site2 => Molecule2%SiteTT(1)
         this%RCutoffSquared = RCutoff**2
-        RShield = 2.2
+        RShield = 2.2 ! TODO 
         RShield = RShield * Angstroem
         RShield = RShield / UnitLength
         
@@ -4213,6 +4217,379 @@ loop2:  do j = 1, N2
     continue
 
   end subroutine TPot3BodyKr_Destruct
+
+
+
+!==============================================================!
+!  Subroutine TPot3BodyKr_Force                               !
+!==============================================================!
+
+  subroutine TPot3BodyKr_Force( this, EPot, Virial, d2EpotdV2, BoxLength )
+
+    implicit none
+
+  ! Include MPI header
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+  include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TPot3BodyKr)       :: this
+    real(RK), intent(in out) :: EPot
+    real(RK), intent(in out) :: Virial
+    real(RK), intent(in out) :: d2EpotdV2
+    real(RK), intent(in)     :: BoxLength
+
+    ! Declare local variables
+    real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
+    real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
+    real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
+    real(RK)          :: RCutoffSquared, RShieldSquared
+    real(RK)          :: RXi, RYi, RZi
+    real(RK)          :: PXi, PYi, PZi
+    real(RK)          :: FXi, FYi, FZi
+    real(RK)          :: RXij, RYij, RZij
+    real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: FXij, FYij, FZij, Fij
+    real(RK)          :: RXik, RYik, RZik
+    real(RK)          :: FXik, FYik, FZik, Fik
+    ! real(RK)          :: PXik, PYik, PZik
+    real(RK)          :: RXjk, RYjk, RZjk
+    real(RK)          :: FXjk, FYjk, FZjk, Fjk
+    ! real(RK)          :: PXjk, PYjk, PZjk  
+    real(RK)          :: Rij, Rik, Rjk, RijSquared, RikSquared, RjkSquared, Rij5, Rik5, Rjk5
+    real(RK)          :: Rijk, Rijk23, Rijk2
+  
+    real(RK)          :: cosThetai, cosThetaj, cosThetak, cosThetaProd
+    real(RK)          :: cosTicosTj, cosTicosTk, cosTjcosTk
+    real(RK)          :: FactorI, FactorII, FactorIII
+    real(RK)          :: FactorIIIii, FactorIIIij, dIIij, dIIik, dIIjk, dIij, dIik, dIjk 
+    real(RK)          :: ddIIij2, ddIIik2, ddIIjk2, ddIIijik, ddIIijjk, ddIIikjk
+    real(RK)          :: ddIij2, ddIik2, ddIjk2, ddIijik, ddIijjk, ddIikjk
+    real(RK)          :: SumA2n, expAlphaR, expdSumA2n, expSumA2n, expddsumA2nii, expddsumA2nij
+    real(RK)          :: InvRij, InvRik, InvRjk, InvRij2, InvRik2, InvRjk2, InvRijk2
+    real(RK)          :: CATM, A0, A2, A4, A6, A8, alpha, alpha2expdsum 
+    real(RK)          :: CATMInvRijk3, A2Rijk23, A4Rijk43, A6Rijk62, A8Rijk83
+    real(RK)          :: dEpotdRij, dEpotdRik, dEpotdRjk
+    real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: d2EpotdV2Local, d2EpotdV2Temp, sitecorr
+    real(RK)          :: forceTempX(1:this%Site2%NPart)
+    real(RK)          :: forceTempY(1:this%Site2%NPart)
+    real(RK)          :: forceTempZ(1:this%Site2%NPart)
+    integer           :: NInCutoffGlobal(1:NProcs), NInCutoffGlobalSum(1:NProcs)
+    integer, allocatable :: concatenated_array(:)
+    logical           :: SameComponent
+    integer           :: np, i, j, k, i1, j0, j1, l, m 
+    integer           :: N, NCutoff
+#if MPI_VER > 0
+    integer           :: i0, N1, N2, ji
+    logical           :: EvenN
+#endif
+
+    ! Assign pointers
+    RX1 => this%Site1%RX
+    RY1 => this%Site1%RY
+    RZ1 => this%Site1%RZ
+    RX2 => this%Site2%RX
+    RY2 => this%Site2%RY
+    RZ2 => this%Site2%RZ
+    PX1 => this%Site1%PX
+    PY1 => this%Site1%PY
+    PZ1 => this%Site1%PZ
+    PX2 => this%Site2%PX
+    PY2 => this%Site2%PY
+    PZ2 => this%Site2%PZ
+    FX1 => this%Site1%FX
+    FY1 => this%Site1%FY
+    FZ1 => this%Site1%FZ
+    FX2 => this%Site2%FX
+    FY2 => this%Site2%FY
+    FZ2 => this%Site2%FZ
+
+  ! Assign local variables
+    CATM = this%CATM
+    A0 = this%A0
+    A2 = this%A2
+    A4 = this%A4
+    A6 = this%A6
+    A8 = this%A8
+    alpha = this%alpha 
+
+    SameComponent = this%SameComponent
+    forceTempX(:)=0._RK
+    forceTempY(:)=0._RK
+    forceTempZ(:)=0._RK
+    EPotLocal=0._RK
+    VirialLocal=0._RK
+    d2EpotdV2Local= 0._RK
+    d2EpotdV2Temp= 0._RK
+    RCutoffSquared = this%RCutoffSquared
+    RShieldSquared = 0._RK
+
+#if MPI_VER > 0
+    N1 = this%Site2%NPart
+    N2 = N1 / 2
+    EvenN = mod( N1, 2 ) == 0
+    i0 = this%Site1%NPart0
+    i1 = this%Site1%NPart2
+    j1 = 0
+    ji = 0
+#else
+    i1 = this%Site1%NPart
+    j1 = this%Site2%NPart
+#endif
+
+    ! same shit as with MC
+    ! print*, 'NProc, N1, N2, i0, i1, j1, ji' 
+    ! print*, NProc, N1, N2, i0, i1, j1, ji 
+
+#if MPI_VER > 0
+      do np = i0, i1
+#else
+      do np = 1, i1
+#endif
+
+      ! do np = 1, N1
+        RXi = RX1(np)
+        RYi = RY1(np)
+        RZi = RZ1(np)
+        FXi = FX1(np)
+        FYi = FY1(np)
+        FZi = FZ1(np)
+        PXi = PX1(np)
+        PYi = PY1(np)
+        PZi = PZ1(np)
+
+! #if MPI_VER > 0
+!     call MPI_Allgather( this%NInCutoff(np), 1, MPI_INTEGER, NInCutoffGlobal, 1, MPI_INTEGER, Communicator, ierror )
+!     NInCutoffGlobalSum(1) = 0
+!     NCutoff = NInCutoffGlobal(1)
+!     do i=2, NProcs
+!       NInCutoffGlobalSum(i) = NCutoff
+!       NCutoff = NCutoff + NInCutoffGlobal(i)
+!     end do
+!     allocate(concatenated_array(NCutoff))
+
+!     call MPI_Allgatherv( this%CutoffPartner(1:this%NInCutoff(np), np), NInCutoffGlobal(NProc+1), MPI_INTEGER, & 
+!     & concatenated_array, NInCutoffGlobal, NInCutoffGlobalSum, MPI_INTEGER, Communicator, ierror )
+
+! #else
+!     NCutoff = this%NInCutoff(np)
+!     allocate(concatenated_array(NCutoff))
+
+!     concatenated_array(1:NCutoff) = this%CutoffPartner(1:this%NInCutoff(np), np)
+! #endif
+
+! print*, 'P', NProc, np, this%CutoffPartner(1:this%NInCutoff(np), np)
+! print*, 'C', NProc, np, concatenated_array(1:NCutoff)
+
+        do i = 1, this%NInCutoff(np) ! ij
+          j = this%CutoffPartner(i, np)
+          RXij = RXi - RX2(j)
+          RYij = RYi - RY2(j)
+          RZij = RZi - RZ2(j)
+          RXij = (RXij - anint( RXij )) * BoxLength
+          RYij = (RYij - anint( RYij )) * BoxLength
+          RZij = (RZij - anint( RZij )) * BoxLength
+          RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
+          if (RijSquared > RShieldSquared) then 
+            do l = i+1, this%NInCutoff(np) !ik
+              k = this%CutoffPartner(l, np)
+              if ( k > j ) then
+                RXik = RXi - RX2(k)
+                RYik = RYi - RY2(k)
+                RZik = RZi - RZ2(k)
+                RXik = (RXik - anint( RXik )) * BoxLength
+                RYik = (RYik - anint( RYik )) * BoxLength
+                RZik = (RZik - anint( RZik )) * BoxLength
+                RikSquared = RXik*RXik + RYik*RYik + RZik*RZik
+                if (RikSquared > RShieldSquared) then 
+                  RXjk = RXij - RXik !jk
+                  RYjk = RYij - RYik
+                  RZjk = RZij - RZik
+                  RjkSquared = RXjk*RXjk + RYjk*RYjk + RZjk*RZjk
+                  if ((RjkSquared > RShieldSquared) .and. (RjkSquared < RCutoffSquared)) then 
+                    Rij = sqrt( RijSquared )
+                    Rik = sqrt( RikSquared )
+                    Rjk = sqrt( RjkSquared )
+                    Rij5 = Rij**5
+                    Rik5 = Rik**5
+                    Rjk5 = Rjk**5
+                    InvRij = 1 / Rij
+                    InvRik = 1 / Rik
+                    InvRjk = 1 / Rjk
+                    InvRij2 = InvRij * InvRij
+                    InvRik2 = InvRik * InvRik
+                    InvRjk2 = InvRjk * InvRjk
+                    cosThetai = RijSquared + RikSquared - RjkSquared ! A
+                    cosThetaj = RijSquared + RjkSquared - RikSquared ! B
+                    cosThetak = RikSquared + RjkSquared - RijSquared ! C
+                    cosThetaProd = cosThetai * cosThetaj * cosThetak
+                    Rijk = Rij * Rik * Rjk
+                    Rijk2 = Rijk * Rijk
+                    InvRijk2 = 1 / Rijk2
+                    FactorI = 1 + ThreeEight * cosThetaProd * InvRijk2
+    
+                    Rijk23 = Rijk**(TwoThird)
+                    A2Rijk23 = A2*Rijk23
+                    A4Rijk43 = A4*RijK23*Rijk23
+                    A6Rijk62 = A6*Rijk2
+                    A8Rijk83 = A8*Rijk2*Rijk23
+                    SumA2n = A0 + A2Rijk23 + A4Rijk43 + A6Rijk62 + A8Rijk83
+                    expAlphaR = exp( -alpha * ( Rij + Rjk + Rik ))
+                    CATMInvRijk3 = CATM / (Rijk**3)
+                    expSumA2n = expAlphaR * SumA2n
+                    FactorII = CATMInvRijk3 + expSumA2n
+                    
+                    EPotLocal = EPotLocal + FactorI * FactorII
+    
+                    ! 1st derivative u' = I'*II + I*II' , I=FactorI, II=FactorII
+
+                    cosTicosTj = cosThetai * cosThetaj
+                    cosTicosTk = cosThetai * cosThetak
+                    cosTjcosTk = cosThetaj * cosThetak
+                    expdSumA2n = expAlphaR * (TwoThird*A2Rijk23 + FourThird*A4Rijk43 + 2*A6Rijk62 + EightThird*A8Rijk83)
+                    FactorIII = -3*CATMInvRijk3 + expdSumA2n
+
+                    ! Rij 
+
+                    dIij = ThreeEight * 2 * Rij * (cosTjcosTk + cosTicosTk - cosTicosTj - cosThetaProd * InvRij2) * InvRijk2
+
+                    dIIij = FactorIII * InvRij - alpha*expSumA2n
+
+                    dEpotdRij = dIij * FactorII + FactorI * dIIij
+                    
+                    Fij = -dEpotdRij * InvRij
+                    FXij = Fij * RXij
+                    FYij = Fij * RYij
+                    FZij = Fij * RZij
+
+                    VirialLocal = VirialLocal + (RXij * FXij + RYij * FYij + RZij * FZij) * Third
+
+                    ! Rik
+
+                    dIik = ThreeEight * 2 * Rik * (cosTjcosTk + cosTicosTj - cosTicosTk - cosThetaProd * InvRik2) * InvRijk2
+
+                    dIIik = FactorIII * InvRik - alpha*expSumA2n
+                    dEpotdRik = dIik * FactorII + FactorI * dIIik
+
+                    Fik = -dEpotdRik * InvRik
+                    FXik = Fik * RXik
+                    FYik = Fik * RYik
+                    FZik = Fik * RZik
+
+                    VirialLocal = VirialLocal + (RXik * FXik + RYik * FYik + RZik * FZik) * Third
+
+                    ! Rjk
+
+                    dIjk = ThreeEight * 2 * Rjk * (cosTicosTj + cosTicosTk - cosTjcosTk - cosThetaProd * InvRjk2) * InvRijk2
+
+                    dIIjk = FactorIII * InvRjk - alpha*expSumA2n
+                    dEpotdRjk = dIjk * FactorII + FactorI * dIIjk 
+
+                    Fjk = -dEpotdRjk * InvRjk
+                    FXjk = Fjk * RXjk
+                    FYjk = Fjk * RYjk
+                    FZjk = Fjk * RZjk
+
+                    VirialLocal = VirialLocal + (RXjk * FXjk + RYjk * FYjk + RZjk * FZjk) * Third
+
+                    FXi = FXi + FXij + FXik
+                    FYi = FYi + FYij + FYik
+                    FZi = FZi + FZij + FZik
+                    forceTempX(j) = forceTempX(j) - FXij - FXjk
+                    forceTempY(j) = forceTempY(j) - FYij - FYjk
+                    forceTempZ(j) = forceTempZ(j) - FZij - FZjk
+                    forceTempX(k) = forceTempX(k) - FXik - FXjk
+                    forceTempY(k) = forceTempY(k) - FYik - FYjk
+                    forceTempZ(k) = forceTempZ(k) - FZik - FZjk
+
+                    ! 2nd derivative u'' = I''*II + 2*I'*II' + I*II'' , I=FactorI, II=FactorII
+
+                    expddsumA2nii = expAlphaR * ( -TwoNinth*A2Rijk23 + FourNinth*A4Rijk43 + 2*A6Rijk62 + 10*FourNinth*A8Rijk83 )
+                    expddsumA2nij = expAlphaR * ( FourNinth*A2Rijk23 + 4*FourNinth*A4Rijk43 + 4*A6Rijk62 + 16*FourNinth*A8Rijk83 )
+                    FactorIIIii = 12*CATMInvRijk3 + expddsumA2nii
+                    FactorIIIij = 9*CATMInvRijk3 + expddsumA2nij
+                    alpha2expdsum = alpha*alpha*expSumA2n
+
+
+                    ! Rij Rij
+
+                    ddIij2 = -3*dIij*InvRij + 3*( cosThetak-cosThetai-cosThetaj )*InvRik2*InvRjk2
+
+                    ddIIij2 = FactorIIIii*InvRij2 + alpha2expdsum - 2*alpha*expdSumA2n*InvRij
+
+                    ! Rik Rik
+
+                    ddIik2 = -3*dIik*InvRik + 3*( cosThetaj-cosThetai-cosThetak )*InvRij2*InvRjk2
+
+                    ddIIik2 = FactorIIIii*InvRik2 + alpha2expdsum - 2*alpha*expdSumA2n*InvRik
+
+                    ! Rjk Rjk
+
+                    ddIjk2 = -3*dIjk*InvRjk + 3*( cosThetai-cosThetaj-cosThetak )*InvRij2*InvRik2
+
+                    ddIIjk2 = FactorIIIii*InvRjk2 + alpha2expdsum - 2*alpha*expdSumA2n*InvRjk
+
+                    ! Rij Rik
+
+                    ddIijik = -2*dIik*InvRij + 3*cosThetai*InvRij*InvRik*InvRjk2 
+                    ddIijik = ddIijik - 1.5*Rij*InvRik*(cosTjcosTk + cosTicosTk - cosTicosTj) * InvRijk2
+            
+                    ddIIijik = FactorIIIij*InvRij*InvRik + alpha2expdsum - alpha*expdSumA2n*(InvRij+InvRik)
+
+                    ! Rij Rjk
+
+                    ddIijjk = -2*dIjk*InvRij + 3*cosThetaj*InvRij*InvRjk*InvRik2  
+                    ddIijjk = ddIijjk - 1.5*Rij*InvRjk*(cosTjcosTk + cosTicosTk - cosTicosTj) * InvRijk2
+                    
+                    ddIIijjk = FactorIIIij*InvRij*InvRjk + alpha2expdsum - alpha*expdSumA2n*(InvRij+InvRjk)
+
+                    ! Rik Rjk
+
+                    ddIikjk = -2*dIjk*InvRik + 3*cosThetak*InvRij2*InvRik*InvRjk 
+                    ddIikjk = ddIikjk - 1.5*Rik*InvRjk*(cosTjcosTk + cosTicosTj - cosTicosTk) * InvRijk2
+
+                    ddIIikjk = FactorIIIij*InvRik*InvRjk + alpha2expdsum - alpha*expdSumA2n*(InvRik+InvRjk)
+
+                    d2EpotdV2Local = RijSquared*(ddIij2*FactorII + 2* dIij*dIIij + FactorI*ddIIij2)
+                    d2EpotdV2Local = d2EpotdV2Local + RikSquared*(ddIik2*FactorII + 2* dIik*dIIik + FactorI*ddIIik2)
+                    d2EpotdV2Local = d2EpotdV2Local + RjkSquared*(ddIjk2*FactorII + 2* dIjk*dIIjk + FactorI*ddIIjk2)
+                    d2EpotdV2Local = d2EpotdV2Local + 2*Rij*Rik * (ddIijik*FactorII + dIij*dIIik + dIik*dIIij + FactorI*ddIIijik)
+                    d2EpotdV2Local = d2EpotdV2Local + 2*Rij*Rjk * (ddIijjk*FactorII + dIij*dIIjk + dIjk*dIIij + FactorI*ddIIijjk)
+                    d2EpotdV2Local = d2EpotdV2Local + 2*Rik*Rjk * (ddIikjk*FactorII + dIik*dIIjk + dIjk*dIIik + FactorI*ddIIikjk)
+                    d2EpotdV2Local = d2EpotdV2Local - 2 * (Rij*dEpotdRij + Rik*dEpotdRik + Rjk*dEpotdRjk)
+
+                    d2EpotdV2Temp = d2EpotdV2Temp + Ninth * d2EpotdV2Local
+
+
+
+                  end if
+                end if
+              end if
+            end do
+          end if
+        end do
+
+        FX1(np) = FXi
+        FY1(np) = FYi
+        FZ1(np) = FZi
+
+      ! deallocate(concatenated_array)
+
+      end do
+      FX2 = FX2 + forceTempX
+      FY2 = FY2 + forceTempY
+      FZ2 = FZ2 + forceTempZ
+      EPot = EPot + EPotLocal
+      Virial = Virial + VirialLocal
+      d2EpotdV2 = d2EpotdV2 + d2EpotdV2Temp
+
+
+
+
+  end subroutine TPot3BodyKr_Force
+
 
 
 
