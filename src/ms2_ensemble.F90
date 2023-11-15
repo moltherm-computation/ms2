@@ -41,7 +41,7 @@ module ms2_ensemble
 #endif
 
   use ms2_accumulator
-  
+
   use ms2_component
   use ms2_global
   use ms2_potential
@@ -4630,10 +4630,10 @@ contains
               this%Component(i1)%EPotTestCorrTT = this%Component(i1)%EPotTestCorrTT &
 &                 + this%Component(i2)%Fraction * ptt%EPotTestCorr
               this%RCutoffMax2 = max( this%RCutoffMax2, 2._RK * sqrt( ptt%RCutoffSquared ) )
-              if ( ThreeBody=='Kr' ) then 
+              if ( ThreeBody=='Kr' ) then
                 p3b => this%Interaction(i1, i2)%Pot3BodyKr(1,1)
                 this%EPotCorrTT = this%EPotCorrTT + Scale * p3B%EPotCorr
-                this%VirialCorrTT = this%VirialCorrTT + Scale * p3B%VirialCorr
+                ! this%VirialCorrTT = this%VirialCorrTT + Scale * p3B%VirialCorr
 
               end if
             end do
@@ -5431,7 +5431,7 @@ loop4:      do nc = 1, this%NComponents
               sx = sx + this%Component(nc)%Fraction
               if( rx <= sx ) exit loop4
             end do loop4
-            if ( (tx < 0.5_RK) .and. (this%Npart < this%NPartMax) ) then 
+            if ( (tx < 0.5_RK) .and. (this%Npart < this%NPartMax) ) then
               call Insert( this, nc )
             else if( this%NPart > N_min ) then
               s = 0._RK
@@ -6491,7 +6491,7 @@ loop5:        do nc = 1, this%NComponents
     tempComm = Communicator
 #endif
 
-    t = this%NRealComponents+1  ! pseudo component identifier for ThermoInt 
+    t = this%NRealComponents+1  ! pseudo component identifier for ThermoInt
 
     ! Outer loop over components
 componentLoop:       do i = 1, this%NRealComponents
@@ -6754,7 +6754,7 @@ componentLoop:       do i = 1, this%NRealComponents
         ! Loop over particles
         do np = 1, this%Component(nc)%NPart
           call Energy( pi, np, this%BoxLength, matrixhalf )
-          if ( ThreeBody=='Kr' ) then 
+          if ( ThreeBody=='Kr' ) then
             call Energy3BKr( pi, np, this%BoxLength )
           end if
           ! Sum energy
@@ -6824,7 +6824,7 @@ componentLoop:       do i = 1, this%NRealComponents
       pi => this%Interaction(nc, i)
 
       call Energy( pi, np, this%BoxLength, .false. )
-      if ( ThreeBody=='Kr' ) then 
+      if ( ThreeBody=='Kr' ) then
         call Energy3BKr( pi, np, this%BoxLength )
       end if
 
@@ -6963,7 +6963,7 @@ componentLoop:       do i = 1, this%NRealComponents
     moveParticle = mod(s - randomNumber, pc%Molecule%NDF) < 3
 
     call EnergyinRC(this, nc, np, EPotOld)
-    
+
     ! Save the Energies and Virials for a faster MoveRejction
     if (LongRange .eq. Ewald) then
 
@@ -7754,12 +7754,12 @@ componentLoop:       do i = 1, this%NRealComponents
 
       StateAlpha = this%RefHill - this%Epot + TotalChemPot * (this%NPart-1)
       StateBeta = this%RefHill - this%Epot - EPotIns + TotalChemPot * (this%NPart-1) + pc%ChemPot0
-    
+
     else if( EnsembleType .eq. EnsembleTypeMUPR ) then
-    
+
       StateAlpha = this%RefRay - this%Refpressure * this%Volume0 - this%Epot + TotalChemPot * (this%NPart-1)
       StateBeta = this%RefRay - this%Refpressure * this%Volume0 - this%Epot - EPotIns + TotalChemPot * (this%NPart-1) + pc%ChemPot0
-  
+
     end if
 
     if (StateBeta < 0._RK) then
@@ -8167,7 +8167,7 @@ componentLoop:       do i = 1, this%NRealComponents
         end if
       end if
     !mupR
-    else if( EnsembleType .eq. EnsembleTypeMUPR ) then 
+    else if( EnsembleType .eq. EnsembleTypeMUPR ) then
 
       TotalChemPot = 0
       do i = 1, this%NComponents
@@ -10020,7 +10020,7 @@ componentLoop:       do i = 1, this%NRealComponents
       do i = 1, this%NComponents
         TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
       end do
-    
+
       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
 
         call Update( this%SumNPart2, real( this%NPart, RK )**2 )
@@ -10136,8 +10136,8 @@ componentLoop:       do i = 1, this%NRealComponents
         call Update( this%SumP002, (O002-O001*O001/O000)/O000 )
         call Update( this%SumP110, (O110-O010/O000)/O000 )
         call Update( this%SumP101, (O101-O001/O000)/O000 )
-        call Update( this%SumP011, (O011-O010*O001/O000)/O000 ) 
- 
+        call Update( this%SumP011, (O011-O010*O001/O000)/O000 )
+
         dTdL = 1 - O000*O200
         dTdV = O010 - O000*O110
         dTdmu = O001 - O000*O101
@@ -10195,7 +10195,7 @@ componentLoop:       do i = 1, this%NRealComponents
         call Update( this%SumP002, (O002-O001*O001/O000)/O000 )
         call Update( this%SumP110, (O110-O010/O000)/O000 )
         call Update( this%SumP101, (O101-O001/O000)/O000 )
-        call Update( this%SumP011, (O011-O010*O001/O000)/O000 ) 
+        call Update( this%SumP011, (O011-O010*O001/O000)/O000 )
 
         dTdR = 1 - O000*O200
         dTdp = O010 - O000*O110
@@ -10257,7 +10257,7 @@ componentLoop:       do i = 1, this%NRealComponents
         call Update( this%SumP002, Xi002-Xi001*Xi001 )
         call Update( this%SumP110, Xi110-Xi100*Xi010 )
         call Update( this%SumP101, Xi101-Xi100*Xi001 )
-        call Update( this%SumP011, Xi011-Xi001*Xi010 ) 
+        call Update( this%SumP011, Xi011-Xi001*Xi010 )
 
         CP = (Beta2*(Xi200-Xi100**2) - ((Xi001-Beta*(Xi101-Xi100*Xi001))**2) / (Xi002-Xi001**2)) / this%SumNPart%Average
 
@@ -10402,7 +10402,7 @@ componentLoop:       do i = 1, this%NRealComponents
       call Update( this%SumA21resI, A21res )
       call Update( this%SumA12resI, A12res )
 
-      CV = -A20res 
+      CV = -A20res
 
       CP = - 1._RK - A20res + ((1._RK+A01res-A11res)**2)/ &
 &             (1._RK+2._RK*A01res+A02res)
@@ -10732,7 +10732,7 @@ componentLoop:       do i = 1, this%NRealComponents
     end if
 #endif
 
-    t = this%NRealComponents+1  ! pseudo component identifier for ThermoInt 
+    t = this%NRealComponents+1  ! pseudo component identifier for ThermoInt
 
     ! 4.) Chemical potential and partial molar volumes
     do i = 1, this%NRealComponents
@@ -14347,7 +14347,7 @@ end if
     call FileWriteBlank(this%errorsFile)
 
     ! Phase equilibria data for GE-ensemble
-    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then  
+    if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
       if( EnsembleType .eq. EnsembleTypeGE ) then
         write( IOBuffer, '("PHASE EQUILIBRIUM DATA")' )
         call FileWrite(this%errorsFile)
@@ -16505,7 +16505,7 @@ end if
     else
         !Write running average RDF (center of mass) in *.kbirdf file
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
-        call FileRewrite( this%kbirdfFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )    
+        call FileRewrite( this%kbirdfFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIrdfFileExtension )
     endif
 #else
     !Write running average RDF (center of mass) in *.kbirdf file
@@ -16629,7 +16629,7 @@ end if
         call Error( this%SumKBIGij2(p), .false., .true. )
         call Error( this%SumKBIGij3(p), .false., .true. )
     end do
-	
+
 
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then
@@ -16641,7 +16641,7 @@ end if
     else
         !Write running average Gij from Accumulator in *.kbirav file
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
-        call FileAppend( this%kbiravFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIravFileExtension ) 
+        call FileAppend( this%kbiravFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//KBIravFileExtension )
     endif
 #else
     !Write running average Gij from Accumulator in *.kbirav file
@@ -22806,7 +22806,7 @@ if( RootProc .and. this%CorrfunMode ) then
 !==============================================================!
 !  Subroutine TSimulation_Ewald_FourierTermAddDel              !
 !==============================================================!
-  
+
    subroutine TEnsemble_EwaldFourierAddDel(this,nc,np,m)
 
    implicit none

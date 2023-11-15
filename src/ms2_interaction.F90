@@ -5052,7 +5052,7 @@ end subroutine TInteraction_EnergySVC
 
     ! Set cutoff radius
     RCutoff = this%RCutoffSquaredScaled
-
+    N = this%NPart1
     this%NInCutoff(:) = 0
 
 !$OMP PARALLEL PRIVATE(PX1, PY1, PZ1, PX2, PY2, PZ2, i, j ,NInCutoff, N2, RijSquared,PXi, PYi, PZi, PXij, PYij, PZij)
@@ -5330,8 +5330,6 @@ end subroutine TInteraction_EnergySVC
     end if
 
     this%NInCutoff(np) = NInCutoff
-
-    ! print*, 'Proc 1', rank, this%NPart20, this%NPart22
   
 
   end subroutine TInteraction_CalcPartners1
