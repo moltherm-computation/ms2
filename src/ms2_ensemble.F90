@@ -4630,12 +4630,6 @@ contains
               this%Component(i1)%EPotTestCorrTT = this%Component(i1)%EPotTestCorrTT &
 &                 + this%Component(i2)%Fraction * ptt%EPotTestCorr
               this%RCutoffMax2 = max( this%RCutoffMax2, 2._RK * sqrt( ptt%RCutoffSquared ) )
-              if ( ThreeBody=='Kr' ) then
-                p3b => this%Interaction(i1, i2)%Pot3BodyKr(1,1)
-                this%EPotCorrTT = this%EPotCorrTT + Scale * p3B%EPotCorr
-                ! this%VirialCorrTT = this%VirialCorrTT + Scale * p3B%VirialCorr
-
-              end if
             end do
           end do
         end do

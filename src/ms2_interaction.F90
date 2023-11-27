@@ -1995,7 +1995,6 @@ contains
           C16 = ptt%C16
           Deriv1Factor = ptt%Deriv1Factor
           Deriv2Factor = ptt%Deriv2Factor
-          RCutoffSquared = ptt%RCutoffSquared
           RShieldSquared = ptt%RShieldSquared
 
           ! Assign pointers to site positions
@@ -2029,10 +2028,7 @@ contains
             PZij = (PZij - anint( PZij )) * BoxLength
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             Rij = sqrt( RijSquared )
-            ! if ( np ==18 ) then
-            !   print*, 'Rij', Rij
-            ! end if
-              RijInv = 1._RK / Rij
+            RijInv = 1._RK / Rij
             RijInv2 = RijInv * RijInv
             RijInv3 = RijInv * RijInv2
             RijInv6 = RijInv3 * RijInv3
@@ -3151,7 +3147,6 @@ contains
           C16 = ptt%C16
           Deriv1Factor = ptt%Deriv1Factor
           Deriv2Factor = ptt%Deriv2Factor
-          RCutoffSquared = ptt%RCutoffSquared
           RShieldSquared = ptt%RShieldSquared
 
           ! Assign pointers to site positions
@@ -3724,16 +3719,15 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   integer, intent(in)  :: np
   real(RK), intent(in) :: BoxLength
 
+
   ! Declare local variables
   type(TPot3BodyKr), pointer             :: p3b
   real(RK)          :: EPot, dEpotdRij, dEpotdRik, dEpotdRjk
   real(RK)          :: Virial
   real(RK)          :: d2EpotdV2
   real(RK)          :: EPotLocal
-  real(RK)          :: VirialLocal
   real(RK)          :: d2EpotdV2Local
-  real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
-  real(RK)          :: BoxLengthThird, InvBoxLength
+  real(RK)          :: RCutoffSquared, RShieldSquared
   ! real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
   real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
   real(RK)          :: PXi, PYi, PZi
@@ -3767,20 +3761,14 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
 
   ! Zero energy
   EPot=0._RK
+  Virial=0._RK
   d2EpotdV2=0._RK
 
   ! Assign local variables
-                                           
-  Virial=0._RK
-  ! VirialLocal = 1E33_RK
-        
   d2EpotdV2Local = 1E33_RK
 
   ! N = this%NPart2
   RCutoffSquared = this%RCutoffSquared
-  RCutoffSquaredScaled = this%RCutoffSquaredScaled
-  BoxLengthThird = Third * BoxLength
-  InvBoxLength = 1/BoxLength
   PXi = this%PX1(np)
   PYi = this%PY1(np)
   PZi = this%PZ1(np)
@@ -3796,7 +3784,6 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
   A8 = p3b%A8
   alpha = p3b%alpha
   RShieldSquared = p3b%RShieldSquared
-
 
   ! Assign pointers to COM positions
   PX2 => this%PX2
@@ -3993,7 +3980,6 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
 
                 d2EpotdV2 = d2EpotdV2 + Ninth * d2EpotdV2Local
 
-
               end if
             end if
           end if
@@ -4004,7 +3990,7 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
 
   this%EPot3B = EPot
                          
-  this%Virial3B = Virial
+  this%Virial3B = Virial 
 
   this%d2EpotdV23B = d2EpotdV2
 
