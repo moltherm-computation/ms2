@@ -154,6 +154,7 @@ end type TPotTT68TT68
     real(RK)                 :: CATM, A0, A2, A4, A6, A8, A10, alpha
     real(RK)                   :: RCutoffSquared
     real(RK)                   :: RShieldSquared
+    real(RK)                   :: RCubeSquared
     real(RK)                   :: EPotCorr, VirialCorr, d2EpotdV2Corr, EPotTestCorr
     real(RK)                   :: EPot_aux, Virial_aux, d2EpotdV2_aux
     logical                    :: SameComponent
@@ -3965,7 +3966,7 @@ loop2:  do j = 1, N2
         type(TMolecule), intent(in) :: Molecule1, Molecule2
         real(RK), intent(in)        :: RCutoff
         real(RK)                    :: RShield
-        real(RK) :: EpotCorr, Rij, Rik, Rjk, VirialCorr, d2EPotdR2, fun, costheta
+        real(RK) :: EpotCorr, Rij, Rik, Rjk, VirialCorr, d2EPotdR2, fun, costheta, RCutoffCube
         integer :: i, k
 
 
@@ -3974,10 +3975,14 @@ loop2:  do j = 1, N2
         this%Site2 => Molecule2%SiteTT(1)
         this%RCutoffSquared = RCutoff**2
         RShield = 2.2
+        RCutoffCube = 10000
         RShield = RShield * Angstroem
         RShield = RShield / UnitLength
+        RCutoffCube = RCutoffCube * Angstroem**3
+        RCutoffCube = RCutoffCube / UnitVolume
 
         this%RShieldSquared = RShield**2
+        this%RCubeSquared = RCutoffCube**2
 
         ! ! Potential paramters
         this%CATM = 1615250
@@ -4009,10 +4014,10 @@ loop2:  do j = 1, N2
         ! Convert to derived units
         this%CATM = this%CATM / ( UnitEnergy * UnitVolume**3 )
         this%A0 = this%A0 / UnitEnergy
-        this%A2 = this%A2 * UnitLength**2 / ( UnitEnergy )
-        this%A4 = this%A4 * UnitLength**4 / ( UnitEnergy )
-        this%A6 = this%A6 * UnitVolume**2 / ( UnitEnergy )
-        this%A8 = this%A8 * UnitVolume**2 * UnitLength**2 / ( UnitEnergy )
+        this%A2 = this%A2 * UnitLength**2 / UnitEnergy
+        this%A4 = this%A4 * UnitLength**4 / UnitEnergy
+        this%A6 = this%A6 * UnitVolume**2 / UnitEnergy
+        this%A8 = this%A8 * UnitVolume**2 * UnitLength**2 / UnitEnergy
         this%alpha = this%alpha * UnitLength
 
       end subroutine TPot3BodyKr_Construct
@@ -4172,27 +4177,6 @@ loop2:  do j = 1, N2
         PXi = PX1(np)
         PYi = PY1(np)
         PZi = PZ1(np)
-
-! #if MPI_VER > 0
-!     call MPI_Allgather( this%NInCutoff(np), 1, MPI_INTEGER, NInCutoffGlobal, 1, MPI_INTEGER, Communicator, ierror )
-!     NInCutoffGlobalSum(1) = 0
-!     NCutoff = NInCutoffGlobal(1)
-!     do i=2, NProcs
-!       NInCutoffGlobalSum(i) = NCutoff
-!       NCutoff = NCutoff + NInCutoffGlobal(i)
-!     end do
-!     allocate(concatenated_array(NCutoff))
-
-!     call MPI_Allgatherv( this%CutoffPartner(1:this%NInCutoff(np), np), NInCutoffGlobal(NProc+1), MPI_INTEGER, &
-!     & concatenated_array, NInCutoffGlobal, NInCutoffGlobalSum, MPI_INTEGER, Communicator, ierror )
-
-! #else
-!     NCutoff = this%NInCutoff(np)
-!     allocate(concatenated_array(NCutoff))
-
-!     concatenated_array(1:NCutoff) = this%CutoffPartner(1:this%NInCutoff(np), np)
-! #endif
-
 
         do i = 1, this%NInCutoff(np) ! ij
           j = this%CutoffPartner(i, np)
@@ -4389,8 +4373,6 @@ loop2:  do j = 1, N2
       EPot = EPot + EPotLocal
       Virial = Virial + VirialLocal 
       d2EpotdV2 = d2EpotdV2 + d2EpotdV2Temp
-
-
 
 
   end subroutine TPot3BodyKr_Force
