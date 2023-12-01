@@ -4351,8 +4351,8 @@ loop2:  do j = 1, N2
                 d2EpotdV2Local = d2EpotdV2Local + 2*Rij*Rik * (ddIijik*FactorII + dIij*dIIik + dIik*dIIij + FactorI*ddIIijik)
                 d2EpotdV2Local = d2EpotdV2Local + 2*Rij*Rjk * (ddIijjk*FactorII + dIij*dIIjk + dIjk*dIIij + FactorI*ddIIijjk)
                 d2EpotdV2Local = d2EpotdV2Local + 2*Rik*Rjk * (ddIikjk*FactorII + dIik*dIIjk + dIjk*dIIik + FactorI*ddIIikjk)
-                d2EpotdV2Local = d2EpotdV2Local - 2 * (Rij*dEpotdRij + Rik*dEpotdRik + Rjk*dEpotdRjk)
-
+                ! d2EpotdV2Local = d2EpotdV2Local - 2 * (Rij*dEpotdRij + Rik*dEpotdRik + Rjk*dEpotdRjk)
+                d2EpotdV2Local = d2EpotdV2Local - (Rij*dEpotdRij + Rik*dEpotdRik + Rjk*dEpotdRjk)
                 d2EpotdV2Temp = d2EpotdV2Temp + Ninth * d2EpotdV2Local
 
               end if
