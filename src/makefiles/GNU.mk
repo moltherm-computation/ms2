@@ -47,9 +47,11 @@ endif
 
 F90FLAGS_DEBUG   = -O0 -ffree-line-length-none -mtune=generic -g -fcheck=all
 F90FLAGS_PROF    = -O3 -ffree-line-length-none -mtune=generic -pg
+F90FLAGS_COVERAGE = -O3 -ffree-line-length-none -mtune=generic --coverage
 PROG             = ms2_GNU
 
 LDFLAGS_RELEASE  = -O3
 LDFLAGS_DEBUG    = -g 
 LDFLAGS_PROF     = -O3 -pg
+LDFLAGS_COVERAGE = -O3 --coverage
 
