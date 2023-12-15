@@ -14,7 +14,7 @@ variables: # "declaration" neccessary for use in job definitions
 default:
   before_script:
     - cd src
-    - if [ $COMPILER == 'COMPILER=INTEL' ]; then module load mpi/2021.6.0 compiler/2022.1.0 ;fi
+    - if [ $COMPILER == 'COMPILER=INTEL' ]; then module load mpi compiler ;fi
     - if [ $COMPILER == 'COMPILER=INTEL' ]; then ifort --version; mpiifort --version; else gfortran --version; mpif90 --version ;fi
     - if [ $MPI == 'MPI=1' ]; then mpirun --version; fi
     - if [ $COMPILER == 'COMPILER=INTEL' ]; then sed 's!mpif90!mpiifort!g' makefiles/INTEL.mk -i; fi
