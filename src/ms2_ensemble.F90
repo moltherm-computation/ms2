@@ -7659,7 +7659,7 @@ componentLoop:       do i = 1, this%NRealComponents
     real(RK)                  :: s
     real(RK)                  :: TotalChemPot, NewTheta
     real(RK)                  :: acceptance, StateAlpha, StateBeta
-    real(RK)                  :: Gamma, enum, denom, N
+    real(RK)                  :: Gamma, N, k, Fac_I, Fac_II
 #if MPI_VER > 0
     real(RK)                  :: EPotInsAll, EPotOldAll
 #endif
@@ -7720,14 +7720,14 @@ componentLoop:       do i = 1, this%NRealComponents
     end do
 
     ! Gamma-Function
-    N = 3._RK*this%Npart/2
-    Gamma = sqrt((N)/(N-1.5))
-    denom = N + 1/( 12*N - 1/(10*N))
-    N = N-1.5
-    enum = N + 1/( 12*N - 1/(10*N))
-    Gamma = (Gamma * (enum/denom)**N)
-    Gamma = Gamma/((exp(-1._RK)*denom)**1.5)
-    Gamma = Gamma/(this%Temperature**1.5)
+    k = (3 + pc%Molecule%NDFRot)
+    N = this%Npart - 1
+    Fac_I = (k * N - 2) / (k * (N+1) - 2)
+    Fac_II = (2 * exp(1._RK)) / (k * (N+1) - 2)
+    Fac_I = Fac_I**(k*N-1)
+    Fac_II = Fac_II**k
+    Gamma = sqrt( Fac_I * Fac_II )
+    Gamma = Gamma/(this%Temperature**(k*0.5))
 
     if( EnsembleType .eq. EnsembleTypeMUVL ) then
 
@@ -7749,7 +7749,7 @@ componentLoop:       do i = 1, this%NRealComponents
 
     end if
 
-    acceptance =  NewTheta * ((StateBeta)**1.5) * ( StateBeta/StateAlpha )**((3*this%Npart-5)/2._RK)
+    acceptance =  NewTheta * ((StateBeta)**(0.5*k)) * ( StateBeta/StateAlpha )**((real(this%NDF, RK)-2)/2._RK)
 
     if( rnd( 0._RK, 1._RK ) .lt. ( Gamma * acceptance * this%Volume0 / np )) then
       ! Accept Insertion
@@ -7941,7 +7941,7 @@ componentLoop:       do i = 1, this%NRealComponents
     real(RK)                    :: EPotDel, EPot
     type(TComponent), pointer   :: pc
     real(RK)                    :: acceptance, StateAlpha, StateBeta
-    real(RK)                    :: Gamma, enum, denom, N
+    real(RK)                    :: Gamma, N, Fac_I, Fac_II, k
     real(RK)                    :: TotalChemPot, NewTheta
     integer                     :: i
 
@@ -7999,16 +7999,16 @@ componentLoop:       do i = 1, this%NRealComponents
     end if
 
     ! Gamma-Function
-    N = 3._RK*this%Npart/2
-    Gamma = sqrt((N-1.5)/(N))
-    enum = N + 1/( 12*N - 1/(10*N))
-    N = N-1.5
-    denom = N + 1/( 12*N - 1/(10*N))
-    Gamma = (Gamma * (enum/denom)**N)
-    Gamma = Gamma*((exp(-1._RK)*denom)**1.5)
-    Gamma = Gamma*(this%Temperature**1.5)
+    k = (3 + pc%Molecule%NDFRot)
+    N = this%Npart
+    Fac_I = (k * N - 2) / (k * (N-1) - 2)
+    Fac_II = (k * (N-1) - 2) / (2 * exp(1._RK))
+    Fac_I = Fac_I**(k*N-1)
+    Fac_II = Fac_II**k
+    Gamma = sqrt( Fac_I * Fac_II )
+    Gamma = Gamma*(this%Temperature**(k*0.5))
 
-    acceptance = NewTheta * ( StateBeta/StateAlpha )**((3*this%Npart-2)/2._RK) / ((StateBeta)**1.5)
+    acceptance = NewTheta * ( StateBeta/StateAlpha )**((real(this%NDF, RK)-2)/2._RK) / ((StateBeta)**(0.5*k))
     ! Apply acceptance criterion
     if( rnd( 0._RK, 1._RK ) .lt. ( Gamma * acceptance * this%Density * pc%Fraction )) then
       ! Accept Deletion
