@@ -7655,7 +7655,7 @@ componentLoop:       do i = 1, this%NRealComponents
     real(RK)                  :: q(4)
     real(RK)                  :: EPotIns, EPot
     type(TComponent), pointer :: pc
-    integer                   :: i, np
+    integer                   :: i, np, j
     real(RK)                  :: s
     real(RK)                  :: TotalChemPot, NewTheta
     real(RK)                  :: acceptance, StateAlpha, StateBeta
@@ -7715,19 +7715,21 @@ componentLoop:       do i = 1, this%NRealComponents
     endif
 
     TotalChemPot = 0
+    k = 0
     do i = 1, this%NComponents
       TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
+      k = k + this%Component(i)%Molecule%NDF * this%Component(i)%Fraction
     end do
 
     ! Gamma-Function
-    k = (3 + pc%Molecule%NDFRot)
+    j = pc%Molecule%NDF
     N = this%Npart - 1
-    Fac_I = (k * N - 2) / (k * (N+1) - 2)
-    Fac_II = (2 * exp(1._RK)) / (k * (N+1) - 2)
-    Fac_I = Fac_I**(k*N-1)
-    Fac_II = Fac_II**k
+    Fac_I = (k * N - 2) / (k * N + j - 2)
+    Fac_II = (2 * exp(1._RK)) / (k * N + j - 2)
+    Fac_I = Fac_I**(k * N - 1)
+    Fac_II = Fac_II**j
     Gamma = sqrt( Fac_I * Fac_II )
-    Gamma = Gamma/(this%Temperature**(k*0.5))
+    Gamma = Gamma/(this%Temperature**(j*0.5))
 
     if( EnsembleType .eq. EnsembleTypeMUVL ) then
 
@@ -7749,7 +7751,7 @@ componentLoop:       do i = 1, this%NRealComponents
 
     end if
 
-    acceptance =  NewTheta * ((StateBeta)**(0.5*k)) * ( StateBeta/StateAlpha )**((real(this%NDF, RK)-2)/2._RK)
+    acceptance =  NewTheta * ((StateBeta)**(0.5*j)) * ( StateBeta/StateAlpha )**((real(this%NDF, RK)-2)/2._RK)
 
     if( rnd( 0._RK, 1._RK ) .lt. ( Gamma * acceptance * this%Volume0 / np )) then
       ! Accept Insertion
@@ -7941,9 +7943,9 @@ componentLoop:       do i = 1, this%NRealComponents
     real(RK)                    :: EPotDel, EPot
     type(TComponent), pointer   :: pc
     real(RK)                    :: acceptance, StateAlpha, StateBeta
-    real(RK)                    :: Gamma, N, Fac_I, Fac_II, k
+    real(RK)                    :: Gamma, N, Fac_I, Fac_II
     real(RK)                    :: TotalChemPot, NewTheta
-    integer                     :: i
+    integer                     :: i , j, k
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -7974,9 +7976,21 @@ componentLoop:       do i = 1, this%NRealComponents
     endif
 
     TotalChemPot = 0
+    k = 0
     do i = 1, this%NComponents
       TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
+      k = k + this%Component(i)%Molecule%NDF * this%Component(i)%Fraction
     end do
+
+    ! Gamma-Function
+    j = pc%Molecule%NDF
+    N = this%Npart
+    Fac_I = (k * N - 2) / (k * N - j - 2)
+    Fac_II = (k * N - j - 2) / (2 * exp(1._RK))
+    Fac_I = Fac_I**(k * N - 1)
+    Fac_II = Fac_II**j
+    Gamma = sqrt( Fac_I * Fac_II )
+    Gamma = Gamma*(this%Temperature**(j*0.5))
 
     if ( EnsembleType .eq. EnsembleTypeMUVL ) then
 
@@ -7998,17 +8012,7 @@ componentLoop:       do i = 1, this%NRealComponents
 
     end if
 
-    ! Gamma-Function
-    k = (3 + pc%Molecule%NDFRot)
-    N = this%Npart
-    Fac_I = (k * N - 2) / (k * (N-1) - 2)
-    Fac_II = (k * (N-1) - 2) / (2 * exp(1._RK))
-    Fac_I = Fac_I**(k*N-1)
-    Fac_II = Fac_II**k
-    Gamma = sqrt( Fac_I * Fac_II )
-    Gamma = Gamma*(this%Temperature**(k*0.5))
-
-    acceptance = NewTheta * ( StateBeta/StateAlpha )**((real(this%NDF, RK)-2)/2._RK) / ((StateBeta)**(0.5*k))
+    acceptance = NewTheta * ( StateBeta/StateAlpha )**((real(this%NDF, RK)-2)/2._RK) / ((StateBeta)**(0.5*j))
     ! Apply acceptance criterion
     if( rnd( 0._RK, 1._RK ) .lt. ( Gamma * acceptance * this%Density * pc%Fraction )) then
       ! Accept Deletion
@@ -9583,7 +9587,7 @@ componentLoop:       do i = 1, this%NRealComponents
     real(RK)                  :: S10, S01, S20, S11, S02, S30, S21, S12
     real(RK)                  :: O00m1, O00m2, O00m3, O012, O20m1, S20m1, S20m2, S20m3
     real(RK)                  :: HmUmpV, HmUmpVInv, HmUmpVInvV, HmUmpVInvV2
-    real(RK)                  :: F, invF, funcF, rho, rho2, HmU, HmUm1, HmUm2, HmUm3, HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
+    real(RK)                  :: F, F05, invF, funcF, rho, rho2, HmU, HmUm1, HmUm2, HmUm3, HmUm1dUdV, HmUm1dUdV2, HmUm1d2UdV2, HmUm2dUdV, HmUm2dUdV2, HmUm2d2UdV2, HmUm3dUdV, HmUm3dUdV2
     real(RK)                  :: LmUpmuN, RmUmpVpmuN, O000, O200, O010, O020, O001, O002, O101, O110, O011
     real(RK)                  :: dTdL, dTdV, dTdmu, dpdL, dpdV, dpdmu, dNdL, dNdV, dNdmu
     real(RK)                  :: dTdR, dTdp, dVdR, dVdp, dVdmu, dNdR, dNdp
@@ -9995,9 +9999,17 @@ componentLoop:       do i = 1, this%NRealComponents
     if( OpenSystem .or. EnsembleType .eq. EnsembleTypeHA .or. SimulationType .eq. Gibbs) then
       call Update( this%SumNPart, real( this%NPart, RK ) )
 
+      F = 0.0
+      do i = 1, this%NComponents
+        pc => this%Component(i)
+        call Update( pc%SumFraction, pc%Fraction )
+        F = F + pc%Fraction * pc%Molecule%NDF 
+      end do
+      F05 = 0.5 * F
+
       TotalChemPot = 0
       do i = 1, this%NComponents
-        TotalChemPot = TotalChemPot + this%Component(i)%Chempot0*this%Component(i)%Fraction
+        TotalChemPot = TotalChemPot + this%Component(i)%Chempot * this%Component(i)%Fraction
       end do
     
       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
@@ -10036,12 +10048,12 @@ componentLoop:       do i = 1, this%NRealComponents
         UdUdV   = this%SumUdEpotdVTot%Average
         d2UdV2  = this%Sumd2EpotdV2Tot%Average
 
-        factor    = TotalChemPot-1.5*InvBeta
+        factor    = TotalChemPot-F05*InvBeta
         Psi100res = factor*Numb-U
-        Psi200res = factor*factor*Numb2+1.5*InvBeta2*Numb+(3*InvBeta-2*TotalChemPot)*NU+U2
+        Psi200res = factor*factor*Numb2+F05*InvBeta2*Numb+(F*InvBeta-2*TotalChemPot)*NU+U2
         Psi001res = Numb*Beta
         Psi002res = Beta2*Numb2
-        Psi101res = (TotalChemPot*beta-1.5)*Numb2+Numb-Beta*NU
+        Psi101res = (TotalChemPot*beta-F05)*Numb2+Numb-Beta*NU
         Psi010res = Numb*InvVol-beta*dUdV
         Psi020res = InvVol*( InvVol*( Numb2-Numb )-2*Beta*NdUdV )-Beta*d2UdV2+Beta2*dUdV2
         Psi011res = beta*InvVol*Numb2-Beta2*NdUdV
@@ -10079,27 +10091,26 @@ componentLoop:       do i = 1, this%NRealComponents
         specv   = 1._RK/this%RefDensity
         InvBeta = this%RefTemperature
 
-        call Update( this%SumOmega000, 2*LmUpmuN/(3*this%NPart) )
-        call Update( this%SumOmega200, (1.5*this%NPart-1)/LmUpmuN )
+        call Update( this%SumOmega000, 2*LmUpmuN/(F*this%NPart) )
+        call Update( this%SumOmega200, (F05*this%NPart-1)/LmUpmuN )
 
         call Update( this%SumOmega010, LmUpmuN )
         call Update( this%SumdEPotdVTot, dUdV )
-        call Update( this%SumOmega0201, 2*(this%NPart-1)*(InvVol**2)*LmUpmuN/3 )
+        call Update( this%SumOmega0201, 2*(this%NPart-1)*(InvVol**2)*LmUpmuN/F )
         call Update( this%Sum2NVdUdV, 2*this%NPart*InvVol*dUdV )
-        call Update( this%SumOmega0202, (1.5*this%NPart-1)*(dUdV**2)/LmUpmuN )
+        call Update( this%SumOmega0202, (F05*this%NPart-1)*(dUdV**2)/LmUpmuN )
         call Update( this%Sumd2EpotdV2Tot, currentd2EpotdV2*real( this%NPart, RK )**2 )
 
-        call Update( this%SumOmega002, (this%NPart**2)*(1.5*this%NPart-1)/LmUpmuN )
-        call Update( this%SumOmega101, this%NPart*(1.5*this%NPart-1)/LmUpmuN )
-        call Update( this%SumOmega110, (1.5*this%NPart-1)*dUdV/LmUpmuN )
+        call Update( this%SumOmega002, (this%NPart**2)*(F05*this%NPart-1)/LmUpmuN )
+        call Update( this%SumOmega101, this%NPart*(F05*this%NPart-1)/LmUpmuN )
+        call Update( this%SumOmega110, (F05*this%NPart-1)*dUdV/LmUpmuN )
         call Update( this%SumNpartV, this%NPart*InvVol )
-        call Update( this%SumOmega011, (1.5*this%NPart-1)*dUdV*this%NPart/LmUpmuN )
+        call Update( this%SumOmega011, (F05*this%NPart-1)*dUdV*this%NPart/LmUpmuN )
         call Update( this%SumNpart2V, (this%NPart**2)*InvVol )
-
 
         O000 = this%SumOmega000%Average
         O200 = this%SumOmega200%Average
-        O010 = 2*InvVol*this%SumOmega010%Average/3 - this%SumdEPotdVTot%Average
+        O010 = 2*InvVol*this%SumOmega010%Average/F - this%SumdEPotdVTot%Average
         O020 = this%SumOmega0201%Average - this%Sum2NVdUdV%Average + this%SumOmega0202%Average - this%Sumd2EpotdV2Tot%Average
         O001 = real( this%SumNPart%Average, RK )
         O002 = this%SumOmega002%Average
@@ -10144,17 +10155,17 @@ componentLoop:       do i = 1, this%NRealComponents
         RmUmpVpmuN = this%RefRay - this%Epot - this%Refpressure * this%Volume0 + TotalChemPot * this%NPart
         specv   = 1._RK/this%RefDensity
 
-        call Update( this%SumOmega000, 2*RmUmpVpmuN/(3*this%NPart) )
-        call Update( this%SumOmega200, (1.5*this%NPart-1)/RmUmpVpmuN )
+        call Update( this%SumOmega000, 2*RmUmpVpmuN/(F*this%NPart) )
+        call Update( this%SumOmega200, (F05*this%NPart-1)/RmUmpVpmuN )
 
         call Update( this%SumOmega010, this%Volume0 )
-        call Update( this%SumOmega020, (1.5*this%NPart-1)*(this%Volume0**2)/RmUmpVpmuN )
+        call Update( this%SumOmega020, (F05*this%NPart-1)*(this%Volume0**2)/RmUmpVpmuN )
 
-        call Update( this%SumOmega002, (this%NPart**2)*(1.5*this%NPart-1)/RmUmpVpmuN )
+        call Update( this%SumOmega002, (this%NPart**2)*(F05*this%NPart-1)/RmUmpVpmuN )
 
-        call Update( this%SumOmega101, this%NPart*(1.5*this%NPart-1)/RmUmpVpmuN )
-        call Update( this%SumOmega110, (1.5*this%NPart-1)*this%Volume0/RmUmpVpmuN )
-        call Update( this%SumOmega011, (1.5*this%NPart-1)*this%Volume0*this%NPart/RmUmpVpmuN )
+        call Update( this%SumOmega101, this%NPart*(F05*this%NPart-1)/RmUmpVpmuN )
+        call Update( this%SumOmega110, (F05*this%NPart-1)*this%Volume0/RmUmpVpmuN )
+        call Update( this%SumOmega011, (F05*this%NPart-1)*this%Volume0*this%NPart/RmUmpVpmuN )
 
         O000 = this%SumOmega000%Average
         O200 = this%SumOmega200%Average
@@ -10213,13 +10224,13 @@ componentLoop:       do i = 1, this%NRealComponents
         call Update( this%SumZero2, Zero**2 )
         call Update( this%SumVext, this%Volume0 )
         call Update( this%SumVext2, this%Volume0**2 )
-        call Update( this%SumN2pN, real( 1.5*this%NPart*(1.5*this%NPart+1), RK) )
-        call Update( this%SumNVmV, (1.5*this%NPart-1)*this%Volume0 )
-        call Update( this%SumNmN2, real((1-1.5*this%NPart)*this%NPart, RK) )
+        call Update( this%SumN2pN, real( F05*this%NPart*(F05*this%NPart+1), RK) )
+        call Update( this%SumNVmV, (F05*this%NPart-1)*this%Volume0 )
+        call Update( this%SumNmN2, real((1-F05*this%NPart)*this%NPart, RK) )
         call Update( this%SumNV, this%NPart*this%Volume0 )
 
-        Xi100 = -1.5*InvBeta*this%SumNPart%Average - this%SumZero%Average
-        Xi200 = InvBeta2*this%SumN2pN%Average + 3*InvBeta*this%SumZeroN%Average + this%SumZero2%Average
+        Xi100 = -F05*InvBeta*this%SumNPart%Average - this%SumZero%Average
+        Xi200 = InvBeta2*this%SumN2pN%Average + F*InvBeta*this%SumZeroN%Average + this%SumZero2%Average
         Xi010 = -Beta*this%SumVext%Average
         Xi020 = Beta2*this%SumVext2%Average
         Xi001 = Beta*this%SumNPart%Average
@@ -10256,10 +10267,6 @@ componentLoop:       do i = 1, this%NRealComponents
       call Update( this%SumAlphaPsm, AlphaP )
       call Update( this%SumCPsm, CP )
 
-      do i = 1, this%NComponents
-        pc => this%Component(i)
-        call Update( pc%SumFraction, pc%Fraction )
-      end do
     end if
 
     ! ! 2.) Combined sums
@@ -10390,11 +10397,18 @@ componentLoop:       do i = 1, this%NRealComponents
 
       BetaT = 1._RK/(this%Density*this%RefTemperature * (1._RK+2._RK*A01res+A02res))
 
-      call Update( this%SumCVsm, CV + 1.5 )
+      F = 0.0_RK
+      do i = 1, this%NRealComponents
+        pc => this%Component(i)
+        F = F + pc%Fraction * pc%Molecule%NDF ! ??? 
+      end do
+      F05 = 0.5 * F
+
+      call Update( this%SumCVsm, CV + F05 )
       call Update( this%SumGammaVsm, GammaV )
       call Update( this%SumBetaTsm, BetaT )
       call Update( this%SumAlphaPsm, BetaT*GammaV )
-      call Update( this%SumCPsm, CP + 2.5 )
+      call Update( this%SumCPsm, CP + F05 + 1 )
 
     end if
 
@@ -10501,11 +10515,18 @@ componentLoop:       do i = 1, this%NRealComponents
 
       BetaT = 1._RK/(this%Density*this%RefTemperature * (1._RK+2._RK*this%SumA01resI%Average+this%SumA02resI%Average))
 
-      call Update( this%SumCVsm, CV + 1.5 )
+      F = 0.0_RK
+      do i = 1, this%NRealComponents
+        pc => this%Component(i)
+        F = F + pc%Fraction * pc%Molecule%NDF ! ??? 
+      end do
+      F05 = 0.5 * F
+
+      call Update( this%SumCVsm, CV + F05 )
       call Update( this%SumGammaVsm, GammaV )
       call Update( this%SumBetaTsm, BetaT )
       call Update( this%SumAlphaPsm, BetaT*GammaV )
-      call Update( this%SumCPsm, CP + 2.5 )
+      call Update( this%SumCPsm, CP + F05 + 1 )
 
       !Entropy definition II
 
@@ -10575,11 +10596,18 @@ componentLoop:       do i = 1, this%NRealComponents
       H2       = this%SumConfEnthalpy2%Average
       HV       = this%SumConfEnthalpyV%Average
 
+      F = 0.0_RK
+      do i = 1, this%NRealComponents
+        pc => this%Component(i)
+        F = F + pc%Fraction * pc%Molecule%NDF ! ??? 
+      end do
+      F05 = 0.5 * F
+
       Z01 = -Beta*V
-      Z10 = -1.5*InvBeta - H/Numb
-      Z11 = (1.5*Numb-1._RK)*V + Beta*HV
+      Z10 = -F05*InvBeta - H/Numb
+      Z11 = (F05*Numb-1._RK)*V + Beta*HV
       Z02 = Beta2*V2
-      Z20 = 1.5*(1.5*Numb+1)*InvBeta2 + 3*InvBeta*H + H2/Numb
+      Z20 = F05*(F05*Numb+1)*InvBeta2 + F*InvBeta*H + H2/Numb
 
       call Update( this%SumG10, Z10 )
       call Update( this%SumG01, Z01 )
@@ -10631,12 +10659,19 @@ componentLoop:       do i = 1, this%NRealComponents
       HmUmpVInvV2= this%SumHmUmpVInvV2%Average*Numb*Numb
       V          = this%SumVolume%Average*Numb
 
-      O00 = HmUmpV / (1.5_RK*Numb)
+      F = 0.0_RK
+      do i = 1, this%NRealComponents
+        pc => this%Component(i)
+        F = F + pc%Fraction * pc%Molecule%NDF ! ??? 
+      end do
+      F05 = 0.5 * F
+
+      O00 = HmUmpV / (F05*Numb)
       O10 = 1._RK
       O01 = -V
-      O20 = (1.5_RK*Numb - 1._RK) * HmUmpVInv
-      O02 = (1.5_RK*Numb - 1._RK) * HmUmpVInvV2
-      O11 = -(1.5_RK*Numb - 1._RK) * HmUmpVInvV
+      O20 = (F05*Numb - 1._RK) * HmUmpVInv
+      O02 = (F05*Numb - 1._RK) * HmUmpVInvV2
+      O11 = -(F05*Numb - 1._RK) * HmUmpVInvV
 
       O00m1 = 1._RK/O00
       O00m2 = O00m1*O00m1
@@ -11830,11 +11865,17 @@ componentLoop:       do i = 1, this%NRealComponents
     type(TComponent), pointer :: pc
 
     real(RK) :: Average, Variance, dimensionFactor
-    real(RK) :: molmass, cpid
+    real(RK) :: molmass, k
+
+    k = 0.0
+    do i = 1, this%NRealComponents
+      pc => this%Component(i)
+      k = k + .5_RK * pc%Fraction * pc%Molecule%NDF
+    end do
 
     ! Cv
 
-    Average = this%SumCVsm%Average - 1.5_RK
+    Average = this%SumCVsm%Average - k
     Variance = this%SumCVsm%Variance
 
     dimensionFactor = kBoltzmann * NAvogadro
@@ -11871,7 +11912,7 @@ componentLoop:       do i = 1, this%NRealComponents
 
     ! CP
 
-    Average = this%SumCPsm%Average - 2.5_RK
+    Average = this%SumCPsm%Average - k - 1 
     Variance = this%SumCPsm%Variance
 
     dimensionFactor = kBoltzmann * NAvogadro
@@ -11881,12 +11922,10 @@ componentLoop:       do i = 1, this%NRealComponents
     ! Speed of Sound
 
     molmass = 0._RK
-    cpid = 0._RK
 
     do i = 1, this%NRealComponents
         pc => this%Component(i)
         molmass = molmass + pc%Fraction * pc%Molecule%Mass
-        cpid = cpid + .5_RK * pc%Fraction * pc%Molecule%NDF
     end do
 
     Average = SQRT( this%SumCPsm%Average / ( molmass*this%SumBetaTsm%Average &
