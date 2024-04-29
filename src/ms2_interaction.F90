@@ -1840,12 +1840,13 @@ contains
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
     real(RK)          :: A, b, a1, a2, am1, am2, C6, C8, C10, C12, C14, C16
-    real(RK)          :: Aux1, Aux2, Aux3, Aux4, Deriv1Factor, Deriv2Factor, dRepdR, d2RepdR2
+    real(RK)          :: Aux1, Aux2, Aux3, Aux4, Aux5, Aux6, Aux7, Deriv1Factor, Deriv2Factor, Deriv3Factor, dRepdR, d2RepdR2, d3RepdR3
     real(RK)          :: Rep, Attr6, Attr8, Attr10, Attr12, Attr14, Attr16
-    real(RK)          :: dEPotdRij, d2EpotdRij2
+    real(RK)          :: dEPotdRij, d2EpotdRij2, d3EpotdRij3
     real(RK)          :: Rij, RijInv, RijInv2, RijInv3, RijInv6, RijInv8, RijInv10
     real(RK)          :: bRij, bRij2, bRij3, bRij4, bRij6, bRij8, bRij10, bRij12, bRij14, bRij16
     real(RK)          :: ExpMinusbRij, F6, F8, F10, F12, F14, F16
+    real(RK)          :: dRepInt1, dRepInt2, dRepInt3
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
@@ -1868,6 +1869,7 @@ contains
     real(RK)          :: mueXi, mueYi, mueZi
     real(RK)          :: sitecorr, Plen2
     real(RK)          :: KappaRij, approx, Faktor, q
+    real(RK)          :: FeynKonst, beta, UFH, DUFHDR
     integer           :: N
     integer           :: s1, s2, j, k, i
                                     
@@ -1883,7 +1885,6 @@ contains
 
     ! Assign local variables
                                   
-                           
     Virial=0._RK
     VirialLocal = 1E33_RK
           
@@ -2000,8 +2001,10 @@ contains
           C12 = ptt%C12
           C14 = ptt%C14
           C16 = ptt%C16
+          FeynKonst = ptt%FeynKonst
           Deriv1Factor = ptt%Deriv1Factor
           Deriv2Factor = ptt%Deriv2Factor
+          Deriv3Factor = ptt%Deriv3Factor
           RShieldSquared = ptt%RShieldSquared
 
           ! Assign pointers to site positions
@@ -2080,14 +2083,46 @@ contains
               
             ! 1st derivative
 
-            Aux1 = -a1 - am1 * RijInv2 + 2 * ( a2 * Rij - am2 * RijInv3 )
-            dRepdR = -Aux1 * Rep
+            dRepInt1 = -a1 - am1 * RijInv2 + 2 * ( a2 * Rij - am2 * RijInv3 )
+            dRepdR = -dRepInt1 * Rep
 
             Aux2 = ( 6*Attr6 + 8*Attr8 + 10*Attr10 + 12*Attr12 + 14*Attr14 + 16*Attr16 ) * RijInv
 
             Aux3 = Deriv1Factor * ExpMinusbRij
 
             dEPotdRij =  dRepdR - Aux2 + Aux3
+
+            ! 2nd derivative
+
+            dRepInt2 = 2 * ( a2 + am1*RijInv3 + 3*am2*RijInv2*RijInv2 )
+            d2RepdR2 = -dRepInt1 * dRepdR + Rep * dRepInt2
+
+            Aux4 = ( 42*Attr6 + 72*Attr8 + 110*Attr10 + 156*Attr12 + 210*Attr14 + 272*Attr16 ) * RijInv2
+            Aux5 = Deriv2Factor * ExpMinusbRij * RijInv
+
+            d2EpotdRij2 = d2RepdR2 + b*Aux3 - Aux4 + Aux5
+
+            ! 3rd derivative
+
+            dRepInt3 = -6 * ( am1*RijInv2*RijInv2 + 4*am2*RijInv2*RijInv3 )
+            d3RepdR3 = -2 * dRepInt2 * dRepdR + dRepInt1 * d2RepdR2 + Rep * dRepInt3
+
+            Aux6 = ( 336*Attr6 + 720*Attr8 + 1320*Attr10 + 2184*Attr12 + 3360*Attr14 + 4896*Attr16 ) * RijInv3
+            Aux7 = RijInv2 * Deriv3Factor * ExpMinusbRij 
+
+            d3EpotdRij3 = d3RepdR3 - b*b*Aux3 - (b+RijInv)*Aux5 + Aux6-Aux7
+
+            ! Feynman-Hibbs
+
+            UFH = FeynKonst * FeynTemp * ( d2EpotdRij2 - 2*dEpotdRij*RijInv ) 
+
+            EPot = EPot + UFH 
+
+            DUFHDR = FeynKonst * FeynTemp * ( d3EpotdRij3 + 2*RijInv* ( d2EpotdRij2 + dEpotdRij*RijInv ) )
+
+            dEPotdRij = dEPotdRij - DUFHDR
+
+            ! Force 
 
             Fij = dEpotdRij * RijInv
                                    
@@ -2096,17 +2131,12 @@ contains
             FZij = Fij * RZij
             Virial = Virial + (PXij * FXij + PYij * FYij + PZij * FZij) * Third
 
-            ! 2nd derivative
-
-            d2RepdR2 = -Aux1 * dRepdR + Rep * 2 * ( a2 + am1*RijInv3 + 3*am2*RijInv2*RijInv2 )
-
-            Aux4 = ( 42*Attr6 + 72*Attr8 + 110*Attr10 + 156*Attr12 + 210*Attr14 + 272*Attr16 ) * RijInv2
-
-            d2EpotdRij2 = d2RepdR2 + b * Aux3 + Deriv2Factor * ExpMinusbRij * RijInv - Aux4
+            ! 2nd Virial 
 
             sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
 
             d2EpotdV2 = d2EpotdV2 + Ninth * ( -Fij * (sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) + d2EpotdRij2 * sitecorr*sitecorr) * RijSquared
+
 
           end do
         end do
@@ -3782,7 +3812,7 @@ subroutine TInteraction_Energy3BKr( this, np, BoxLength )
 
   p3b => this%Pot3BodyKr(1,1)
 
-  ! Potential paramters
+  ! Potential parameters
   CATM = p3b%CATM
   A0 = p3b%A0
   A2 = p3b%A2

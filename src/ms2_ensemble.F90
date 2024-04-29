@@ -1096,6 +1096,8 @@ contains
 
     if( .not. UseReducedUnits ) then
       this%RefTemperature = this%RefTemperature / UnitTemperature
+      ! only correct for isothermal ensembles; in adiabatic ensembles, FeynTemp has to be updated subsequently
+      FeynTemp = 1/this%RefTemperature
     end if
 
     ! Read pressure

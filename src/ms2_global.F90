@@ -521,6 +521,7 @@ module ms2_global
   real(RK), parameter :: kBoltzmann = 1.380658E-23_RK
   real(RK), parameter :: ElementaryCharge = 1.602177E-19_RK
   real(RK), parameter :: VacuumPermittivity = 8.854188E-12_RK
+  real(RK), parameter :: hplanck = 6.62606957E-34_RK
 
   ! Some physical units
   real(RK), parameter :: Angstroem = 1E-10_RK
@@ -566,6 +567,9 @@ module ms2_global
   real(RK) :: UnitCharge
   real(RK) :: UnitDipole
   real(RK) :: UnitQuadrupole
+
+  ! Temperature for Feynman Hibbs
+  real(RK) :: FeynTemp
 
   ! Gear corrector coefficients
   real(RK), parameter :: Gear20 = 3._RK / 20._RK
