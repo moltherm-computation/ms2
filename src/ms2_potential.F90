@@ -103,7 +103,8 @@ module ms2_potential
     type(TSiteTT), pointer   :: Site1, Site2
     real(RK)                   :: TT_A, TT_b, a1, a2, am1, am2
     real(RK)                   :: C6, C8, C10, C12, C14, C16
-    real(RK)                   :: Deriv1Factor, Deriv2Factor
+    real(RK)                   :: FeynKonst
+    real(RK)                   :: Deriv1Factor, Deriv2Factor, Deriv3Factor
     real(RK)                   :: RCutoffSquared
     real(RK)                   :: RShieldSquared
     real(RK)                   :: EPotCorr, VirialCorr, d2EpotdV2Corr, EPotTestCorr
@@ -2072,7 +2073,7 @@ loop2:  do j = 1, N2
     real(RK) :: Piminus23CF6, Piminus23CF8
     real(RK) :: Pi29CF6, Pi29CF8
     integer  :: i
-    real(RK) :: EpotCorr, Rij, Rik, Rjk, VirialCorr, d2EPotdR2, fun
+    real(RK) :: EpotCorr, Rij, Rik, Rjk, VirialCorr, d2EPotdR2, fun, M
 
 
     ! Construct potential
@@ -2080,6 +2081,7 @@ loop2:  do j = 1, N2
     this%Site2 => Molecule2%SiteTT(j2)
     this%SameComponent = i1 == i2
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
+    this%RCutoffSquared = RCutoff**2
 
     this%a1 = 2._RK * this%Site1%a1 * this%Site2%a1 / (this%Site1%a1 + this%Site2%a1)
     this%TT_A = (((this%Site1%tt_a * this%Site1%a1)**(1/this%Site1%a1) * &
@@ -2106,6 +2108,8 @@ loop2:  do j = 1, N2
         this%C12 = this%Site1%c12
         this%C14 = this%Site1%c14
         this%C16 = this%Site1%c16
+        M = Molecule1%mass * UnitMass * NAvogadro
+        this%FeynKonst = hplanck * hplanck * NAvogadro / ( 12 * Pi2 * Pi2 * M * UnitEnergy * UnitLength * UnitLength ) 
       else
         call Error( 'Extended TT potential is not implemented for mixtures.' )
       end if
@@ -2119,11 +2123,14 @@ loop2:  do j = 1, N2
 &                    + this%C10 * this%TT_b**11 * InvFac9 + this%C12 * this%TT_b**13 * InvFac11 &
 &                    + this%C14 * this%TT_b**15 * InvFac13 + this%C16 * this%TT_b**17 * InvFac15
 
+    this%Deriv3Factor = this%C6 * this%TT_b**7 * InvFac4 + this%C8 * this%TT_b**9 * InvFac6 &
+&                    + this%C10 * this%TT_b**11 * InvFac8 + this%C12 * this%TT_b**13 * InvFac10 &
+&                    + this%C14 * this%TT_b**15 * InvFac12 + this%C16 * this%TT_b**17 * InvFac14
+
 
     select case( TT68orEXT )
     case( 'TT68' ) !Case: TT68-Potential
       ! Calculate long-range corrections
-      this%RCutoffSquared = RCutoff**2
       tau1 = sqrt( sum( this%Site1%r(:)**2 ))
       tau2 = sqrt( sum( this%Site2%r(:)**2 ))
       tau = max( tau1, tau2 )
@@ -3758,11 +3765,13 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: A, b, a1, a2, am1, am2, C6, C8, C10, C12, C14, C16
+    real(RK)          :: A, b, a1, a2, am1, am2, C6, C8, C10, C12, C14, C16, FeynKonst
     real(RK)          :: Rep, Attr6, Attr8, Attr10, Attr12, Attr14, Attr16
     real(RK)          :: Rij, RijInv, RijInv2, RijInv3, RijInv6, RijInv8, RijInv10
     real(RK)          :: bRij, bRij2, bRij3, bRij4, bRij6, bRij8, bRij10, bRij12, bRij14, bRij16
     real(RK)          :: ExpMinusbRij, F6, F8, F10, F12, F14, F16
+    real(RK)          :: Aux2, Aux3, Aux4, Aux5, Deriv1Factor, Deriv2Factor, dRepdR, d2RepdR2
+    real(RK)          :: UFH, dRepInt1, dRepInt2, dEPotdRij, d2EpotdRij2
     real(RK)          :: EPotLocal
     integer           :: N2
     integer           :: i, j, k
@@ -3781,6 +3790,7 @@ loop1:do k = 1, this%NInCutoff(i)
     C12 = this%C12
     C14 = this%C14
     C16 = this%C16
+    FeynKonst = this%FeynKonst
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
 
@@ -3877,6 +3887,33 @@ loop1:  do k = 1, this%NInCutoff(i)
 
             EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
 
+            ! 1st derivative
+
+            dRepInt1 = -a1 - am1 * RijInv2 + 2 * ( a2 * Rij - am2 * RijInv3 )
+            dRepdR = -dRepInt1 * Rep
+
+            Aux2 = ( 6*Attr6 + 8*Attr8 + 10*Attr10 + 12*Attr12 + 14*Attr14 + 16*Attr16 ) * RijInv
+
+            Aux3 = Deriv1Factor * ExpMinusbRij
+
+            dEPotdRij =  dRepdR - Aux2 + Aux3
+
+            ! 2nd derivative
+
+            dRepInt2 = 2 * ( a2 + am1*RijInv3 + 3*am2*RijInv2*RijInv2 )
+            d2RepdR2 = -dRepInt1 * dRepdR + Rep * dRepInt2
+
+            Aux4 = ( 42*Attr6 + 72*Attr8 + 110*Attr10 + 156*Attr12 + 210*Attr14 + 272*Attr16 ) * RijInv2
+            Aux5 = Deriv2Factor * ExpMinusbRij * RijInv
+
+            d2EpotdRij2 = d2RepdR2 + b*Aux3 - Aux4 + Aux5
+
+            ! Feynman-Hibbs
+
+            UFH = FeynKonst * FeynTemp * ( d2EpotdRij2 - 2*dEpotdRij*RijInv ) 
+
+            EPotLocal = EPotLocal + UFH 
+
           end if
         end do loop1
         EPotTest(i) = EPotTest(i) + EPotLocal
@@ -3942,6 +3979,33 @@ loop2:  do j = 1, N2
 
             EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
 
+            ! 1st derivative
+
+            dRepInt1 = -a1 - am1 * RijInv2 + 2 * ( a2 * Rij - am2 * RijInv3 )
+            dRepdR = -dRepInt1 * Rep
+
+            Aux2 = ( 6*Attr6 + 8*Attr8 + 10*Attr10 + 12*Attr12 + 14*Attr14 + 16*Attr16 ) * RijInv
+
+            Aux3 = Deriv1Factor * ExpMinusbRij
+
+            dEPotdRij =  dRepdR - Aux2 + Aux3
+
+            ! 2nd derivative
+
+            dRepInt2 = 2 * ( a2 + am1*RijInv3 + 3*am2*RijInv2*RijInv2 )
+            d2RepdR2 = -dRepInt1 * dRepdR + Rep * dRepInt2
+
+            Aux4 = ( 42*Attr6 + 72*Attr8 + 110*Attr10 + 156*Attr12 + 210*Attr14 + 272*Attr16 ) * RijInv2
+            Aux5 = Deriv2Factor * ExpMinusbRij * RijInv
+
+            d2EpotdRij2 = d2RepdR2 + b*Aux3 - Aux4 + Aux5
+
+            ! Feynman-Hibbs
+
+            UFH = FeynKonst * FeynTemp * ( d2EpotdRij2 - 2*dEpotdRij*RijInv ) 
+
+            EPotLocal = EPotLocal + UFH 
+
           end if
         end do loop2
         EPotTest(i) = EPotTest(i) + EPotLocal
@@ -3975,14 +4039,12 @@ loop2:  do j = 1, N2
         this%Site2 => Molecule2%SiteTT(1)
         this%RCutoffSquared = RCutoff**2
         RShield = 2.2
-        RCutoffCube = 10000
+        RCutoffCube = (1.0*RCutoff)**3
         RShield = RShield * Angstroem
         RShield = RShield / UnitLength
-        RCutoffCube = RCutoffCube * Angstroem**3
-        RCutoffCube = RCutoffCube / UnitVolume
 
         this%RShieldSquared = RShield**2
-        this%RCubeSquared = RCutoffCube**2
+        this%RCubeSquared = RCutoffCube**2 
 
         ! ! Potential paramters
         this%CATM = 1615250
@@ -4396,7 +4458,7 @@ loop2:  do j = 1, N2
     ! Declare local variables
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK)          :: RijSquared, RikSquared, RjkSquared, RCutoffSquared, RShieldSquared
+    real(RK)          :: RijSquared, RikSquared, RjkSquared, RCutoffSquared, RShieldSquared, RCutoffCube
     real(RK)          :: Rij, Rik, Rjk, Rij5, Rik5, Rjk5
 
     real(RK)          :: RXi, RYi, RZi
@@ -4433,6 +4495,7 @@ loop2:  do j = 1, N2
     alpha = this%alpha
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
+    RCutoffCube = this%RCubeSquared
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -4486,39 +4549,41 @@ loop2:  do j = 1, N2
                 RZjk = RZij - RZik
                 RjkSquared = RXjk*RXjk + RYjk*RYjk + RZjk*RZjk
                 if ((RjkSquared > RShieldSquared) .and. (RjkSquared < RCutoffSquared)) then
-                  Rij = sqrt( RijSquared )
-                  Rik = sqrt( RikSquared )
-                  Rjk = sqrt( RjkSquared )
-                  Rij5 = Rij**5
-                  Rik5 = Rik**5
-                  Rjk5 = Rjk**5
-                  InvRij = 1 / Rij
-                  InvRik = 1 / Rik
-                  InvRjk = 1 / Rjk
-                  InvRij2 = InvRij * InvRij
-                  InvRik2 = InvRik * InvRik
-                  InvRjk2 = InvRjk * InvRjk
-                  cosThetai = RijSquared + RikSquared - RjkSquared ! A
-                  cosThetaj = RijSquared + RjkSquared - RikSquared ! B
-                  cosThetak = RikSquared + RjkSquared - RijSquared ! C
-                  cosThetaProd = cosThetai * cosThetaj * cosThetak
-                  Rijk = Rij * Rik * Rjk
-                  Rijk2 = Rijk * Rijk
-                  InvRijk2 = 1 / Rijk2
-                  FactorI = 1 + ThreeEight * cosThetaProd * InvRijk2
+                  if ( (RijSquared*RikSquared*RjkSquared) < RCutoffCube ) then
+                    Rij = sqrt( RijSquared )
+                    Rik = sqrt( RikSquared )
+                    Rjk = sqrt( RjkSquared )
+                    Rij5 = Rij**5
+                    Rik5 = Rik**5
+                    Rjk5 = Rjk**5
+                    InvRij = 1 / Rij
+                    InvRik = 1 / Rik
+                    InvRjk = 1 / Rjk
+                    InvRij2 = InvRij * InvRij
+                    InvRik2 = InvRik * InvRik
+                    InvRjk2 = InvRjk * InvRjk
+                    cosThetai = RijSquared + RikSquared - RjkSquared ! A
+                    cosThetaj = RijSquared + RjkSquared - RikSquared ! B
+                    cosThetak = RikSquared + RjkSquared - RijSquared ! C
+                    cosThetaProd = cosThetai * cosThetaj * cosThetak
+                    Rijk = Rij * Rik * Rjk
+                    Rijk2 = Rijk * Rijk
+                    InvRijk2 = 1 / Rijk2
+                    FactorI = 1 + ThreeEight * cosThetaProd * InvRijk2
 
-                  Rijk23 = Rijk**(TwoThird)
-                  A2Rijk23 = A2*Rijk23
-                  A4Rijk43 = A4*RijK23*Rijk23
-                  A6Rijk62 = A6*Rijk2
-                  A8Rijk83 = A8*Rijk2*Rijk23
-                  SumA2n = A0 + A2Rijk23 + A4Rijk43 + A6Rijk62 + A8Rijk83
-                  expAlphaR = exp( -alpha * ( Rij + Rjk + Rik ))
-                  CATMInvRijk3 = CATM / (Rijk**3)
-                  expSumA2n = expAlphaR * SumA2n
-                  FactorII = CATMInvRijk3 + expSumA2n
+                    Rijk23 = Rijk**(TwoThird)
+                    A2Rijk23 = A2*Rijk23
+                    A4Rijk43 = A4*RijK23*Rijk23
+                    A6Rijk62 = A6*Rijk2
+                    A8Rijk83 = A8*Rijk2*Rijk23
+                    SumA2n = A0 + A2Rijk23 + A4Rijk43 + A6Rijk62 + A8Rijk83
+                    expAlphaR = exp( -alpha * ( Rij + Rjk + Rik ))
+                    CATMInvRijk3 = CATM / (Rijk**3)
+                    expSumA2n = expAlphaR * SumA2n
+                    FactorII = CATMInvRijk3 + expSumA2n
 
-                  EpotLocal = EpotLocal + FactorI * FactorII
+                    EpotLocal = EpotLocal + FactorI * FactorII
+                  end if 
                 end if
               end if
             end if
