@@ -1796,6 +1796,8 @@ contains
     real(RK)          :: SigmaSquared
     real(RK)          :: Epsilon, Epsilon2, EpsilonMie_a, EpsilonMie_aF
     real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
+    logical           :: is_nHalf_integer, is_mHalf_integer
+    integer           :: intMie_nHalf, intMie_mHalf
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
     real(RK)          :: A, b, Alpha, C6, C8
@@ -1827,7 +1829,7 @@ contains
     real(RK)          :: sitecorr, Plen2
     real(RK)          :: KappaRij, approx, Faktor, q
     integer           :: N
-    integer           :: s1, s2, j, k, i
+    integer           :: s1, s2, j, k, i, l
                                     
 
     ! Zero energy
@@ -1883,7 +1885,10 @@ contains
           Mie_m1 = Mie_m+1._RK
           Mie_nHalf = pmie%Mie_nHalf
           Mie_mHalf = pmie%Mie_mHalf
-
+          is_nHalf_integer = pmie%is_nHalf_integer
+          is_mHalf_integer = pmie%is_mHalf_integer
+          intMie_nHalf = pmie%intMie_nHalf
+          intMie_mHalf = pmie%intMie_mHalf
                                  
           EpsilonMie_aF = pmie%EpsilonMie_aF
                 
@@ -1919,8 +1924,25 @@ contains
             PZij = PZij - anint( PZij )
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             RijSquaredInv = SigmaSquared / RijSquared
-            RijMie_nInv = RijSquaredInv**Mie_nHalf
-            RijMie_mInv = RijSquaredInv**Mie_mHalf
+
+            ! Check if Mie_nHalf/Mie_mHalf is integer to speed up calculation and avoid exponent calc.
+            if (is_nHalf_integer) then
+              RijMie_nInv = 1._RK
+              do l = 1, intMie_nHalf
+                RijMie_nInv = RijMie_nInv * RijSquaredInv
+              end do
+            else
+              RijMie_nInv = RijSquaredInv**Mie_nHalf
+            endif
+            if (is_mHalf_integer) then
+              RijMie_mInv = 1._RK
+              do l = 1, intMie_mHalf
+                RijMie_mInv = RijMie_mInv * RijSquaredInv
+              end do
+            else
+              RijMie_mInv = RijSquaredInv**Mie_mHalf
+            endif
+
             Mie_nRijMie_n = Mie_n * RijMie_nInv
             Mie_mRijMie_m = Mie_m * RijMie_mInv
             EPot = EPot + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
@@ -2987,6 +3009,10 @@ contains
           Mie_m1 = Mie_m+1._RK
           Mie_nHalf = pmie%Mie_nHalf
           Mie_mHalf = pmie%Mie_mHalf
+          is_nHalf_integer = pmie%is_nHalf_integer
+          is_mHalf_integer = pmie%is_mHalf_integer
+          intMie_nHalf = pmie%intMie_nHalf
+          intMie_mHalf = pmie%intMie_mHalf
 
           EpsilonMie_aF = pmie%EpsilonMie_aF
 
@@ -3030,8 +3056,25 @@ contains
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             if( RijSquared >= RCutoffSquaredScaled ) cycle
             RijSquaredInv = SigmaSquared / RijSquared
-            RijMie_nInv = RijSquaredInv**Mie_nHalf
-            RijMie_mInv = RijSquaredInv**Mie_mHalf
+            
+            ! Check if Mie_nHalf/Mie_mHalf is integer to speed up calculation and avoid exponent calc.
+            if (is_nHalf_integer) then
+              RijMie_nInv = 1._RK
+              do l = 1, intMie_nHalf
+                RijMie_nInv = RijMie_nInv * RijSquaredInv
+              end do
+            else
+              RijMie_nInv = RijSquaredInv**Mie_nHalf
+            endif
+            if (is_mHalf_integer) then
+              RijMie_mInv = 1._RK
+              do l = 1, intMie_mHalf
+                RijMie_mInv = RijMie_mInv * RijSquaredInv
+              end do
+            else
+              RijMie_mInv = RijSquaredInv**Mie_mHalf
+            endif
+
             Mie_nRijMie_n = Mie_n * RijMie_nInv
             Mie_mRijMie_m = Mie_m * RijMie_mInv
             EPot = EPot + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
@@ -3611,6 +3654,8 @@ end subroutine TInteraction_Energy
     real(RK)          :: SigmaSquared
     real(RK)          :: Epsilon, EpsilonMie_a
     real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf
+    logical           :: is_nHalf_integer, is_mHalf_integer
+    integer           :: intMie_nHalf, intMie_mHalf
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
     real(RK)          :: A, b, Alpha, C6, C8
@@ -3638,7 +3683,7 @@ end subroutine TInteraction_Energy
     real(RK)          :: mueXi, mueYi, mueZi
     real(RK)          :: KappaRij, approx, Faktor, q
     integer           :: N
-    integer           :: s1, s2, j, k
+    integer           :: s1, s2, j, k, l
 
     ! Zero energy
     this%EPotSVC(:)=0._RK
@@ -3681,6 +3726,10 @@ end subroutine TInteraction_Energy
           Mie_m1 = Mie_m+1._RK
           Mie_nHalf = pmie%Mie_nHalf
           Mie_mHalf = pmie%Mie_mHalf
+          is_nHalf_integer = pmie%is_nHalf_integer
+          is_mHalf_integer = pmie%is_mHalf_integer
+          intMie_nHalf = pmie%intMie_nHalf
+          intMie_mHalf = pmie%intMie_mHalf
 
           ! Assign pointers to site positions
           RX1 => pmie%Site1%RX
@@ -3713,8 +3762,25 @@ end subroutine TInteraction_Energy
             PZij = PZij - anint( PZij )
             RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
             RijSquaredInv = SigmaSquared / RijSquared
-            RijMie_nInv = RijSquaredInv**Mie_nHalf
-            RijMie_mInv = RijSquaredInv**Mie_mHalf
+
+            ! Check if Mie_nHalf/Mie_mHalf is integer to speed up calculation and avoid exponent calc.
+            if (is_nHalf_integer) then
+              RijMie_nInv = 1._RK
+              do l = 1, intMie_nHalf
+                RijMie_nInv = RijMie_nInv * RijSquaredInv
+              end do
+            else
+              RijMie_nInv = RijSquaredInv**Mie_nHalf
+            endif
+            if (is_mHalf_integer) then
+              RijMie_mInv = 1._RK
+              do l = 1, intMie_mHalf
+                RijMie_mInv = RijMie_mInv * RijSquaredInv
+              end do
+            else
+              RijMie_mInv = RijSquaredInv**Mie_mHalf
+            endif
+
             EPot(j) = EPot(j) + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
           end do
         end do

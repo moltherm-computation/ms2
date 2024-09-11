@@ -49,6 +49,8 @@ module ms2_potential
     type(TSiteMIEnm), pointer :: Site1, Site2
     real(RK)                  :: Sigma, Epsilon
     real(RK)                  :: Mie_n, Mie_m, Mie_a, Mie_nHalf, Mie_mHalf
+    logical                   :: is_nHalf_integer, is_mHalf_integer
+    integer                   :: intMie_nHalf, intMie_mHalf
     real(RK)                  :: RCutoffSquared, RCutoffSquaredScaled
     real(RK)                  :: EPotCorr, VirialCorr, d2EpotdV2Corr,EPotTestCorr
     logical                   :: SameComponent
@@ -553,6 +555,21 @@ contains
     this%Mie_nHalf = .5_RK * this%Mie_n
     this%Mie_mHalf = .5_RK * this%Mie_m
 
+    ! Determine if Mie_nHalf and Mie_mHalf are integers to later speed up simulation
+    ! Compare with a tolerance of 1E-12
+    this%is_nHalf_integer = (abs(this%Mie_nHalf - real(int(this%Mie_nHalf), kind=RK)) < 1E-12_RK)
+    this%is_mHalf_integer = (abs(this%Mie_mHalf - real(int(this%Mie_mHalf), kind=RK)) < 1E-12_RK)
+    if (this%is_nHalf_integer) then
+      this%intMie_nHalf = int(this%Mie_nHalf)
+    else
+      this%intMie_nHalf = 0._RK  ! Not needed
+    end if
+    if (this%is_mHalf_integer) then
+      this%intMie_mHalf = int(this%Mie_mHalf)
+    else
+      this%intMie_mHalf = 0._RK  ! Not needed
+    end if
+
     Pi2mie_a = Pi * 2._RK * this%Mie_a
     Piminus23mie_a = Pi * this%Mie_a * (-2._RK)/3._RK
     Pi29mie_a = Pi * this%Mie_a * (2._RK/9._RK)
@@ -904,6 +921,8 @@ contains
     real(RK)          :: SigmaSquared
     real(RK)          :: EpsilonMie_a, EpsilonMie_aF
     real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
+    logical           :: is_nHalf_integer, is_mHalf_integer
+    integer           :: intMie_nHalf, intMie_mHalf
     real(RK)          :: RCutoffSquared
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
@@ -918,7 +937,7 @@ contains
     real(RK)          :: forceTempY(1:this%Site2%NPart)
     real(RK)          :: forceTempZ(1:this%Site2%NPart)
     logical           :: SameComponent
-    integer           :: i, j, k, i1, j0, j1
+    integer           :: i, j, k, l, i1, j0, j1
 #if MPI_VER > 0
     integer           :: i0, N1, N2, ji
     logical           :: EvenN
@@ -969,6 +988,10 @@ contains
     Mie_m1 = Mie_m+1._RK
     Mie_nHalf = this%Mie_nHalf
     Mie_mHalf = this%Mie_mHalf
+    is_nHalf_integer = this%is_nHalf_integer
+    is_mHalf_integer = this%is_mHalf_integer
+    intMie_nHalf = this%intMie_nHalf
+    intMie_mHalf = this%intMie_mHalf
     RCutoffSquared = this%RCutoffSquaredScaled
 
 #if MPI_VER > 0
@@ -989,7 +1012,7 @@ contains
 !$OMP FIRSTPRIVATE(i0, N1, N2, ji, EvenN) &
 #endif
 !$OMP FIRSTPRIVATE(i1, j1) &
-!$OMP PRIVATE( i, j, k, j0) &
+!$OMP PRIVATE( i, j, k, l, j0) &
 !$OMP PRIVATE(sitecorr, EPotLocal1) &
 !$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi) &
 !$OMP PRIVATE(RXij, RYij, RZij, PXij, PYij, PZij) &
@@ -1041,8 +1064,25 @@ loop1:  do k = 1, this%NInCutoff(i)
           PZij = PZij - anint( PZij )
           RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           RijSquaredInv = SigmaSquared / RijSquared
-          RijMie_nInv = RijSquaredInv**Mie_nHalf
-          RijMie_mInv = RijSquaredInv**Mie_mHalf
+          
+          ! Check if Mie_nHalf/Mie_mHalf is integer to speed up calculation and avoid exponent calc.
+          if (is_nHalf_integer) then
+            RijMie_nInv = 1._RK
+            do l = 1, intMie_nHalf
+              RijMie_nInv = RijMie_nInv * RijSquaredInv
+            end do
+          else
+            RijMie_nInv = RijSquaredInv**Mie_nHalf
+          endif
+          if (is_mHalf_integer) then
+            RijMie_mInv = 1._RK
+            do l = 1, intMie_mHalf
+              RijMie_mInv = RijMie_mInv * RijSquaredInv
+            end do
+          else
+            RijMie_mInv = RijSquaredInv**Mie_mHalf
+          endif
+
           Mie_nRijMie_n = Mie_n * RijMie_nInv
           Mie_mRijMie_m = Mie_m * RijMie_mInv
           EPotLocal1 = RijMie_nInv - RijMie_mInv
@@ -1143,8 +1183,25 @@ loop3:  do j = j0, j1
           RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           if( RijSquared >= RCutoffSquared ) cycle loop3
           RijSquaredInv = SigmaSquared / RijSquared
-          RijMie_nInv = RijSquaredInv**Mie_nHalf
-          RijMie_mInv = RijSquaredInv**Mie_mHalf
+          
+          ! Check if Mie_nHalf/Mie_mHalf is integer to speed up calculation and avoid exponent calc.
+          if (is_nHalf_integer) then
+            RijMie_nInv = 1._RK
+            do l = 1, intMie_nHalf
+              RijMie_nInv = RijMie_nInv * RijSquaredInv
+            end do
+          else
+            RijMie_nInv = RijSquaredInv**Mie_nHalf
+          endif
+          if (is_mHalf_integer) then
+            RijMie_mInv = 1._RK
+            do l = 1, intMie_mHalf
+              RijMie_mInv = RijMie_mInv * RijSquaredInv
+            end do
+          else
+            RijMie_mInv = RijSquaredInv**Mie_mHalf
+          endif
+
           Mie_nRijMie_n = Mie_n * RijMie_nInv
           Mie_mRijMie_m = Mie_m * RijMie_mInv
           EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
@@ -1210,6 +1267,8 @@ loop3:  do j = j0, j1
     real(RK)          :: SigmaSquared
     real(RK)          :: EpsilonMie_a, EpsilonMie_aF
     real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
+    logical           :: is_nHalf_integer, is_mHalf_integer
+    integer           :: intMie_nHalf, intMie_mHalf
     real(RK)          :: RCutoffSquared
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
@@ -1221,7 +1280,7 @@ loop3:  do j = j0, j1
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
     real(RK)          :: d2EpotdV2Local, sitecorr
     logical           :: SameComponent
-    integer           :: i, j, k, i1, j0, j1
+    integer           :: i, j, k, l, i1, j0, j1
 #if MPI_VER > 0
     integer           :: i0, N1, N2, ji
     logical           :: EvenN
@@ -1316,7 +1375,7 @@ loop3:  do j = j0, j1
     d2EpotdV2Local= 0._RK
 
 
-!$OMP PARALLEL PRIVATE(i, j, k, i1, j0, j1) &
+!$OMP PARALLEL PRIVATE(i, j, k, l, i1, j0, j1) &
 !$OMP PRIVATE( RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1, FX2, FY2) &
 !$OMP PRIVATE(FZ2, SigmaSquared, EpsilonMie_a, EpsilonMie_aF, RCutoffSquared,EPotLocal1) &
@@ -1360,6 +1419,10 @@ loop3:  do j = j0, j1
     Mie_m1 = Mie_m+1._RK
     Mie_nHalf = this%Mie_nHalf
     Mie_mHalf = this%Mie_mHalf
+    is_nHalf_integer = this%is_nHalf_integer
+    is_mHalf_integer = this%is_mHalf_integer
+    intMie_nHalf = this%intMie_nHalf
+    intMie_mHalf = this%intMie_mHalf
     RCutoffSquared = this%RCutoffSquaredScaled
 
     ! Assign pointers
@@ -1517,8 +1580,25 @@ loop1:  do k = 1, this%NInCutoff(i)
           PZij = PZij - anint( PZij )
           RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           RijSquaredInv = SigmaSquared / RijSquared
-          RijMie_nInv = RijSquaredInv**Mie_nHalf
-          RijMie_mInv = RijSquaredInv**Mie_mHalf
+          
+          ! Check if Mie_nHalf/Mie_mHalf is integer to speed up calculation and avoid exponent calc.
+          if (is_nHalf_integer) then
+            RijMie_nInv = 1._RK
+            do l = 1, intMie_nHalf
+              RijMie_nInv = RijMie_nInv * RijSquaredInv
+            end do
+          else
+            RijMie_nInv = RijSquaredInv**Mie_nHalf
+          endif
+          if (is_mHalf_integer) then
+            RijMie_mInv = 1._RK
+            do l = 1, intMie_mHalf
+              RijMie_mInv = RijMie_mInv * RijSquaredInv
+            end do
+          else
+            RijMie_mInv = RijSquaredInv**Mie_mHalf
+          endif
+
           Mie_nRijMie_n = Mie_n * RijMie_nInv
           Mie_mRijMie_m = Mie_m * RijMie_mInv
           EPotLocal1 = RijMie_nInv - RijMie_mInv
@@ -1721,8 +1801,25 @@ loop3:  do j = j0, j1
           RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           if( RijSquared >= RCutoffSquared ) cycle loop3
           RijSquaredInv = SigmaSquared / RijSquared
-          RijMie_nInv = RijSquaredInv**Mie_nHalf
-          RijMie_mInv = RijSquaredInv**Mie_mHalf
+          
+          ! Check if Mie_nHalf/Mie_mHalf is integer to speed up calculation and avoid exponent calc.
+          if (is_nHalf_integer) then
+            RijMie_nInv = 1._RK
+            do l = 1, intMie_nHalf
+              RijMie_nInv = RijMie_nInv * RijSquaredInv
+            end do
+          else
+            RijMie_nInv = RijSquaredInv**Mie_nHalf
+          endif
+          if (is_mHalf_integer) then
+            RijMie_mInv = 1._RK
+            do l = 1, intMie_mHalf
+              RijMie_mInv = RijMie_mInv * RijSquaredInv
+            end do
+          else
+            RijMie_mInv = RijSquaredInv**Mie_mHalf
+          endif
+
           Mie_nRijMie_n = Mie_n * RijMie_nInv
           Mie_mRijMie_m = Mie_m * RijMie_mInv
           EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
@@ -1872,6 +1969,8 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: SigmaSquared
     real(RK)          :: EpsilonMie_a
     real(RK)          :: Mie_nHalf, Mie_mHalf
+    logical           :: is_nHalf_integer, is_mHalf_integer
+    integer           :: intMie_nHalf, intMie_mHalf
     real(RK)          :: RCutoffSquared
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
@@ -1882,7 +1981,7 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: RijSquared, RijSquaredInv, RijMie_nInv, RijMie_mInv
     real(RK)          :: EPotLocal
     integer           :: N2
-    integer           :: i, j, k
+    integer           :: i, j, k, l
 
     ! Assign local variables
     N2 = this%Site2%NPart
@@ -1890,6 +1989,10 @@ loop1:do k = 1, this%NInCutoff(i)
     EpsilonMie_a = this%EpsilonMie_a
     Mie_nHalf = this%Mie_nHalf
     Mie_mHalf = this%Mie_mHalf
+    is_nHalf_integer = this%is_nHalf_integer
+    is_mHalf_integer = this%is_mHalf_integer
+    intMie_nHalf = this%intMie_nHalf
+    intMie_mHalf = this%intMie_mHalf
     RCutoffSquared = this%RCutoffSquaredScaled
 
     ! Assign pointers
@@ -1910,7 +2013,7 @@ loop1:do k = 1, this%NInCutoff(i)
 !$OMP PRIVATE (RXi,RYi,RZi,PXi,PYi,PZi) &
 !$OMP PRIVATE (RXij,RYij,RZij,PXij,PYij,PZij) &
 !$OMP PRIVATE (RijSquared,RijSquaredInv,RijMie_nInv, RijMie_mInv) &
-!$OMP PRIVATE (EpotLocal,i,j,k)
+!$OMP PRIVATE (EpotLocal,i,j,k,l)
 
     if( CutoffMode .eq. CenterofMass ) then
 
@@ -1939,8 +2042,25 @@ loop1:  do k = 1, this%NInCutoff(i)
           RZij = RZij - anint( PZij )
           RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           RijSquaredInv = SigmaSquared / RijSquared
-          RijMie_nInv = RijSquaredInv**Mie_nHalf
-          RijMie_mInv = RijSquaredInv**Mie_mHalf
+          
+          ! Check if Mie_nHalf/Mie_mHalf is integer to speed up calculation and avoid exponent calc.
+          if (is_nHalf_integer) then
+            RijMie_nInv = 1._RK
+            do l = 1, intMie_nHalf
+              RijMie_nInv = RijMie_nInv * RijSquaredInv
+            end do
+          else
+            RijMie_nInv = RijSquaredInv**Mie_nHalf
+          endif
+          if (is_mHalf_integer) then
+            RijMie_mInv = 1._RK
+            do l = 1, intMie_mHalf
+              RijMie_mInv = RijMie_mInv * RijSquaredInv
+            end do
+          else
+            RijMie_mInv = RijSquaredInv**Mie_mHalf
+          endif
+          
           EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
         end do loop1
         EPotTest(i) = EPotTest(i) + EpsilonMie_a * EPotLocal
@@ -1967,8 +2087,25 @@ loop2:  do j = 1, N2
           RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           if( RijSquared >= RCutoffSquared ) cycle loop2
           RijSquaredInv = SigmaSquared / RijSquared
-          RijMie_nInv = RijSquaredInv**Mie_nHalf
-          RijMie_mInv = RijSquaredInv**Mie_mHalf
+          
+          ! Check if Mie_nHalf/Mie_mHalf is integer to speed up calculation and avoid exponent calc.
+          if (is_nHalf_integer) then
+            RijMie_nInv = 1._RK
+            do l = 1, intMie_nHalf
+              RijMie_nInv = RijMie_nInv * RijSquaredInv
+            end do
+          else
+            RijMie_nInv = RijSquaredInv**Mie_nHalf
+          endif
+          if (is_mHalf_integer) then
+            RijMie_mInv = 1._RK
+            do l = 1, intMie_mHalf
+              RijMie_mInv = RijMie_mInv * RijSquaredInv
+            end do
+          else
+            RijMie_mInv = RijSquaredInv**Mie_mHalf
+          endif
+
           EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
         end do loop2
         EPotTest(i) = EPotTest(i) + EpsilonMie_a * EPotLocal
