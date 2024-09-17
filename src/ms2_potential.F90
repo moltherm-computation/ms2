@@ -23,6 +23,10 @@
 #define TRANS 0
 #endif
 
+#ifndef SHIFTED
+#define SHIFTED 0
+#endif
+
 #ifndef OSMOP
 #define OSMOP 0
 #endif
@@ -55,6 +59,7 @@ module ms2_potential
     real(RK)                  :: SigmaSquared
     real(RK)                  :: EpsilonMie_a, EpsilonMie_aF
     real(RK)                  :: BoxlengthInv, BoxLengthThird
+    real(RK)                  :: shiftkonst
     integer, pointer, contiguous          :: NInCutoff(:), CutoffPartner(:, :)
     integer(KIND=8), pointer, contiguous          :: RDFSum(:)
 #if OSMOP == 2
@@ -566,6 +571,18 @@ contains
 
     ! Calculate long-range corrections
     this%RCutoffSquared = RCutoff**2
+
+#if SHIFTED == 1
+    this%EPotCorr = 0._RK
+    this%VirialCorr= 0._RK
+    this%d2EpotdV2Corr = 0._RK
+    this%EPotTestCorr = 0._RK
+
+    this%shiftkonst = (this%Sigma/RCutoff)**this%Mie_n-(this%Sigma/RCutoff)**this%Mie_m
+
+#else
+    this%shiftkonst = 0._RK
+
     tau1 = sqrt( sum( this%Site1%r(:)**2 ))
     tau2 = sqrt( sum( this%Site2%r(:)**2 ))
     tau = max( tau1, tau2 )
@@ -860,6 +877,8 @@ contains
 
     end function TISSpAbl
 
+! endif of SHIFTED
+#endif
 
   end subroutine TPotMIEMIE_Construct
 
@@ -913,6 +932,7 @@ contains
     real(RK)          :: FXij, FYij, FZij, Fij
     real(RK)          :: RijSquared, RijSquaredInv, RijMie_nInv, RijMie_mInv
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: shiftkonst
     real(RK)          :: d2EpotdV2Local, sitecorr
     real(RK)          :: forceTempX(1:this%Site2%NPart)
     real(RK)          :: forceTempY(1:this%Site2%NPart)
@@ -970,6 +990,7 @@ contains
     Mie_nHalf = this%Mie_nHalf
     Mie_mHalf = this%Mie_mHalf
     RCutoffSquared = this%RCutoffSquaredScaled
+    shiftkonst = this%shiftkonst
 
 #if MPI_VER > 0
     N1 = this%Site2%NPart
@@ -1045,7 +1066,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           RijMie_mInv = RijSquaredInv**Mie_mHalf
           Mie_nRijMie_n = Mie_n * RijMie_nInv
           Mie_mRijMie_m = Mie_m * RijMie_mInv
-          EPotLocal1 = RijMie_nInv - RijMie_mInv
+          EPotLocal1 = RijMie_nInv - RijMie_mInv - shiftkonst
           EPotLocal = EPotLocal + EPotLocal1
           Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
           FXij = Fij * RXij
@@ -1147,7 +1168,7 @@ loop3:  do j = j0, j1
           RijMie_mInv = RijSquaredInv**Mie_mHalf
           Mie_nRijMie_n = Mie_n * RijMie_nInv
           Mie_mRijMie_m = Mie_m * RijMie_mInv
-          EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
+          EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv - shiftkonst)
           Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
           FXij = Fij * RXij
           FYij = Fij * RYij
@@ -1219,6 +1240,7 @@ loop3:  do j = j0, j1
     real(RK)          :: FXij, FYij, FZij, Fij
     real(RK)          :: RijSquared, RijSquaredInv, RijMie_nInv, RijMie_mInv
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
+    real(RK)          :: shiftkonst
     real(RK)          :: d2EpotdV2Local, sitecorr
     logical           :: SameComponent
     integer           :: i, j, k, i1, j0, j1
@@ -1361,6 +1383,7 @@ loop3:  do j = j0, j1
     Mie_nHalf = this%Mie_nHalf
     Mie_mHalf = this%Mie_mHalf
     RCutoffSquared = this%RCutoffSquaredScaled
+    shiftkonst = this%shiftkonst
 
     ! Assign pointers
     RX1 => this%Site1%RX
@@ -1521,7 +1544,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           RijMie_mInv = RijSquaredInv**Mie_mHalf
           Mie_nRijMie_n = Mie_n * RijMie_nInv
           Mie_mRijMie_m = Mie_m * RijMie_mInv
-          EPotLocal1 = RijMie_nInv - RijMie_mInv
+          EPotLocal1 = RijMie_nInv - RijMie_mInv - shiftkonst
           EPotLocal = EPotLocal + EPotLocal1
           Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
           FXij = Fij * RXij
@@ -1725,7 +1748,7 @@ loop3:  do j = j0, j1
           RijMie_mInv = RijSquaredInv**Mie_mHalf
           Mie_nRijMie_n = Mie_n * RijMie_nInv
           Mie_mRijMie_m = Mie_m * RijMie_mInv
-          EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
+          EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv - shiftkonst)
           Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
           FXij = Fij * RXij
           FYij = Fij * RYij
@@ -1881,6 +1904,7 @@ loop1:do k = 1, this%NInCutoff(i)
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: RijSquared, RijSquaredInv, RijMie_nInv, RijMie_mInv
     real(RK)          :: EPotLocal
+    real(RK)          :: shiftkonst
     integer           :: N2
     integer           :: i, j, k
 
@@ -1891,6 +1915,7 @@ loop1:do k = 1, this%NInCutoff(i)
     Mie_nHalf = this%Mie_nHalf
     Mie_mHalf = this%Mie_mHalf
     RCutoffSquared = this%RCutoffSquaredScaled
+    shiftkonst = this%shiftkonst
 
     ! Assign pointers
     RX1 => this%Site1%RXTest
@@ -1941,7 +1966,7 @@ loop1:  do k = 1, this%NInCutoff(i)
           RijSquaredInv = SigmaSquared / RijSquared
           RijMie_nInv = RijSquaredInv**Mie_nHalf
           RijMie_mInv = RijSquaredInv**Mie_mHalf
-          EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
+          EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv - shiftkonst)
         end do loop1
         EPotTest(i) = EPotTest(i) + EpsilonMie_a * EPotLocal
       end do
@@ -1969,7 +1994,7 @@ loop2:  do j = 1, N2
           RijSquaredInv = SigmaSquared / RijSquared
           RijMie_nInv = RijSquaredInv**Mie_nHalf
           RijMie_mInv = RijSquaredInv**Mie_mHalf
-          EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv)
+          EPotLocal = EPotLocal + (RijMie_nInv - RijMie_mInv - shiftkonst)
         end do loop2
         EPotTest(i) = EPotTest(i) + EpsilonMie_a * EPotLocal
       end do

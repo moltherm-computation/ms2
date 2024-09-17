@@ -81,6 +81,18 @@ TRANS:
         OMP: [OMP=1, OMP=0]
   retry: 2
 
+SHIFTED:
+  extends: .standardJob
+  stage: flags
+  script:
+    - make all -j 3 $COMPILER $MPI $OMP SHIFTED=1
+  parallel:
+    matrix:
+      - COMPILER: [COMPILER=GNU, COMPILER=INTEL]
+        MPI: [MPI=1, MPI=0]
+        OMP: [OMP=1, OMP=0]
+  retry: 2
+
 MPIF08:
   extends: .standardJob
   variables:

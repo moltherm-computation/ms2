@@ -46,6 +46,10 @@
 #define TRANS 0
 #endif
 
+#ifndef SHIFTED
+#define SHIFTED 0
+#endif
+
 #ifndef OSMOP
 #define OSMOP 0
 #endif
@@ -1559,6 +1563,10 @@ contains
 #endif
 #if TRANS == 1
     write( IOBuffer, '(" TRANS=1")' )
+    call LogWriteNoAdvance
+#endif
+#if SHIFTED == 1
+    write( IOBuffer, '(" SHIFTED=1")' )
     call LogWriteNoAdvance
 #endif
 #if HBOND == 1

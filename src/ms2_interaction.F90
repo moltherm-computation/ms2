@@ -23,6 +23,10 @@
 #define TRANS 0
 #endif
 
+#ifndef SHIFTED
+#define SHIFTED 0
+#endif
+
 #if ARCH == 1 || defined __INTEL_COMPILER
 !DEC$ MESSAGE:'Compiling ms2_interaction.F90...'
 #endif
@@ -1791,6 +1795,7 @@ contains
     real(RK)          :: Virial
     real(RK)          :: d2EpotdV2
     real(RK)          :: EPotLocal
+    real(RK)          :: shiftkonst
     real(RK)          :: VirialLocal
     real(RK)          :: d2EpotdV2Local
     real(RK)          :: SigmaSquared
@@ -1884,6 +1889,7 @@ contains
           Mie_nHalf = pmie%Mie_nHalf
           Mie_mHalf = pmie%Mie_mHalf
 
+          shiftkonst = pmie%shiftkonst
                                  
           EpsilonMie_aF = pmie%EpsilonMie_aF
                 
@@ -1923,7 +1929,7 @@ contains
             RijMie_mInv = RijSquaredInv**Mie_mHalf
             Mie_nRijMie_n = Mie_n * RijMie_nInv
             Mie_mRijMie_m = Mie_m * RijMie_mInv
-            EPot = EPot + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
+            EPot = EPot + EpsilonMie_a * (RijMie_nInv - RijMie_mInv - shiftkonst)
 
             Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
             FXij = Fij * RXij
@@ -3034,7 +3040,7 @@ contains
             RijMie_mInv = RijSquaredInv**Mie_mHalf
             Mie_nRijMie_n = Mie_n * RijMie_nInv
             Mie_mRijMie_m = Mie_m * RijMie_mInv
-            EPot = EPot + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
+            EPot = EPot + EpsilonMie_a * (RijMie_nInv - RijMie_mInv - shiftkonst)
 
             Fij = EpsilonMie_aF * (Mie_nRijMie_n - Mie_mRijMie_m) * RijSquaredInv
             FXij = Fij * RXij
@@ -3612,6 +3618,7 @@ end subroutine TInteraction_Energy
     real(RK)          :: Epsilon, EpsilonMie_a
     real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
+    real(RK)          :: shiftkonst
     real(RK)          :: BoxLengthThird
     real(RK)          :: A, b, Alpha, C6, C8
     real(RK)          :: Rep, Attr1, Attr2, C6times56
@@ -3682,6 +3689,8 @@ end subroutine TInteraction_Energy
           Mie_nHalf = pmie%Mie_nHalf
           Mie_mHalf = pmie%Mie_mHalf
 
+          shiftkonst = pmie%shiftkonst
+
           ! Assign pointers to site positions
           RX1 => pmie%Site1%RX
           RY1 => pmie%Site1%RY
@@ -3715,7 +3724,7 @@ end subroutine TInteraction_Energy
             RijSquaredInv = SigmaSquared / RijSquared
             RijMie_nInv = RijSquaredInv**Mie_nHalf
             RijMie_mInv = RijSquaredInv**Mie_mHalf
-            EPot(j) = EPot(j) + EpsilonMie_a * (RijMie_nInv - RijMie_mInv)
+            EPot(j) = EPot(j) + EpsilonMie_a * (RijMie_nInv - RijMie_mInv - shiftkonst)
           end do
         end do
       end do
