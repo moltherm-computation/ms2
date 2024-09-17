@@ -15,6 +15,9 @@ SPME     ?= 0
 MPI      ?= 0
 OMP      ?= 0
 SP       ?= 0
+# Use this option to enable shift of potential, e.g. for LJTS
+# Shift is calculated automatically using the cutoff in the .par file
+SHIFTED  ?= 0
 
 PROG     = ms2
 PROG     :=  $(PROG)_$(COMPILER)
@@ -52,6 +55,9 @@ endif
 ifeq ($(SP),1)
 $(info compiling Single Precision)
 endif
+ifeq ($(SHIFTED),1)
+$(info SHIFTED enabled)
+endif
 #
 
 F90FLAGS = $(F90FLAGS_$(TARGET))
@@ -86,6 +92,11 @@ endif
 ifeq ($(TRANS),1)
   CPPFLAGS += -DTRANS
   PROG     := $(PROG)_trans
+endif
+
+ifeq ($(SHIFTED),1)
+  CPPFLAGS += -DSHIFTED
+  PROG     := $(PROG)_shifted
 endif
 
 ifeq ($(OSMOP),1)
