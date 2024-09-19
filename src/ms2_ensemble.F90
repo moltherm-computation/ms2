@@ -5130,6 +5130,10 @@ xloop:do i = 1, NCells1dim(1)
         Reference= 2._RK * (this%RefEnthalpy*this%NPart - this%Epot - this%RefPressure * this%Volume0) / real (this%NDF, RK)
       end if
 
+      if( Reference < 0._RK ) then 
+        Reference = this%RefTemperature
+      end if
+
       ! Rescale velocities
       if( rescale ) then
       scale = sqrt( Reference / this%Temperature )
