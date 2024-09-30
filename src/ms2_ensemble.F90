@@ -2946,6 +2946,11 @@ contains
           call Construct( this%SumA30resII, .true. )
           call Construct( this%SumA21resII, .true. )
           call Construct( this%SumA12resII, .true. )
+          call Construct( this%SumS10, .true. )
+          call Construct( this%SumS01, .true. )
+          call Construct( this%SumS11, .true. )
+          call Construct( this%SumS20, .true. )
+          call Construct( this%SumS02, .true. )
         elseif ( EnsembleType .eq. EnsembleTypeNPT ) then
           call Construct( this%SumConfEnthalpyTot, .false. )
           call Construct( this%SumConfEnthalpy2, .false. )
@@ -3237,6 +3242,11 @@ contains
         call Destruct( this%SumA30resII )
         call Destruct( this%SumA21resII )
         call Destruct( this%SumA12resII )
+        call Destruct( this%SumS10 )
+        call Destruct( this%SumS01 )
+        call Destruct( this%SumS11 )
+        call Destruct( this%SumS02 )
+        call Destruct( this%SumS20 )
       elseif ( EnsembleType .eq. EnsembleTypeNPT ) then
         call Destruct( this%SumConfEnthalpyTot )
         call Destruct( this%SumConfEnthalpy2 )
@@ -7662,8 +7672,8 @@ componentLoop:       do i = 1, this%NRealComponents
     integer                   :: i, np, j
     real(RK)                  :: s
     real(RK)                  :: TotalChemPot, NewTheta
-    real(RK)                  :: acceptance, StateAlpha, StateBeta
-    real(RK)                  :: Gamma, N, k, Fac_I, Fac_II
+    real(RK)                  :: accept, StateAlpha, StateBeta
+    real(RK)                  :: Gamma, kN, k, Fac_I, Fac_II
 #if MPI_VER > 0
     real(RK)                  :: EPotInsAll, EPotOldAll
 #endif
@@ -7727,10 +7737,10 @@ componentLoop:       do i = 1, this%NRealComponents
 
     ! Gamma-Function
     j = pc%Molecule%NDF
-    N = this%Npart - 1
-    Fac_I = (k * N - 2) / (k * N + j - 2)
-    Fac_II = (2 * exp(1._RK)) / (k * N + j - 2)
-    Fac_I = Fac_I**(k * N - 1)
+    kN = k * (this%Npart - 1)
+    Fac_I = kN / ( kN + j )
+    Fac_II = (2 * exp(1._RK)) / ( kN + j )
+    Fac_I = Fac_I**(kN - 1)
     Fac_II = Fac_II**j
     Gamma = sqrt( Fac_I * Fac_II )
     Gamma = Gamma/(this%Temperature**(j*0.5))
@@ -7755,9 +7765,9 @@ componentLoop:       do i = 1, this%NRealComponents
 
     end if
 
-    acceptance =  NewTheta * ((StateBeta)**(0.5*j)) * ( StateBeta/StateAlpha )**((real(this%NDF, RK)-2)/2._RK)
+    accept =  NewTheta * ((StateBeta)**(0.5*j)) * ( StateBeta/StateAlpha )**((real(this%NDF, RK)-2)/2._RK)
 
-    if( rnd( 0._RK, 1._RK ) .lt. ( Gamma * acceptance * this%Volume0 / np )) then
+    if( rnd( 0._RK, 1._RK ) .lt. ( Gamma * accept * this%Volume0 / np )) then
       ! Accept Insertion
       this%NInsertSuccesses = this%NInsertSuccesses + 1
       ! Update density
@@ -7946,10 +7956,10 @@ componentLoop:       do i = 1, this%NRealComponents
     ! Declare local variables
     real(RK)                    :: EPotDel, EPot
     type(TComponent), pointer   :: pc
-    real(RK)                    :: acceptance, StateAlpha, StateBeta
-    real(RK)                    :: Gamma, N, Fac_I, Fac_II
+    real(RK)                    :: accept, StateAlpha, StateBeta
+    real(RK)                    :: Gamma, kN, k, Fac_I, Fac_II
     real(RK)                    :: TotalChemPot, NewTheta
-    integer                     :: i , j, k
+    integer                     :: i , j
 
     ! Assign local variables
     pc => this%Component(nc)
@@ -7988,10 +7998,10 @@ componentLoop:       do i = 1, this%NRealComponents
 
     ! Gamma-Function
     j = pc%Molecule%NDF
-    N = this%Npart
-    Fac_I = (k * N - 2) / (k * N - j - 2)
-    Fac_II = (k * N - j - 2) / (2 * exp(1._RK))
-    Fac_I = Fac_I**(k * N - 1)
+    kN = k * this%Npart
+    Fac_I = kN / ( kN - j )
+    Fac_II = ( kN - j ) / (2 * exp(1._RK))
+    Fac_I = Fac_I**(kN - 1)
     Fac_II = Fac_II**j
     Gamma = sqrt( Fac_I * Fac_II )
     Gamma = Gamma*(this%Temperature**(j*0.5))
@@ -8016,9 +8026,9 @@ componentLoop:       do i = 1, this%NRealComponents
 
     end if
 
-    acceptance = NewTheta * ( StateBeta/StateAlpha )**((real(this%NDF, RK)-2)/2._RK) / ((StateBeta)**(0.5*j))
+    accept = NewTheta * ( StateBeta/StateAlpha )**((real(this%NDF, RK)-2)/2._RK) / ((StateBeta)**(0.5*j))
     ! Apply acceptance criterion
-    if( rnd( 0._RK, 1._RK ) .lt. ( Gamma * acceptance * this%Density * pc%Fraction )) then
+    if( rnd( 0._RK, 1._RK ) .lt. ( Gamma * accept * this%Density * pc%Fraction )) then
       ! Accept Deletion
       this%NDeleteSuccesses = this%NDeleteSuccesses + 1
       call RemoveParticle( pc, np )
@@ -8064,7 +8074,7 @@ componentLoop:       do i = 1, this%NRealComponents
     real(RK) :: UIntra, EVirialintra
     logical  :: accepted
     real(RK) :: EPot, d2EdV2, Virial
-    real(RK) :: TotalChemPot, acceptance, NewTheta, StateAlpha, StateBeta
+    real(RK) :: TotalChemPot, accept, NewTheta, StateAlpha, StateBeta
     integer  :: i
 
     ! Update number of resizing attempts
@@ -8170,9 +8180,9 @@ componentLoop:       do i = 1, this%NRealComponents
         NewTheta = 1._RK
       end if
 
-      acceptance = NewTheta * (( StateBeta/StateAlpha )**((real (this%NDF, RK)-2._RK)/2._RK)) * ((this%Volume0 / VolumeOld)**(real (this%NPart-1)))
+      accept = NewTheta * (( StateBeta/StateAlpha )**((real (this%NDF, RK)-2._RK)/2._RK)) * ((this%Volume0 / VolumeOld)**(real (this%NPart-1)))
 
-      if( acceptance .ge. rnd( 0._RK, 1._RK ) ) then
+      if( accept .ge. rnd( 0._RK, 1._RK ) ) then
         ! Accept volume change
         this%Temperature = 2._RK * StateBeta / real (this%NDF, RK)
         this%NResizeSuccesses = this%NResizeSuccesses + 1
@@ -9841,6 +9851,11 @@ componentLoop:       do i = 1, this%NRealComponents
           call Reset( this%SumA30resII )
           call Reset( this%SumA21resII )
           call Reset( this%SumA12resII )
+          call Reset( this%SumS10 )
+          call Reset( this%SumS01 )
+          call Reset( this%SumS11 )
+          call Reset( this%SumS02 )
+          call Reset( this%SumS20 )
         elseif ( EnsembleType .eq. EnsembleTypeNPT ) then
           call Reset( this%SumConfEnthalpyTot )
           call Reset( this%SumConfEnthalpy2 )
@@ -10474,6 +10489,12 @@ componentLoop:       do i = 1, this%NRealComponents
       S21 = 2._RK*O00m3*O01       -O00m2*O01*O20-2._RK*O00m2*O11+O00m1*O21
       S30 = 2._RK*O00m3     -3._RK*O00m2*O20          +O00m1*O30
 
+      call Update( this%SumS10, S10 )
+      call Update( this%SumS01, S01/this%NPart )
+      call Update( this%SumS11, S11 )
+      call Update( this%SumS02, S02/this%NPart )
+      call Update( this%SumS20, S20 )
+
       S20m1 = 1._RK/S20
       S20m2 = S20m1*S20m1
       S20m3 = S20m2*S20m1
@@ -10693,9 +10714,9 @@ componentLoop:       do i = 1, this%NRealComponents
       S20m2 = S20m1*S20m1
 
       call Update( this%SumS10, S10 )
-      call Update( this%SumS01, S01 )
+      call Update( this%SumS01, S01/this%NPart )
       call Update( this%SumS11, S11 )
-      call Update( this%SumS02, S02 )
+      call Update( this%SumS02, S02/this%NPart )
       call Update( this%SumS20, S20 )
 
       CV = ( 1._RK + ( O00*(O11-O20*O01)**2 ) / &
@@ -12215,6 +12236,11 @@ componentLoop:       do i = 1, this%NRealComponents
         call Error( this%SumA30resII )
         call Error( this%SumA21resII )
         call Error( this%SumA12resII )
+        call Error( this%SumS10 )
+        call Error( this%SumS01 )
+        call Error( this%SumS11 )
+        call Error( this%SumS02 )
+        call Error( this%SumS20 )
       elseif ( EnsembleType .eq. EnsembleTypeNVT ) then
         call Error( this%SumA10resI )
         call Error( this%SumA01resI )
@@ -12870,6 +12896,16 @@ componentLoop:       do i = 1, this%NRealComponents
           call writeAverageAndVariance(this%SumA21resII, 'A21', this%errorsFile)
 
           call writeAverageAndVariance(this%SumA12resII, 'A12', this%errorsFile)
+
+          call writeAverageAndVariance(this%SumS10, "S10", this%errorsFile)
+
+          call writeAverageAndVariance(this%SumS01, "S01", this%errorsFile)
+    
+          call writeAverageAndVariance(this%SumS20, "S20", this%errorsFile)
+    
+          call writeAverageAndVariance(this%SumS02, "S02", this%errorsFile)
+    
+          call writeAverageAndVariance(this%SumS11, "S11", this%errorsFile)
 
       end if
 
@@ -14509,12 +14545,12 @@ end if
 
       call writeStatisticalAnalogues(this)
 
-      ! J000
-      Average = - this%SumPressure%Average / (this%RefTemperature*this%RefDensity)
-      Variance = - this%SumPressure%Variance / (this%RefTemperature*this%RefDensity)
-      write( IOBuffer, '("J000", T29, "Dimensionless: ", 2F20.9)' ) Average, Variance
-      call FileWrite(this%errorsFile)
-      call FileWriteBlank(this%errorsFile)
+      ! ! J000
+      ! Average = - this%SumPressure%Average / (this%RefTemperature*this%RefDensity)
+      ! Variance = - this%SumPressure%Variance / (this%RefTemperature*this%RefDensity)
+      ! write( IOBuffer, '("J000", T29, "Dimensionless: ", 2F20.9)' ) Average, Variance
+      ! call FileWrite(this%errorsFile)
+      ! call FileWriteBlank(this%errorsFile)
 
       call writeAverageAndVariance(this%SumP100, "J100", this%errorsFile, .true.)
 
@@ -20441,6 +20477,11 @@ end if
             call RestartSave( this%SumA30resII )
             call RestartSave( this%SumA21resII )
             call RestartSave( this%SumA12resII )
+            call RestartSave( this%SumS10 )
+            call RestartSave( this%SumS01 )
+            call RestartSave( this%SumS11 )
+            call RestartSave( this%SumS02 )
+            call RestartSave( this%SumS20 )
           elseif ( EnsembleType .eq. EnsembleTypeNPT ) then
             call RestartSave( this%SumConfEnthalpyTot )
             call RestartSave( this%SumConfEnthalpy2 )
@@ -21252,6 +21293,11 @@ if( RootProc .and. this%CorrfunMode ) then
         call RestartRead( this%SumA30resII )
         call RestartRead( this%SumA21resII )
         call RestartRead( this%SumA12resII )
+        call RestartRead( this%SumS10 )
+        call RestartRead( this%SumS01 )
+        call RestartRead( this%SumS11 )
+        call RestartRead( this%SumS02 )
+        call RestartRead( this%SumS20 )
       elseif ( EnsembleType .eq. EnsembleTypeNPT ) then
         call RestartRead( this%SumConfEnthalpyTot )
         call RestartRead( this%SumConfEnthalpy2 )
