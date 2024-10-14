@@ -10030,6 +10030,9 @@ componentLoop:       do i = 1, this%NRealComponents
       do i = 1, this%NComponents
         TotalChemPot = TotalChemPot + this%Component(i)%Chempot * this%Component(i)%Fraction
       end do
+
+      Numb    = real( this%SumNPart%Average, RK )
+      specv   = 1._RK/this%RefDensity
     
       if( EnsembleType .eq. EnsembleTypeGE .or. EnsembleType .eq. EnsembleTypeMUVT ) then
 
@@ -10051,9 +10054,7 @@ componentLoop:       do i = 1, this%NRealComponents
         Beta3   = Beta*Beta2
         InvBeta = this%RefTemperature
         InvBeta2 = InvBeta*InvBeta
-        specv   = 1._RK/this%RefDensity
         InvVol  = this%RefDensity
-        Numb    = real( this%SumNPart%Average, RK )
         Numb2   = real( this%SumNPart2%Average, RK )
         Numb3   = real( this%SumNPart3%Average, RK )
         NU      = this%SumNPartEPot%Average
@@ -10078,15 +10079,15 @@ componentLoop:       do i = 1, this%NRealComponents
         Psi011res = beta*InvVol*Numb2-Beta2*NdUdV
         Psi110res = factor*InvVol*Numb2-Beta*factor*NdUdV-InvVol*NU-dUdV+Beta*UdUdV
 
-        call Update( this%SumP100, Psi100res )
-        call Update( this%SumP010, Psi010res )
-        call Update( this%SumP001, Psi001res )
-        call Update( this%SumP200, Psi200res-Psi100res**2 )
-        call Update( this%SumP020, Psi020res-Psi010res**2 )
-        call Update( this%SumP002, Psi002res-Psi001res**2 )
-        call Update( this%SumP110, Psi110res-Psi100res*Psi010res )
-        call Update( this%SumP101, Psi101res-Psi100res*Psi001res )
-        call Update( this%SumP011, Psi011res-Psi010res*Psi001res )
+        call Update( this%SumP100, Psi100res/Numb )
+        call Update( this%SumP010, Psi010res/Numb )
+        call Update( this%SumP001, Psi001res/Numb )
+        call Update( this%SumP200, (Psi200res-Psi100res**2)/Numb )
+        call Update( this%SumP020, (Psi020res-Psi010res**2)/Numb )
+        call Update( this%SumP002, (Psi002res-Psi001res**2)/Numb )
+        call Update( this%SumP110, (Psi110res-Psi100res*Psi010res)/Numb )
+        call Update( this%SumP101, (Psi101res-Psi100res*Psi001res)/Numb )
+        call Update( this%SumP011, (Psi011res-Psi010res*Psi001res)/Numb )
 
         CV = ( Beta2*this%SumP200%Average - ( (this%SumP001%Average - Beta*this%SumP101%Average)**2 )&
         &           /this%SumP002%Average )/real( this%SumNPart%Average, RK )
@@ -10107,7 +10108,6 @@ componentLoop:       do i = 1, this%NRealComponents
         LmUpmuN = this%RefHill - this%Epot + TotalChemPot * this%NPart
         InvVol  = this%RefDensity
         dUdV = -this%Density*this%Virial
-        specv   = 1._RK/this%RefDensity
         InvBeta = this%RefTemperature
 
         call Update( this%SumOmega000, 2*LmUpmuN/(F*this%NPart) )
@@ -10139,13 +10139,13 @@ componentLoop:       do i = 1, this%NRealComponents
 
         call Update( this%SumP100, 1/O000 )
         call Update( this%SumP200, (O200-1/O000)/O000 )
-        call Update( this%SumP010, O010/O000 )
-        call Update( this%SumP020, (O020-O010*O010/O000)/O000 )
-        call Update( this%SumP001, O001/O000 )
-        call Update( this%SumP002, (O002-O001*O001/O000)/O000 )
+        call Update( this%SumP010, (O010/O000)/Numb )
+        call Update( this%SumP020, ((O020-O010*O010/O000)/O000)/Numb )
+        call Update( this%SumP001, (O001/O000)/Numb )
+        call Update( this%SumP002, ((O002-O001*O001/O000)/O000)/Numb )
         call Update( this%SumP110, (O110-O010/O000)/O000 )
         call Update( this%SumP101, (O101-O001/O000)/O000 )
-        call Update( this%SumP011, (O011-O010*O001/O000)/O000 ) 
+        call Update( this%SumP011, ((O011-O010*O001/O000)/O000)/Numb ) 
  
         dTdL = 1 - O000*O200
         dTdV = O010 - O000*O110
@@ -10157,11 +10157,11 @@ componentLoop:       do i = 1, this%NRealComponents
         dNdV = O011 - O001*O110
         dNdmu = O002 - O001*O101
 
-        CV = (dNdmu-this%SumNPart%Average*dNdL ) / ( this%SumNPart%Average*( dTdL*dNdmu - dNdL*dTdmu))
+        CV = (dNdmu-Numb*dNdL ) / ( Numb*( dTdL*dNdmu - dNdL*dTdmu))
 
-        GammaV = ( dpdL*dNdmu - dpdmu*dNdL ) / ( this%SumNPart%Average*( dTdL*dNdmu-dTdmu*dNdL ) )
+        GammaV = ( dpdL*dNdmu - dpdmu*dNdL ) / ( Numb*( dTdL*dNdmu-dTdmu*dNdL ) )
 
-        BetaT = -this%SumNPart%Average*InvVol / ( dpdV &
+        BetaT = -Numb*InvVol / ( dpdV &
 &               -dpdL*( dTdV*dNdmu-dTdmu*dNdV ) / ( dTdL*dNdmu-dTdmu*dNdL ) &
 &               +dpdmu*( dTdV*dNdL-dTdL*dNdV ) / ( dTdL*dNdmu-dTdmu*dNdL ) )
 
@@ -10172,7 +10172,6 @@ componentLoop:       do i = 1, this%NRealComponents
       else if( EnsembleType .eq. EnsembleTypeMUPR ) then
 
         RmUmpVpmuN = this%RefRay - this%Epot - this%Refpressure * this%Volume0 + TotalChemPot * this%NPart
-        specv   = 1._RK/this%RefDensity
 
         call Update( this%SumOmega000, 2*RmUmpVpmuN/(F*this%NPart) )
         call Update( this%SumOmega200, (F05*this%NPart-1)/RmUmpVpmuN )
@@ -10198,13 +10197,13 @@ componentLoop:       do i = 1, this%NRealComponents
 
         call Update( this%SumP100, 1/O000 )
         call Update( this%SumP200, (O200-1/O000)/O000 )
-        call Update( this%SumP010, O010/O000 )
-        call Update( this%SumP020, (O020-O010*O010/O000)/O000 )
-        call Update( this%SumP001, O001/O000 )
-        call Update( this%SumP002, (O002-O001*O001/O000)/O000 )
+        call Update( this%SumP010, (O010/O000)/Numb )
+        call Update( this%SumP020, ((O020-O010*O010/O000)/O000)/Numb )
+        call Update( this%SumP001, (O001/O000)/Numb )
+        call Update( this%SumP002, ((O002-O001*O001/O000)/O000)/Numb )
         call Update( this%SumP110, (O110-O010/O000)/O000 )
         call Update( this%SumP101, (O101-O001/O000)/O000 )
-        call Update( this%SumP011, (O011-O010*O001/O000)/O000 ) 
+        call Update( this%SumP011, ((O011-O010*O001/O000)/O000)/Numb ) 
 
         dTdR = 1 - O000*O200
         dTdp = O010 - O000*O110
@@ -10234,7 +10233,6 @@ componentLoop:       do i = 1, this%NRealComponents
         Beta2   = Beta*Beta
         InvBeta = this%RefTemperature
         InvBeta2 = InvBeta*InvBeta
-        specv   = 1._RK/this%RefDensity
 
         call Update( this%SumNPart2, real( this%NPart, RK )**2 )
         call Update( this%SumZero, Zero )
@@ -10258,15 +10256,15 @@ componentLoop:       do i = 1, this%NRealComponents
         Xi101 = this%SumNmN2%Average - Beta*this%SumZeroN%Average
         Xi011 = -Beta2*this%SumNV%Average
 
-        call Update( this%SumP100, Xi100 )
-        call Update( this%SumP200, Xi200-Xi100*Xi100 )
-        call Update( this%SumP010, Xi010 )
-        call Update( this%SumP020, Xi020-Xi010*Xi010 )
-        call Update( this%SumP001, Xi001 )
-        call Update( this%SumP002, Xi002-Xi001*Xi001 )
-        call Update( this%SumP110, Xi110-Xi100*Xi010 )
-        call Update( this%SumP101, Xi101-Xi100*Xi001 )
-        call Update( this%SumP011, Xi011-Xi001*Xi010 ) 
+        call Update( this%SumP100, Xi100/Numb )
+        call Update( this%SumP200, (Xi200-Xi100*Xi100)/Numb )
+        call Update( this%SumP010, Xi010/Numb )
+        call Update( this%SumP020, (Xi020-Xi010*Xi010)/Numb )
+        call Update( this%SumP001, Xi001/Numb )
+        call Update( this%SumP002, (Xi002-Xi001*Xi001)/Numb )
+        call Update( this%SumP110, (Xi110-Xi100*Xi010)/Numb )
+        call Update( this%SumP101, (Xi101-Xi100*Xi001)/Numb )
+        call Update( this%SumP011, (Xi011-Xi001*Xi010)/Numb ) 
 
         CP = (Beta2*(Xi200-Xi100**2) - ((Xi001-Beta*(Xi101-Xi100*Xi001))**2) / (Xi002-Xi001**2)) / this%SumNPart%Average
 
