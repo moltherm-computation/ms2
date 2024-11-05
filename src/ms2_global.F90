@@ -60,7 +60,7 @@
 
 module ms2_global
 
-#if MPI_VER > 0 && defined(MPI_USE_MODULE)
+#if MPI_VER > 0
   use mpi_f08
 #endif
 
@@ -88,12 +88,8 @@ module ms2_global
 #endif
 
 #if MPI_VER > 0
-#if MPI_USE_MODULE
   ! MPI Datatype corresponding to RK of the passed data
   TYPE(MPI_Datatype) :: MPI_RK
-#else
-  integer :: MPI_RK
-#endif
 #endif
 
   ! Identifier for MC overlaps
@@ -253,11 +249,7 @@ module ms2_global
     integer :: iounit
 
 #if MPI_VER > 0
-#if defined(MPI_USE_MODULE)
     TYPE(MPI_File) :: MPIhandle = MPI_FILE_NULL
-#else
-    integer :: MPIhandle = -1
-#endif
 #endif
 
   end type TFile
@@ -846,12 +838,8 @@ module ms2_global
   integer, parameter :: K4B = selected_int_kind(9)
   integer(K4B)       :: ix, iy, tpix, randk
 #if MPI_VER > 0
-#if MPI_USE_MODULE
   ! MPI Datatype corresponding to K4B of the passed data
   TYPE(MPI_Datatype) :: MPI_K4B
-#else
-  integer :: MPI_K4B
-#endif
 #endif
   real(RK)           :: am
 
@@ -861,17 +849,10 @@ module ms2_global
   ! MPI variables
 #if MPI_VER > 0
   integer :: ierror
-#if MPI_USE_MODULE
   TYPE(MPI_Comm) :: Communicator   ! actual MPI communicator
   !TYPE(MPI_Comm) :: Communicator_W    ! =MPI_COMM_WORLD
   TYPE(MPI_Comm) :: Communicator_R ! MPI communicator containing all roots
   TYPE(MPI_Comm) :: MCCommonGroups_R ! MPI communicator containing all roots of Communicator
-#else
-  integer :: Communicator   ! actual MPI communicator
-  !integer :: Communicator_W    ! =MPI_COMM_WORLD
-  integer :: Communicator_R ! MPI communicator containing all roots
-  integer :: MCCommonGroups_R ! MPI communicator containing all roots of Communicator
-#endif
   integer :: NProcs ! number of PEs within actual MPI communicator
   integer :: NProc  ! MPI rank of actual MPI communicator
   integer :: NRootProc  ! MPI rank of root of actual MPI communicator
@@ -1182,17 +1163,8 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
-#if MPI_USE_MODULE
     TYPE(MPI_Comm), intent(in) :: comm
-#else
-    integer, intent(in) :: comm
-#endif
 
     Communicator = comm
     if( Communicator /= MPI_COMM_NULL ) then
@@ -1216,20 +1188,11 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     integer, intent(in)         :: ngroups
 
     integer :: groupId
-#if MPI_USE_MODULE
     TYPE(MPI_Comm) :: oldCommunicator, newCommunicator
-#else
-    integer :: oldCommunicator, newCommunicator
-#endif
 
     oldCommunicator = Communicator
 
@@ -1316,11 +1279,6 @@ contains
   subroutine Global_InitializeProgram
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare local variables
     integer :: stat
@@ -1617,10 +1575,6 @@ contains
     write( IOBuffer, '(" SPME=1")' )
     call LogWriteNoAdvance
 #endif
-#if MPI_USE_MODULE == 1
-    write( IOBuffer, '(" MPI_USE_MODULE=1")' )
-    call LogWriteNoAdvance
-#endif
     ! new compiler flags should be added
     ! include target, omp and precision???
     write( IOBuffer, '(" ")' )
@@ -1785,11 +1739,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
 #ifdef USE_PRINTPROCSTATUS
     call printProcStatus("beginning of FinalizeProgram")
 #endif
@@ -1847,11 +1796,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     character(*), intent(in), optional :: ErrorString
     integer, intent(in), optional :: ErrorCode
@@ -1905,11 +1849,6 @@ contains
   subroutine Global_AllocationError( stat, str, NPart )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     integer, intent(in)           :: stat
@@ -2203,9 +2142,6 @@ contains
   subroutine Global_FileRewrite_parallel( file, filename )
 
     implicit none
-#if !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(Tfile)                   :: file
@@ -2240,9 +2176,6 @@ contains
   subroutine Global_FileAppend_parallel(file, filename)
 
     implicit none
-#if !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TFile)                   :: file
@@ -2282,9 +2215,7 @@ contains
   subroutine Global_FileWriteNoAdvance_parallel(file)
 
     implicit none
-#if !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
+
     ! Declare arguments
     integer             :: mpistatus(MPI_STATUS_SIZE)
     type(Tfile), intent(in) :: file
@@ -2486,11 +2417,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     integer, intent(in)                :: iounit
     character(*), intent(in)           :: parameterqualifiers
@@ -2601,11 +2527,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     integer, intent(in)                :: iounit
     character(*), intent(in)           :: parameterqualifier
@@ -2642,11 +2563,6 @@ contains
   ! for a FileReadParameter polymorphism
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     character(*), intent(out)          :: parametervariable
@@ -3193,11 +3109,6 @@ subroutine time_left(time_limit)
 
     ! could also use (an extended version of) TStopwatch
 
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    ! Include MPI header
-    include 'mpif.h'
-#endif
-
     real(RK) :: time_remaining
     integer  :: time_limit
 
@@ -3277,11 +3188,6 @@ subroutine time_left(time_limit)
 subroutine Global_printprocStatus(tag_string)
 
       implicit none
-
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-      ! Include MPI header
-      include 'mpif.h'
-#endif
 
       ! Declare arguments
       character(*), intent(in), optional :: tag_string

@@ -34,7 +34,7 @@
 
 module ms2_simulation
 
-#if MPI_VER > 0 && defined(MPI_USE_MODULE)
+#if MPI_VER > 0
   use mpi_f08
 #endif
 
@@ -61,11 +61,7 @@ module ms2_simulation
     logical :: doneBcastTerm=.false., doneMsgTerm=.false.
     integer :: numMsgTerm_send=0, numMsgTerm_recv=0
     !integer :: mpireqbcastTerm=MPI_REQUEST_NULL, mpireqmsgTerm=MPI_REQUEST_NULL
-#if defined(MPI_USE_MODULE)
     TYPE(MPI_Request) :: mpireqbcastTerm, mpireqmsgTerm
-#else
-    integer :: mpireqbcastTerm=0, mpireqmsgTerm=0
-#endif
     integer :: TerminateStatus_bcast=0, TerminateStatus_msg=0
     integer :: TerminateCountdown=0
     logical :: doneTerminateCountdown=.false.
@@ -258,11 +254,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSimulation) :: this
 
@@ -279,11 +270,7 @@ contains
     integer                     :: value
 
 #if MPI_VER > 0
-#if defined(MPI_USE_MODULE)
     TYPE(MPI_Comm) oldCommunicator, newCommunicator
-#else
-    integer  :: oldCommunicator, newCommunicator
-#endif
     integer  :: icommunicator
     integer  :: color, groupId
     !real(RK) :: dummyR
@@ -1621,11 +1608,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSimulation) :: this
 
@@ -2445,11 +2427,6 @@ eqloop: do
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSimulation)   :: this
     integer, intent(in) :: StepStart, StepEnd
@@ -2711,10 +2688,6 @@ eqloop: do
 
     implicit none
 
-  ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
     ! Declare arguments
     type(TSimulation) :: this
 
@@ -2811,11 +2784,6 @@ eqloop: do
   subroutine TSimulation_RunMCStep_Gibbs( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSimulation) :: this
@@ -3601,11 +3569,6 @@ eqloop: do
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TSimulation) :: this
 
@@ -3696,11 +3659,6 @@ eqloop: do
   subroutine TSimulation_RestartRead( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TSimulation)   :: this

@@ -36,7 +36,7 @@
 
 module ms2_ensemble
 
-#if MPI_VER > 0 && defined(MPI_USE_MODULE)
+#if MPI_VER > 0
   use mpi_f08
 #endif
 
@@ -1137,13 +1137,6 @@ contains
   subroutine TEnsemble_Construct( this, ne )
 
     implicit none
-
-    ! Include MPI header
-#if HBOND > 0
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-#endif
 
     ! Declare arguments
     type(TEnsemble)     :: this
@@ -5940,11 +5933,6 @@ xloop:do i = 1, NCells1dim(1)
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
     logical         :: rescale
@@ -6164,11 +6152,6 @@ xloop:do i = 1, NCells1dim(1)
   subroutine TEnsemble_RunMCStep( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -6665,11 +6648,6 @@ loop5:        do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -6718,11 +6696,6 @@ loop5:        do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -6770,11 +6743,6 @@ loop5:        do nc = 1, this%NComponents
   subroutine TEnsemble_PredictLeapFrog( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -6956,11 +6924,6 @@ loop5:        do nc = 1, this%NComponents
   subroutine TEnsemble_Force( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -7290,11 +7253,6 @@ loop5:        do nc = 1, this%NComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -7308,11 +7266,7 @@ loop5:        do nc = 1, this%NComponents
     type(TComponent), pointer :: pc
     integer                   :: nstate( 0:this%NFluctMax )
 #if MPI_VER > 0
-#if MPI_USE_MODULE
     TYPE(MPI_Comm)            :: tempComm
-#else
-    integer                   :: tempComm
-#endif
     integer                   :: tempVec(0:this%NFluctMax)
     integer                   :: tempVec1(this%NFluctMax), tempVec2(this%NFluctMax)
     integer                   :: tempVec3(this%NFluctMax), tempVec4(this%NFluctMax)
@@ -7795,11 +7749,6 @@ componentLoop:       do i = 1, this%NRealComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble)     :: this
     integer, intent(in) :: nc, s, randomNumber
@@ -8122,11 +8071,6 @@ componentLoop:       do i = 1, this%NRealComponents
 
    implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble)        :: this
     integer, intent(in)    :: nt
@@ -8221,11 +8165,6 @@ componentLoop:       do i = 1, this%NRealComponents
   subroutine TEnsemble_ChangeLambda( this, nt , nc)
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble)        :: this
@@ -8337,11 +8276,6 @@ componentLoop:       do i = 1, this%NRealComponents
   subroutine TEnsemble_Insert( this, nc )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble)     :: this
@@ -8522,11 +8456,6 @@ componentLoop:       do i = 1, this%NRealComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble)     :: this
     integer, intent(in) :: nc
@@ -8662,11 +8591,6 @@ componentLoop:       do i = 1, this%NRealComponents
   subroutine TEnsemble_Delete( this, nc, np )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble)     :: this
@@ -8811,11 +8735,6 @@ componentLoop:       do i = 1, this%NRealComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble)     :: this
     integer, intent(in) :: nc, np
@@ -8924,11 +8843,6 @@ componentLoop:       do i = 1, this%NRealComponents
   subroutine TEnsemble_Resize( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -9138,11 +9052,6 @@ componentLoop:       do i = 1, this%NRealComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -9189,11 +9098,6 @@ componentLoop:       do i = 1, this%NRealComponents
   subroutine TEnsemble_ResizeLiquid_Update(this,accept,EPotOldliq,VolumeOld)
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -9247,11 +9151,6 @@ componentLoop:       do i = 1, this%NRealComponents
   subroutine TEnsemble_Resize_vap( this,dv,EPotDelta,accept )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -9393,11 +9292,6 @@ componentLoop:       do i = 1, this%NRealComponents
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble)     :: this
     integer, intent(in) :: nc, np
@@ -9494,11 +9388,6 @@ componentLoop:       do i = 1, this%NRealComponents
   subroutine TEnsemble_GibbsInsert( this, nc, EPotDelta,accept )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble)     :: this
@@ -9650,11 +9539,6 @@ componentLoop:       do i = 1, this%NRealComponents
   subroutine TEnsemble_PartChangeUpdate(this,nc,np,TransferRate,accept)
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble)       :: this
@@ -10436,9 +10320,6 @@ componentLoop:       do i = 1, this%NRealComponents
     implicit none
 
 #if MPI_VER > 0
-#if !defined(MPI_USE_MODULE)
-  include 'mpif.h'
-#endif
     integer         :: fields = 0
     integer         :: accumulate_step = 0
     integer         :: headers = 0
@@ -12966,11 +12847,6 @@ componentLoop:       do i = 1, this%NRealComponents
   subroutine TEnsemble_ErrorsUpdate( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -16041,10 +15917,6 @@ end if
 
   subroutine TEnsemble_ErrorsUpdateThermoInt( this, i, NBins )
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
     ! Declare arguments
     type(TEnsemble)     :: this
     integer, intent(in) :: i
@@ -16687,11 +16559,6 @@ end if
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -17034,11 +16901,6 @@ end if
   subroutine TEnsemble_RDFUpdateBlock( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -17442,11 +17304,6 @@ end if
   subroutine TEnsemble_KBIUpdateBlock( this, TempStep )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble)     :: this
@@ -21325,11 +21182,6 @@ end function
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -22408,11 +22260,6 @@ if( RootProc .and. this%CorrfunMode ) then
   subroutine TEnsemble_RestartRead( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -23536,11 +23383,6 @@ if( RootProc .and. this%CorrfunMode ) then
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -23594,11 +23436,6 @@ if( RootProc .and. this%CorrfunMode ) then
   subroutine TEnsemble_EwaldSelfTerm( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble)         :: this
@@ -23707,9 +23544,6 @@ if( RootProc .and. this%CorrfunMode ) then
 
    implicit none
 
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
    ! Declare arguments
    type(TEnsemble)   :: this
 
@@ -24022,10 +23856,6 @@ if( RootProc .and. this%CorrfunMode ) then
 
    implicit none
 
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
    type(TMolecule), pointer               :: mol
 
    ! Declare arguments
@@ -24213,10 +24043,6 @@ if( RootProc .and. this%CorrfunMode ) then
 
    implicit none
 
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
    ! Declare arguments
    type(TEnsemble)          :: this
    type(TMolecule), pointer :: mol
@@ -24318,10 +24144,6 @@ if( RootProc .and. this%CorrfunMode ) then
    subroutine TEnsemble_EwaldFourierEnergy_CF(this,nc,np,ncold,npold)
 
    implicit none
-
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
    ! Declare arguments
    type(TEnsemble)          :: this
@@ -24434,10 +24256,6 @@ if( RootProc .and. this%CorrfunMode ) then
 
    implicit none
 
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
    ! Declare arguments
    type(TEnsemble)          :: this
    type(TMolecule), pointer :: mol
@@ -24535,9 +24353,6 @@ if( RootProc .and. this%CorrfunMode ) then
    implicit none
 
     include 'fftw3.f'
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
    ! Declare arguments
    type(TEnsemble) :: this
@@ -25284,10 +25099,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
     ! Declare arguments
     type(TEnsemble)         :: this
 
@@ -25360,9 +25171,6 @@ contains
    implicit none
 
     include 'fftw3.f'
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
    ! Declare arguments
 
@@ -26055,9 +25863,6 @@ contains
     implicit none
 
     ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble) :: this
@@ -26765,10 +26570,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
     ! Declare arguments
     type(TEnsemble) :: this
 
@@ -27193,11 +26994,6 @@ contains
   ! BEWARE is intended as single threaded nonparallel version
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TEnsemble)     :: this
     integer, intent(in) :: ClusterCounter
@@ -27217,11 +27013,6 @@ contains
   ! BEWARE the size of the grid is not homogeneous accross processors
   !        the last PU has different # of grid points -> gatherv is needed
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TEnsemble)      :: this
@@ -27318,10 +27109,6 @@ contains
 
     implicit none
 
-  ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
     type(TEnsemble)           :: this
     real(RK)                  :: DistCrit
     ! Declare result
@@ -27372,10 +27159,6 @@ contains
 
     implicit none
 
-  ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
     ! Declare arguments
     type(TEnsemble)           :: this
     real(RK)                  :: DistCrit

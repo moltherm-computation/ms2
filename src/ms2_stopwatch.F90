@@ -43,7 +43,7 @@
 !#endif
 
 ! For full support of the stopwatch, comment in Line 38
-#if MPI_VER
+#if MPI_VER > 0
 #define USE_MPI
 ! the MPI2 standard requires the support of a mpi module (see 16.2),
 ! but some MPI1 distributions don't offer a Fortran90 binding and won't compile
@@ -73,7 +73,7 @@
 
 module ms2_stopwatch
 
-#ifdef MPI_USE_MODULE
+#ifdef USE_MPI
   use mpi_f08
 #endif
 
@@ -146,11 +146,7 @@ module ms2_stopwatch
     double precision, dimension(2) :: wtime_diff
 #endif
 #ifdef USE_MPI
-#if defined MPI_USE_MODULE
     TYPE(MPI_Comm) :: mpi_communicator
-#else
-    integer mpi_communicator
-#endif
     ! actually only used to reduce the wtime diff, but could be used also to reduce other data in the future
     logical mpi_diff_reduced
 #endif
@@ -521,11 +517,7 @@ contains
 
     ! Declare arguments
     type(TStopwatch) :: this
-#if defined MPI_USE_MODULE
     TYPE(MPI_Comm), intent(in) :: new_mpicommunicator
-#else
-    integer, intent(in) :: new_mpicommunicator
-#endif
 
     this%mpi_communicator = new_mpicommunicator
 
@@ -544,9 +536,6 @@ contains
 
     implicit none
 
-#if defined(USE_MPI) && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 #if defined STOPWATCH_USE_ETIME && defined __PGI
   include 'lib3f.h'
 #endif
@@ -612,9 +601,6 @@ contains
     implicit none
 
     ! Include headers
-#if defined(USE_MPI) && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 #if defined STOPWATCH_USE_ETIME && defined __PGI
   include 'lib3f.h'
 #endif
@@ -680,11 +666,6 @@ contains
   subroutine TStopwatch_MPIReduceDiff( this )
 
     implicit none
-
-    ! Include headers
-#if defined(USE_MPI) && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TStopwatch) :: this
@@ -771,11 +752,6 @@ contains
   subroutine TStopwatch_LogWriteStop( this )
 
     implicit none
-
-    ! Include MPI header
-#if defined(USE_MPI) && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TStopwatch) :: this

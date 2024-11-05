@@ -33,7 +33,7 @@
 
 module ms2_interaction
 
-#if MPI_VER > 0 && defined(MPI_USE_MODULE)
+#if MPI_VER > 0
   use mpi_f08
 #endif
 
@@ -1140,10 +1140,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
     ! Declare arguments
     type(TInteraction)       :: this
     real(RK), intent(in)     :: InvKBIdr
@@ -1850,11 +1846,6 @@ contains
   subroutine TInteraction_Energy( this, np, BoxLength, matrixhalf )
 
     implicit none
-
-! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-  include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TInteraction)   :: this

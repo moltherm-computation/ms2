@@ -119,15 +119,6 @@ ifeq ($(SPME),1)
   PROG     := $(PROG)_spme
 endif
 
-ifeq ($(MPI_USE_MODULE),1)
-ifeq ($(MPI),1)
-  CPPFLAGS += -DMPI_USE_MODULE
-  $(info MPI_USE_MODULE enabled: remove 'include mpif.h' from routines, add 'use mpif_08' in modules)
-else
-  $(error MPI_USE_MODULE only available with 'MPI=1')
-endif
-endif
-
 SRCS =  ms2.F90 \
         ms2_stopwatch.F90 \
         ms2_global.F90 \

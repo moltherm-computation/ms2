@@ -25,7 +25,7 @@
 
 module ms2_accumulator
 
-#if MPI_VER > 0 && defined(MPI_USE_MODULE)
+#if MPI_VER > 0
   use mpi_f08
 #endif
 
@@ -172,11 +172,6 @@ contains
   subroutine TAccumulator_Allocate( this, trans, kbi )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TAccumulator)            :: this
@@ -344,10 +339,6 @@ contains
   subroutine TAccumulator_Error( this, trans, kbi )
 
     implicit none
-    
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-  include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TAccumulator)            :: this
@@ -614,11 +605,6 @@ contains
   subroutine TAccumulator_RestartRead( this, kbi )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TAccumulator) :: this

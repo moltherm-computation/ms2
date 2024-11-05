@@ -33,7 +33,7 @@
 
 module ms2_component
 
-#if MPI_VER > 0 && defined(MPI_USE_MODULE)
+#if MPI_VER > 0
   use mpi_f08
 #endif
 
@@ -444,11 +444,6 @@ contains
   subroutine TComponent_Construct( this, comp )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent) :: this
@@ -2092,11 +2087,6 @@ contains
     subroutine TComponent_Mol2Atom( this, l )
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent)    :: this
 !     integer, intent(in) :: i0
@@ -2735,11 +2725,6 @@ contains
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent)    :: this
 !     integer, intent(in) :: i0
@@ -3032,11 +3017,6 @@ contains
   subroutine TComponent_Atom2Mol_Trans( this, np )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent)    :: this
@@ -3771,11 +3751,6 @@ contains
   subroutine TComponent_DensityProfile( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent)    :: this
@@ -4590,11 +4565,6 @@ loop1:do i = 1, this%NPart
 
     implicit none
 
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
-
     ! Declare arguments
     type(TComponent) :: this
 
@@ -4760,11 +4730,6 @@ loop1:do i = 1, this%NPart
 subroutine TComponent_ForceTransport( this )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TComponent)  :: this

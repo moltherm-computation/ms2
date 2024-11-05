@@ -15,23 +15,9 @@ ifeq ($(MPI), 1) # if MPI is active
 
     ifneq ($(filter $(MAJORGCCVERSION),10 11),)
         # version is 10.* or 11.*
-
-        ifndef MPI_USE_MODULE # MPI module is not explicitly set
-
-            # replace 'mpif.h' with 'mpi_f08' by default
-            MPI_USE_MODULE=1
-
-        else
-
-            ifneq ($(MPI_USE_MODULE), 1) # if MPI module is not used
-
-                $(info Version of $(F90mpi) is $(MAJORGCCVERSION).*: add flag '-fallow-argument-mismatch' and hide all warnings)
-                VERSIONDEPENDENDOPTION += -fallow-argument-mismatch -w
-                # replace errors with warnings and hide ALL warnings
-
-            endif
-
-        endif
+        $(info Version of $(F90mpi) is $(MAJORGCCVERSION).*: add flag '-fallow-argument-mismatch' and hide all warnings)
+        VERSIONDEPENDENDOPTION += -fallow-argument-mismatch -w
+        # replace errors with warnings and hide ALL warnings
     endif
 endif
 

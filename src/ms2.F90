@@ -26,7 +26,7 @@
 
 program ms2
 
-#if MPI_VER > 0 && defined(MPI_USE_MODULE)
+#if MPI_VER > 0
   use mpi_f08
 #endif
 
@@ -34,11 +34,6 @@ program ms2
   use ms2_global
 
   implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
   ! Declare local variables
   type(TSimulation) :: Simulation

@@ -30,7 +30,7 @@
 
 module ms2_molecule
 
-#if MPI_VER > 0 && defined(MPI_USE_MODULE)
+#if MPI_VER > 0
   use mpi_f08
 #endif
 
@@ -134,11 +134,6 @@ contains
   subroutine TMolecule_Construct( this, filename, fluctstate )
 
     implicit none
-
-    ! Include MPI header
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-    include 'mpif.h'
-#endif
 
     ! Declare arguments
     type(TMolecule)          :: this
