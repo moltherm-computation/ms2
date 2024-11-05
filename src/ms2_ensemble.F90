@@ -435,13 +435,9 @@ module ms2_ensemble
     type(TAccumulator),pointer, contiguous :: SumKBIGij3(:)
 
     ! 3.) Derived sums
-    type(TAccumulator) :: SumBetaT
     type(TAccumulator) :: SumdHdP
     type(TAccumulator) :: SumdUdV
-    type(TAccumulator) :: SumCV
     type(TAccumulator) :: SumCorCoefR
-    type(TAccumulator) :: SumCP
-    type(TAccumulator) :: SumAlphaP
 
     ! Statistical Mechanics
     type(TAccumulator) :: SumCVsm
@@ -2907,13 +2903,9 @@ contains
 
 
       ! 3.) Derived sums
-      call Construct( this%SumBetaT, .true. )
       call Construct( this%SumdHdP, .true. )
       call Construct( this%SumdUdV, .true. )
-      call Construct( this%SumCV, .true. )
       call Construct( this%SumCorCoefR, .true. )
-      call Construct( this%SumCP, .true. )
-      call Construct( this%SumAlphaP, .true. )
       call Construct( this%SumGammaVsm, .true. )
       call Construct( this%SumBetaTsm, .true. )
       call Construct( this%SumCVsm, .true. )
@@ -3203,13 +3195,9 @@ contains
       end if
 
     ! 3.) Derived sums
-    call Destruct( this%SumBetaT )
     call Destruct( this%SumdHdP )
     call Destruct( this%SumdUdV )
-    call Destruct( this%SumCV )
     call Destruct( this%SumCorCoefR )
-    call Destruct( this%SumCP )
-    call Destruct( this%SumAlphaP )
     call Destruct( this%SumGammaVsm )
     call Destruct( this%SumBetaTsm )
     call Destruct( this%SumCVsm )
@@ -9810,13 +9798,9 @@ componentLoop:       do i = 1, this%NRealComponents
 
       ! 3.) Derived sums
       if( ConstantPressure ) then
-        call Reset( this%SumBetaT )
         call Reset( this%SumdHdP )
-        call Reset( this%SumCP )
-        call Reset( this%SumAlphaP )
       else
         call Reset( this%SumdUdV )
-        call Reset( this%SumCV )
         call Reset( this%SumCorCoefR )
       endif
       if( LongRange .eq. Rfield) then
@@ -10089,15 +10073,15 @@ componentLoop:       do i = 1, this%NRealComponents
         call Update( this%SumP101, (Psi101res-Psi100res*Psi001res)/Numb )
         call Update( this%SumP011, (Psi011res-Psi010res*Psi001res)/Numb )
 
-        CV = ( Beta2*this%SumP200%Average - ( (this%SumP001%Average - Beta*this%SumP101%Average)**2 )&
-        &           /this%SumP002%Average )/real( this%SumNPart%Average, RK )
+        CV = ( Beta2*(Psi200res-Psi100res**2) - ( (Psi001res - Beta*(Psi101res-Psi100res*Psi001res))**2 )&
+        &           /(Psi002res-Psi001res**2) )/real( this%SumNPart%Average, RK )
 
-        GammaV = ( this%SumP010%Average-Beta*this%SumP110%Average - this%SumP011%Average &
-        &              * ( this%SumP001%Average - Beta*this%SumP101%Average )/this%SumP002%Average ) &
+        GammaV = ( Psi010res-Beta*(Psi110res-Psi100res*Psi010res) - (Psi011res-Psi010res*Psi001res) &
+        &              * ( Psi001res - Beta*(Psi101res-Psi100res*Psi001res) )/(Psi002res-Psi001res**2) ) &
         &              / real( this%SumNPart%Average, RK )
 
-        BetaT = -Beta*InvVol*real( this%SumNPart%Average, RK )/( this%SumP020%Average- &
-        &                (this%SumP011%Average**2) / this%SumP002%Average )
+        BetaT = -Beta*InvVol*real( this%SumNPart%Average, RK )/( (Psi020res-Psi010res**2) - &
+        &                ((Psi011res-Psi010res*Psi001res)**2) / (Psi002res-Psi001res**2) )
 
         CP = CV + specv*InvBeta*BetaT*(GammaV**2)
 
@@ -10338,29 +10322,14 @@ componentLoop:       do i = 1, this%NRealComponents
     if( .not. OpenSystem ) then
 
       if( ConstantPressure ) then
-
-        call Update( this%SumBetaT, real( this%NPart, RK ) / this%RefTemperature &
-&                * ( this%SumVolumeSquared%Average / this%SumVolume%Average - this%SumVolume%Average ) )
-
         call Update( this%SumdHdP, this%SumVolume%Average - real( this%NPart, RK ) / this%RefTemperature &
 &                * ( this%SumEPotV%Average - this%SumEPot%Average * this%SumVolume%Average + this%RefPressure &
 &                * ( this%SumVolumeSquared%Average - this%SumVolume%Average**2 ) ) )
-
-        call Update( this%SumCP, real( this%NPart, RK ) / this%RefTemperature**2 &
-&                * ( this%SumEnthalpySquared%Average - this%SumEnthalpy%Average**2 ) )
-
-        call Update( this%SumAlphaP, real( this%NPart, RK ) / this%RefTemperature**2 &
-&                * this%SumDensity%Average * ( this%SumEnthalpyV%Average &
-&                - this%SumEnthalpy%Average * this%SumVolume%Average ) )
-
       else
-
         call Update( this%SumdUdV, this%Density / ( 3. * real( this%NPart, RK )) * (this%NPart / this%RefTemperature &
 &                * ( this%SumVirial%Average * this%SumEPot%Average - this%SumEPotVirial%Average )&
 &                + this%SumVirial%Average ) )
 
-        call Update( this%SumCV, real( this%NPart, RK ) / this%RefTemperature**2 &
-&                * ( this%SumEPotSquared%Average - this%SumEPot%Average**2 ) )
         call Update( this%SumCorCoefR, (-1_RK)*this%SumEPotDeltaVirialDelta%Average/sqrt(this%SumVirialDeltaSquared%Average*this%SumEPotDeltaSquared%Average) )
       endif
     endif
@@ -12287,13 +12256,9 @@ componentLoop:       do i = 1, this%NRealComponents
 
     else
       if( ConstantPressure ) then
-        call Error( this%SumBetaT )
         call Error( this%SumdHdP )
-        call Error( this%SumCP )
-        call Error( this%SumAlphaP )
       else
         call Error( this%SumdUdV )
-        call Error( this%SumCV )
         call Error( this%SumCorCoefR )
       end if
 
@@ -12747,14 +12712,6 @@ componentLoop:       do i = 1, this%NRealComponents
       if( any(this%Component(:)%ChemPotMethod .ne. ChemPotMethodNone)) call FileWriteBlank(this%errorsFile)
 
       if( ConstantPressure ) then
-        ! Isothermal compressibility
-        Average = this%SumBetaT%Average
-        Variance = this%SumBetaT%Variance
-
-        dimensionFactor = 1 / (UnitPressure * 1E-6_RK)
-
-        call writeValue("Isothermal compressibility", Average, Variance, dimensionFactor, "1/MPa", this%errorsFile)
-
         ! dH/dP
         Average = this%SumdHdP%Average
         Variance = this%SumdHdP%Variance
@@ -12762,22 +12719,6 @@ componentLoop:       do i = 1, this%NRealComponents
         dimensionFactor = 1 / UnitDensity
 
         call writeValue("dH/dP", Average, Variance, dimensionFactor, "l/mol", this%errorsFile)
-
-        ! CP - subtract ideal gas contribution of the pressure
-        Average = this%SumCP%Average - 1._RK
-        Variance = this%SumCP%Variance
-
-        dimensionFactor = kBoltzmann * NAvogadro
-
-        call writeValue("Isobaric heat capacity", Average, Variance, dimensionFactor, "J/(mol K)", this%errorsFile)
-
-        ! AlphaP
-        Average = this%SumAlphaP%Average
-        Variance = this%SumAlphaP%Variance
-
-        dimensionFactor = 1 / UnitTemperature
-
-        call writeValue("Volume expansivity", Average, Variance, dimensionFactor, "1/K", this%errorsFile)
 
         ! Speed of sound
         molmass = 0._RK
@@ -12789,15 +12730,15 @@ componentLoop:       do i = 1, this%NRealComponents
           cpid = cpid + .5_RK * pc%Fraction * pc%Molecule%NDF
         end do
 
-        Average = 1._RK / sqrt( molmass * ( this%SumBetaT%Average * this%SumDensity%Average - this%RefTemperature * &
-&                 this%SumAlphaP%Average**2 / ( this%SumCP%Average + cpid ) ) )
+        Average = 1._RK / sqrt( molmass * ( this%SumBetaTsm%Average * this%SumDensity%Average - this%RefTemperature * &
+&                 this%SumAlphaPsm%Average**2 / ( this%SumCPsm%Average + cpid ) ) )
 
-        Variance = .25_RK / molmass / ( this%SumBetaT%Average * this%SumDensity%Average - this%RefTemperature * &
-&                  this%SumAlphaP%Average**2 / ( this%SumCP%Average + cpid ) )**3 * ( this%SumDensity%Average**2 *&
-&                  this%SumBetaT%Variance**2 + this%SumBetaT%Average**2 * this%SumDensity%Variance**2 +&
-&                  this%RefTemperature**2 * this%SumAlphaP%Average**2 / ( this%SumCP%Average + cpid )**2 *&
-&                  ( 4._RK * this%SumAlphaP%Variance**2 + this%SumAlphaP%Average**2 / ( this%SumCP%Average + cpid )**2 * &
-&                  this%SumCP%Variance**2 ) )
+        Variance = .25_RK / molmass / ( this%SumBetaTsm%Average * this%SumDensity%Average - this%RefTemperature * &
+&                  this%SumAlphaPsm%Average**2 / ( this%SumCPsm%Average + cpid ) )**3 * ( this%SumDensity%Average**2 *&
+&                  this%SumBetaTsm%Variance**2 + this%SumBetaTsm%Average**2 * this%SumDensity%Variance**2 +&
+&                  this%RefTemperature**2 * this%SumAlphaPsm%Average**2 / ( this%SumCPsm%Average + cpid )**2 *&
+&                  ( 4._RK * this%SumAlphaPsm%Variance**2 + this%SumAlphaPsm%Average**2 / ( this%SumCPsm%Average + cpid )**2 * &
+&                  this%SumCPsm%Variance**2 ) )
 
         dimensionFactor = UnitLength / UnitTime
 
@@ -12811,14 +12752,6 @@ componentLoop:       do i = 1, this%NRealComponents
         dimensionFactor = UnitPressure * 1E-6_RK
 
         call writeValue("dU/dV", Average, Variance, dimensionFactor, "MPa", this%errorsFile)
-
-        ! Cv
-        Average = this%SumCV%Average
-        Variance = this%SumCV%Variance
-
-        dimensionFactor = kBoltzmann * NAvogadro
-
-        call writeValue("Isochoric heat capacity", Average, Variance, dimensionFactor, "J/(mol K)", this%errorsFile)
 
         ! Correlation coefficient R
         Average = this%SumCorCoefR%Average
@@ -13323,9 +13256,9 @@ else
 
       ! Liquid density.
 
-      Average = this%SumDensity%Average + this%SumDensity%Average * this%SumBetaT%Average * ( VapPressSVC - this%RefPressure)
-      Variance = sqrt( this%SumDensity%Variance**2 + ( this%SumBetaT%Variance * ( VapPressSVC - this%RefPressure )&
-&                + VapPressSVCErr * this%SumBetaT%Average )**2 )
+      Average = this%SumDensity%Average + this%SumDensity%Average * this%SumBetaTsm%Average * ( VapPressSVC - this%RefPressure)
+      Variance = sqrt( this%SumDensity%Variance**2 + ( this%SumBetaTsm%Variance * ( VapPressSVC - this%RefPressure )&
+&                + VapPressSVCErr * this%SumBetaTsm%Average )**2 )
 
       dimensionFactor = UnitDensity
 
@@ -20434,13 +20367,9 @@ end if
         end if
         ! 3.) Derived sums
         if( ConstantPressure ) then
-          call RestartSave( this%SumBetaT )
           call RestartSave( this%SumdHdP )
-          call RestartSave( this%SumCP )
-          call RestartSave( this%SumAlphaP )
         else
           call RestartSave( this%SumdUdV )
-          call RestartSave( this%SumCV )
           call RestartSave( this%SumCorCoefR )
         endif
         if( LongRange .eq. Rfield) then
@@ -21250,13 +21179,9 @@ if( RootProc .and. this%CorrfunMode ) then
 
     ! 3.) Derived sums
     if( ConstantPressure ) then
-      call RestartRead( this%SumBetaT )
       call RestartRead( this%SumdHdP )
-      call RestartRead( this%SumCP )
-      call RestartRead( this%SumAlphaP )
     else
       call RestartRead( this%SumdUdV )
-      call RestartRead( this%SumCV )
       call RestartRead( this%SumCorCoefR )
     endif
     if( LongRange .eq. Rfield) then
