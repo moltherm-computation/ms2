@@ -409,7 +409,7 @@ module ms2_global
   character(*), parameter :: IdScaleEpsilon                = 'xi'
   character(*), parameter :: IdRCutoffCOM                  = 'Cutoff'
   character(*), parameter :: IdRCutoffMIEnmMIEnm           = 'CutoffMIE'
-  character(*), parameter :: IdRCutoffTT68TT68             = 'CutoffTT68'
+  character(*), parameter :: IdRCutoffTT                   = 'CutoffTT'
   character(*), parameter :: IdRCutoffDipoleDipole         = 'CutoffDD'
   character(*), parameter :: IdRCutoffDipoleQuadrupole     = 'CutoffDQ'
   character(*), parameter :: IdRCutoffQuadrupoleQuadrupole = 'CutoffQQ'
@@ -449,11 +449,19 @@ module ms2_global
   character(*), parameter :: IdMIE_m                       = 'MIE_m'
   character(*), parameter :: IdMIEnm_sig                   = 'sigma'
   character(*), parameter :: IdMIEnm_eps                   = 'epsilon'
-  character(*), parameter :: IdTT68_A                      = 'A'
-  character(*), parameter :: IdTT68_b                      = 'b'
-  character(*), parameter :: IdTT68_alpha                  = 'alpha'
-  character(*), parameter :: IdTT68_C6                     = 'C6'
-  character(*), parameter :: IdTT68_C8                     = 'C8'
+  character(*), parameter :: IdTT_A                        = 'A'
+  character(*), parameter :: IdTT_b                        = 'b'
+  character(*), parameter :: IdTT_alpha                    = 'alpha'
+  character(*), parameter :: IdTT_a1                       = 'a1'
+  character(*), parameter :: IdTT_a2                       = 'a2'
+  character(*), parameter :: IdTT_am1                      = 'am1'
+  character(*), parameter :: IdTT_am2                      = 'am2'
+  character(*), parameter :: IdTT_C6                       = 'C6'
+  character(*), parameter :: IdTT_C8                       = 'C8'
+  character(*), parameter :: IdTT_C10                      = 'C10'
+  character(*), parameter :: IdTT_C12                      = 'C12'
+  character(*), parameter :: IdTT_C14                      = 'C14'
+  character(*), parameter :: IdTT_C16                      = 'C16'
   character(*), parameter :: IdCharge_e                    = 'charge'
   character(*), parameter :: IdDipole_D                    = 'dipole'
   character(*), parameter :: IdQuadrupole_Q                = 'quadrupole'
@@ -505,8 +513,8 @@ module ms2_global
   real(RK), parameter :: InvFac14 = 1._RK / 87178291200._RK
   real(RK), parameter :: InvFac15 = 1._RK / 1307674368000._RK
   real(RK), parameter :: InvFac16 = 1._RK / 20922789888000._RK
-  real(RK), parameter :: InvFac17 = 1._RK / 355687428096000._RK
-  real(RK), parameter :: InvFac18 = 1._RK / 6402373705728000._RK
+  ! real(RK), parameter :: InvFac17 = 1._RK / 355687428096000._RK
+  ! real(RK), parameter :: InvFac18 = 1._RK / 6402373705728000._RK
 
   ! General physical constants
   real(RK), parameter :: NAvogadro = 6.022137E23_RK
@@ -534,6 +542,9 @@ module ms2_global
 
   ! LJ126 or Mie-Potential
   character(16) :: LJorMIE
+
+  ! TT68 or Extended Jäger potential
+  character(16) :: TT68orEXT
 
   ! Basic reduced units
   real(RK) :: UnitLength

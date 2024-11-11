@@ -105,11 +105,14 @@ module ms2_potential
 
   type TPotTT68TT68
 
-    type(TSiteTT68), pointer   :: Site1, Site2
-    real(RK)                   :: TT_A, TT_b, Alpha, C6, C8
+    type(TSiteTT), pointer   :: Site1, Site2
+    real(RK)                   :: TT_A, TT_b, a1, a2, am1, am2
+    real(RK)                   :: C6, C8, C10, C12, C14, C16
+    real(RK)                   :: Deriv1Factor, Deriv2Factor, Deriv3Factor
     real(RK)                   :: RCutoffSquared
     real(RK)                   :: RShieldSquared
     real(RK)                   :: EPotCorr, VirialCorr, d2EpotdV2Corr, EPotTestCorr
+    real(RK)                   :: EPot_aux, Virial_aux, d2EpotdV2_aux
     logical                    :: SameComponent
 
     integer, pointer, contiguous          :: NInCutoff(:), CutoffPartner(:, :)
@@ -2049,73 +2052,232 @@ loop2:  do j = 1, N2
     real(RK) :: tau, tau1, tau2
     real(RK) :: RCutoffCS, RCutoffSS
     real(RK) :: F6RC, F8RC
-    real(RK) :: Pi2CF6, Pi2CF8, Piminus23CF6, Piminus23CF8, Pi29CF6, Pi29CF8
+    real(RK) :: Pi2CF6, Pi2CF8
+    real(RK) :: Piminus23CF6, Piminus23CF8
+    real(RK) :: Pi29CF6, Pi29CF8
+    integer  :: i
+    real(RK) :: EpotCorr, Rij, Rik, Rjk, VirialCorr, d2EPotdR2, fun, M
 
     ! Construct potential
-    this%Site1 => Molecule1%SiteTT68(j1)
-    this%Site2 => Molecule2%SiteTT68(j2)
+    this%Site1 => Molecule1%SiteTT(j1)
+    this%Site2 => Molecule2%SiteTT(j2)
     this%SameComponent = i1 == i2
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
-    this%Alpha = 2._RK * this%Site1%alph * this%Site2%alph / (this%Site1%alph + this%Site2%alph)
-    this%TT_A = (((this%Site1%tt_a * this%Site1%alph)**(1/this%Site1%alph) * &
-&                 (this%Site2%tt_a * this%Site2%alph)**(1/this%Site2%alph))  &
-&                **(.5_RK * this%Alpha)) / this%Alpha
+    this%RCutoffSquared = RCutoff**2
+
+    this%a1 = 2._RK * this%Site1%a1 * this%Site2%a1 / (this%Site1%a1 + this%Site2%a1)
+    this%TT_A = (((this%Site1%tt_a * this%Site1%a1)**(1/this%Site1%a1) * &
+&                 (this%Site2%tt_a * this%Site2%a1)**(1/this%Site2%a1))  &
+&                **(.5_RK * this%a1)) / this%a1
     this%TT_b = 2._RK * this%Site1%tt_b * this%Site2%tt_b / (this%Site1%tt_b + this%Site2%tt_b)
     this%C6 = (this%Site1%c6**(1/this%Site1%tt_b) * this%Site2%c6**(1/this%Site2%tt_b))**(.5_RK * this%TT_b)
     this%C8 = (this%Site1%c8**(1/this%Site1%tt_b) * this%Site2%c8**(1/this%Site2%tt_b))**(.5_RK * this%TT_b)
-
-    ! Calculate long-range corrections
-    this%RCutoffSquared = RCutoff**2
-    tau1 = sqrt( sum( this%Site1%r(:)**2 ))
-    tau2 = sqrt( sum( this%Site2%r(:)**2 ))
-    tau = max( tau1, tau2 )
-
-    F6RC = FnRC(6, RCutoff, this%TT_b)
-    F8RC = FnRC(8, RCutoff, this%TT_b)
-
-    Pi2CF6 = Pi * 2._RK * this%C6 * F6RC
-    Pi2CF8 = Pi * 2._RK * this%C8 * F8RC
-    Piminus23CF6 = Pi * this%C6 * (-2._RK)/3._RK * F6RC
-    Piminus23CF8 = Pi * this%C8 * (-2._RK)/3._RK * F8RC
-    Pi29CF6 = Pi * this%C6 * (2._RK/9._RK) * F6RC
-    Pi29CF8 = Pi * this%C8 * (2._RK/9._RK) * F8RC
-
-    if( (CutoffMode .eq. CenterofMass) .and. (tau > 1E-10_RK) ) then
-      if( (tau1 > 1E-10_RK) .and. (tau2 > 1E-10_RK) ) then
-        this%EPotCorr = - Pi2CF6 * TISSu(-3._RK, RCutoff, tau1, tau2) &
-&                       - Pi2CF8 * TISSu(-4._RK, RCutoff, tau1, tau2)
-
-        this%VirialCorr = - Piminus23CF6 * TISSp(-3._RK, RCutoff, tau1, tau2) &
-&                         - Piminus23CF8 * TISSp(-4._RK, RCutoff, tau1, tau2)
-
-        this%d2EpotdV2Corr = - Pi29CF6 * TISSd2EpotdV2(-3._RK, RCutoff, tau1, tau2) &
-&                            - Pi29CF8 * TISSd2EpotdV2(-4._RK, RCutoff, tau1, tau2)
-
+    select case( TT68orEXT )
+    case( 'TT68' ) !Case: TT68-Potential
+      this%a2 = 0
+      this%am1 = 0
+      this%am2 = 0
+      this%C10 = 0
+      this%C12 = 0
+      this%C14 = 0
+      this%C16 = 0
+    case( 'TTExt' ) !Case: extended TT-Potential
+      if (i1 == i2) then
+        this%a2 = this%Site1%a2
+        this%am1 = this%Site1%am1
+        this%am2 = this%Site1%am2
+        this%C10 = this%Site1%c10
+        this%C12 = this%Site1%c12
+        this%C14 = this%Site1%c14
+        this%C16 = this%Site1%c16
+        M = Molecule1%mass * UnitMass * NAvogadro
       else
-        this%EPotCorr = - Pi2CF6 * TICSu(-3._RK, RCutoff, tau) &
-&                       - Pi2CF8 * TICSu(-4._RK, RCutoff, tau)
+        call Error( 'Extended TT potential is not implemented for mixtures.' )
+      end if
+    end select
 
-        this%VirialCorr = - Piminus23CF6 * TICSp(-3._RK, RCutoff, tau) &
-&                         - Piminus23CF8 * TICSp(-4._RK, RCutoff, tau)
+    this%Deriv1Factor = this%C6 * this%TT_b**7 * InvFac6 + this%C8 * this%TT_b**9 * InvFac8 &
+    &                    + this%C10 * this%TT_b**11 * InvFac10 + this%C12 * this%TT_b**13 * InvFac12 &
+    &                    + this%C14 * this%TT_b**15 * InvFac14 + this%C16 * this%TT_b**17 * InvFac16
+    
+        this%Deriv2Factor = this%C6 * this%TT_b**7 * InvFac5 + this%C8 * this%TT_b**9 * InvFac7 &
+    &                    + this%C10 * this%TT_b**11 * InvFac9 + this%C12 * this%TT_b**13 * InvFac11 &
+    &                    + this%C14 * this%TT_b**15 * InvFac13 + this%C16 * this%TT_b**17 * InvFac15
+    
+        this%Deriv3Factor = this%C6 * this%TT_b**7 * InvFac4 + this%C8 * this%TT_b**9 * InvFac6 &
+    &                    + this%C10 * this%TT_b**11 * InvFac8 + this%C12 * this%TT_b**13 * InvFac10 &
+    &                    + this%C14 * this%TT_b**15 * InvFac12 + this%C16 * this%TT_b**17 * InvFac14
 
-        this%d2EpotdV2Corr = - Pi29CF6 * TICSd2EpotdV2(-3._RK, RCutoff, tau) &
-&                            - Pi29CF8 * TICSd2EpotdV2(-4._RK, RCutoff, tau)
+    select case( TT68orEXT )
+    case( 'TT68' ) !Case: TT68-Potential
+      ! Calculate long-range corrections
+      tau1 = sqrt( sum( this%Site1%r(:)**2 ))
+      tau2 = sqrt( sum( this%Site2%r(:)**2 ))
+      tau = max( tau1, tau2 )
 
-      endif
-    else ! Site-site cutoff or both sites in center of mass
-     this%EPotCorr = - Pi2CF6 * TICCu(-3._RK, RCutoff) &
-&                    - Pi2CF8 * TICCu(-4._RK, RCutoff)
+      F6RC = FnRC(6, RCutoff, this%TT_b)
+      F8RC = FnRC(8, RCutoff, this%TT_b)
 
-     this%VirialCorr = - Piminus23CF6 * TICCp(-3._RK, RCutoff) &
-&                      - Piminus23CF8 * TICCp(-4._RK, RCutoff)
+      Pi2CF6 = Pi * 2._RK * this%C6 * F6RC
+      Pi2CF8 = Pi * 2._RK * this%C8 * F8RC
+      Piminus23CF6 = Pi * this%C6 * (-2._RK)/3._RK * F6RC
+      Piminus23CF8 = Pi * this%C8 * (-2._RK)/3._RK * F8RC
+      Pi29CF6 = Pi * this%C6 * (2._RK/9._RK) * F6RC
+      Pi29CF8 = Pi * this%C8 * (2._RK/9._RK) * F8RC
 
-     this%d2EpotdV2Corr = - Pi29CF6 * TICCd2EpotdV2(-3._RK, RCutoff) &
-&                         - Pi29CF8 * TICCd2EpotdV2(-4._RK, RCutoff)
+      if( (CutoffMode .eq. CenterofMass) .and. (tau > 1E-10_RK) ) then
+        if( (tau1 > 1E-10_RK) .and. (tau2 > 1E-10_RK) ) then
+          this%EPotCorr = - Pi2CF6 * TISSu(-3._RK, RCutoff, tau1, tau2) &
+  &                       - Pi2CF8 * TISSu(-4._RK, RCutoff, tau1, tau2)
 
-    end if
-    this%EPotTestCorr = 2._RK * this%EPotCorr
+          this%VirialCorr = - Piminus23CF6 * TISSp(-3._RK, RCutoff, tau1, tau2) &
+  &                         - Piminus23CF8 * TISSp(-4._RK, RCutoff, tau1, tau2)
+
+          this%d2EpotdV2Corr = - Pi29CF6 * TISSd2EpotdV2(-3._RK, RCutoff, tau1, tau2) &
+  &                            - Pi29CF8 * TISSd2EpotdV2(-4._RK, RCutoff, tau1, tau2)
+
+        else
+          this%EPotCorr = - Pi2CF6 * TICSu(-3._RK, RCutoff, tau) &
+  &                       - Pi2CF8 * TICSu(-4._RK, RCutoff, tau)
+
+          this%VirialCorr = - Piminus23CF6 * TICSp(-3._RK, RCutoff, tau) &
+  &                         - Piminus23CF8 * TICSp(-4._RK, RCutoff, tau)
+
+          this%d2EpotdV2Corr = - Pi29CF6 * TICSd2EpotdV2(-3._RK, RCutoff, tau) &
+  &                            - Pi29CF8 * TICSd2EpotdV2(-4._RK, RCutoff, tau)
+        endif
+      else ! Site-site cutoff or both sites in center of mass
+      this%EPotCorr = - Pi2CF6 * TICCu(-3._RK, RCutoff) &
+  &                    - Pi2CF8 * TICCu(-4._RK, RCutoff)
+
+      this%VirialCorr = - Piminus23CF6 * TICCp(-3._RK, RCutoff) &
+  &                      - Piminus23CF8 * TICCp(-4._RK, RCutoff)
+
+      this%d2EpotdV2Corr = - Pi29CF6 * TICCd2EpotdV2(-3._RK, RCutoff) &
+  &                         - Pi29CF8 * TICCd2EpotdV2(-4._RK, RCutoff)
+      end if
+      this%EPotTestCorr = 2._RK * this%EPotCorr
+
+    case( 'TTExt' ) !Case: extended TT-Potential
+
+      EpotCorr = 0._RK
+      VirialCorr = 0._RK
+      d2EPotdR2 = 0._RK
+
+      do i = 1, 1000000
+        Rij = rnd(  RCutoff, RCutoff+1000 )
+        fun = TTExt_CC(Rij)
+        EpotCorr = EpotCorr + this%EPot_aux
+        VirialCorr = VirialCorr + this%Virial_aux
+        d2EPotdR2 = d2EPotdR2 + this%d2EpotdV2_aux
+      end do
+
+      EpotCorr = EpotCorr / 1000
+      this%EPotCorr =  EpotCorr * 2 * Pi
+
+      this%EPotTestCorr = 2._RK * this%EPotCorr
+
+      VirialCorr = VirialCorr / 1000
+      this%VirialCorr = VirialCorr * Pi23
+
+      d2EPotdR2 = d2EPotdR2 / 1000
+      this%d2EpotdV2Corr = d2EPotdR2 * Pi * (2._RK/9._RK)
+
+    end select
 
   contains
+
+    real(RK) function TTExt_CC(Rij)
+
+      ! Declare arguments
+      real(RK), intent(in) :: Rij
+
+      ! Declare local variables
+      real(RK) :: A, b, a1, a2, am1, am2, C6, C8, C10, C12, C14, C16
+      real(RK) :: RijSquared, RijInv, RijInv2, RijInv3, RijInv6, RijInv8, RijInv10
+      real(RK) :: bRij, bRij2, bRij3, bRij4, bRij6, bRij8, bRij10, bRij12, bRij14, bRij16
+      real(RK) :: ExpMinusbRij, F6, F8, F10, F12, F14, F16
+      real(RK) :: Rep, Attr6, Attr8, Attr10, Attr12, Attr14, Attr16
+      real(RK) :: Aux1, Aux2, Aux3, Aux4, Deriv1Factor, Deriv2Factor, dRepdR, d2RepdR2
+
+
+      A = this%TT_A
+      b = this%TT_b
+      a1 = this%a1
+      a2 = this%a2
+      am1 = this%am1
+      am2 = this%am2
+      C6 = this%C6
+      C8 = this%C8
+      C10 = this%C10
+      C12 = this%C12
+      C14 = this%C14
+      C16 = this%C16
+
+      RijSquared = Rij * Rij
+      RijInv = 1._RK / Rij
+      RijInv2 = RijInv * RijInv
+      RijInv3 = RijInv * RijInv2
+      RijInv6 = RijInv3 * RijInv3
+      RijInv8 = RijInv6 * RijInv2
+      RijInv10 = RijInv8 * RijInv2
+      bRij = b * Rij
+      bRij2 = bRij * bRij
+      bRij3 = bRij2 * bRij
+      bRij4 = bRij2 * bRij2
+      bRij6 = bRij2 * bRij4
+      bRij8 = bRij4 * bRij4
+      bRij10 = bRij4 * bRij6
+      bRij12 = bRij6 * bRij6
+      bRij14 = bRij4 * bRij10
+      bRij16 = bRij6 * bRij10
+      ExpMinusbRij = exp( -bRij )
+
+      F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
+    &                + InvFac3 * bRij3 + InvFac4 * bRij4 &
+    &                + InvFac5 * bRij * bRij4 + InvFac6 * bRij6 )
+      F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
+      F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
+      F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
+      F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
+      F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
+
+      Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
+      Attr6 = C6 * RijInv6 * F6
+      Attr8 = C8 * RijInv8 * F8
+      Attr10 = C10 * RijInv10 * F10
+      Attr12 = C12 * RijInv6 * RijInv6 * F12
+      Attr14 = C14 * RijInv8 * RijInv6 * F14
+      Attr16 = C16 * RijInv10 * RijInv6 * F16
+
+      this%EPot_aux = Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
+      this%EPot_aux = this%EPot_aux * RijSquared
+
+      ! 1st derivative
+
+      Aux1 = -a1 - am1 * RijInv2 + 2 * ( a2 * Rij - am2 * RijInv3 )
+      dRepdR = -Aux1 * Rep
+
+      Aux2 = ( 6*Attr6 + 8*Attr8 + 10*Attr10 + 12*Attr12 + 14*Attr14 + 16*Attr16 ) * RijInv
+
+      Aux3 = this%Deriv1Factor * ExpMinusbRij
+
+      this%Virial_aux =  dRepdR - Aux2 + Aux3
+
+      this%Virial_aux = this%Virial_aux * RijSquared * Rij
+
+      ! 2nd derivative
+
+      d2RepdR2 = -Aux1 * dRepdR + Rep * 2 * ( a2 + am1*RijInv3 + 3*am2*RijInv2*RijInv2 )
+
+      Aux4 = ( 42*Attr6 + 72*Attr8 + 110*Attr10 + 156*Attr12 + 210*Attr14 + 272*Attr16 ) * RijInv2
+
+      this%d2EpotdV2_aux = d2RepdR2 + b * Aux3 + this%Deriv2Factor * ExpMinusbRij * RijInv - Aux4
+      this%d2EpotdV2_aux = this%d2EpotdV2_aux * RijSquared * RijSquared
+
+    end function TTExt_CC
+
+
 
     real(RK) function FnRC(n, rc, b)
 
@@ -2382,18 +2544,19 @@ loop2:  do j = 1, N2
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK)          :: RCutoffSquared
+    real(RK)          :: RCutoffSquared, RijSquared, RShieldSquared
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: FXi, FYi, FZi
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: FXij, FYij, FZij, Fij
-    real(RK)          :: A, b, Alpha, C6, C8
-    real(RK)          :: Rij, RijSquared, RijInv, RijInv2, RijInv3, RijInv6
-    real(RK)          :: bRij, bRij2, bRij3, bRij6, bRij7
-    real(RK)          :: ExpMinusbRij, F6, F8
-    real(RK)          :: Rep, Attr1, Attr2, AlphaRep, C6times56, LongTerm
+    real(RK)          :: A, b, a1, a2, am1, am2, C6, C8, C10, C12, C14, C16
+    real(RK)          :: Rep, Attr6, Attr8, Attr10, Attr12, Attr14, Attr16
+    real(RK)          :: Rij, RijInv, RijInv2, RijInv3, RijInv6, RijInv8, RijInv10
+    real(RK)          :: bRij, bRij2, bRij3, bRij4, bRij6, bRij8, bRij10, bRij12, bRij14, bRij16
+    real(RK)          :: Aux1, Aux2, Aux3, Aux4, Deriv1Factor, Deriv2Factor, dRepdR, d2RepdR2
+    real(RK)          :: ExpMinusbRij, F6, F8, F10, F12, F14, F16
     real(RK)          :: dEPotdRij, d2EpotdRij2
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
     real(RK)          :: d2EpotdV2Local, sitecorr
@@ -2436,10 +2599,18 @@ loop2:  do j = 1, N2
     ! Assign local variables
     A = this%TT_A
     b = this%TT_b
-    Alpha = this%Alpha
+    a1 = this%a1
+    a2 = this%a2
+    am1 = this%am1
+    am2 = this%am2
     C6 = this%C6
-    C6times56 = C6 * 56
     C8 = this%C8
+    C10 = this%C10
+    C12 = this%C12
+    C14 = this%C14
+    C16 = this%C16
+    Deriv1Factor = this%Deriv1Factor
+    Deriv2Factor = this%Deriv2Factor
     SameComponent = this%SameComponent
     forceTempX(:)=0._RK
     forceTempY(:)=0._RK
@@ -2448,6 +2619,7 @@ loop2:  do j = 1, N2
     VirialLocal=0._RK
     d2EpotdV2Local= 0._RK
     RCutoffSquared = this%RCutoffSquared
+    RShieldSquared = this%RShieldSquared
 
 #if MPI_VER > 0
     N1 = this%Site2%NPart
@@ -2472,8 +2644,11 @@ loop2:  do j = 1, N2
 !$OMP PRIVATE(sitecorr, EPotLocal1) &
 !$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi) &
 !$OMP PRIVATE(RXij, RYij, RZij, PXij, PYij, PZij) &
-!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijInv2, RijInv3, RijInv6 )&
-!$OMP PRIVATE( ExpMinusbRij, Rep, Attr1, Attr2, AlphaRep, C6times56)
+!$OMP PRIVATE(FXij, FYij, FZij, Fij)&
+!$OMP PRIVATE (Rij, RijSquared, RijInv, RijInv2, RijInv3, RijInv6, RijInv8, RijInv10)&
+!$OMP PRIVATE (bRij, bRij2, bRij3, bRij4, bRij6, bRij8, bRij10, bRij12, bRij14, bRij16)&
+!$OMP PRIVATE (ExpMinusbRij, F6, F8, F10, F12, F14, F16) &
+!$OMP PRIVATE (Rep, Attr6, Attr8, Attr10, Attr12, Attr14, Attr16)
 
     if( CutoffMode .eq. CenterofMass ) then
 
@@ -2525,32 +2700,69 @@ loop1:  do k = 1, this%NInCutoff(i)
           RijInv2 = RijInv * RijInv
           RijInv3 = RijInv * RijInv2
           RijInv6 = RijInv3 * RijInv3
+          RijInv8 = RijInv6 * RijInv2
+          RijInv10 = RijInv8 * RijInv2
           bRij = b * Rij
           bRij2 = bRij * bRij
-          bRij3 = bRij * bRij2
-          bRij6 = bRij3 * bRij3
-          bRij7 = bRij * bRij6
+          bRij3 = bRij2 * bRij
+          bRij4 = bRij2 * bRij2
+          bRij6 = bRij2 * bRij4
+          bRij8 = bRij4 * bRij4
+          bRij10 = bRij4 * bRij6
+          bRij12 = bRij6 * bRij6
+          bRij14 = bRij4 * bRij10
+          bRij16 = bRij6 * bRij10
           ExpMinusbRij = exp( -bRij )
 
           F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
-&              + InvFac3 * bRij3 + InvFac4 * bRij2 * bRij2 &
-&              + InvFac5 * bRij2 * bRij3 + InvFac6 * bRij6 )
-          F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij7 + InvFac8 * bRij * bRij7)
+&                + InvFac3 * bRij3 + InvFac4 * bRij4 &
+&                + InvFac5 * bRij * bRij4 + InvFac6 * bRij6 )
+          F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
+          F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
+          F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
+          F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
+          F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
 
-          Rep = A * exp( -Alpha * Rij )
-          Attr1 = C6 * RijInv6 * F6
-          Attr2 = C8 * RijInv6 * RijInv2 * F8
-          EPotLocal = EpotLocal + Rep - Attr1 - Attr2
+          Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
+          Attr6 = C6 * RijInv6 * F6
+          Attr8 = C8 * RijInv8 * F8
+          Attr10 = C10 * RijInv10 * F10
+          Attr12 = C12 * RijInv6 * RijInv6 * F12
+          Attr14 = C14 * RijInv8 * RijInv6 * F14
+          Attr16 = C16 * RijInv10 * RijInv6 * F16
 
-          AlphaRep = Alpha * Rep
-          LongTerm = bRij7 * RijInv6 * RijInv * InvFac8 * ExpMinusbRij
-          dEPotdRij = AlphaRep + LongTerm * (C6times56 + bRij2 * RijInv2 * C8) &
-&                     - ( 6 * Attr1 + 8 * Attr2 ) * RijInv
+          EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
+
+          ! 1st derivative
+
+          Aux1 = -a1 - am1 * RijInv2 + 2 * ( a2 * Rij - am2 * RijInv3 )
+          dRepdR = -Aux1 * Rep
+
+          Aux2 = ( 6*Attr6 + 8*Attr8 + 10*Attr10 + 12*Attr12 + 14*Attr14 + 16*Attr16 ) * RijInv
+
+          Aux3 = Deriv1Factor * ExpMinusbRij
+
+          dEPotdRij =  dRepdR - Aux2 + Aux3
+
           Fij = dEpotdRij * RijInv
+
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
           VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
+
+          ! 2nd derivative
+
+          d2RepdR2 = -Aux1 * dRepdR + Rep * 2 * ( a2 + am1*RijInv3 + 3*am2*RijInv2*RijInv2 )
+
+          Aux4 = ( 42*Attr6 + 72*Attr8 + 110*Attr10 + 156*Attr12 + 210*Attr14 + 272*Attr16 ) * RijInv2
+
+          d2EpotdRij2 = d2RepdR2 + b * Aux3 + Deriv2Factor * ExpMinusbRij * RijInv - Aux4
+
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
+
+          d2EpotdV2Local = d2EpotdV2Local + Ninth * ( -Fij * (sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) + d2EpotdRij2 * sitecorr*sitecorr) * RijSquared
+
 #if OSMOP == 2
 loop2:    do m=1,NBinsDen
             if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -2577,11 +2789,6 @@ loop2:    do m=1,NBinsDen
              end do
           end if
 #endif
-          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdRij2 = Alpha * AlphaRep + LongTerm &
-&            * ( (b + 6 * RijInv) * C6times56 + RijInv3 * (bRij3 + 8 * bRij2) * C8 ) &
-&            - ( 42 * Attr1 + 72 * Attr2) * RijInv2
-          d2EpotdV2Local = d2EpotdV2Local + Ninth * ( -Fij * (sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) + d2EpotdRij2 * sitecorr*sitecorr) * RijSquared
 
           FXi = FXi + FXij
           FYi = FYi + FYij
@@ -2649,37 +2856,66 @@ loop3:  do j = j0, j1
           RijInv2 = RijInv * RijInv
           RijInv3 = RijInv * RijInv2
           RijInv6 = RijInv3 * RijInv3
+          RijInv8 = RijInv6 * RijInv2
+          RijInv10 = RijInv8 * RijInv2
           bRij = b * Rij
           bRij2 = bRij * bRij
-          bRij3 = bRij * bRij2
-          bRij6 = bRij3 * bRij3
-          bRij7 = bRij * bRij6
+          bRij3 = bRij2 * bRij
+          bRij4 = bRij2 * bRij2
+          bRij6 = bRij2 * bRij4
+          bRij8 = bRij4 * bRij4
+          bRij10 = bRij4 * bRij6
+          bRij12 = bRij6 * bRij6
+          bRij14 = bRij4 * bRij10
+          bRij16 = bRij6 * bRij10
           ExpMinusbRij = exp( -bRij )
 
           F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
-&              + InvFac3 * bRij3 + InvFac4 * bRij2 * bRij2 &
-&              + InvFac5 * bRij2 * bRij3 + InvFac6 * bRij6 )
-          F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij7 + InvFac8 * bRij * bRij7)
+&                + InvFac3 * bRij3 + InvFac4 * bRij4 &
+&                + InvFac5 * bRij * bRij4 + InvFac6 * bRij6 )
+          F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
+          F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
+          F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
+          F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
+          F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
 
-          Rep = A * exp( -Alpha * Rij )
-          Attr1 = C6 * RijInv6 * F6
-          Attr2 = C8 * RijInv6 * RijInv2 * F8
-          EPotLocal = EpotLocal + Rep - Attr1 - Attr2
+          Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
+          Attr6 = C6 * RijInv6 * F6
+          Attr8 = C8 * RijInv8 * F8
+          Attr10 = C10 * RijInv10 * F10
+          Attr12 = C12 * RijInv6 * RijInv6 * F12
+          Attr14 = C14 * RijInv8 * RijInv6 * F14
+          Attr16 = C16 * RijInv10 * RijInv6 * F16
 
-          AlphaRep = Alpha * Rep
-          LongTerm = bRij7 * RijInv6 * RijInv * InvFac8 * ExpMinusbRij
-          dEPotdRij = AlphaRep + LongTerm * (C6times56 + bRij2 * RijInv2 * C8) &
-&                     - ( 6 * Attr1 + 8 * Attr2 ) * RijInv
+          EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
+
+          ! 1st derivative
+
+          Aux1 = -a1 - am1 * RijInv2 + 2 * ( a2 * Rij - am2 * RijInv3 )
+          dRepdR = -Aux1 * Rep
+
+          Aux2 = ( 6*Attr6 + 8*Attr8 + 10*Attr10 + 12*Attr12 + 14*Attr14 + 16*Attr16 ) * RijInv
+
+          Aux3 = Deriv1Factor * ExpMinusbRij
+
+          dEPotdRij =  dRepdR - Aux2 + Aux3
+
           Fij = dEpotdRij * RijInv
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
           VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
 
+          ! 2nd derivative
+
+          d2RepdR2 = -Aux1 * dRepdR + Rep * 2 * ( a2 + am1*RijInv3 + 3*am2*RijInv2*RijInv2 )
+
+          Aux4 = ( 42*Attr6 + 72*Attr8 + 110*Attr10 + 156*Attr12 + 210*Attr14 + 272*Attr16 ) * RijInv2
+
+          d2EpotdRij2 = d2RepdR2 + b * Aux3 + Deriv2Factor * ExpMinusbRij * RijInv - Aux4
+
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdRij2 = Alpha * AlphaRep + LongTerm &
-&            * ( (b + 6 * RijInv) * C6times56 + RijInv3 * (bRij3 + 8 * bRij2) * C8 ) &
-&            - ( 42 * Attr1 + 72 * Attr2) * RijInv2
+
           d2EpotdV2Local = d2EpotdV2Local + Ninth * ( -Fij * (sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) + d2EpotdRij2 * sitecorr*sitecorr) * RijSquared
 
           FXi = FXi + FXij
@@ -2734,18 +2970,19 @@ loop3:  do j = j0, j1
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK), pointer, contiguous :: FX1(:), FY1(:), FZ1(:), FX2(:), FY2(:), FZ2(:)
-    real(RK)          :: RCutoffSquared
+    real(RK)          :: RCutoffSquared, RijSquared, RShieldSquared
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: FXi, FYi, FZi
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: PXij, PYij, PZij
     real(RK)          :: FXij, FYij, FZij, Fij
-    real(RK)          :: A, b, Alpha, C6, C8
-    real(RK)          :: Rij, RijSquared, RijInv, RijInv2, RijInv3, RijInv6
-    real(RK)          :: bRij, bRij2, bRij3, bRij6, bRij7
-    real(RK)          :: ExpMinusbRij, F6, F8
-    real(RK)          :: Rep, Attr1, Attr2, AlphaRep, C6times56, LongTerm
+    real(RK)          :: A, b, a1, a2, am1, am2, C6, C8, C10, C12, C14, C16
+    real(RK)          :: Rep, Attr6, Attr8, Attr10, Attr12, Attr14, Attr16
+    real(RK)          :: Rij, RijInv, RijInv2, RijInv3, RijInv6, RijInv8, RijInv10
+    real(RK)          :: bRij, bRij2, bRij3, bRij4, bRij6, bRij8, bRij10, bRij12, bRij14, bRij16
+    real(RK)          :: Aux1, Aux2, Aux3, Aux4, Deriv1Factor, Deriv2Factor, dRepdR, d2RepdR2
+    real(RK)          :: ExpMinusbRij, F6, F8, F10, F12, F14, F16
     real(RK)          :: dEPotdRij, d2EpotdRij2
     real(RK)          :: EPotLocal, EPotLocal1, VirialLocal
     real(RK)          :: d2EpotdV2Local, sitecorr
@@ -2845,8 +3082,11 @@ loop3:  do j = j0, j1
 !$OMP PRIVATE( RX1, RY1, RZ1, RX2, RY2, RZ2) &
 !$OMP PRIVATE( PX1, PY1, PZ1, PX2, PY2, PZ2, FX1, FY1, FZ1, FX2, FY2) &
 !$OMP PRIVATE(RXi, RYi, RZi,  PXi, PYi, PZi,  FXi, FYi, FZi,  RXij, RYij, RZij, PXij, PYij, PZij) &
-!$OMP PRIVATE(FXij, FYij, FZij, Fij, RijSquared, RijInv2, RijInv3, RijInv6 )&
-!$OMP PRIVATE( ExpMinusbRij, Rep, Attr1, Attr2, AlphaRep, C6times56) &
+!$OMP PRIVATE(FXij, FYij, FZij, Fij)&
+!$OMP PRIVATE (Rij, RijSquared, RijInv, RijInv2, RijInv3, RijInv6, RijInv8, RijInv10)&
+!$OMP PRIVATE (bRij, bRij2, bRij3, bRij4, bRij6, bRij8, bRij10, bRij12, bRij14, bRij16)&
+!$OMP PRIVATE (ExpMinusbRij, F6, F8, F10, F12, F14, F16) &
+!$OMP PRIVATE (Rep, Attr6, Attr8, Attr10, Attr12, Attr14, Attr16) &
 #if MPI_VER > 0
 !$OMP PRIVATE(i0, N1, N2, ji, EvenN) &
 #endif
@@ -2876,11 +3116,20 @@ loop3:  do j = j0, j1
 
     A = this%TT_A
     b = this%TT_b
-    Alpha = this%Alpha
+    a1 = this%a1
+    a2 = this%a2
+    am1 = this%am1
+    am2 = this%am2
     C6 = this%C6
-    C6times56 = C6 * 56
     C8 = this%C8
+    C10 = this%C10
+    C12 = this%C12
+    C14 = this%C14
+    C16 = this%C16
+    Deriv1Factor = this%Deriv1Factor
+    Deriv2Factor = this%Deriv2Factor
     RCutoffSquared = this%RCutoffSquared
+    RShieldSquared = this%RShieldSquared
 
     ! Assign pointers
     RX1 => this%Site1%RX
@@ -3037,32 +3286,68 @@ loop1:  do k = 1, this%NInCutoff(i)
           RijInv2 = RijInv * RijInv
           RijInv3 = RijInv * RijInv2
           RijInv6 = RijInv3 * RijInv3
+          RijInv8 = RijInv6 * RijInv2
+          RijInv10 = RijInv8 * RijInv2
           bRij = b * Rij
           bRij2 = bRij * bRij
-          bRij3 = bRij * bRij2
-          bRij6 = bRij3 * bRij3
-          bRij7 = bRij * bRij6
+          bRij3 = bRij2 * bRij
+          bRij4 = bRij2 * bRij2
+          bRij6 = bRij2 * bRij4
+          bRij8 = bRij4 * bRij4
+          bRij10 = bRij4 * bRij6
+          bRij12 = bRij6 * bRij6
+          bRij14 = bRij4 * bRij10
+          bRij16 = bRij6 * bRij10
           ExpMinusbRij = exp( -bRij )
 
           F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
-&              + InvFac3 * bRij3 + InvFac4 * bRij2 * bRij2 &
-&              + InvFac5 * bRij2 * bRij3 + InvFac6 * bRij6 )
-          F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij7 + InvFac8 * bRij * bRij7)
+&                + InvFac3 * bRij3 + InvFac4 * bRij4 &
+&                + InvFac5 * bRij * bRij4 + InvFac6 * bRij6 )
+          F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
+          F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
+          F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
+          F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
+          F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
 
-          Rep = A * exp( -Alpha * Rij )
-          Attr1 = C6 * RijInv6 * F6
-          Attr2 = C8 * RijInv6 * RijInv2 * F8
-          EPotLocal = EpotLocal + Rep - Attr1 - Attr2
+          Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
+          Attr6 = C6 * RijInv6 * F6
+          Attr8 = C8 * RijInv8 * F8
+          Attr10 = C10 * RijInv10 * F10
+          Attr12 = C12 * RijInv6 * RijInv6 * F12
+          Attr14 = C14 * RijInv8 * RijInv6 * F14
+          Attr16 = C16 * RijInv10 * RijInv6 * F16
 
-          AlphaRep = Alpha * Rep
-          LongTerm = bRij7 * RijInv6 * RijInv * InvFac8 * ExpMinusbRij
-          dEPotdRij = AlphaRep + LongTerm * (C6times56 + bRij2 * RijInv2 * C8) &
-&                     - ( 6 * Attr1 + 8 * Attr2 ) * RijInv
+          EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
+
+          ! 1st derivative
+
+          Aux1 = -a1 - am1 * RijInv2 + 2 * ( a2 * Rij - am2 * RijInv3 )
+          dRepdR = -Aux1 * Rep
+
+          Aux2 = ( 6*Attr6 + 8*Attr8 + 10*Attr10 + 12*Attr12 + 14*Attr14 + 16*Attr16 ) * RijInv
+
+          Aux3 = Deriv1Factor * ExpMinusbRij
+
+          dEPotdRij =  dRepdR - Aux2 + Aux3
+
           Fij = dEpotdRij * RijInv
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
           VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
+
+          ! 2nd derivative
+
+          d2RepdR2 = -Aux1 * dRepdR + Rep * 2 * ( a2 + am1*RijInv3 + 3*am2*RijInv2*RijInv2 )
+
+          Aux4 = ( 42*Attr6 + 72*Attr8 + 110*Attr10 + 156*Attr12 + 210*Attr14 + 272*Attr16 ) * RijInv2
+
+          d2EpotdRij2 = d2RepdR2 + b * Aux3 + Deriv2Factor * ExpMinusbRij * RijInv - Aux4
+
+          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
+
+          d2EpotdV2Local = d2EpotdV2Local + Ninth * ( -Fij * (sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) + d2EpotdRij2 * sitecorr*sitecorr) * RijSquared
+
 #if OSMOP == 2
 loop2:    do m=1,NBinsDen
             if (PX2(j) .ge. real(m-1)/NBinsDen-0.5_RK) then
@@ -3089,11 +3374,6 @@ loop2:    do m=1,NBinsDen
              end do
           end if
 #endif
-          sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdRij2 = Alpha * AlphaRep + LongTerm &
-&            * ( (b + 6 * RijInv) * C6times56 + RijInv3 * (bRij3 + 8 * bRij2) * C8 ) &
-&            - ( 42 * Attr1 + 72 * Attr2) * RijInv2
-          d2EpotdV2Local = d2EpotdV2Local + Ninth * ( -Fij * (sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) + d2EpotdRij2 * sitecorr*sitecorr) * RijSquared
 
           FXi = FXi + FXij
           FYi = FYi + FYij
@@ -3263,37 +3543,66 @@ loop3:  do j = j0, j1
           RijInv2 = RijInv * RijInv
           RijInv3 = RijInv * RijInv2
           RijInv6 = RijInv3 * RijInv3
+          RijInv8 = RijInv6 * RijInv2
+          RijInv10 = RijInv8 * RijInv2
           bRij = b * Rij
           bRij2 = bRij * bRij
-          bRij3 = bRij * bRij2
-          bRij6 = bRij3 * bRij3
-          bRij7 = bRij * bRij6
+          bRij3 = bRij2 * bRij
+          bRij4 = bRij2 * bRij2
+          bRij6 = bRij2 * bRij4
+          bRij8 = bRij4 * bRij4
+          bRij10 = bRij4 * bRij6
+          bRij12 = bRij6 * bRij6
+          bRij14 = bRij4 * bRij10
+          bRij16 = bRij6 * bRij10
           ExpMinusbRij = exp( -bRij )
 
           F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
-&              + InvFac3 * bRij3 + InvFac4 * bRij2 * bRij2 &
-&              + InvFac5 * bRij2 * bRij3 + InvFac6 * bRij6 )
-          F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij7 + InvFac8 * bRij * bRij7)
+&                + InvFac3 * bRij3 + InvFac4 * bRij4 &
+&                + InvFac5 * bRij * bRij4 + InvFac6 * bRij6 )
+          F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
+          F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
+          F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
+          F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
+          F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
 
-          Rep = A * exp( -Alpha * Rij )
-          Attr1 = C6 * RijInv6 * F6
-          Attr2 = C8 * RijInv6 * RijInv2 * F8
-          EPotLocal = EpotLocal + Rep - Attr1 - Attr2
+          Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
+          Attr6 = C6 * RijInv6 * F6
+          Attr8 = C8 * RijInv8 * F8
+          Attr10 = C10 * RijInv10 * F10
+          Attr12 = C12 * RijInv6 * RijInv6 * F12
+          Attr14 = C14 * RijInv8 * RijInv6 * F14
+          Attr16 = C16 * RijInv10 * RijInv6 * F16
 
-          AlphaRep = Alpha * Rep
-          LongTerm = bRij7 * RijInv6 * RijInv * InvFac8 * ExpMinusbRij
-          dEPotdRij = AlphaRep + LongTerm * (C6times56 + bRij2 * RijInv2 * C8) &
-&                     - ( 6 * Attr1 + 8 * Attr2 ) * RijInv
+          EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
+
+          ! 1st derivative
+
+          Aux1 = -a1 - am1 * RijInv2 + 2 * ( a2 * Rij - am2 * RijInv3 )
+          dRepdR = -Aux1 * Rep
+
+          Aux2 = ( 6*Attr6 + 8*Attr8 + 10*Attr10 + 12*Attr12 + 14*Attr14 + 16*Attr16 ) * RijInv
+
+          Aux3 = Deriv1Factor * ExpMinusbRij
+
+          dEPotdRij =  dRepdR - Aux2 + Aux3
+
           Fij = dEpotdRij * RijInv
           FXij = Fij * RXij
           FYij = Fij * RYij
           FZij = Fij * RZij
           VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij)
 
+          ! 2nd derivative
+
+          d2RepdR2 = -Aux1 * dRepdR + Rep * 2 * ( a2 + am1*RijInv3 + 3*am2*RijInv2*RijInv2 )
+
+          Aux4 = ( 42*Attr6 + 72*Attr8 + 110*Attr10 + 156*Attr12 + 210*Attr14 + 272*Attr16 ) * RijInv2
+
+          d2EpotdRij2 = d2RepdR2 + b * Aux3 + Deriv2Factor * ExpMinusbRij * RijInv - Aux4
+
           sitecorr = (PXij*RXij+PYij*RYij+PZij*RZij)/RijSquared
-          d2EpotdRij2 = Alpha * AlphaRep + LongTerm &
-&            * ( (b + 6 * RijInv) * C6times56 + RijInv3 * (bRij3 + 8 * bRij2) * C8 ) &
-&            - ( 42 * Attr1 + 72 * Attr2) * RijInv2
+
           d2EpotdV2Local = d2EpotdV2Local + Ninth * ( -Fij * (sitecorr*sitecorr-(PXij*PXij+PYij*PYij+PZij*PZij)/RijSquared) + d2EpotdRij2 * sitecorr*sitecorr) * RijSquared
 
           FXi = FXi + FXij
@@ -3433,16 +3742,18 @@ loop1:do k = 1, this%NInCutoff(i)
     ! Declare local variables
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK)          :: RCutoffSquared
-    real(RK)          :: RShieldSquared
+    real(RK)          :: RijSquared, RCutoffSquared, RShieldSquared
     real(RK)          :: RXi, RYi, RZi
     real(RK)          :: PXi, PYi, PZi
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: PXij, PYij, PZij
-    real(RK)          :: A, b, Alpha, C6, C8, C6times56, b2, b4
-    real(RK)          :: Rij, RijSquared, RijInv, RijInv2, RijInv3, RijInv6
-    real(RK)          :: bRij, bRij2, bRij3, bRij4, bRij6, bRij7
-    real(RK)          :: ExpMinusbRij, F6, F8, Attr1, Attr2
+    real(RK)          :: A, b, a1, a2, am1, am2, C6, C8, C10, C12, C14, C16
+    real(RK)          :: Rep, Attr6, Attr8, Attr10, Attr12, Attr14, Attr16
+    real(RK)          :: Rij, RijInv, RijInv2, RijInv3, RijInv6, RijInv8, RijInv10
+    real(RK)          :: bRij, bRij2, bRij3, bRij4, bRij6, bRij8, bRij10, bRij12, bRij14, bRij16
+    real(RK)          :: ExpMinusbRij, F6, F8, F10, F12, F14, F16
+    ! real(RK)          :: Aux2, Aux3, Aux4, Aux5, Deriv1Factor, Deriv2Factor, dRepdR, d2RepdR2
+    real(RK)          :: UFH, dRepInt1, dRepInt2, dEPotdRij, d2EpotdRij2
     real(RK)          :: EPotLocal
     integer           :: N2
     integer           :: i, j, k
@@ -3451,10 +3762,16 @@ loop1:do k = 1, this%NInCutoff(i)
     N2 = this%Site2%NPart
     A = this%TT_A
     b = this%TT_b
-    Alpha = this%Alpha
+    a1 = this%a1
+    a2 = this%a2
+    am1 = this%am1
+    am2 = this%am2
     C6 = this%C6
-    C6times56 = C6 * 56
     C8 = this%C8
+    C10 = this%C10
+    C12 = this%C12
+    C14 = this%C14
+    C16 = this%C16
     RCutoffSquared = this%RCutoffSquared
     RShieldSquared = this%RShieldSquared
 
@@ -3475,8 +3792,10 @@ loop1:do k = 1, this%NInCutoff(i)
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP PRIVATE (RXi,RYi,RZi,PXi,PYi,PZi) &
 !$OMP PRIVATE (RXij,RYij,RZij,PXij,PYij,PZij) &
-!$OMP PRIVATE (RijSquared, RijInv2, RijInv3, RijInv6 )&
-!$OMP PRIVATE (ExpMinusbRij, Attr1, Attr2, C6times56) &
+!$OMP PRIVATE (Rij, RijSquared, RijInv, RijInv2, RijInv3, RijInv6, RijInv8, RijInv10)&
+!$OMP PRIVATE (bRij, bRij2, bRij3, bRij4, bRij6, bRij8, bRij10, bRij12, bRij14, bRij16)&
+!$OMP PRIVATE (ExpMinusbRij, F6, F8, F10, F12, F14, F16) &
+!$OMP PRIVATE (Rep, Attr6, Attr8, Attr10, Attr12, Attr14, Attr16) &
 !$OMP PRIVATE (EpotLocal,i,j,k)
 
     if( CutoffMode .eq. CenterofMass ) then
@@ -3507,50 +3826,46 @@ loop1:  do k = 1, this%NInCutoff(i)
           RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
 
           Rij = sqrt( RijSquared )
-          bRij = b * Rij
-          bRij2 = bRij * bRij
-          bRij4 = bRij2 * bRij2
-          bRij6 = bRij4 * bRij2
-          bRij7 = bRij6 * bRij
+
           if( RijSquared <= RShieldSquared ) then
-            b2 = b * b
-            b4 = b2 * b2
-            Attr1 = InvFac7 * bRij - InvFac8 * 7._RK * bRij2 &
-&                   + InvFac9 * 28._RK * bRij2 * bRij &
-&                   - InvFac10 * 84._RK * bRij4 &
-&                   + InvFac11 * 210._RK * bRij4 * bRij &
-&                   - InvFac12 * 462._RK * bRij6 &
-&                   + InvFac13 * 924._RK * bRij7 &
-&                   - InvFac14 * 1716._RK * bRij6 * bRij2 &
-&                   + InvFac15 * 3003._RK * bRij7 * bRij2 &
-&                   - InvFac16 * 5005._RK * bRij6 * bRij4 &
-&                   + InvFac17 * 8008._RK * bRij7 * bRij4 &
-&                   - InvFac18 * 12376._RK * bRij6 * bRij6
-            Attr1 = Attr1 * C6 * b2 * b4
-            Attr2 = InvFac9 * bRij - InvFac10 * 9._RK * bRij2 &
-&                   + InvFac11 * 45._RK * bRij2 * bRij &
-&                   - InvFac12 * 165._RK * bRij4 &
-&                   + InvFac13 * 495._RK * bRij4 * bRij &
-&                   - InvFac14 * 1287._RK * bRij6 &
-&                   + InvFac15 * 3003._RK * bRij7 &
-&                   - InvFac16 * 6435._RK * bRij6 * bRij2 &
-&                   + InvFac17 * 12870._RK * bRij7 * bRij2 &
-&                   - InvFac18 * 24310._RK * bRij6 * bRij4
-            Attr2 = Attr2 * C8 * b4 * b4
+            EPotLocal = 1E33_RK
           else
             RijInv = 1._RK / Rij
             RijInv2 = RijInv * RijInv
             RijInv3 = RijInv * RijInv2
             RijInv6 = RijInv3 * RijInv3
+            RijInv8 = RijInv6 * RijInv2
+            RijInv10 = RijInv8 * RijInv2
+            bRij = b * Rij
+            bRij2 = bRij * bRij
+            bRij3 = bRij2 * bRij
+            bRij4 = bRij2 * bRij2
+            bRij6 = bRij2 * bRij4
+            bRij8 = bRij4 * bRij4
+            bRij10 = bRij4 * bRij6
+            bRij12 = bRij6 * bRij6
+            bRij14 = bRij4 * bRij10
+            bRij16 = bRij6 * bRij10
             ExpMinusbRij = exp( -bRij )
             F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
-  &              + InvFac3 * bRij2 * bRij + InvFac4 * bRij4 &
-  &              + InvFac5 * bRij4 * bRij + InvFac6 * bRij6 )
-            F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij7 + InvFac8 * bRij * bRij7)
-            Attr1 = C6 * RijInv6 * F6
-            Attr2 = C8 * RijInv6 * RijInv2 * F8
+&                + InvFac3 * bRij3 + InvFac4 * bRij4 &
+&                + InvFac5 * bRij * bRij4 + InvFac6 * bRij6 )
+            F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
+            F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
+            F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
+            F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
+            F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
+
+            Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
+            Attr6 = C6 * RijInv6 * F6
+            Attr8 = C8 * RijInv8 * F8
+            Attr10 = C10 * RijInv10 * F10
+            Attr12 = C12 * RijInv6 * RijInv6 * F12
+            Attr14 = C14 * RijInv8 * RijInv6 * F14
+            Attr16 = C16 * RijInv10 * RijInv6 * F16
+
+            EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
           end if
-          EPotLocal = EpotLocal + A * exp( -Alpha * Rij ) - Attr1 - Attr2
         end do loop1
         EPotTest(i) = EPotTest(i) + EPotLocal
       end do
@@ -3575,22 +3890,47 @@ loop2:  do j = 1, N2
           RZij = (RZij - anint( RZij )) * BoxLength
           RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           if( RijSquared >= RCutoffSquared ) cycle loop2
-          Rij = sqrt( RijSquared )
-          RijInv = 1._RK / Rij
-          RijInv2 = RijInv * RijInv
-          RijInv3 = RijInv * RijInv2
-          RijInv6 = RijInv3 * RijInv3
-          bRij = b * Rij
-          bRij2 = bRij * bRij
-          bRij3 = bRij * bRij2
-          bRij6 = bRij3 * bRij3
-          bRij7 = bRij * bRij6
-          ExpMinusbRij = exp( -bRij )
-          F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
-&              + InvFac3 * bRij3 + InvFac4 * bRij2 * bRij2 &
-&              + InvFac5 * bRij2 * bRij3 + InvFac6 * bRij6 )
-          F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij7 + InvFac8 * bRij * bRij7)
-          EPotLocal = EpotLocal + A * exp( -Alpha * Rij ) - C6 * RijInv6 * F6 - C8 * RijInv6 * RijInv2 * F8
+          if( RijSquared <= RShieldSquared ) then
+            EPotLocal = 1E33_RK
+          else
+            Rij = sqrt( RijSquared )
+            RijInv = 1._RK / Rij
+            RijInv2 = RijInv * RijInv
+            RijInv3 = RijInv * RijInv2
+            RijInv6 = RijInv3 * RijInv3
+            RijInv8 = RijInv6 * RijInv2
+            RijInv10 = RijInv8 * RijInv2
+            bRij = b * Rij
+            bRij2 = bRij * bRij
+            bRij3 = bRij2 * bRij
+            bRij4 = bRij2 * bRij2
+            bRij6 = bRij2 * bRij4
+            bRij8 = bRij4 * bRij4
+            bRij10 = bRij4 * bRij6
+            bRij12 = bRij6 * bRij6
+            bRij14 = bRij4 * bRij10
+            bRij16 = bRij6 * bRij10
+            ExpMinusbRij = exp( -bRij )
+            F6 = 1._RK - ExpMinusbRij * ( 1._RK + bRij + 0.5_RK * bRij2 &
+&                + InvFac3 * bRij3 + InvFac4 * bRij4 &
+&                + InvFac5 * bRij * bRij4 + InvFac6 * bRij6 )
+            F8 = F6 - ExpMinusbRij * ( InvFac7 * bRij6 * bRij + InvFac8 * bRij8 )
+            F10 = F8 - ExpMinusbRij * ( InvFac9 * bRij8 * bRij + InvFac10 * bRij10 )
+            F12 = F10 - ExpMinusbRij * ( InvFac11 * bRij10 * bRij + InvFac12 * bRij12 )
+            F14 = F12 - ExpMinusbRij * ( InvFac13 * bRij12 * bRij + InvFac14 * bRij14 )
+            F16 = F14 - ExpMinusbRij * ( InvFac15 * bRij14 * bRij + InvFac16 * bRij16 )
+
+            Rep = A * exp( -a1 * Rij + a2 * RijSquared + am1 * RijInv + am2 * RijInv2 )
+            Attr6 = C6 * RijInv6 * F6
+            Attr8 = C8 * RijInv8 * F8
+            Attr10 = C10 * RijInv10 * F10
+            Attr12 = C12 * RijInv6 * RijInv6 * F12
+            Attr14 = C14 * RijInv8 * RijInv6 * F14
+            Attr16 = C16 * RijInv10 * RijInv6 * F16
+
+            EPotLocal = EPotLocal + Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
+
+          end if
         end do loop2
         EPotTest(i) = EPotTest(i) + EPotLocal
       end do
