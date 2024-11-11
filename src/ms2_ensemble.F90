@@ -138,7 +138,7 @@ module ms2_ensemble
     integer :: NComponents, NRealComponents
 
     ! Maximum numbers of sites in components
-    integer :: NMIEnmMax, NTT68Max, NChargeMax, NDipoleMax, NQuadrupoleMax
+    integer :: NMIEnmMax, NTTMax, NChargeMax, NDipoleMax, NQuadrupoleMax
 
     ! Components
     type(TComponent), pointer, contiguous :: Component(:)
@@ -180,7 +180,7 @@ module ms2_ensemble
 
     ! Cutoff radii
     real(RK) :: RCutoffMIEnmMIEnm
-    real(RK) :: RCutoffTT68TT68
+    real(RK) :: RCutoffTT
     real(RK) :: RCutoffDipoleDipole
     real(RK) :: RCutoffDipoleQuadrupole
     real(RK) :: RCutoffQuadrupoleQuadrupole
@@ -278,7 +278,7 @@ module ms2_ensemble
 
     ! Long-range corrections
     real(RK) :: EPotCorrMIE, VirialCorrMIE, d2EpotdV2CorrMIE
-    real(RK) :: EPotCorrTT68, VirialCorrTT68, d2EpotdV2CorrTT68
+    real(RK) :: EPotCorrTT, VirialCorrTT, d2EpotdV2CorrTT
     real(RK) :: EPotCorrRF
     real(RK) :: EPotCorrRFPart, EPotCorrRFVol
     real(RK) :: VirialCorrRF
@@ -1666,7 +1666,7 @@ contains
 
     ! Read cutoff radii
     this%RCutoffMIEnmMIEnm = 0._RK
-    this%RCutoffTT68TT68 = 0._RK
+    this%RCutoffTT = 0._RK
     this%RCutoffDipoleDipole = 0._RK
     this%RCutoffDipoleQuadrupole = 0._RK
     this%RCutoffQuadrupoleQuadrupole = 0._RK
@@ -1684,18 +1684,18 @@ contains
         this%RCutoffDipoleQuadrupole = this%RCutoffMIEnmMIEnm
         this%RCutoffQuadrupoleQuadrupole = this%RCutoffMIEnmMIEnm
       endif
-      if( this%NTT68Max > 0 ) then
-        call FileReadParameter( this%RCutoffTT68TT68, paramsFile%iounit , IdRCutoffCOM, .false. )
-        if (this%RCutoffTT68TT68 < 0._RK) then
-          this%RCutoffTT68TT68 = 0.9*0.5*(this%NPart / &
+      if( this%NTTMax > 0 ) then
+        call FileReadParameter( this%RCutoffTT, paramsFile%iounit , IdRCutoffCOM, .false. )
+        if (this%RCutoffTT < 0._RK) then
+          this%RCutoffTT = 0.9*0.5*(this%NPart / &
         &          (NAvogadro*this%RefDensity*UnitDensity*1000))**(1._RK/3._RK)/UnitLength
         end if
         call LogWriteBlank
-        write( IOBuffer, '("Reduced center of mass cutoff radius: ",T45, F6.3)' ) this%RCutoffTT68TT68
+        write( IOBuffer, '("Reduced center of mass cutoff radius: ",T45, F6.3)' ) this%RCutoffTT
         call LogWrite
-        this%RCutoffDipoleDipole = this%RCutoffTT68TT68
-        this%RCutoffDipoleQuadrupole = this%RCutoffTT68TT68
-        this%RCutoffQuadrupoleQuadrupole = this%RCutoffTT68TT68
+        this%RCutoffDipoleDipole = this%RCutoffTT
+        this%RCutoffDipoleQuadrupole = this%RCutoffTT
+        this%RCutoffQuadrupoleQuadrupole = this%RCutoffTT
       endif
 
     else
@@ -1706,9 +1706,9 @@ contains
         call LogWrite
       end if
 
-      if( this%NTT68Max > 0 ) then
-        call FileReadParameter( this%RCutoffTT68TT68, paramsFile%iounit , IdRCutoffTT68TT68, .false. )
-        write( IOBuffer, '("TT68 cutoff radius: ",T42, F8.3)' )  this%RCutoffTT68TT68
+      if( this%NTTMax > 0 ) then
+        call FileReadParameter( this%RCutoffTT, paramsFile%iounit , IdRCutoffTT, .false. )
+        write( IOBuffer, '(A, " cutoff radius: ",T42, F8.3)' ) trim(TT68orEXT), this%RCutoffTT
         call LogWrite
       end if
 
@@ -1800,12 +1800,12 @@ contains
       endif
     endif
 
-    if( this%NTT68Max > 0 ) then
+    if( this%NTTMax > 0 ) then
       if ( SimulationType .eq. MonteCarlo .and. (.not.(mpiMCCommonGroups > 0)))  then
-        write( IOBuffer, '("- potential energy from TT68", T44, F12.8)' ) this%EPotCorrTT68  / this%NPart
+        write( IOBuffer, '("- potential energy from ", A, T44, F12.8)' ) TT68orEXT, this%EPotCorrTT  / this%NPart
 
       else
-        write( IOBuffer, '("- potential energy from TT68", T44, F12.8)' )  this%EPotCorrTT68 * Nprocs/ this%NPart
+        write( IOBuffer, '("- potential energy from ", A, T44, F12.8)' ) TT68orEXT, this%EPotCorrTT * Nprocs/ this%NPart
       endif
     endif
 
@@ -1819,11 +1819,11 @@ contains
       endif
     endif
 
-    if( this%NTT68Max > 0 ) then
+    if( this%NTTMax > 0 ) then
       if ( SimulationType .eq. MonteCarlo .and. (.not.(mpiMCCommonGroups > 0)))  then
-        write( IOBuffer, '("- pressure from TT68", T44, F12.8)' )  this%VirialCorrTT68  / this%NPart
+        write( IOBuffer, '("- pressure from ", A, T44, F12.8)' ) TT68orEXT, this%VirialCorrTT  / this%NPart
       else
-        write( IOBuffer, '("- pressure from TT68", T44, F12.8)' )  this%VirialCorrTT68 * NProcs / this%NPart
+        write( IOBuffer, '("- pressure from ", A, T44, F12.8)' ) TT68orEXT, this%VirialCorrTT * NProcs / this%NPart
       endif
     endif
 
@@ -1836,9 +1836,9 @@ contains
         call LogWrite
       endif
 
-      if( this%NTT68Max > 0 ) then
-        write( IOBuffer, '("- chem. pot. of ", A, " from TT68", T44, F12.8)' ) trim( this%Component(i)%PotModFileName ), &
-  &        this%Component(i)%EPotTestCorrTT68
+      if( this%NTTMax > 0 ) then
+        write( IOBuffer, '("- chem. pot. of ", A, " from ", A, T44, F12.8)' ) trim( this%Component(i)%PotModFileName ), &
+  &        trim(TT68orEXT), this%Component(i)%EPotTestCorrTT
         call LogWrite
       endif
     end do
@@ -2026,8 +2026,8 @@ contains
     if( this%NMIEnmMax > 0 ) then
       this%RDFdr = this%RCutoffMIEnmMIEnm / RDFNumberShells
     end if
-    if( this%NTT68Max > 0 ) then
-      this%RDFdr = this%RCutoffTT68TT68 / RDFNumberShells
+    if( this%NTTMax > 0 ) then
+      this%RDFdr = this%RCutoffTT / RDFNumberShells
     end if
     do i = 1, RDFNumberShells
       this%RDFVSchale(i) = 4./3.*pi* this%RDFdr**3 *(i**3 - (i-1)**3)
@@ -2233,8 +2233,8 @@ contains
     if( this%NMIEnmMax > 0 ) then
       this%RCutoffMIEnmMIEnm = MaxRadius
     endif
-    if( this%NTT68Max > 0 ) then
-      this%RCutoffTT68TT68 = MaxRadius
+    if( this%NTTMax > 0 ) then
+      this%RCutoffTT = MaxRadius
     endif
 
     ! Disable reaction field
@@ -2254,11 +2254,11 @@ contains
   &         trim(LJorMIE), .5_RK * this%Interaction(i, j)%EPotCorrMIE / this%Temperature
         endif
 
-        if( this%NTT68Max > 0 ) then
-          this%Interaction(i, j)%EPotCorrTT68 = sum( this%Interaction(i, j)%PotTT68TT68(:, :)%EPotCorr )
-          write( IOBuffer, '("Cutoff correction to SVC of ", A, "-", A, " from  TT68:", F12.8)' ) &
+        if( this%NTTMax > 0 ) then
+          this%Interaction(i, j)%EPotCorrTT = sum( this%Interaction(i, j)%PotTT68TT68(:, :)%EPotCorr )
+          write( IOBuffer, '("Cutoff correction to SVC of ", A, "-", A, " from ", A, ":", F12.8)' ) &
   &         trim( this%Component(i)%Molecule%PotModFileName ), trim( this%Component(j)%Molecule%PotModFileName ), &
-  &         .5_RK * this%Interaction(i, j)%EPotCorrTT68 / this%Temperature
+  &         trim(TT68orEXT), .5_RK * this%Interaction(i, j)%EPotCorrTT / this%Temperature
         endif
         call LogWrite
 
@@ -2560,7 +2560,7 @@ contains
           call Construct(this%Interaction(i, j), i, j, &
 &           this%Component(i), this%Component(j), &
 &           this%RCutoffMIEnmMIEnm, &
-&           this%RCutoffTT68TT68, &
+&           this%RCutoffTT, &
 &           this%RCutoffDipoleDipole, &
 &           this%RCutoffDipoleQuadrupole, &
 &           this%RCutoffQuadrupoleQuadrupole, &
@@ -2579,7 +2579,7 @@ contains
           call Construct(this%Interaction(i, j), i, j, &
 &           this%Component(i), this%Component(j), &
 &           this%RCutoffMIEnmMIEnm, &
-&           this%RCutoffTT68TT68, &
+&           this%RCutoffTT, &
 &           this%RCutoffDipoleDipole, &
 &           this%RCutoffDipoleQuadrupole, &
 &           this%RCutoffQuadrupoleQuadrupole, &
@@ -3600,14 +3600,14 @@ contains
 
     ! Calculate maximum numbers of sites in components
     this%NMIEnmMax      = 0
-    this%NTT68Max       = 0
+    this%NTTMax       = 0
     this%NChargeMax     = 0
     this%NDipoleMax     = 0
     this%NQuadrupoleMax = 0
     do i = 1, this%NComponents
       pc => this%Component(i)
       if( pc%Molecule%NMIEnm > this%NMIEnmMax ) this%NMIEnmMax = pc%Molecule%NMIEnm
-      if( pc%Molecule%NTT68 > this%NTT68Max ) this%NTT68Max = pc%Molecule%NTT68
+      if( pc%Molecule%NTT > this%NTTMax ) this%NTTMax = pc%Molecule%NTT
       if( pc%Molecule%NCharge > this%NChargeMax ) this%NChargeMax = pc%Molecule%NCharge
       if( pc%Molecule%NDipole > this%NDipoleMax ) this%NDipoleMax = pc%Molecule%NDipole
       if( pc%Molecule%NQuadrupole > this%NQuadrupoleMax ) this%NQuadrupoleMax = pc%Molecule%NQuadrupole
@@ -4549,7 +4549,7 @@ contains
     real(RK)                        :: NPartInv, Scale, RFConst
     type(TComponent), pointer       :: pc
     type(TPotMIEnmMIEnm), pointer   :: pmie
-    type(TPotTT68TT68), pointer     :: ptt68
+    type(TPotTT68TT68), pointer     :: ptt
     integer                         :: i1, i2, j1, j2
     real(RK)                        :: fac
     real(RK)                        :: fac_neutral, fac_charge1, fac_charge2
@@ -4573,20 +4573,20 @@ contains
 
     ! Zero long-range corrections
     this%EPotCorrMIE   = 0._RK
-    this%EPotCorrTT68   = 0._RK
+    this%EPotCorrTT   = 0._RK
     this%EPotCorrRF   = 0._RK
     this%VirialCorrMIE = 0._RK
-    this%VirialCorrTT68 = 0._RK
+    this%VirialCorrTT = 0._RK
     this%VirialCorrRF = 0._RK
     this%d2EpotdV2CorrMIE   = 0._RK
-    this%d2EpotdV2CorrTT68   = 0._RK
+    this%d2EpotdV2CorrTT   = 0._RK
 
     do i1 = 1, this%NComponents
       this%Component(i1)%EPotTestCorrMIE = 0._RK
     end do
 
     do i1 = 1, this%NComponents
-      this%Component(i1)%EPotTestCorrTT68 = 0._RK
+      this%Component(i1)%EPotTestCorrTT = 0._RK
     end do
 
     ! Calculate MIE long-range corrections
@@ -4614,27 +4614,27 @@ contains
     end if
 
     ! Calculate TT68 long-range corrections
-    if( this%NTT68Max > 0 ) then
+    if( this%NTTMax > 0 ) then
       do i1 = 1, this%NComponents
         do i2 = 1, this%NComponents
           Scale = this%Component(i1)%NPart * this%Component(i2)%NPart * NPartInv
-          do j1 = 1, this%Component(i1)%Molecule%NTT68
-            do j2 = 1, this%Component(i2)%Molecule%NTT68
-              ptt68 => this%Interaction(i1, i2)%PotTT68TT68(j1, j2)
-              this%EPotCorrTT68 = this%EPotCorrTT68 + Scale * ptt68%EPotCorr
-              this%VirialCorrTT68 = this%VirialCorrTT68 + Scale * ptt68%VirialCorr
-              this%d2EpotdV2CorrTT68 = this%d2EpotdV2CorrTT68 + Scale * ptt68%d2EpotdV2Corr
-              this%Component(i1)%EPotTestCorrTT68 = this%Component(i1)%EPotTestCorrTT68 &
-&                 + this%Component(i2)%Fraction * ptt68%EPotTestCorr
-              this%RCutoffMax2 = max( this%RCutoffMax2, 2._RK * sqrt( ptt68%RCutoffSquared ) )
+          do j1 = 1, this%Component(i1)%Molecule%NTT
+            do j2 = 1, this%Component(i2)%Molecule%NTT
+              ptt => this%Interaction(i1, i2)%PotTT68TT68(j1, j2)
+              this%EPotCorrTT = this%EPotCorrTT + Scale * ptt%EPotCorr
+              this%VirialCorrTT = this%VirialCorrTT + Scale * ptt%VirialCorr
+              this%d2EpotdV2CorrTT = this%d2EpotdV2CorrTT + Scale * ptt%d2EpotdV2Corr
+              this%Component(i1)%EPotTestCorrTT = this%Component(i1)%EPotTestCorrTT &
+&                 + this%Component(i2)%Fraction * ptt%EPotTestCorr
+              this%RCutoffMax2 = max( this%RCutoffMax2, 2._RK * sqrt( ptt%RCutoffSquared ) )
             end do
           end do
         end do
       end do
 
-      this%EPotCorrTT68 = this%EPotCorrTT68 / NProcs
-      this%VirialCorrTT68 = this%VirialCorrTT68 / NProcs
-      this%d2EpotdV2CorrTT68 = this%d2EpotdV2CorrTT68 / NProcs
+      this%EPotCorrTT = this%EPotCorrTT / NProcs
+      this%VirialCorrTT = this%VirialCorrTT / NProcs
+      this%d2EpotdV2CorrTT = this%d2EpotdV2CorrTT / NProcs
     end if
 
     ! Calculate electrostatic long-range corrections
@@ -4702,10 +4702,10 @@ contains
         this%d2EpotdV2CorrMIE = this%d2EpotdV2CorrMIE * NProcs
       endif
 
-      if( this%NTT68Max > 0 ) then
-        this%EPotCorrTT68 = this%EPotCorrTT68 * NProcs
-        this%VirialCorrTT68 = this%VirialCorrTT68 * NProcs
-        this%d2EpotdV2CorrTT68 = this%d2EpotdV2CorrTT68 * NProcs
+      if( this%NTTMax > 0 ) then
+        this%EPotCorrTT = this%EPotCorrTT * NProcs
+        this%VirialCorrTT = this%VirialCorrTT * NProcs
+        this%d2EpotdV2CorrTT = this%d2EpotdV2CorrTT * NProcs
       endif
 
       if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
@@ -5732,9 +5732,9 @@ loop5:        do nc = 1, this%NComponents
          this%VirialProfile(m) = this%VirialProfile(m) + (TotalDenProfile(m) * this%VirialCorrMIE * NProcs)/NBinsDen
       end do
     end if
-    if( this%NTT68Max > 0 ) then
+    if( this%NTTMax > 0 ) then
       do m = 1, NBinsDen
-         this%VirialProfile(m) = this%VirialProfile(m) + (TotalDenProfile(m) * this%VirialCorrTT68 * NProcs)/NBinsDen
+         this%VirialProfile(m) = this%VirialProfile(m) + (TotalDenProfile(m) * this%VirialCorrTT * NProcs)/NBinsDen
       end do
     end if
 
@@ -6164,34 +6164,34 @@ loop5:        do nc = 1, this%NComponents
         end if
 #endif
       end do
-      do j = 1, this%Component(i)%Molecule%NTT68
-        pc%Molecule%SiteTT68(j)%FX(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteTT68(j)%FY(1:pc%NPart) = 0._RK
-        pc%Molecule%SiteTT68(j)%FZ(1:pc%NPart) = 0._RK
+      do j = 1, this%Component(i)%Molecule%NTT
+        pc%Molecule%SiteTT(j)%FX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteTT(j)%FY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteTT(j)%FZ(1:pc%NPart) = 0._RK
 #if  TRANS == 1
         if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
-          pc%Molecule%SiteTT68(j)%vsTTx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteTT68(j)%vsTTy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteTT68(j)%vsTTz(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteTT68(j)%vbTTx(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteTT68(j)%vbTTy(1:pc%NPart) = 0._RK
-          pc%Molecule%SiteTT68(j)%vbTTz(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT(j)%vsTTx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT(j)%vsTTy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT(j)%vsTTz(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT(j)%vbTTx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT(j)%vbTTy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteTT(j)%vbTTz(1:pc%NPart) = 0._RK
     !        if ( this%Conductivity ) then
-            pc%Molecule%SiteTT68(j)%vsuTTx(1:pc%NPart)= 0._RK
-            pc%Molecule%SiteTT68(j)%vsuTTy(1:pc%NPart)= 0._RK
-            pc%Molecule%SiteTT68(j)%vsuTTz(1:pc%NPart)= 0._RK
-            pc%Molecule%SiteTT68(j)%cTTx(1:pc%NPart)  = 0._RK
-            pc%Molecule%SiteTT68(j)%cTTy(1:pc%NPart)  = 0._RK
-            pc%Molecule%SiteTT68(j)%cTTz(1:pc%NPart)  = 0._RK
-            pc%Molecule%SiteTT68(j)%tuTTx(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tuTTy(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tuTTz(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tlTTx(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tlTTy(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tlTTz(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tdTTx(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tdTTy(1:pc%NPart) = 0._RK
-            pc%Molecule%SiteTT68(j)%tdTTz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%vsuTTx(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteTT(j)%vsuTTy(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteTT(j)%vsuTTz(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteTT(j)%cTTx(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteTT(j)%cTTy(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteTT(j)%cTTz(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteTT(j)%tuTTx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tuTTy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tuTTz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tlTTx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tlTTy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tlTTz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tdTTx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tdTTy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteTT(j)%tdTTz(1:pc%NPart) = 0._RK
     !       end if
         end if
 #endif
@@ -6335,16 +6335,16 @@ loop5:        do nc = 1, this%NComponents
       ! d2Epot/dV2 correction
       d2EpotdV2 = this%Density * this%d2EpotdV2CorrMIE
     endif
-    if( this%NTT68Max > 0 ) then
-     ! potential energy correction
-      EPot = this%Density * this%EPotCorrTT68 + this%EPotCorrRF
-
-      ! virial correction
-      Virial = this%Density * this%VirialCorrTT68 + Third*this%VirialCorrRF
-
-      ! d2Epot/dV2 correction
-      d2EpotdV2 = this%Density * this%d2EpotdV2CorrTT68
-    endif
+    if( this%NTTMax > 0 ) then
+      ! potential energy correction
+       EPot = this%Density * this%EPotCorrTT + this%EPotCorrRF
+ 
+       ! virial correction
+       Virial = this%Density * this%VirialCorrTT + Third*this%VirialCorrRF
+ 
+       ! d2Epot/dV2 correction
+       d2EpotdV2 = this%Density * this%d2EpotdV2CorrTT
+     endif
 
     ! Loop over components
     do i = 1, this%NComponents
@@ -6506,8 +6506,8 @@ componentLoop:       do i = 1, this%NRealComponents
         if( this%NMIEnmMax > 0 ) then
           this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         endif
-        if( this%NTT68Max > 0 ) then
-          this%EPotTest(:) = this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+        if( this%NTTMax > 0 ) then
+          this%EPotTest(:) = this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF
         endif
 
         do j = 1, this%NRealComponents
@@ -6620,8 +6620,8 @@ componentLoop:       do i = 1, this%NRealComponents
         if( this%NMIEnmMax > 0 ) then
           this%EPotTest(:) = this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         endif
-        if( this%NTT68Max > 0 ) then
-          this%EPotTest(:) = this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+        if( this%NTTMax > 0 ) then
+          this%EPotTest(:) = this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF
         endif
 
         do j = 1, this%NComponents
@@ -6765,14 +6765,13 @@ componentLoop:       do i = 1, this%NRealComponents
       d2EdV2 =  d2EdV2 + this%Density * this%d2EpotdV2CorrMIE
       V =  V + this%Density * this%VirialCorrMIE !+ Third*this%VirialCorrRF
     endif
-    if( this%NTT68Max > 0 ) then
+    if( this%NTTMax > 0 ) then
       !selfterm ReactionField contribution to pressure and EPot was turned off for MC
       !because it does not need selfterm correction
-      E = E + this%Density * this%EPotCorrTT68 !+ this%EPotCorrRF
-      d2EdV2 = d2EdV2 + this%Density * this%d2EpotdV2CorrTT68
-      V = V + this%Density * this%VirialCorrTT68 !+ Third*this%VirialCorrRF
+      E = E + this%Density * this%EPotCorrTT !+ this%EPotCorrRF
+      d2EdV2 = d2EdV2 + this%Density * this%d2EpotdV2CorrTT
+      V = V + this%Density * this%VirialCorrTT !+ Third*this%VirialCorrRF
     endif
-
 
 
 ! Ewald
@@ -7277,9 +7276,17 @@ componentLoop:       do i = 1, this%NRealComponents
         this%Interaction(nt, i)%PotTT68TT68(:, :)%TT_A  = this%Interaction(nt, i)%PotTT68TT68(:, :)%TT_A * Factor
         this%Interaction(nt, i)%PotTT68TT68(:, :)%C6    = this%Interaction(nt, i)%PotTT68TT68(:, :)%C6 * Factor
         this%Interaction(nt, i)%PotTT68TT68(:, :)%C8    = this%Interaction(nt, i)%PotTT68TT68(:, :)%C8 * Factor
+        this%Interaction(nt, i)%PotTT68TT68(:, :)%C10    = this%Interaction(nt, i)%PotTT68TT68(:, :)%C10 * Factor
+        this%Interaction(nt, i)%PotTT68TT68(:, :)%C12    = this%Interaction(nt, i)%PotTT68TT68(:, :)%C12 * Factor
+        this%Interaction(nt, i)%PotTT68TT68(:, :)%C14    = this%Interaction(nt, i)%PotTT68TT68(:, :)%C14 * Factor
+        this%Interaction(nt, i)%PotTT68TT68(:, :)%C16    = this%Interaction(nt, i)%PotTT68TT68(:, :)%C16 * Factor
         this%Interaction(i, nt)%PotTT68TT68(:, :)%TT_A  = this%Interaction(i, nt)%PotTT68TT68(:, :)%TT_A * Factor
         this%Interaction(i, nt)%PotTT68TT68(:, :)%C6    = this%Interaction(i, nt)%PotTT68TT68(:, :)%C6 * Factor
         this%Interaction(i, nt)%PotTT68TT68(:, :)%C8    = this%Interaction(i, nt)%PotTT68TT68(:, :)%C8 * Factor
+        this%Interaction(i, nt)%PotTT68TT68(:, :)%C10    = this%Interaction(i, nt)%PotTT68TT68(:, :)%C10 * Factor
+        this%Interaction(i, nt)%PotTT68TT68(:, :)%C12    = this%Interaction(i, nt)%PotTT68TT68(:, :)%C12 * Factor
+        this%Interaction(i, nt)%PotTT68TT68(:, :)%C14    = this%Interaction(i, nt)%PotTT68TT68(:, :)%C14 * Factor
+        this%Interaction(i, nt)%PotTT68TT68(:, :)%C16    = this%Interaction(i, nt)%PotTT68TT68(:, :)%C16 * Factor
       endif
       if( associated(this%Interaction(nt, i)%PotChargeCharge)) then
         this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon    = this%Interaction(nt, i)%PotChargeCharge(:, :)%Epsilon * Factor
@@ -7373,8 +7380,8 @@ componentLoop:       do i = 1, this%NRealComponents
       if( this%NMIEnmMax > 0 ) then
        EPotOld = (this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF)*pt%Lambda**pc%LambdaExponent
       endif
-      if( this%NTT68Max > 0 ) then
-       EPotOld = (this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF)*pt%Lambda**pc%LambdaExponent
+      if( this%NTTMax > 0 ) then
+       EPotOld = (this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF)*pt%Lambda**pc%LambdaExponent
       endif
       call EnergyinRC(this, nt, 1, EPot)
 #if MPI_VER > 0
@@ -7526,16 +7533,16 @@ componentLoop:       do i = 1, this%NRealComponents
         if( this%NMIEnmMax > 0 ) then
           EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
         endif
-        if( this%NTT68Max > 0 ) then
-          EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrTT68 + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+        if( this%NTTMax > 0 ) then
+          EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrTT + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
         endif
 
       else
         if( this%NMIEnmMax > 0 ) then
           EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
         endif
-        if( this%NTT68Max > 0 ) then
-          EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrTT68 + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+        if( this%NTTMax > 0 ) then
+          EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrTT + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
         endif
       endif
 
@@ -7544,8 +7551,8 @@ componentLoop:       do i = 1, this%NRealComponents
         if( this%NMIEnmMax > 0 ) then
           EPotIns = EPotIns + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
         endif
-        if( this%NTT68Max > 0 ) then
-          EPotIns = EPotIns + this%Density * pc%EPotTestCorrTT68 + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
+        if( this%NTTMax > 0 ) then
+          EPotIns = EPotIns + this%Density * pc%EPotTestCorrTT + this%UIntra-UIntra + this%USelbstTerm-USelbst-EFourier
         endif
 
       ! Apply acceptance criterion - SINGLE
@@ -7590,16 +7597,16 @@ componentLoop:       do i = 1, this%NRealComponents
         if( this%NMIEnmMax > 0 ) then
           EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         endif
-        if( this%NTT68Max > 0 ) then
-          EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+        if( this%NTTMax > 0 ) then
+          EPotInsAll = EPotInsAll + this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF
         endif
 
       else
         if( this%NMIEnmMax > 0 ) then
           EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         endif
-        if( this%NTT68Max > 0 ) then
-          EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+        if( this%NTTMax > 0 ) then
+          EPotInsAll = EPotIns + this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF
         endif
       endif
 
@@ -7609,8 +7616,8 @@ componentLoop:       do i = 1, this%NRealComponents
         if( this%NMIEnmMax > 0 ) then
           EPotIns = EPotIns + this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
         endif
-        if( this%NTT68Max > 0 ) then
-          EPotIns = EPotIns + this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+        if( this%NTTMax > 0 ) then
+          EPotIns = EPotIns + this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF
         endif
       if( rnd( 0._RK, 1._RK ) .lt. ( exp( pc%ChemPot - EPotIns / this%Temperature ) * this%Volume0 / np )) then
 #endif
@@ -7712,8 +7719,8 @@ componentLoop:       do i = 1, this%NRealComponents
     if( this%NMIEnmMax > 0 ) then
       EPotIns = EPotIns + this%Density * pc%EPotTestCorrMIE
     endif
-    if( this%NTT68Max > 0 ) then
-      EPotIns = EPotIns + this%Density * pc%EPotTestCorrTT68
+    if( this%NTTMax > 0 ) then
+      EPotIns = EPotIns + this%Density * pc%EPotTestCorrTT
     endif
 
     TotalChemPot = 0
@@ -7834,8 +7841,8 @@ componentLoop:       do i = 1, this%NRealComponents
       if( this%NMIEnmMax > 0 ) then
         EPotDel = EPotDel + this%Density * pc%EPotTestCorrMIE + this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier
       endif
-      if( this%NTT68Max > 0 ) then
-        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT68 + this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier
+      if( this%NTTMax > 0 ) then
+        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT + this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier
       endif
 
       ! Apply acceptance criterion
@@ -7896,8 +7903,8 @@ componentLoop:       do i = 1, this%NRealComponents
       if( this%NMIEnmMax > 0 ) then
         EPotDel = EPotDel + this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF
       endif
-      if( this%NTT68Max > 0 ) then
-        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF
+      if( this%NTTMax > 0 ) then
+        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF
       endif
 
       ! Apply acceptance criterion
@@ -7973,8 +7980,8 @@ componentLoop:       do i = 1, this%NRealComponents
     if( this%NMIEnmMax > 0 ) then
       EPotDel = EPotDel + this%Density * pc%EPotTestCorrMIE
     endif
-    if( this%NTT68Max > 0 ) then
-      EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT68
+    if( this%NTTMax > 0 ) then
+      EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT
     endif
 
     TotalChemPot = 0
@@ -8562,8 +8569,8 @@ componentLoop:       do i = 1, this%NRealComponents
         EPotDel = EPotDel + this%Density * pc%EPotTestCorrMIE + NProcs*(this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier) - &
 &                  this%Temperature*log(this%Volume0/(this%NPart) )
       end if
-      if( this%NTT68Max > 0 ) then
-        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT68 + NProcs*(this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier) - &
+      if( this%NTTMax > 0 ) then
+        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT + NProcs*(this%UIntra-UIntra + this%USelbstTerm-USelf-EFourier) - &
 &                  this%Temperature*log(this%Volume0/(this%NPart) )
       end if
 
@@ -8599,8 +8606,8 @@ componentLoop:       do i = 1, this%NRealComponents
       if( this%NMIEnmMax > 0 ) then
         EPotDel = EPotDel + this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF - this%Temperature*log(this%Volume0/(this%NPart) )
       end if
-      if( this%NTT68Max > 0 ) then
-        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF - this%Temperature*log(this%Volume0/(this%NPart) )
+      if( this%NTTMax > 0 ) then
+        EPotDel = EPotDel + this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF - this%Temperature*log(this%Volume0/(this%NPart) )
       end if
 
     end if
@@ -8677,19 +8684,19 @@ componentLoop:       do i = 1, this%NRealComponents
         EPotDelta = EpotDelta - EPotInsAll - this%Density * pc%EPotTestCorrMIE - this%Temperature * log((this%NPart)/this%Volume0 ) - &
 &            NProcs * this%UIntra + NProcs * UIntra - NProcs * this%USelbstTerm + NProcs * USelbst + NProcs * EFourier
       end if
-      if( this%NTT68Max > 0 ) then
-        EPotDelta = EpotDelta - EPotInsAll - this%Density * pc%EPotTestCorrTT68 - this%Temperature * log((this%NPart)/this%Volume0 ) - &
+      if( this%NTTMax > 0 ) then
+        EPotDelta = EpotDelta - EPotInsAll - this%Density * pc%EPotTestCorrTT - this%Temperature * log((this%NPart)/this%Volume0 ) - &
 &            NProcs * this%UIntra + NProcs * UIntra - NProcs * this%USelbstTerm + NProcs * USelbst + NProcs * EFourier
       end if
 
       if( rnd( 0._RK, 1._RK ) .lt. ( exp( EPotDelta / this%Temperature ) )) then
 #else
       if( this%NMIEnmMax > 0 ) then
-        EPotDelta = EPotDelta - EPotIns - this%Density * pc%EPotTestCorrMIE  - this%Temperature * log((this%NPart)/this%Volume0 ) - &
+        EPotDelta = EPotDelta - EPotIns - this%Density * pc%EPotTestCorrMIE - this%Temperature * log((this%NPart)/this%Volume0 ) - &
 &            this%UIntra + UIntra - this%USelbstTerm + USelbst + EFourier
       end if
-      if( this%NTT68Max > 0 ) then
-        EPotDelta = EPotDelta - EPotIns - this%Density * pc%EPotTestCorrTT68  - this%Temperature * log((this%NPart)/this%Volume0 ) - &
+      if( this%NTTMax > 0 ) then
+        EPotDelta = EPotDelta - EPotIns - this%Density * pc%EPotTestCorrTT - this%Temperature * log((this%NPart)/this%Volume0 ) - &
 &            this%UIntra + UIntra - this%USelbstTerm + USelbst + EFourier
       end if
 
@@ -8725,8 +8732,8 @@ componentLoop:       do i = 1, this%NRealComponents
         EPotDelta = EpotDelta - EPotInsAll - this%Density * pc%EPotTestCorrMIE &
 &        - pc%EPotTestCorrRF - this%Temperature*log((this%NPart)/this%Volume0 )
       end if
-      if( this%NTT68Max > 0 ) then
-        EPotDelta = EpotDelta - EPotInsAll - this%Density * pc%EPotTestCorrTT68 &
+      if( this%NTTMax > 0 ) then
+        EPotDelta = EpotDelta - EPotInsAll - this%Density * pc%EPotTestCorrTT &
 &        - pc%EPotTestCorrRF - this%Temperature*log((this%NPart)/this%Volume0 )
       end if
 
@@ -8736,8 +8743,8 @@ componentLoop:       do i = 1, this%NRealComponents
         EPotDelta = EPotDelta - EPotIns - this%Density * pc%EPotTestCorrMIE &
 &         - pc%EPotTestCorrRF - this%Temperature*log((this%NPart)/this%Volume0 )
       end if
-      if( this%NTT68Max > 0 ) then
-        EPotDelta = EPotDelta - EPotIns - this%Density * pc%EPotTestCorrTT68 &
+      if( this%NTTMax > 0 ) then
+        EPotDelta = EPotDelta - EPotIns - this%Density * pc%EPotTestCorrTT &
 &         - pc%EPotTestCorrRF - this%Temperature*log((this%NPart)/this%Volume0 )
       end if
 
@@ -8961,13 +8968,13 @@ componentLoop:       do i = 1, this%NRealComponents
         R2y = this%Component(this%ResidComp2)%Molecule%SiteMIEnm(this%ResidSite2)%RY(Numb2)
         R2z = this%Component(this%ResidComp2)%Molecule%SiteMIEnm(this%ResidSite2)%RZ(Numb2)
       end if
-      if( this%NTT68Max > 0 ) then
-        R1x = this%Component(this%ResidComp1)%Molecule%SiteTT68(this%ResidSite1)%RX(Numb1)
-        R1y = this%Component(this%ResidComp1)%Molecule%SiteTT68(this%ResidSite1)%RY(Numb1)
-        R1z = this%Component(this%ResidComp1)%Molecule%SiteTT68(this%ResidSite1)%RZ(Numb1)
-        R2x = this%Component(this%ResidComp2)%Molecule%SiteTT68(this%ResidSite2)%RX(Numb2)
-        R2y = this%Component(this%ResidComp2)%Molecule%SiteTT68(this%ResidSite2)%RY(Numb2)
-        R2z = this%Component(this%ResidComp2)%Molecule%SiteTT68(this%ResidSite2)%RZ(Numb2)
+      if( this%NTTMax > 0 ) then
+        R1x = this%Component(this%ResidComp1)%Molecule%SiteTT(this%ResidSite1)%RX(Numb1)
+        R1y = this%Component(this%ResidComp1)%Molecule%SiteTT(this%ResidSite1)%RY(Numb1)
+        R1z = this%Component(this%ResidComp1)%Molecule%SiteTT(this%ResidSite1)%RZ(Numb1)
+        R2x = this%Component(this%ResidComp2)%Molecule%SiteTT(this%ResidSite2)%RX(Numb2)
+        R2y = this%Component(this%ResidComp2)%Molecule%SiteTT(this%ResidSite2)%RY(Numb2)
+        R2z = this%Component(this%ResidComp2)%Molecule%SiteTT(this%ResidSite2)%RZ(Numb2)
       end if
 
       drx = (R1x - R2x)
@@ -9039,13 +9046,13 @@ componentLoop:       do i = 1, this%NRealComponents
           R2y = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RY(j)
           R2z = pc2%Molecule%SiteMIEnm(this%ResidSite2)%RZ(j)
         end if
-        if( this%NTT68Max > 0 ) then
-          R1x = pc1%Molecule%SiteTT68(this%ResidSite1)%RX(i)
-          R1y = pc1%Molecule%SiteTT68(this%ResidSite1)%RY(i)
-          R1z = pc1%Molecule%SiteTT68(this%ResidSite1)%RZ(i)
-          R2x = pc2%Molecule%SiteTT68(this%ResidSite2)%RX(j)
-          R2y = pc2%Molecule%SiteTT68(this%ResidSite2)%RY(j)
-          R2z = pc2%Molecule%SiteTT68(this%ResidSite2)%RZ(j)
+        if( this%NTTMax > 0 ) then
+          R1x = pc1%Molecule%SiteTT(this%ResidSite1)%RX(i)
+          R1y = pc1%Molecule%SiteTT(this%ResidSite1)%RY(i)
+          R1z = pc1%Molecule%SiteTT(this%ResidSite1)%RZ(i)
+          R2x = pc2%Molecule%SiteTT(this%ResidSite2)%RX(j)
+          R2y = pc2%Molecule%SiteTT(this%ResidSite2)%RY(j)
+          R2z = pc2%Molecule%SiteTT(this%ResidSite2)%RZ(j)
         end if
 
         drx = (R1x - R2x)
@@ -10758,8 +10765,8 @@ componentLoop:       do i = 1, this%NRealComponents
             if( this%NMIEnmMax > 0 ) then
               currentBinsEn = (this%Density * pc%EPotTestCorrMIE + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
             end if
-            if( this%NTT68Max > 0 ) then
-              currentBinsEn = (this%Density * pc%EPotTestCorrTT68 + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
+            if( this%NTTMax > 0 ) then
+              currentBinsEn = (this%Density * pc%EPotTestCorrTT + pc%EPotTestCorrRF)*this%Component(t)%Lambda**pc%LambdaExponent
             end if
 
             if (SimulationType .ne. MolecularDynamics ) then
@@ -12483,9 +12490,9 @@ componentLoop:       do i = 1, this%NRealComponents
       call FileWrite(this%errorsFile)
     end if
 
-    if( this%NTT68Max > 0 ) then
-      write( IOBuffer, '("TT68-TT68 cutoff radius", T36, ":", F20.9, " A")' ) &
-&             this%RCutoffTT68TT68 * UnitLength / Angstroem
+    if( this%NTTMax > 0 ) then
+      write( IOBuffer, '(A, " cutoff radius", T36, ":", F20.9, " A")' ) &
+&             trim(TT68orEXT), this%RCutoffTT * UnitLength / Angstroem
       call FileWrite(this%errorsFile)
     end if
 
@@ -15139,10 +15146,10 @@ end if
             value = this%Interaction(i, j)%IntFFunction(NSteps) + &
 &               .5_RK * this%Interaction(i, j)%EPotCorrMIE / this%Temperature
         end if
-        if( this%NTT68Max > 0 ) then
-            value = this%Interaction(i, j)%IntFFunction(NSteps) + &
-&               .5_RK * this%Interaction(i, j)%EPotCorrTT68 / this%Temperature
-        end if
+        if( this%NTTMax > 0 ) then
+          value = this%Interaction(i, j)%IntFFunction(NSteps) + &
+&               .5_RK * this%Interaction(i, j)%EPotCorrTT / this%Temperature
+      end if
         if (EnsembleType .eq. EnsembleTypeNPTSVC) then
            ArrSVC(i, j, this%EnsembleNumber) = value
         end if
@@ -15200,7 +15207,7 @@ end if
     ! Declare local variables
     integer                   :: i, j
     type(TSiteMIEnm), pointer :: psMIEnm
-    type(TSiteTT68), pointer  :: psTT68
+    type(TSiteTT), pointer  :: psTT
 
     ! Open visualization file
     write( IOBuffer, '(I16)' ) this%EnsembleNumber
@@ -15216,10 +15223,10 @@ end if
           call FileWrite(this%visualFile)
         end do
       end if
-      if( this%NTT68Max > 0 ) then
-        do j = 1, this%Component(i)%Molecule%NTT68
-          psTT68 => this%Component(i)%Molecule%SiteTT68(j)
-          write( IOBuffer, '("~", I3, " TT", 4F8.4, "  1")' ) i, psTT68%r(:) * UnitLength / Angstroem, &
+      if( this%NTTMax > 0 ) then
+        do j = 1, this%Component(i)%Molecule%NTT
+          psTT => this%Component(i)%Molecule%SiteTT(j)
+          write( IOBuffer, '("~", I3, " ", A, 4F8.4, "  1")' ) i, trim(TT68orEXT), psTT%r(:) * UnitLength / Angstroem, &
 &             UnitLength / Angstroem
           call FileWrite(this%visualFile)
         end do
@@ -15299,7 +15306,6 @@ end if
     ! Declare local variables
     integer                   :: i, j
     type(TSiteMIEnm), pointer :: psMIEnm
-    type(TSiteTT68), pointer  :: psTT68
 
     if (this%isCCSimulation .eqv. .true.) then
       !DC NOTE- Open visualization file
@@ -15869,9 +15875,9 @@ end if
                 end do
               end do
             end if
-            if( this%NTT68Max > 0 ) then
-              do s=1, this%component(i)%molecule%NTT68
-                do t=1, this%component(j)%molecule%NTT68
+            if( this%NTTMax > 0 ) then
+              do s=1, this%component(i)%molecule%NTT
+                do t=1, this%component(j)%molecule%NTT
                   this%Interaction(i,j)%PotTT68TT68(s, t)%RDFSum(:) = 0
                 end do
               end do
@@ -16000,12 +16006,12 @@ end if
         end do
       end do
     end if
-    ! TT68
-    if( this%NTT68Max > 0 ) then
+    ! TT
+    if( this%NTTMax > 0 ) then
       do i= 1, this%NComponents
         do j= i, this%NComponents
-          do s=1, this%Component(i)%molecule%NTT68
-            do t=1, this%Component(j)%molecule%NTT68
+          do s=1, this%Component(i)%molecule%NTT
+            do t=1, this%Component(j)%molecule%NTT
               write(IOBuffer, '(I5,I5)') i, j
               call FileWriteNoAdvance(this%rdfFile)
             end do
@@ -16017,8 +16023,8 @@ end if
       call FileWriteNoAdvance(this%rdfFile)
       do i= 1, this%NComponents
         do j= i, this%NComponents
-          do s=1, this%Component(i)%molecule%NTT68
-            do t=1, this%Component(j)%molecule%NTT68
+          do s=1, this%Component(i)%molecule%NTT
+            do t=1, this%Component(j)%molecule%NTT
               write(IOBuffer, '(I5,I5)') s, t
               call FileWriteNoAdvance(this%rdfFile)
             end do
@@ -16061,9 +16067,9 @@ end if
                         end do
                     end do
                   end if
-                  if( this%NTT68Max > 0 ) then
-                    do s=1, this%Component(i)%molecule%NTT68
-                        do t=1, this%Component(j)%molecule%NTT68
+                  if( this%NTTMax > 0 ) then
+                    do s=1, this%Component(i)%molecule%NTT
+                        do t=1, this%Component(j)%molecule%NTT
                             RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction
                             if (i == j) then
                                 RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotTT68TT68(s,t)%RDFSum(o),RK) &
@@ -16115,9 +16121,9 @@ end if
                         end do
                     end do
                   end if
-                  if( this%NTT68Max > 0 ) then
-                    do s=1, this%Component(i)%molecule%NTT68
-                        do t=1, this%Component(j)%molecule%NTT68
+                  if( this%NTTMax > 0 ) then
+                    do s=1, this%Component(i)%molecule%NTT
+                        do t=1, this%Component(j)%molecule%NTT
                             RDFSum_hilf(o) = this%Interaction(i,j)%PotTT68TT68(s,t)%RDFSum(o)
                             call MPI_Reduce( RDFSum_hilf(o), RDFSum_out(o), 1, MPI_INTEGER, MPI_SUM, NRootProc, Communicator, ierror )
                             RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction
@@ -16162,9 +16168,9 @@ end if
                     end do
                 end do
               end if
-              if( this%NTT68Max > 0 ) then
-                do s=1, this%Component(i)%molecule%NTT68
-                    do t=1, this%Component(j)%molecule%NTT68
+              if( this%NTTMax > 0 ) then
+                do s=1, this%Component(i)%molecule%NTT
+                    do t=1, this%Component(j)%molecule%NTT
                         RDFRho = this%SumDensity%Average  * this%Component(j)%Fraction
                         if (i == j) then
                             RDFRhoLocal = 2.0 * real(this%Interaction(i,j)%PotTT68TT68(s,t)%RDFSum(o),RK) &
@@ -20582,14 +20588,14 @@ end if
                      end do
                  end do
               end if
-              if( this%NTT68Max > 0 ) then
-                 do s=1, this%Component(i)%molecule%NTT68
-                     do t=1, this%Component(j)%molecule%NTT68
+              if( this%NTTMax > 0 ) then
+                do s=1, this%Component(i)%molecule%NTT
+                    do t=1, this%Component(j)%molecule%NTT
 #if MPI_VER > 0
-                        if ( .not. mpiMCCommonGroups > 0 ) then
-                          call MPI_Gather( this%Interaction(i,j)%PotTT68TT68(s,t)%RDFSum(1:RDFNumberShells), RDFNumberShells, MPI_INTEGER, &
+                       if ( .not. mpiMCCommonGroups > 0 ) then
+                         call MPI_Gather( this%Interaction(i,j)%PotTT68TT68(s,t)%RDFSum(1:RDFNumberShells), RDFNumberShells, MPI_INTEGER, &
 &                           RDFSum_hilf(1:RDFNumberShells*NProcs), RDFNumberShells, MPI_INTEGER, NRootProc, Communicator, ierror )
-                        endif
+                       endif
                         if( RootProc ) then
                             if ( mpiMCCommonGroups > 0 ) then !every group writes its own *.rst in MC with mpiMCCommonGroups
                               do o = 1, RDFNumberShells
@@ -21404,9 +21410,9 @@ if( RootProc .and. this%CorrfunMode ) then
                       end do
                   end do
                end if
-               if( this%NTT68Max > 0 ) then
-                  do s=1, this%Component(i)%molecule%NTT68
-                      do t=1, this%Component(j)%molecule%NTT68
+               if( this%NTTMax > 0 ) then
+                  do s=1, this%Component(i)%molecule%NTT
+                      do t=1, this%Component(j)%molecule%NTT
 #if MPI_VER > 0
                         if( RootProc ) then
                             if ( mpiMCCommonGroups > 0 ) then
