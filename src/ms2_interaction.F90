@@ -52,6 +52,7 @@ module ms2_interaction
     ! Site-site potentials
     type(TPotMIEnmMIEnm), pointer, contiguous           :: PotMIEnmMIEnm(:, :)
     type(TPotTT68TT68), pointer, contiguous             :: PotTT68TT68(:, :)
+    type(TPotEATM3B), pointer, contiguous               :: PotEATM3B(:, :)
     type(TPotChargeCharge), pointer, contiguous         :: PotChargeCharge(:, :)
     type(TPotChargeDipole), pointer, contiguous         :: PotChargeDipole(:, :)
     type(TPotChargeQuadrupole), pointer, contiguous     :: PotChargeQuadrupole(:, :)
@@ -118,6 +119,7 @@ module ms2_interaction
     ! Numbers of sites
     integer :: N1MIEnm, N2MIEnm
     integer :: N1TT68, N2TT68
+    integer :: N1EATM, N2EATM
     integer :: N1Charge, N2Charge
     integer :: N1Dipole, N2Dipole
     integer :: N1Quadrupole, N2Quadrupole
@@ -211,6 +213,10 @@ module ms2_interaction
     module procedure TInteraction_CalcPartners1
   end interface
 
+  interface CalcCutoffPartners3B
+    module procedure TInteraction_CalcPartners3B
+  end interface
+
   interface CalcCutoffPartnersTest
     module procedure TInteraction_CalcPartnersTest
   end interface
@@ -232,6 +238,7 @@ contains
 &                                    Component1, Component2, &
 &                                    RCutoffMIEnmMIEnm, &
 &                                    RCutoffTT, &
+&                                    RCutoffEATM, &
 &                                    RCutoffDipoleDipole, &
 &                                    RCutoffDipoleQuadrupole, &
 &                                    RCutoffQuadrupoleQuadrupole, &
@@ -246,6 +253,7 @@ contains
     type(TComponent), intent(in) :: Component1, Component2
     real(RK), intent(in)         :: RCutoffMIEnmMIEnm
     real(RK), intent(in)         :: RCutoffTT
+    real(RK), intent(in)         :: RCutoffEATM
     real(RK), intent(in)         :: RCutoffDipoleDipole
     real(RK), intent(in)         :: RCutoffDipoleQuadrupole
     real(RK), intent(in)         :: RCutoffQuadrupoleQuadrupole
@@ -288,6 +296,8 @@ contains
     this%N2MIEnm = Component2%Molecule%NMIEnm
     this%N1TT68 = Component1%Molecule%NTT
     this%N2TT68 = Component2%Molecule%NTT
+    this%N1EATM = Component1%Molecule%NEATM
+    this%N2EATM = Component1%Molecule%NEATM
     this%N1Charge = Component1%Molecule%NCharge
     this%N2Charge = Component2%Molecule%NCharge
     this%N1Dipole = Component1%Molecule%NDipole
@@ -370,6 +380,7 @@ contains
     ! Nullify pointers
     nullify( this%PotMIEnmMIEnm )
     nullify( this%PotTT68TT68 )
+    nullify( this%PotEATM3B )
     nullify( this%PotChargeCharge )
     nullify( this%PotChargeDipole )
     nullify( this%PotChargeQuadrupole )
@@ -418,6 +429,23 @@ contains
             allocate( this%PotTT68TT68(j1, j2)%RDFSum(RDFNumberShells), STAT = stat )
             call AllocationError( stat, 'RDFSum', RDFNumberShells)
           end if
+        end do
+      end do
+    end if
+
+    ! Construct EATM potentials
+    if( this%N1EATM > 0 .and. this%N2EATM > 0 ) then
+      allocate( this%PotEATM3B(this%N1EATM, this%N2EATM), STAT = stat )
+      call AllocationError( stat, 'sites', this%N1EATM + this%N2EATM )
+      do j1 = 1, this%N1EATM
+        do j2 = 1, this%N2EATM
+          call Construct( this%PotEATM3B(j1, j2), &
+&              i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
+&              RCutoffEATM )
+
+          this%PotEATM3B(j1, j2)%NInCutoff => this%NInCutoff
+          this%PotEATM3B(j1, j2)%CutoffPartner => this%CutoffPartner
+
         end do
       end do
     end if
@@ -614,6 +642,16 @@ contains
     end do
     if( associated( this%PotTT68TT68 ) ) then
       deallocate( this%PotTT68TT68 )
+    end if
+
+    ! Destroy EATM potentials
+    do i = 1, this%N1EATM
+      do j = 1, this%N2EATM
+        call Destruct( this%PotEATM3B(i, j) )
+      end do
+    end do
+    if( associated( this%PotEATM3B ) ) then
+      deallocate( this%PotEATM3B )
     end if
 
     ! Destroy charge-charge potentials
@@ -1349,7 +1387,7 @@ contains
     real(RK)          :: mueXi, mueYi, mueZi, mueXj, mueYj, mueZj
     real(RK)          :: RFTX, RFTY, RFTZ
     real(RK)          :: EPotLocal, TXi, TYi, TZi
-    integer           :: i, j, k, i1
+    integer           :: i, j, k, i1, np
 #if MPI_VER > 0
     integer           :: i0
 #endif
@@ -1375,6 +1413,16 @@ contains
     do i = 1, this%N1TT68
       do j = 1, this%N2TT68
        call Force( this%PotTT68TT68( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+      end do
+    end do
+
+    ! Calculate EATM forces
+    do i = 1, this%N1EATM
+      do j = 1, this%N2EATM
+        do np = 1, this%NPart1
+          call CalcCutoffPartners3B( this, np, .true. )
+        end do
+        call Force( this%PotEATM3B( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
       end do
     end do
 
@@ -1517,7 +1565,7 @@ contains
     real(RK)          :: mueXi, mueYi, mueZi, mueXj, mueYj, mueZj
     real(RK)          :: RFTX, RFTY, RFTZ
     real(RK)          :: EPotLocal, TXi, TYi, TZi
-    integer           :: i, j, k, i1
+    integer           :: i, j, k, i1, np
 #if MPI_VER > 0
     integer           :: i0
 #endif
@@ -1545,6 +1593,16 @@ contains
     do i = 1, this%N1TT68
       do j = 1, this%N2TT68
        call Force_Trans( this%PotTT68TT68( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
+      end do
+    end do
+
+    ! Calculate EATM forces
+    do i = 1, this%N1EATM
+      do j = 1, this%N2EATM
+        do np = 1, this%NPart1
+          call CalcCutoffPartners3B( this, np, .true. )
+        end do
+        call Force( this%PotEATM3B( i, j ), EPot, Virial, d2EpotdV2, BoxLength )
       end do
     end do
 
@@ -1679,7 +1737,7 @@ contains
     real(RK), pointer, contiguous :: MueX2(:), MueY2(:), MueZ2(:)
     real(RK)          :: mueXi, mueYi, mueZi
     real(RK)          :: EPotLocal
-    integer           :: i, j, k
+    integer           :: i, j, k, np
 
     ! Calculate interactions partners within cutoff sphere
     if( CutoffMode .eq. CenterofMass ) then
@@ -1697,6 +1755,13 @@ contains
     do i = 1, this%N1TT68
       do j = 1, this%N2TT68
         call ChemicalPotential( this%PotTT68TT68( i, j ), EPotTest, BoxLength )
+      end do
+    end do
+
+    ! Calculate EATM chemical potential
+    do i = 1, this%N1EATM
+      do j = 1, this%N2EATM
+        call ChemicalPotential( this%PotEATM3B( i, j ), EPotTest, BoxLength )
       end do
     end do
 
@@ -1773,6 +1838,11 @@ contains
 
     implicit none
 
+! Include MPI header
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+  include 'mpif.h'
+#endif
+
     ! Declare arguments
     type(TInteraction)   :: this
     integer, intent(in)  :: np
@@ -1782,6 +1852,7 @@ contains
     ! Declare local variables
     type(TPotMIEnmMIEnm), pointer           :: pmie
     type(TPotTT68TT68), pointer             :: ptt
+    type(TPotEATM3B), pointer             :: peatm
     type(TPotChargeCharge), pointer         :: pcc
     type(TPotChargeDipole), pointer         :: pcd
     type(TPotChargeQuadrupole), pointer     :: pcq
@@ -1803,14 +1874,26 @@ contains
     real(RK)          :: Mie_n, Mie_m, Mie_n1, Mie_m1, Mie_nHalf, Mie_mHalf, Mie_nRijMie_n, Mie_mRijMie_m
     real(RK)          :: RCutoffSquared, RCutoffSquaredScaled, RShieldSquared
     real(RK)          :: BoxLengthThird
-    real(RK)          :: A, b, a1, a2, am1, am2, C6, C8, C10, C12, C14, C16
-    real(RK)          :: Aux1, Aux2, Aux3, Aux4, Aux5, Aux6, Aux7, Deriv1Factor, Deriv2Factor, Deriv3Factor, dRepdR, d2RepdR2, d3RepdR3
+    real(RK)          :: A, b, a1, am1, am2, C6, C8, C10, C12, C14, C16
+    real(RK)          :: Aux1, Aux2, Aux3, Aux4, Aux5, Deriv1Factor, Deriv2Factor, Deriv3Factor, dRepdR, d2RepdR2, d3RepdR3
     real(RK)          :: Rep, Attr6, Attr8, Attr10, Attr12, Attr14, Attr16
-    real(RK)          :: dEPotdRij, d2EpotdRij2, d3EpotdRij3
-    real(RK)          :: Rij, RijInv, RijInv2, RijInv3, RijInv6, RijInv8, RijInv10
+    real(RK)          :: dEPotdRij, d2EpotdRij2, dEpotdRik, dEpotdRjk
+    real(RK)          :: RijInv, RijInv2, RijInv3, RijInv6, RijInv8, RijInv10
     real(RK)          :: bRij, bRij2, bRij3, bRij4, bRij6, bRij8, bRij10, bRij12, bRij14, bRij16
     real(RK)          :: ExpMinusbRij, F6, F8, F10, F12, F14, F16
     real(RK)          :: dRepInt1, dRepInt2, dRepInt3
+
+    real(RK)          :: cosThetai, cosThetaj, cosThetak, cosThetaProd
+    real(RK)          :: cosTicosTj, cosTicosTk, cosTjcosTk
+    real(RK)          :: FactorI, FactorII, FactorIII
+    real(RK)          :: FactorIIIii, FactorIIIij, dIIij, dIIik, dIIjk, dIij, dIik, dIjk
+    real(RK)          :: ddIIij2, ddIIik2, ddIIjk2, ddIIijik, ddIIijjk, ddIIikjk
+    real(RK)          :: ddIij2, ddIik2, ddIjk2, ddIijik, ddIijjk, ddIikjk
+    real(RK)          :: SumA2n, expAlphaR, expdSumA2n, expSumA2n, expddsumA2nii, expddsumA2nij
+    real(RK)          :: InvRij, InvRik, InvRjk, InvRij2, InvRik2, InvRjk2, InvRijk2
+    real(RK)          :: CATM, A0, A2, A4, A6, A8, alpha, alpha2expdsum
+    real(RK)          :: CATMInvRijk3, A2Rijk23, A4Rijk43, A6Rijk62, A8Rijk83
+
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
     real(RK), pointer, contiguous :: OX1(:), OY1(:), OZ1(:), OX2(:), OY2(:), OZ2(:)
@@ -1820,11 +1903,18 @@ contains
     real(RK)          :: RXij, RYij, RZij
     real(RK)          :: FXij, FYij, FZij, Fij
     real(RK)          :: PXij, PYij, PZij
+    real(RK)          :: RXik, RYik, RZik
+    real(RK)          :: FXik, FYik, FZik, Fik
+    real(RK)          :: PXik, PYik, PZik
+    real(RK)          :: RXjk, RYjk, RZjk
+    real(RK)          :: FXjk, FYjk, FZjk, Fjk
+    real(RK)          :: PXjk, PYjk, PZjk
+    real(RK)          :: Rij, Rik, Rjk, RijSquared, RikSquared, RjkSquared, Rij5, Rik5, Rjk5
+    real(RK)          :: Rijk, Rijk23, Rijk2
     real(RK)          :: OXj, OYj, OZj
     real(RK)          :: eX, eY, eZ
-    real(RK)          :: RijSquared, RijSquaredInv, RijMie_nInv, RijMie_mInv
+    real(RK)          :: RijSquaredInv, RijMie_nInv, RijMie_mInv
     real(RK)          :: Rij3Inv, Rij4Inv, Rij4Inv3, Rij5Inv
-    real(RK)          :: CosThetai, CosThetaj
     real(RK)          :: CosThetaiSquared, CosThetajSquared
     real(RK)          :: CosAux, CosGammaij
     real(RK)          :: dCosThetai, dCosThetaj
@@ -1833,8 +1923,10 @@ contains
     real(RK)          :: mueXi, mueYi, mueZi
     real(RK)          :: sitecorr, Plen2
     real(RK)          :: KappaRij, approx, Faktor, q
-    integer           :: N
-    integer           :: s1, s2, j, k, i
+    integer           :: NInCutoffGlobal(1:NProcs), NInCutoffGlobalSum(1:NProcs)
+    integer, allocatable :: concatenated_array(:)
+    integer           :: N, NCutoff
+    integer           :: s1, s2, j, k, i, l, m, dummy
                                     
 
     ! Zero energy
@@ -1847,8 +1939,7 @@ contains
     end if   
 
     ! Assign local variables
-                                  
-                           
+                                         
     Virial=0._RK
     VirialLocal = 1E33_RK
           
@@ -2081,6 +2172,236 @@ contains
           end do
         end do
       end do
+
+      ! Calculate EATM energy
+      do s1 = 1, this%N1EATM
+        do s2 = 1, this%N2EATM
+
+          ! Set site specific variables
+          peatm => this%PotEATM3B(s1, s2)
+          CATM = peatm%CATM
+          A0 = peatm%A0
+          A2 = peatm%A2
+          A4 = peatm%A4
+          A6 = peatm%A6
+          A8 = peatm%A8
+          alpha = peatm%alpha
+          RShieldSquared = peatm%RShieldSquared
+          RCutoffSquared = peatm%RCutoffSquared   
+
+          ! Assign pointers to site positions
+          RX1 => pmie%Site1%RX
+          RY1 => pmie%Site1%RY
+          RZ1 => pmie%Site1%RZ
+          RX2 => pmie%Site2%RX
+          RY2 => pmie%Site2%RY
+          RZ2 => pmie%Site2%RZ
+
+          RXi = RX1(np)
+          RYi = RY1(np)
+          RZi = RZ1(np)
+
+#if MPI_VER > 0
+    call MPI_Allgather( this%NInCutoff(np), 1, MPI_INTEGER, NInCutoffGlobal, 1, MPI_INTEGER, Communicator, ierror )
+    NInCutoffGlobalSum(1) = 0
+    NCutoff = NInCutoffGlobal(1)
+    do i=2, NProcs
+      NInCutoffGlobalSum(i) = NCutoff
+      NCutoff = NCutoff + NInCutoffGlobal(i)
+    end do
+    allocate(concatenated_array(NCutoff))
+
+    call MPI_Allgatherv( this%CutoffPartner(1:this%NInCutoff(np), np), NInCutoffGlobal(NProc+1), MPI_INTEGER, & 
+    & concatenated_array, NInCutoffGlobal, NInCutoffGlobalSum, MPI_INTEGER, Communicator, ierror )
+
+#else
+    NCutoff = this%NInCutoff(np)
+    allocate(concatenated_array(NCutoff))
+
+    concatenated_array(1:NCutoff) = this%CutoffPartner(1:this%NInCutoff(np), np)
+#endif
+
+          ! Loop over molecules
+!CDIR NODEP
+!NEC$ ivdep
+          if (NCutoff > 0) then
+            do i = 1, NCutoff ! ij
+              j = concatenated_array(i)
+              RXij = PXi - PX2(j)
+              RYij = PYi - PY2(j)
+              RZij = PZi - PZ2(j)
+              RXij = (RXij - anint( RXij )) * BoxLength
+              RYij = (RYij - anint( RYij )) * BoxLength
+              RZij = (RZij - anint( RZij )) * BoxLength
+              RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
+              if (RijSquared > RShieldSquared) then 
+                do l = 1, this%NInCutoff(np) !ik
+                  k = this%CutoffPartner(l, np)
+                  if ( k > j ) then
+                    RXik = PXi - PX2(k)
+                    RYik = PYi - PY2(k)
+                    RZik = PZi - PZ2(k)
+                    RXik = (RXik - anint( RXik )) * BoxLength
+                    RYik = (RYik - anint( RYik )) * BoxLength
+                    RZik = (RZik - anint( RZik )) * BoxLength
+                    RikSquared = RXik*RXik + RYik*RYik + RZik*RZik
+                    if (RikSquared > RShieldSquared) then 
+                      RXjk = RXij - RXik !jk
+                      RYjk = RYij - RYik
+                      RZjk = RZij - RZik
+                      RjkSquared = RXjk*RXjk + RYjk*RYjk + RZjk*RZjk
+                      if ((RjkSquared > RShieldSquared) .and. (RjkSquared < RCutoffSquared)) then 
+                        Rij = sqrt( RijSquared )
+                        Rik = sqrt( RikSquared )
+                        Rjk = sqrt( RjkSquared )
+                        Rij5 = Rij**5
+                        Rik5 = Rik**5
+                        Rjk5 = Rjk**5
+                        InvRij = 1 / Rij
+                        InvRik = 1 / Rik
+                        InvRjk = 1 / Rjk
+                        InvRij2 = InvRij * InvRij
+                        InvRik2 = InvRik * InvRik
+                        InvRjk2 = InvRjk * InvRjk
+                        cosThetai = RijSquared + RikSquared - RjkSquared ! A
+                        cosThetaj = RijSquared + RjkSquared - RikSquared ! B
+                        cosThetak = RikSquared + RjkSquared - RijSquared ! C
+                        cosThetaProd = cosThetai * cosThetaj * cosThetak
+                        Rijk = Rij * Rik * Rjk
+                        Rijk2 = Rijk * Rijk
+                        InvRijk2 = 1 / Rijk2
+                        FactorI = 1 + ThreeEight * cosThetaProd * InvRijk2
+      
+                        Rijk23 = Rijk**(TwoThird)
+                        A2Rijk23 = A2*Rijk23
+                        A4Rijk43 = A4*RijK23*Rijk23
+                        A6Rijk62 = A6*Rijk2
+                        A8Rijk83 = A8*Rijk2*Rijk23
+                        SumA2n = A0 + A2Rijk23 + A4Rijk43 + A6Rijk62 + A8Rijk83
+                        expAlphaR = exp( -alpha * ( Rij + Rjk + Rik ))
+                        CATMInvRijk3 = CATM / (Rijk**3)
+                        expSumA2n = expAlphaR * SumA2n
+                        FactorII = CATMInvRijk3 + expSumA2n
+                        
+                        Epot = Epot + FactorI * FactorII
+
+                        ! 1st derivative u' = I'*II + I*II' , I=FactorI, II=FactorII
+
+                        cosTicosTj = cosThetai * cosThetaj
+                        cosTicosTk = cosThetai * cosThetak
+                        cosTjcosTk = cosThetaj * cosThetak
+                        expdSumA2n = expAlphaR * (TwoThird*A2Rijk23 + FourThird*A4Rijk43 + 2*A6Rijk62 + EightThird*A8Rijk83)
+                        FactorIII = -3*CATMInvRijk3 + expdSumA2n
+
+                        ! Rij 
+
+                        dIij = ThreeEight * 2 * Rij * (cosTjcosTk + cosTicosTk - cosTicosTj - cosThetaProd * InvRij2) * InvRijk2
+
+                        dIIij = FactorIII * InvRij - alpha*expSumA2n
+
+                        dEpotdRij = dIij * FactorII + FactorI * dIIij
+                        
+                        Fij = -dEpotdRij * InvRij
+                        FXij = Fij * RXij
+                        FYij = Fij * RYij
+                        FZij = Fij * RZij
+
+                        Virial = Virial + (RXij * FXij + RYij * FYij + RZij * FZij) * Third
+
+                        ! Rik
+
+                        dIik = ThreeEight * 2 * Rik * (cosTjcosTk + cosTicosTj - cosTicosTk - cosThetaProd * InvRik2) * InvRijk2
+
+                        dIIik = FactorIII * InvRik - alpha*expSumA2n
+                        dEpotdRik = dIik * FactorII + FactorI * dIIik
+
+                        Fik = -dEpotdRik * InvRik
+                        FXik = Fik * RXik
+                        FYik = Fik * RYik
+                        FZik = Fik * RZik
+
+                        Virial = Virial + (RXik * FXik + RYik * FYik + RZik * FZik) * Third
+
+                        ! Rjk
+
+                        dIjk = ThreeEight * 2 * Rjk * (cosTicosTj + cosTicosTk - cosTjcosTk - cosThetaProd * InvRjk2) * InvRijk2
+
+                        dIIjk = FactorIII * InvRjk - alpha*expSumA2n
+                        dEpotdRjk = dIjk * FactorII + FactorI * dIIjk 
+
+                        Fjk = -dEpotdRjk * InvRjk
+                        FXjk = Fjk * RXjk
+                        FYjk = Fjk * RYjk
+                        FZjk = Fjk * RZjk
+
+                        Virial = Virial + (RXjk * FXjk + RYjk * FYjk + RZjk * FZjk) * Third
+
+                        ! 2nd derivative u'' = I''*II + 2*I'*II' + I*II'' , I=FactorI, II=FactorII
+
+                        expddsumA2nii = expAlphaR * ( -TwoNinth*A2Rijk23 + FourNinth*A4Rijk43 + 2*A6Rijk62 + 10*FourNinth*A8Rijk83 )
+                        expddsumA2nij = expAlphaR * ( FourNinth*A2Rijk23 + 4*FourNinth*A4Rijk43 + 4*A6Rijk62 + 16*FourNinth*A8Rijk83 )
+                        FactorIIIii = 12*CATMInvRijk3 + expddsumA2nii
+                        FactorIIIij = 9*CATMInvRijk3 + expddsumA2nij
+                        alpha2expdsum = alpha*alpha*expSumA2n
+
+                        ! Rij Rij
+
+                        ddIij2 = -3*dIij*InvRij + 3*( cosThetak-cosThetai-cosThetaj )*InvRik2*InvRjk2
+
+                        ddIIij2 = FactorIIIii*InvRij2 + alpha2expdsum - 2*alpha*expdSumA2n*InvRij
+
+                        ! Rik Rik
+
+                        ddIik2 = -3*dIik*InvRik + 3*( cosThetaj-cosThetai-cosThetak )*InvRij2*InvRjk2
+
+                        ddIIik2 = FactorIIIii*InvRik2 + alpha2expdsum - 2*alpha*expdSumA2n*InvRik
+
+                        ! Rjk Rjk
+
+                        ddIjk2 = -3*dIjk*InvRjk + 3*( cosThetai-cosThetaj-cosThetak )*InvRij2*InvRik2
+
+                        ddIIjk2 = FactorIIIii*InvRjk2 + alpha2expdsum - 2*alpha*expdSumA2n*InvRjk
+
+                        ! Rij Rik
+
+                        ddIijik = -2*dIik*InvRij + 3*cosThetai*InvRij*InvRik*InvRjk2 
+                        ddIijik = ddIijik - 1.5*Rij*InvRik*(cosTjcosTk + cosTicosTk - cosTicosTj) * InvRijk2
+                
+                        ddIIijik = FactorIIIij*InvRij*InvRik + alpha2expdsum - alpha*expdSumA2n*(InvRij+InvRik)
+
+                        ! Rij Rjk
+
+                        ddIijjk = -2*dIjk*InvRij + 3*cosThetaj*InvRij*InvRjk*InvRik2  
+                        ddIijjk = ddIijjk - 1.5*Rij*InvRjk*(cosTjcosTk + cosTicosTk - cosTicosTj) * InvRijk2
+                        
+                        ddIIijjk = FactorIIIij*InvRij*InvRjk + alpha2expdsum - alpha*expdSumA2n*(InvRij+InvRjk)
+
+                        ! Rik Rjk
+
+                        ddIikjk = -2*dIjk*InvRik + 3*cosThetak*InvRij2*InvRik*InvRjk 
+                        ddIikjk = ddIikjk - 1.5*Rik*InvRjk*(cosTjcosTk + cosTicosTj - cosTicosTk) * InvRijk2
+
+                        ddIIikjk = FactorIIIij*InvRik*InvRjk + alpha2expdsum - alpha*expdSumA2n*(InvRik+InvRjk)
+
+                        d2EpotdV2Local = RijSquared*(ddIij2*FactorII + 2* dIij*dIIij + FactorI*ddIIij2)
+                        d2EpotdV2Local = d2EpotdV2Local + RikSquared*(ddIik2*FactorII + 2* dIik*dIIik + FactorI*ddIIik2)
+                        d2EpotdV2Local = d2EpotdV2Local + RjkSquared*(ddIjk2*FactorII + 2* dIjk*dIIjk + FactorI*ddIIjk2)
+                        d2EpotdV2Local = d2EpotdV2Local + 2*Rij*Rik * (ddIijik*FactorII + dIij*dIIik + dIik*dIIij + FactorI*ddIIijik)
+                        d2EpotdV2Local = d2EpotdV2Local + 2*Rij*Rjk * (ddIijjk*FactorII + dIij*dIIjk + dIjk*dIIij + FactorI*ddIIijjk)
+                        d2EpotdV2Local = d2EpotdV2Local + 2*Rik*Rjk * (ddIikjk*FactorII + dIik*dIIjk + dIjk*dIIik + FactorI*ddIIikjk)
+                        ! d2EpotdV2Local = d2EpotdV2Local - 2 * (Rij*dEpotdRij + Rik*dEpotdRik + Rjk*dEpotdRjk)
+                        d2EpotdV2Local = d2EpotdV2Local - (Rij*dEpotdRij + Rik*dEpotdRik + Rjk*dEpotdRjk)
+                        d2EpotdV2 = d2EpotdV2 + Ninth * d2EpotdV2Local
+                      end if
+                    end if
+                  end if
+                end do
+              end if
+            end do
+          end if
+        end do
+      end do
+      deallocate(concatenated_array)
 
       ! Calculate point charge energy
       do s1 = 1, this%N1Charge
@@ -4963,6 +5284,102 @@ end subroutine TInteraction_EnergySVC
     this%NInCutoff(np) = NInCutoff
 
   end subroutine TInteraction_CalcPartners1
+
+
+
+!==============================================================!
+!  Subroutine TInteraction_CalcPartners3B                    !
+!==============================================================!
+
+  subroutine TInteraction_CalcPartners3B( this, np, matrixhalf )
+
+    implicit none
+
+  ! Include MPI header
+#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
+  include 'mpif.h'
+#endif
+
+    ! Declare arguments
+    type(TInteraction)  :: this
+    integer, intent(in) :: np
+    logical, intent(in) :: matrixhalf
+
+    ! Declare local variables
+    real(RK), pointer, contiguous :: PX2(:), PY2(:), PZ2(:)
+    real(RK)          :: PXi, PYi, PZi, PXij, PYij, PZij
+    real(RK)          :: RijSquared
+    real(RK)          :: RCutoffSquaredScaled
+    integer           :: j, NInCutoff, k, Nmax
+    
+
+    ! Set cutoff radius
+    RCutoffSquaredScaled = this%RCutoffSquaredScaled
+
+    ! Assign local pointers
+    PX2 => this%PX2
+    PY2 => this%PY2
+    PZ2 => this%PZ2
+
+    ! Calculate partners within cutoff sphere
+    PXi = this%PX1(np)
+    PYi = this%PY1(np)
+    PZi = this%PZ1(np)
+    NInCutoff = 0
+
+    Nmax = this%NPart2
+
+    if ( modulo(np,2)==0 ) then   
+      do j = 1, np/2-1 
+        k = 2*j
+        PXij = PXi - PX2(k)
+        PYij = PYi - PY2(k)
+        PZij = PZi - PZ2(k)
+        PXij = PXij - anint( PXij )
+        PYij = PYij - anint( PYij )
+        PZij = PZij - anint( PZij )
+        RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
+
+        if( RijSquared < RCutoffSquaredScaled ) then
+          NInCutoff = NInCutoff + 1
+          this%CutoffPartner(NInCutoff, np) = k
+        end if
+      end do
+    else 
+      do j = 1, np/2
+        k = 2*j
+        PXij = PXi - PX2(k)
+        PYij = PYi - PY2(k)
+        PZij = PZi - PZ2(k)
+        PXij = PXij - anint( PXij )
+        PYij = PYij - anint( PYij )
+        PZij = PZij - anint( PZij )
+        RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
+
+        if( RijSquared < RCutoffSquaredScaled ) then
+          NInCutoff = NInCutoff + 1
+          this%CutoffPartner(NInCutoff, np) = k
+        end if
+      end do
+      do j = np+1, Nmax
+        PXij = PXi - PX2(j)
+        PYij = PYi - PY2(j)
+        PZij = PZi - PZ2(j)
+        PXij = PXij - anint( PXij )
+        PYij = PYij - anint( PYij )
+        PZij = PZij - anint( PZij )
+        RijSquared = PXij*PXij+ PYij*PYij + PZij*PZij
+
+        if( RijSquared < RCutoffSquaredScaled ) then
+          NInCutoff = NInCutoff + 1
+          this%CutoffPartner(NInCutoff, np) = j
+        end if
+      end do
+    end if
+
+    this%NInCutoff(np) = NInCutoff  
+
+  end subroutine TInteraction_CalcPartners3B
 
 
 
