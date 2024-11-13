@@ -138,7 +138,7 @@ module ms2_ensemble
     integer :: NComponents, NRealComponents
 
     ! Maximum numbers of sites in components
-    integer :: NMIEnmMax, NTTMax, NChargeMax, NDipoleMax, NQuadrupoleMax
+    integer :: NMIEnmMax, NTTMax, NEATMMax, NChargeMax, NDipoleMax, NQuadrupoleMax
 
     ! Components
     type(TComponent), pointer, contiguous :: Component(:)
@@ -181,6 +181,7 @@ module ms2_ensemble
     ! Cutoff radii
     real(RK) :: RCutoffMIEnmMIEnm
     real(RK) :: RCutoffTT
+    real(RK) :: RCutoffEATM
     real(RK) :: RCutoffDipoleDipole
     real(RK) :: RCutoffDipoleQuadrupole
     real(RK) :: RCutoffQuadrupoleQuadrupole
@@ -1667,6 +1668,7 @@ contains
     ! Read cutoff radii
     this%RCutoffMIEnmMIEnm = 0._RK
     this%RCutoffTT = 0._RK
+    this%RCutoffEATM = 0._RK
     this%RCutoffDipoleDipole = 0._RK
     this%RCutoffDipoleQuadrupole = 0._RK
     this%RCutoffQuadrupoleQuadrupole = 0._RK
@@ -1697,6 +1699,17 @@ contains
         this%RCutoffDipoleQuadrupole = this%RCutoffTT
         this%RCutoffQuadrupoleQuadrupole = this%RCutoffTT
       endif
+      if( this%NEATMMax > 0 ) then
+        call FileReadParameter( this%RCutoffEATM, paramsFile%iounit , IdRCutoffEATM, .false. )
+        if (this%RCutoffEATM < 0._RK) then
+          this%RCutoffEATM = 0.9*0.5*(this%NPart / &
+        &          (NAvogadro*this%RefDensity*UnitDensity*1000))**(1._RK/3._RK)/UnitLength
+        end if
+        call LogWriteBlank
+        write( IOBuffer, '("Reduced EATM cutoff radius: ",T45, F6.3)' ) this%RCutoffEATM
+        call LogWrite
+      endif
+
 
     else
 
@@ -1709,6 +1722,12 @@ contains
       if( this%NTTMax > 0 ) then
         call FileReadParameter( this%RCutoffTT, paramsFile%iounit , IdRCutoffTT, .false. )
         write( IOBuffer, '(A, " cutoff radius: ",T42, F8.3)' ) trim(TT68orEXT), this%RCutoffTT
+        call LogWrite
+      end if
+
+      if( this%NEATMMax > 0 ) then
+        call FileReadParameter( this%RCutoffEATM, paramsFile%iounit , IdRCutoffEATM, .false. )
+        write( IOBuffer, '("Reduced EATM cutoff radius: ",T42, F8.3)' ) this%RCutoffEATM
         call LogWrite
       end if
 
@@ -2236,6 +2255,9 @@ contains
     if( this%NTTMax > 0 ) then
       this%RCutoffTT = MaxRadius
     endif
+    if( this%NEATMMax > 0 ) then
+      this%RCutoffEATM = MaxRadius
+    endif
 
     ! Disable reaction field
     this%RFEpsilon = 0._RK
@@ -2561,6 +2583,7 @@ contains
 &           this%Component(i), this%Component(j), &
 &           this%RCutoffMIEnmMIEnm, &
 &           this%RCutoffTT, &
+&           this%RCutoffEATM, &
 &           this%RCutoffDipoleDipole, &
 &           this%RCutoffDipoleQuadrupole, &
 &           this%RCutoffQuadrupoleQuadrupole, &
@@ -2580,6 +2603,7 @@ contains
 &           this%Component(i), this%Component(j), &
 &           this%RCutoffMIEnmMIEnm, &
 &           this%RCutoffTT, &
+&           this%RCutoffEATM, &
 &           this%RCutoffDipoleDipole, &
 &           this%RCutoffDipoleQuadrupole, &
 &           this%RCutoffQuadrupoleQuadrupole, &
@@ -3601,6 +3625,7 @@ contains
     ! Calculate maximum numbers of sites in components
     this%NMIEnmMax      = 0
     this%NTTMax       = 0
+    this%NEATMMax       = 0
     this%NChargeMax     = 0
     this%NDipoleMax     = 0
     this%NQuadrupoleMax = 0
@@ -3608,6 +3633,7 @@ contains
       pc => this%Component(i)
       if( pc%Molecule%NMIEnm > this%NMIEnmMax ) this%NMIEnmMax = pc%Molecule%NMIEnm
       if( pc%Molecule%NTT > this%NTTMax ) this%NTTMax = pc%Molecule%NTT
+      if( pc%Molecule%NEATM > this%NEATMMax ) this%NEATMMax = pc%Molecule%NEATM
       if( pc%Molecule%NCharge > this%NChargeMax ) this%NChargeMax = pc%Molecule%NCharge
       if( pc%Molecule%NDipole > this%NDipoleMax ) this%NDipoleMax = pc%Molecule%NDipole
       if( pc%Molecule%NQuadrupole > this%NQuadrupoleMax ) this%NQuadrupoleMax = pc%Molecule%NQuadrupole
@@ -6192,6 +6218,38 @@ loop5:        do nc = 1, this%NComponents
             pc%Molecule%SiteTT(j)%tdTTx(1:pc%NPart) = 0._RK
             pc%Molecule%SiteTT(j)%tdTTy(1:pc%NPart) = 0._RK
             pc%Molecule%SiteTT(j)%tdTTz(1:pc%NPart) = 0._RK
+    !       end if
+        end if
+#endif
+      end do
+      do j = 1, this%Component(i)%Molecule%NEATM
+        pc%Molecule%SiteEATM(j)%FX(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteEATM(j)%FY(1:pc%NPart) = 0._RK
+        pc%Molecule%SiteEATM(j)%FZ(1:pc%NPart) = 0._RK
+#if  TRANS == 1
+        if(mod((Step+this%NStepCorr-1),this%NStepCorr) .eq. 0) then
+          pc%Molecule%SiteEATM(j)%vsEATMx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteEATM(j)%vsEATMy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteEATM(j)%vsEATMz(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteEATM(j)%vbEATMx(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteEATM(j)%vbEATMy(1:pc%NPart) = 0._RK
+          pc%Molecule%SiteEATM(j)%vbEATMz(1:pc%NPart) = 0._RK
+    !        if ( this%Conductivity ) then
+            pc%Molecule%SiteEATM(j)%vsuEATMx(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteEATM(j)%vsuEATMy(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteEATM(j)%vsuEATMz(1:pc%NPart)= 0._RK
+            pc%Molecule%SiteEATM(j)%cEATMx(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteEATM(j)%cEATMy(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteEATM(j)%cEATMz(1:pc%NPart)  = 0._RK
+            pc%Molecule%SiteEATM(j)%tuEATMx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteEATM(j)%tuEATMy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteEATM(j)%tuEATMz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteEATM(j)%tlEATMx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteEATM(j)%tlEATMy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteEATM(j)%tlEATMz(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteEATM(j)%tdEATMx(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteEATM(j)%tdEATMy(1:pc%NPart) = 0._RK
+            pc%Molecule%SiteEATM(j)%tdEATMz(1:pc%NPart) = 0._RK
     !       end if
         end if
 #endif
@@ -12493,6 +12551,12 @@ componentLoop:       do i = 1, this%NRealComponents
     if( this%NTTMax > 0 ) then
       write( IOBuffer, '(A, " cutoff radius", T36, ":", F20.9, " A")' ) &
 &             trim(TT68orEXT), this%RCutoffTT * UnitLength / Angstroem
+      call FileWrite(this%errorsFile)
+    end if
+
+    if( this%NEATMMax > 0 ) then
+      write( IOBuffer, '("EATM cutoff radius", T36, ":", F20.9, " A")' ) &
+&            this%RCutoffEATM * UnitLength / Angstroem
       call FileWrite(this%errorsFile)
     end if
 

@@ -144,6 +144,61 @@ end type TSiteTT
     module procedure TSiteTT_Save
   end interface
 
+!==============================================================!
+!  Type TSiteEATM                                              !
+!==============================================================!
+
+  type TSiteEATM
+
+    real(RK)          :: r(3)
+    real(RK)          :: CATM, alpha
+    real(RK)          :: A0, A2, A4, A6, A8
+    real(RK)          :: mass
+    real(RK)          :: shield
+    integer, pointer  :: NPartMax, NPart, NTest
+    integer, pointer  :: NPart0, NPart1, NPart2
+    real(RK), pointer, contiguous :: RX(:), RY(:), RZ(:)
+    real(RK), pointer, contiguous :: FX(:), FY(:), FZ(:)
+    real(RK), pointer, contiguous :: PX(:), PY(:), PZ(:)
+    real(RK), pointer, contiguous :: RXTest(:), RYTest(:), RZTest(:)
+    real(RK), pointer, contiguous :: PXTest(:), PYTest(:), PZTest(:)
+    integer, pointer, contiguous  :: RDFSum(:)
+
+#if  TRANS == 1
+    !TRANSPORT_start
+    real(RK), pointer, contiguous :: vsEATMx(:), vsEATMy(:), vsEATMz(:)
+    real(RK), pointer, contiguous :: vsuEATMx(:), vsuEATMy(:), vsuEATMz(:)
+    real(RK), pointer, contiguous :: vbEATMx(:), vbEATMy(:), vbEATMz(:)
+    real(RK), pointer, contiguous :: cEATMx(:), cEATMy(:),  cEATMz(:)
+    real(RK), pointer, contiguous :: tuEATMx(:),  tuEATMy(:),  tuEATMz(:)
+    real(RK), pointer, contiguous :: tlEATMx(:),  tlEATMy(:),  tlEATMz(:)
+    real(RK), pointer, contiguous :: tdEATMx(:),  tdEATMy(:),  tdEATMz(:)
+    real(RK), pointer, contiguous :: Q0r(:,:)
+!TRANSPORT_END
+#endif
+
+end type TSiteEATM
+
+  interface Construct
+    module procedure TSiteEATM_Construct
+  end interface
+
+  interface Destruct
+    module procedure TSiteEATM_Destruct
+  end interface
+
+  interface Allocate
+    module procedure TSiteEATM_Allocate
+  end interface
+
+  interface Deallocate
+    module procedure TSiteEATM_Deallocate
+  end interface
+
+  interface Save
+    module procedure TSiteEATM_Save
+  end interface
+
 
 !==============================================================!
 !  Type TSiteCharge                                            !
@@ -707,7 +762,7 @@ contains
     end select
 
     call FileReadParameter( this%mass, potmodFile%iounit, IdSite_mass, .false. )
-    call FileReadParameter( this%shield, potmodFile%iounit, IdSite_shielding, .false. )
+    call FileReadParameter( this%shield, potmodFile%iounit, IdTT_shielding, .false. )
 
 
   ! Convert to SI units
@@ -1051,9 +1106,356 @@ contains
     call writeParameter(this%c16 * UnitEnergy * UnitVolume**2 * UnitLength**10 / ( kBoltzmann * Angstroem**16 ), this%c16, IdTT_C16)
 
     call writeParameter(this%mass * UnitMass * 1000._RK * NAvogadro, this%mass, IdSite_mass)
-    call writeParameter(this%shield * UnitLength / Angstroem, this%shield, IdSite_shielding)
+    call writeParameter(this%shield * UnitLength / Angstroem, this%shield, IdTT_shielding)
 
   end subroutine TSiteTT_Save
+
+
+
+!==============================================================!
+!  Subroutine TSiteEATM_Construct                              !
+!==============================================================!
+
+  subroutine TSiteEATM_Construct( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSiteEATM) :: this
+
+    ! Read site parameters
+    call FileReadParameter( this%r(1), potmodFile%iounit, IdSite_x, .false. )
+    call FileReadParameter( this%r(2), potmodFile%iounit, IdSite_y, .false. )
+    call FileReadParameter( this%r(3), potmodFile%iounit, IdSite_z, .false. )
+    call FileReadParameter( this%CATM, potmodFile%iounit, IdEATM_CATM, .false. )
+    call FileReadParameter( this%A0, potmodFile%iounit, IdEATM_A0, .false. )
+    call FileReadParameter( this%A2, potmodFile%iounit, IdEATM_A2, .false. )
+    call FileReadParameter( this%A4, potmodFile%iounit, IdEATM_A4, .false. )
+    call FileReadParameter( this%A6, potmodFile%iounit, IdEATM_A6, .false. )
+    call FileReadParameter( this%A8, potmodFile%iounit, IdEATM_A8, .false. )
+    call FileReadParameter( this%alpha, potmodFile%iounit, IdEATM_alpha, .false. )
+    call FileReadParameter( this%mass, potmodFile%iounit, IdSite_mass, .false. )
+    call FileReadParameter( this%shield, potmodFile%iounit, IdEATM_shielding, .false. )
+
+    ! Convert to SI units
+    this%CATM = this%CATM * kBoltzmann * Angstroem**9
+    this%A0 = this%A0 * kBoltzmann
+    this%A2 = this%A2 * kBoltzmann / Angstroem**2
+    this%A4 = this%A4 * kBoltzmann / Angstroem**4
+    this%A6 = this%A6 * kBoltzmann / Angstroem**6
+    this%A8 = this%A8 * kBoltzmann / Angstroem**8
+    this%alpha = this%alpha / Angstroem
+    this%shield = this%shield * Angstroem
+
+    ! Convert to derived units
+    this%CATM = this%CATM / ( UnitEnergy * UnitVolume**3 )
+    this%A0 = this%A0 / UnitEnergy
+    this%A2 = this%A2 * UnitLength**2 / UnitEnergy
+    this%A4 = this%A4 * UnitLength**4 / UnitEnergy
+    this%A6 = this%A6 * UnitVolume**2 / UnitEnergy
+    this%A8 = this%A8 * UnitVolume**2 * UnitLength**2 / UnitEnergy
+    this%alpha = this%alpha * UnitLength
+    this%shield = this%shield / UnitLength
+
+  end subroutine TSiteEATM_Construct 
+
+
+!==============================================================!
+!  Subroutine TSiteEATM_Destruct                               !
+!==============================================================!
+
+  subroutine TSiteEATM_Destruct( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSiteEATM) :: this
+
+    ! Destroy site
+    continue
+
+  end subroutine TSiteEATM_Destruct
+
+
+
+!==============================================================!
+!  Subroutine TSiteEATM_Allocate                               !
+!==============================================================!
+
+  subroutine TSiteEATM_Allocate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSiteEATM) :: this
+
+    ! Declare local variables
+    integer :: np, nt
+    integer :: stat
+
+    ! Assign local variables
+    np = this%NPartMax
+    nt = this%NTest
+
+    ! Nullify pointers
+    nullify( this%RX )
+    nullify( this%RY )
+    nullify( this%RZ )
+    nullify( this%FX )
+    nullify( this%FY )
+    nullify( this%FZ )
+    nullify( this%RXTest )
+    nullify( this%RYTest )
+    nullify( this%RZTest )
+    nullify( this%RDFSum )
+
+#if  TRANS == 1
+    !TRANSPORT_start
+    nullify( this%vsEATMx )
+    nullify( this%vsEATMy )
+    nullify( this%vsEATMz )
+    nullify( this%vsuEATMx )
+    nullify( this%vsuEATMy )
+    nullify( this%vsuEATMz )
+    nullify( this%vbEATMx )
+    nullify( this%vbEATMy )
+    nullify( this%vbEATMz )
+    nullify( this%cEATMx )
+    nullify( this%cEATMy )
+    nullify( this%cEATMz )
+    nullify( this%tuEATMx )
+    nullify( this%tuEATMy )
+    nullify( this%tuEATMz )
+    nullify( this%tlEATMx )
+    nullify( this%tlEATMy )
+    nullify( this%tlEATMz )
+    nullify( this%tdEATMx )
+    nullify( this%tdEATMy )
+    nullify( this%tdEATMz )
+!TRANSPORT_END
+#endif
+
+    ! Allocate arrays
+    allocate( this%RX( np ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+    allocate( this%RY( np ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+    allocate( this%RZ( np ), STAT = stat )
+    call AllocationError( stat, 'particles', np )
+    if( RDFUpdateFrequency > 0 ) then
+      allocate( this%RDFSum(RDFNumberShells+10), STAT = stat )
+      call AllocationError( stat, 'RDFSum', RDFNumberShells+10 )
+    endif
+
+    if( SimulationType .eq. MolecularDynamics ) then
+      allocate( this%FX( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%FY( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%FZ( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+
+#if  TRANS == 1
+!TRANSPORT_start
+      allocate( this%vsEATMx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsEATMy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsEATMz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuEATMx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuEATMy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vsuEATMz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbEATMx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbEATMy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%vbEATMz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cEATMx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cEATMy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%cEATMz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuEATMx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuEATMy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tuEATMz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlEATMx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlEATMy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tlEATMz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdEATMx( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdEATMy( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+      allocate( this%tdEATMz( np ), STAT = stat )
+      call AllocationError( stat, 'particles', np )
+!TRANSPORT_END
+#endif
+    end if
+
+    if( nt > 0 ) then
+      allocate( this%RXTest( nt ), STAT = stat )
+      call AllocationError( stat, 'test particles', nt )
+      allocate( this%RYTest( nt ), STAT = stat )
+      call AllocationError( stat, 'test particles', nt )
+      allocate( this%RZTest( nt ), STAT = stat )
+      call AllocationError( stat, 'test particles', nt )
+    end if
+
+  end subroutine TSiteEATM_Allocate
+
+
+
+!==============================================================!
+!  Subroutine TSite_Deallocate                             !
+!==============================================================!
+
+  subroutine TSiteEATM_Deallocate( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSiteEATM) :: this
+
+    ! Deallocate arrays
+    if( associated( this%RX ) ) then
+      deallocate( this%RX )
+    end if
+    if( associated( this%RY ) ) then
+      deallocate( this%RY )
+    end if
+    if( associated( this%RZ ) ) then
+      deallocate( this%RZ )
+    end if
+    if( associated( this%RDFSum ) ) then
+      deallocate( this%RDFSum )
+    end if
+    if( associated( this%FX ) ) then
+      deallocate( this%FX )
+    end if
+    if( associated( this%FY ) ) then
+      deallocate( this%FY )
+    end if
+    if( associated( this%FZ ) ) then
+      deallocate( this%FZ )
+    end if
+    if( associated( this%RXTest ) ) then
+      deallocate( this%RXTest )
+    end if
+    if( associated( this%RYTest ) ) then
+      deallocate( this%RYTest )
+    end if
+    if( associated( this%RZTest ) ) then
+      deallocate( this%RZTest )
+    end if
+
+#if  TRANS == 1
+    !TRANSPORT_start
+    if( associated( this%vsEATMx ) ) then
+      deallocate( this%vsEATMx )
+    end if
+    if( associated( this%vsEATMy ) ) then
+      deallocate( this%vsEATMy )
+    end if
+    if( associated( this%vsEATMz ) ) then
+      deallocate( this%vsEATMz )
+    end if
+    if( associated( this%vsuEATMx ) ) then
+      deallocate( this%vsuEATMx )
+    end if
+    if( associated( this%vsuEATMy ) ) then
+      deallocate( this%vsuEATMy )
+    end if
+    if( associated( this%vsuEATMz ) ) then
+      deallocate( this%vsuEATMz )
+    end if
+    if( associated( this%vbEATMx ) ) then
+     deallocate( this%vbEATMx )
+    end if
+    if( associated( this%vbEATMy ) ) then
+      deallocate( this%vbEATMy )
+    end if
+    if( associated( this%vbEATMz ) ) then
+      deallocate( this%vbEATMz )
+    end if
+    if( associated( this%cEATMx ) ) then
+      deallocate( this%cEATMx )
+    end if
+    if( associated( this%cEATMy ) ) then
+      deallocate( this%cEATMy )
+    end if
+    if( associated( this%cEATMz ) ) then
+      deallocate( this%cEATMz )
+    end if
+    if( associated( this%tuEATMx ) ) then
+      deallocate( this%tuEATMx )
+    end if
+    if( associated( this%tuEATMy ) ) then
+      deallocate( this%tuEATMy )
+    end if
+    if( associated( this%tuEATMz ) ) then
+      deallocate( this%tuEATMz )
+    end if
+    if( associated( this%tlEATMx ) ) then
+      deallocate( this%tlEATMx )
+    end if
+    if( associated( this%tlEATMy ) ) then
+      deallocate( this%tlEATMy )
+    end if
+    if( associated( this%tlEATMz ) ) then
+      deallocate( this%tlEATMz )
+    end if
+    if( associated( this%tdEATMx ) ) then
+      deallocate( this%tdEATMx )
+    end if
+    if( associated( this%tdEATMy ) ) then
+      deallocate( this%tdEATMy )
+    end if
+    if( associated( this%tdEATMz ) ) then
+      deallocate( this%tdEATMz )
+    end if
+!TRANSPORT_END
+#endif
+  end subroutine TSiteEATM_Deallocate
+
+
+
+!==============================================================!
+!  Subroutine TSiteEATM_Save                                   !
+!==============================================================!
+
+  subroutine TSiteEATM_Save( this )
+
+    implicit none
+
+    ! Declare arguments
+    type(TSiteEATM) :: this
+
+    ! Save site parameters
+    call saveCoordinates(this%r)
+
+    call writeParameter(this%CATM * ( UnitEnergy * UnitVolume**3 )/ ( kBoltzmann * Angstroem**9 ), this%CATM, IdEATM_CATM )
+    call writeParameter(this%A0 * UnitEnergy / kBoltzmann, this%A0, IdEATM_A0)
+    call writeParameter(this%A2 * ( UnitEnergy * Angstroem**2) / ( kBoltzmann * UnitLength**2) , this%A2, IdEATM_A2)
+    call writeParameter(this%A4 * ( UnitEnergy * Angstroem**4) / ( kBoltzmann * UnitLength**4) , this%A4, IdEATM_A4)
+    call writeParameter(this%A6 * ( UnitEnergy * Angstroem**6) / ( kBoltzmann * UnitVolume**2) , this%A6, IdEATM_A6)
+    call writeParameter(this%A8 * ( UnitEnergy * Angstroem**8) / ( kBoltzmann * UnitLength**8) , this%A8, IdEATM_A8)
+    call writeParameter(this%alpha * Angstroem / UnitLength, this%alpha, IdEATM_alpha)
+
+    call writeParameter(this%mass * UnitMass * 1000._RK * NAvogadro, this%mass, IdSite_mass)
+    call writeParameter(this%shield * UnitLength / Angstroem, this%shield, IdEATM_shielding)
+
+  end subroutine TSiteEATM_Save
 
 
 

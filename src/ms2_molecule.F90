@@ -65,6 +65,10 @@ module ms2_molecule
     integer :: NTT
     type(TSiteTT), pointer, contiguous :: SiteTT(:)
 
+    ! EATM sites
+    integer :: NEATM
+    type(TSiteEATM), pointer, contiguous :: SiteEATM(:)
+
     ! Coulomb sites
     integer :: NCharge
     type(TSiteCharge), pointer, contiguous :: SiteCharge(:)
@@ -151,6 +155,7 @@ contains
     ! Nullify pointers.
     nullify( this%SiteMIEnm )
     nullify( this%SiteTT )
+    nullify( this%SiteEATM )
     nullify( this%SiteCharge )
     nullify( this%SiteDipole )
     nullify( this%SiteQuadrupole )
@@ -165,6 +170,7 @@ contains
     ! Zero number of sites
     this%NMIEnm = 0
     this%NTT = 0
+    this%NEATM = 0
     this%NCharge = 0
     this%Charge = 0._RK
     this%NDipole = 0
@@ -219,6 +225,16 @@ contains
               call Construct( this%SiteTT(j) )
             end do
           end if
+
+        case( 'EATM', 'eATM', 'eatm' ) !Case: extended Axilrod-Teller-Muto potential
+            call FileReadParameter( this%NEATM, potmodFile%iounit, IdSite_NSites, .false. )
+            if( this%NEATM > 0 ) then
+              allocate( this%SiteEATM(this%NEATM), STAT = stat )
+              call AllocationError( stat, 'EATM sites', this%NEATM )
+              do j = 1, this%NEATM
+                call Construct( this%SiteEATM(j) )
+              end do
+            end if
 
       case( 'CHARGE', 'Charge', 'charge', 'E', 'e' )
         call FileReadParameter( this%NCharge, potmodFile%iounit, IdSite_NSites, .false. )
@@ -316,6 +332,11 @@ contains
         this%SiteTT(i)%shield = this%SiteTT(i)%shield * scalegeo
       end do
 
+      do i = 1, this%NEATM
+        this%SiteEATM(i)%r = this%SiteEATM(i)%r * scalegeo
+        this%SiteEATM(i)%shield = this%SiteEATM(i)%shield * scalegeo
+      end do
+
       do i = 1, this%NCharge
         this%SiteCharge(i)%r = this%SiteCharge(i)%r * scalegeo
         this%SiteCharge(i)%shield = this%SiteCharge(i)%shield * scalegeo
@@ -397,6 +418,12 @@ contains
       end do
       deallocate( this%SiteTT )
     end if
+    if( associated( this%SiteEATM ) ) then
+      do i = 1, this%NEATM
+        call Destruct( this%SiteEATM(i) )
+      end do
+      deallocate( this%SiteEATM )
+    end if
     if( associated( this%SiteCharge ) ) then
       do i = 1, this%NCharge
         call Destruct( this%SiteCharge(i) )
@@ -455,6 +482,7 @@ contains
     ntypes = 0
     if( this%NMIEnm > 0 ) ntypes = ntypes + 1
     if( this%NTT > 0 ) ntypes = ntypes + 1
+    if( this%NEATM > 0 ) ntypes = ntypes + 1
     if( this%NCharge > 0 ) ntypes = ntypes + 1
     if( this%NDipole > 0 ) ntypes = ntypes + 1
     if( this%NQuadrupole > 0 ) ntypes = ntypes + 1
@@ -484,6 +512,19 @@ contains
       do i = 1, this%NTT
         call FileWriteBlank(normalFile)
         call Save( this%SiteTT(i) )
+      end do
+    end if
+
+    ! Save EATM sites
+    if( this%NEATM > 0 ) then
+      call FileWriteBlank( normalFile )
+      write( IOBuffer, '(1X, A)' ) 'EATM'
+      call FileWriteParameter( normalFile%iounit, IdSite_stype )
+      write( IOBuffer, '(I2)' ) this%NEATM
+      call FileWriteParameter( normalFile%iounit, IdSite_NSites )
+      do i = 1, this%NEATM
+        call FileWriteBlank(normalFile)
+        call Save( this%SiteEATM(i) )
       end do
     end if
 
@@ -592,6 +633,10 @@ contains
       this%Mass = this%Mass + this%SiteTT(i)%mass
       r(:) = r(:) + this%SiteTT(i)%mass * this%SiteTT(i)%r(:)
     end do
+    do i = 1, this%NEATM
+      this%Mass = this%Mass + this%SiteEATM(i)%mass
+      r(:) = r(:) + this%SiteEATM(i)%mass * this%SiteEATM(i)%r(:)
+    end do
     do i = 1, this%NCharge
       this%Mass = this%Mass + this%SiteCharge(i)%mass
       r(:) = r(:) + this%SiteCharge(i)%mass * this%SiteCharge(i)%r(:)
@@ -615,6 +660,11 @@ contains
     do i = 1, this%NTT
       do j = 1, 3
         this%SiteTT(i)%r(j) = this%SiteTT(i)%r(j) - r(j)
+      end do
+    end do
+    do i = 1, this%NEATM
+      do j = 1, 3
+        this%SiteEATM(i)%r(j) = this%SiteEATM(i)%r(j) - r(j)
       end do
     end do
     do i = 1, this%NCharge
@@ -672,6 +722,15 @@ contains
       moi(3, 3) = moi(3, 3) + this%SiteTT(i)%mass * ( this%SiteTT(i)%r(1)**2 + this%SiteTT(i)%r(2)**2 )
     end do
 
+    do i = 1, this%NEATM
+      moi(1, 1) = moi(1, 1) + this%SiteEATM(i)%mass * ( this%SiteEATM(i)%r(2)**2 + this%SiteEATM(i)%r(3)**2 )
+      moi(1, 2) = moi(1, 2) - this%SiteEATM(i)%mass * this%SiteEATM(i)%r(1) * this%SiteEATM(i)%r(2)
+      moi(1, 3) = moi(1, 3) - this%SiteEATM(i)%mass * this%SiteEATM(i)%r(1) * this%SiteEATM(i)%r(3)
+      moi(2, 2) = moi(2, 2) + this%SiteEATM(i)%mass * ( this%SiteEATM(i)%r(1)**2 + this%SiteEATM(i)%r(3)**2 )
+      moi(2, 3) = moi(2, 3) - this%SiteEATM(i)%mass * this%SiteEATM(i)%r(2) * this%SiteEATM(i)%r(3)
+      moi(3, 3) = moi(3, 3) + this%SiteEATM(i)%mass * ( this%SiteEATM(i)%r(1)**2 + this%SiteEATM(i)%r(2)**2 )
+    end do
+
     do i = 1, this%NCharge
       moi(1, 1) = moi(1, 1) + this%SiteCharge(i)%mass * ( this%SiteCharge(i)%r(2)**2 + this%SiteCharge(i)%r(3)**2 )
       moi(1, 2) = moi(1, 2) - this%SiteCharge(i)%mass * this%SiteCharge(i)%r(1) * this%SiteCharge(i)%r(2)
@@ -708,6 +767,10 @@ contains
 
     do i = 1, this%NTT
       this%SiteTT(i)%r(:) = matmul( this%SiteTT(i)%r(:), rotation(:, :) )
+    end do
+
+    do i = 1, this%NEATM
+      this%SiteEATM(i)%r(:) = matmul( this%SiteEATM(i)%r(:), rotation(:, :) )
     end do
 
     do i = 1, this%NCharge

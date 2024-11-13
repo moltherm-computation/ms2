@@ -1432,6 +1432,31 @@ contains
       this%Molecule%SiteTT(i)%Q0r => this%Q0
 #endif
     end do
+
+    do i = 1, this%Molecule%NEATM
+      this%Molecule%SiteEATM(i)%NPartMax => this%NPartMax
+      this%Molecule%SiteEATM(i)%NPart => this%NPart
+      this%Molecule%SiteEATM(i)%NTest => this%NTest
+      this%Molecule%SiteEATM(i)%NPart0 => this%NPart0
+      this%Molecule%SiteEATM(i)%NPart1 => this%NPart1
+      this%Molecule%SiteEATM(i)%NPart2 => this%NPart2
+
+      call Allocate( this%Molecule%SiteEATM(i) )
+      this%Molecule%SiteEATM(i)%PX => this%P0(:, 1)
+      this%Molecule%SiteEATM(i)%PY => this%P0(:, 2)
+      this%Molecule%SiteEATM(i)%PZ => this%P0(:, 3)
+
+      if( ntest > 0 ) then
+        this%Molecule%SiteEATM(i)%PXTest => this%P0Test(:, 1)
+        this%Molecule%SiteEATM(i)%PYTest => this%P0Test(:, 2)
+        this%Molecule%SiteEATM(i)%PZTest => this%P0Test(:, 3)
+      end if
+
+#if TRANS==1
+      this%Molecule%SiteEATM(i)%Q0r => this%Q0
+#endif
+    end do
+
     do i = 1, this%Molecule%NCharge
       this%Molecule%SiteCharge(i)%NPartMax => this%NPartMax
       this%Molecule%SiteCharge(i)%NPart => this%NPart
@@ -1779,6 +1804,9 @@ contains
     do i = 1, this%Molecule%NTT
       call Deallocate( this%Molecule%SiteTT(i) )
     end do
+    do i = 1, this%Molecule%NEATM
+      call Deallocate( this%Molecule%SiteEATM(i) )
+    end do
     do i = 1, this%Molecule%NCharge
       call Deallocate( this%Molecule%SiteCharge(i) )
     end do
@@ -2085,6 +2113,7 @@ contains
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteMIEnm), pointer      :: pMIEnm
     type(TSiteTT), pointer         :: pTT
+    type(TSiteEATM), pointer       :: pEATM
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2168,6 +2197,19 @@ contains
           pTT%RX(i-1+i0) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
           pTT%RY(i-1+i0) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
           pTT%RZ(i-1+i0) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+        end do
+      end do
+
+      ! Loop over EATM sites in molecule
+      do j = 1, this%Molecule%NEATM
+        pEATM => this%Molecule%SiteEATM(j)
+        r1 = pEATM%r(1) * BoxLengthInv
+        r2 = pEATM%r(2) * BoxLengthInv
+        r3 = pEATM%r(3) * BoxLengthInv
+        do i = 1, l
+          pEATM%RX(i-1+i0) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+          pEATM%RY(i-1+i0) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+          pEATM%RZ(i-1+i0) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
         end do
       end do
 
@@ -2256,6 +2298,16 @@ contains
         end do
       end do
 
+      ! Loop over EATM sites in molecule
+      do j = 1, this%Molecule%NEATM
+        pEATM => this%Molecule%SiteEATM(j)
+        do i = 1, l
+          pEATM%RX(i-1+i0) = this%P0(i, 1)
+          pEATM%RY(i-1+i0) = this%P0(i, 2)
+          pEATM%RZ(i-1+i0) = this%P0(i, 3)
+        end do
+      end do
+
       ! Loop over charge sites in molecule
       if (LongRange .ne. RField) then
         do j = 1, this%Molecule%NCharge
@@ -2293,6 +2345,7 @@ contains
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteMIEnm), pointer      :: pMIEnm
     type(TSiteTT), pointer         :: pTT
+    type(TSiteEATM), pointer       :: pEATM
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2355,6 +2408,17 @@ contains
         pTT%RX(np) = PXi + r1 * A11 + r2 * A21 + r3 * A31
         pTT%RY(np) = PYi + r1 * A12 + r2 * A22 + r3 * A32
         pTT%RZ(np) = PZi + r1 * A13 + r2 * A23 + r3 * A33
+      end do
+
+      ! Loop over EATM sites in molecule
+      do i = 1, this%Molecule%NEATM
+        pEATM => this%Molecule%SiteEATM(i)
+        r1 = pEATM%r(1) * BoxLengthInv
+        r2 = pEATM%r(2) * BoxLengthInv
+        r3 = pEATM%r(3) * BoxLengthInv
+        pEATM%RX(np) = PXi + r1 * A11 + r2 * A21 + r3 * A31
+        pEATM%RY(np) = PYi + r1 * A12 + r2 * A22 + r3 * A32
+        pEATM%RZ(np) = PZi + r1 * A13 + r2 * A23 + r3 * A33
       end do
 
       ! Loop over charge sites in molecule
@@ -2430,6 +2494,14 @@ contains
         pTT%RZ(np) = PZi
       end do
 
+      ! Loop over EATM sites in molecule
+      do i = 1, this%Molecule%NEATM
+        pEATM => this%Molecule%SiteEATM(i)
+        pEATM%RX(np) = PXi
+        pEATM%RY(np) = PYi
+        pEATM%RZ(np) = PZi
+      end do
+
       ! Loop over charge sites in molecule
       if (LongRange .ne. RField) then
         do i = 1, this%Molecule%NCharge
@@ -2468,6 +2540,7 @@ contains
     real(RK)                       :: mue1, mue2, mue3
     type(TSiteMIEnm), pointer      :: pMIEnm
     type(TSiteTT), pointer         :: pTT
+    type(TSiteEATM), pointer       :: pEATM
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2525,6 +2598,19 @@ contains
           pTT%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
           pTT%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
           pTT%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
+        end do
+      end do
+
+      ! Loop over EATM sites in molecule
+      do j = 1, this%Molecule%NEATM
+        pEATM => this%Molecule%SiteEATM(j)
+        r1 = pEATM%r(1) * BoxLengthInv
+        r2 = pEATM%r(2) * BoxLengthInv
+        r3 = pEATM%r(3) * BoxLengthInv
+        do i = 1, np
+          pEATM%RXTest(i) = PX(i) + r1 * A11(i) + r2 * A21(i) + r3 * A31(i)
+          pEATM%RYTest(i) = PY(i) + r1 * A12(i) + r2 * A22(i) + r3 * A32(i)
+          pEATM%RZTest(i) = PZ(i) + r1 * A13(i) + r2 * A23(i) + r3 * A33(i)
         end do
       end do
 
@@ -2613,6 +2699,16 @@ contains
         end do
       end do
 
+      ! Loop over EATM sites in molecule
+      do i = 1, this%Molecule%NEATM
+        pEATM => this%Molecule%SiteEATM(i)
+        do j = 1, np
+          pEATM%RXTest(j) = this%P0Test(j, 1)
+          pEATM%RYTest(j) = this%P0Test(j, 2)
+          pEATM%RZTest(j) = this%P0Test(j, 3)
+        end do
+      end do
+
       ! Loop over charge sites in molecule
       if (LongRange .ne. RField) then
         do i = 1, this%Molecule%NCharge
@@ -2657,6 +2753,7 @@ contains
     real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     type(TSiteMIEnm), pointer      :: pMIEnm
     type(TSiteTT), pointer         :: pTT
+    type(TSiteEATM), pointer       :: pEATM
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -2743,6 +2840,25 @@ contains
           r1x = ( pTT%RX(i-1+i0) - rx(i) ) * BoxLength
           r1y = ( pTT%RY(i-1+i0) - ry(i) ) * BoxLength
           r1z = ( pTT%RZ(i-1+i0) - rz(i) ) * BoxLength
+          this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + fx
+          this%F(i-1+i0, 2) = this%F(i-1+i0, 2) + fy
+          this%F(i-1+i0, 3) = this%F(i-1+i0, 3) + fz
+          this%T(i-1+i0, 1) = this%T(i-1+i0, 1) + r1y * fz - r1z * fy
+          this%T(i-1+i0, 2) = this%T(i-1+i0, 2) + r1z * fx - r1x * fz
+          this%T(i-1+i0, 3) = this%T(i-1+i0, 3) + r1x * fy - r1y * fx
+        end do
+      end do
+
+      ! Loop over EATM sites in molecule
+      do j = 1, this%Molecule%NEATM
+        pEATM => this%Molecule%SiteEATM(j)
+        do i = 1, l
+          fx = pEATM%FX(i-1+i0)
+          fy = pEATM%FY(i-1+i0)
+          fz = pEATM%FZ(i-1+i0)
+          r1x = ( pEATM%RX(i-1+i0) - rx(i) ) * BoxLength
+          r1y = ( pEATM%RY(i-1+i0) - ry(i) ) * BoxLength
+          r1z = ( pEATM%RZ(i-1+i0) - rz(i) ) * BoxLength
           this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + fx
           this%F(i-1+i0, 2) = this%F(i-1+i0, 2) + fy
           this%F(i-1+i0, 3) = this%F(i-1+i0, 3) + fz
@@ -2858,6 +2974,16 @@ contains
         end do
       end do
 
+      ! Loop over EATM sites in molecule
+      do j = 1, this%Molecule%NEATM
+        pEATM => this%Molecule%SiteEATM(j)
+        do i = 1, l
+          this%F(i-1+i0, 1) = this%F(i-1+i0, 1) + pEATM%FX(i-1+i0)
+          this%F(i-1+i0, 2) = this%F(i-1+i0, 2) + pEATM%FY(i-1+i0)
+          this%F(i-1+i0, 3) = this%F(i-1+i0, 3) + pEATM%FZ(i-1+i0)
+        end do
+      end do
+
       ! Loop over charge sites in molecule
       if (LongRange .ne. RField) then
         do j = 1, this%Molecule%NCharge
@@ -2924,6 +3050,7 @@ contains
     real(RK)                       :: A11, A12, A13, A21, A22, A23, A31, A32, A33
     type(TSiteMIEnm), pointer      :: pMIEnm
     type(TSiteTT), pointer         :: pTT
+    type(TSiteEATM), pointer       :: pEATM
     type(TSiteCharge), pointer     :: pCharge
     type(TSiteDipole), pointer     :: pDipole
     type(TSiteQuadrupole), pointer :: pQuadrupole
@@ -3078,6 +3205,78 @@ contains
           r1x = ( pTT%RX(i) - rx(i) ) * BoxLength
           r1y = ( pTT%RY(i) - ry(i) ) * BoxLength
           r1z = ( pTT%RZ(i) - rz(i) ) * BoxLength
+          this%F(i, 1) = this%F(i, 1) + fx
+          this%F(i, 2) = this%F(i, 2) + fy
+          this%F(i, 3) = this%F(i, 3) + fz
+          this%T(i, 1) = this%T(i, 1) + r1y * fz - r1z * fy
+          this%T(i, 2) = this%T(i, 2) + r1z * fx - r1x * fz
+          this%T(i, 3) = this%T(i, 3) + r1x * fy - r1y * fx
+#if  TRANS == 1
+
+          this%FS(i, 1)= this%FS(i, 1)+ vsx
+          this%FS(i, 2)= this%FS(i, 2)+ vsy
+          this%FS(i, 3)= this%FS(i, 3)+ vsz
+          this%FB(i, 1)= this%FB(i, 1)+ vbx
+          this%FB(i, 2)= this%FB(i, 2)+ vby
+          this%FB(i, 3)= this%FB(i, 3)+ vbz
+
+          this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+          this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+          this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+          this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+          this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+          this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+          this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+          this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+          this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+
+          this%FRC1(i,1) = this%FRC1(i,1) + tdx
+          this%FRC1(i,2) = this%FRC1(i,2) + tux
+          this%FRC1(i,3) = this%FRC1(i,3) + tuy
+          this%FRC2(i,1) = this%FRC2(i,1) + tlx
+          this%FRC2(i,2) = this%FRC2(i,2) + tdy
+          this%FRC2(i,3) = this%FRC2(i,3) + tuz
+          this%FRC3(i,1) = this%FRC3(i,1) + tly
+          this%FRC3(i,2) = this%FRC3(i,2) + tlz
+          this%FRC3(i,3) = this%FRC3(i,3) + tdz
+#endif
+        end do
+      end do
+
+      ! Loop over EATM sites in molecule
+      do j = 1, this%Molecule%NEATM
+        pEATM => this%Molecule%SiteEATM(j)
+        do i = 1, np
+          fx = pEATM%FX(i)
+          fy = pEATM%FY(i)
+          fz = pEATM%FZ(i)
+#if  TRANS == 1
+
+          vsx = pEATM%vsEATMx(i)
+          vsy = pEATM%vsEATMy(i)
+          vsz = pEATM%vsEATMz(i)
+          vbx = pEATM%vbEATMx(i)
+          vby = pEATM%vbEATMy(i)
+          vbz = pEATM%vbEATMz(i)
+          vsux= pEATM%vsuEATMx(i)
+          vsuy= pEATM%vsuEATMy(i)
+          vsuz= pEATM%vsuEATMz(i)
+          cx  = pEATM%cEATMx(i)
+          cy  = pEATM%cEATMy(i)
+          cz  = pEATM%cEATMz(i)
+          tux = pEATM%tuEATMx(i)
+          tuy = pEATM%tuEATMy(i)
+          tuz = pEATM%tuEATMz(i)
+          tlx = pEATM%tlEATMx(i)
+          tly = pEATM%tlEATMy(i)
+          tlz = pEATM%tlEATMz(i)
+          tdx = pEATM%tdEATMx(i)
+          tdy = pEATM%tdEATMy(i)
+          tdz = pEATM%tdEATMz(i)
+#endif
+          r1x = ( pEATM%RX(i) - rx(i) ) * BoxLength
+          r1y = ( pEATM%RY(i) - ry(i) ) * BoxLength
+          r1z = ( pEATM%RZ(i) - rz(i) ) * BoxLength
           this%F(i, 1) = this%F(i, 1) + fx
           this%F(i, 2) = this%F(i, 2) + fy
           this%F(i, 3) = this%F(i, 3) + fz
@@ -3438,6 +3637,52 @@ contains
           this%F(i, 1) = this%F(i, 1) + pTT%FX(i)
           this%F(i, 2) = this%F(i, 2) + pTT%FY(i)
           this%F(i, 3) = this%F(i, 3) + pTT%FZ(i)
+
+#if  TRANS == 1
+
+          this%FS(i, 1) = this%FS(i, 1) + vsx
+          this%FS(i, 2) = this%FS(i, 2) + vsy
+          this%FS(i, 3) = this%FS(i, 3) + vsz
+          this%FB(i, 1) = this%FB(i, 1) + vbx
+          this%FB(i, 2) = this%FB(i, 2) + vby
+          this%FB(i, 3) = this%FB(i, 3) + vbz
+
+       !   if (this%Conductivity) then
+            this%FTC1(i, 1)= this%FTC1(i, 1) +(cx+vbx)
+            this%FTC1(i, 2)= this%FTC1(i, 2) + vsux
+            this%FTC1(i, 3)= this%FTC1(i, 3) + vsuy
+            this%FTC2(i, 1)= this%FTC2(i, 1) + vsx
+            this%FTC2(i, 2)= this%FTC2(i, 2) +(cy+vby)
+            this%FTC2(i, 3)= this%FTC2(i, 3) + vsuz
+            this%FTC3(i, 1)= this%FTC3(i, 1) + vsy
+            this%FTC3(i, 2)= this%FTC3(i, 2) + vsz
+            this%FTC3(i, 3)= this%FTC3(i, 3) +(cz+vbz)
+
+#endif
+        end do
+      end do
+
+      ! Loop over EATM sites in molecule
+      do j = 1, this%Molecule%NEATM
+        pEATM => this%Molecule%SiteEATM(j)
+        do i = 1, np
+#if  TRANS == 1
+          vsx = pEATM%vsEATMx(i)
+          vsy = pEATM%vsEATMy(i)
+          vsz = pEATM%vsEATMz(i)
+          vbx = pEATM%vbEATMx(i)
+          vby = pEATM%vbEATMy(i)
+          vbz = pEATM%vbEATMz(i)
+          vsux= pEATM%vsuEATMx(i)
+          vsuy= pEATM%vsuEATMy(i)
+          vsuz= pEATM%vsuEATMz(i)
+          cx  = pEATM%cEATMx(i)
+          cy  = pEATM%cEATMy(i)
+          cz  = pEATM%cEATMz(i)
+#endif
+          this%F(i, 1) = this%F(i, 1) + pEATM%FX(i)
+          this%F(i, 2) = this%F(i, 2) + pEATM%FY(i)
+          this%F(i, 3) = this%F(i, 3) + pEATM%FZ(i)
 
 #if  TRANS == 1
 
