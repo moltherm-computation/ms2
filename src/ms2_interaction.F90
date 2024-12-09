@@ -2190,12 +2190,12 @@ contains
           RCutoffSquared = peatm%RCutoffSquared   
 
           ! Assign pointers to site positions
-          RX1 => pmie%Site1%RX
-          RY1 => pmie%Site1%RY
-          RZ1 => pmie%Site1%RZ
-          RX2 => pmie%Site2%RX
-          RY2 => pmie%Site2%RY
-          RZ2 => pmie%Site2%RZ
+          RX1 => peatm%Site1%RX
+          RY1 => peatm%Site1%RY
+          RZ1 => peatm%Site1%RZ
+          RX2 => peatm%Site2%RX
+          RY2 => peatm%Site2%RY
+          RZ2 => peatm%Site2%RZ
 
           RXi = RX1(np)
           RYi = RY1(np)

@@ -2247,9 +2247,9 @@ contains
     end if
 
     ! Update log file
-    write( IOBuffer, '("Temperature: ",T26, F9.3, " K")' ) this%RefTemperature * UnitTemperature
+    write( IOBuffer, '("Temperature: ",T26, F9.3, " K")' ) this%Temperature * UnitTemperature
     call LogWrite
-    write( IOBuffer, '("Reduced temperature: ",T26, F12.6)' ) this%RefTemperature
+    write( IOBuffer, '("Reduced temperature: ",T26, F12.6)' ) this%Temperature
     call LogWrite
 
     ! Read number of components in ensemble
