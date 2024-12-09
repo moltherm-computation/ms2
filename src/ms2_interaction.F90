@@ -2399,10 +2399,10 @@ contains
               end if
             end do
           end if
+          deallocate(concatenated_array)
         end do
       end do
-      deallocate(concatenated_array)
-
+      
       ! Calculate point charge energy
       do s1 = 1, this%N1Charge
 ! Ewald-Summation
