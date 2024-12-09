@@ -4384,7 +4384,7 @@ loop2:  do j = 1, N2
     ! Declare local variables
     real(RK), pointer, contiguous :: RX1(:), RY1(:), RZ1(:), RX2(:), RY2(:), RZ2(:)
     real(RK), pointer, contiguous :: PX1(:), PY1(:), PZ1(:), PX2(:), PY2(:), PZ2(:)
-    real(RK)          :: RijSquared, RikSquared, RjkSquared, RCutoffSquared, RShieldSquared, RCutoffCube
+    real(RK)          :: RijSquared, RikSquared, RjkSquared, RCutoffSquared, RShieldSquared
     real(RK)          :: Rij, Rik, Rjk, Rij5, Rik5, Rjk5
 
     real(RK)          :: RXi, RYi, RZi
@@ -4479,8 +4479,8 @@ loop2:  do j = 1, N2
                 RYjk = RYij - RYik
                 RZjk = RZij - RZik
                 RjkSquared = RXjk*RXjk + RYjk*RYjk + RZjk*RZjk
-                if ((RjkSquared > RShieldSquared) .and. (RjkSquared < RCutoffSquared)) then
-                  if ( (RijSquared*RikSquared*RjkSquared) < RCutoffCube ) then
+                if (RjkSquared > RShieldSquared) then
+                  if (RjkSquared < RCutoffSquared) then
                     Rij = sqrt( RijSquared )
                     Rik = sqrt( RikSquared )
                     Rjk = sqrt( RjkSquared )
@@ -4514,11 +4514,17 @@ loop2:  do j = 1, N2
                     FactorII = CATMInvRijk3 + expSumA2n
 
                     EpotLocal = EpotLocal + FactorI * FactorII
-                  end if 
+                  end if
+                else
+                  EPotLocal = 1E33_RK
                 end if
+              else
+                EPotLocal = 1E33_RK
               end if
             end if
           end do
+        else
+          EPotLocal = 1E33_RK
         end if
       end do
       EPotTest(np) = EPotTest(np) + EPotLocal

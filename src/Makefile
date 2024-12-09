@@ -166,7 +166,7 @@ endif
 
 clean:
 	rm -f $(OBJS) $(MODS)
-	#rm -f *.optrpt
+	rm -f *.optrpt
 
 .SUFFIXES: .F90 .mod .o
 
