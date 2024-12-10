@@ -3755,29 +3755,29 @@ eqloop: do
       NBlockSizesKBI = int( sqrt( real( Step / BlockSizeKBI, RK ) ) )
     end if
 
-      ! Read ensembles
-      do i = this%firstEnsembleIdx, this%lastEnsembleIdx
-        if( RootProc ) then
-          read( restartFile%iounit, '(A)' ) ensemblemarker
-          pos = index( ensemblemarker,':')
-          if( pos<=1 .or. trim(ensemblemarker(1:pos-1))/=trim(RstEnsembleMarker) ) then
-            call LogWriteBlank
-            write( IOBuffer, '("WARNING: expected marker ",A," but read ",A)' ) trim(RstEnsembleMarker), trim(ensemblemarker)
-            call LogWrite
-            call LogWriteBlank
-          end if
-          write( IOBuffer, '("reading ensemble",I6," (marker ",A,")")' ) i, trim(ensemblemarker)
-          call LogWriteTime
-        end if
-        ! reading ensemble data
-        call RestartRead( this%Ensemble(i) )
-      end do
-
-      ! Check for root process
+    ! Read ensembles
+    do i = this%firstEnsembleIdx, this%lastEnsembleIdx
       if( RootProc ) then
-        ! Close restart file
-        call FileClose(restartFile)
-      endif
+        read( restartFile%iounit, '(A)' ) ensemblemarker
+        pos = index( ensemblemarker,':')
+        if( pos<=1 .or. trim(ensemblemarker(1:pos-1))/=trim(RstEnsembleMarker) ) then
+          call LogWriteBlank
+          write( IOBuffer, '("WARNING: expected marker ",A," but read ",A)' ) trim(RstEnsembleMarker), trim(ensemblemarker)
+          call LogWrite
+          call LogWriteBlank
+        end if
+        write( IOBuffer, '("reading ensemble",I6," (marker ",A,")")' ) i, trim(ensemblemarker)
+        call LogWriteTime
+      end if
+      ! reading ensemble data
+      call RestartRead( this%Ensemble(i) )
+    end do
+
+    ! Check for root process
+    if( RootProc ) then
+      ! Close restart file
+      call FileClose(restartFile)
+    endif
 
 #if MPI_VER > 0
     if ( mpiMCCommonGroups > 0 ) then

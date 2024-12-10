@@ -155,7 +155,7 @@ end type TPotTT68TT68
 
   type TPotEATM3B
 
-    type(TSiteEATM), pointer   :: Site1, Site2
+    type(TSiteEATM), pointer   :: Site1, Site2, Site3
     real(RK)                   :: CATM, A0, A2, A4, A6, A8, alpha
     real(RK)                   :: RCutoffSquared
     real(RK)                   :: RShieldSquared
@@ -3985,23 +3985,24 @@ loop2:  do j = 1, N2
 !  Subroutine TPotEATM3B_Construct                             !
 !==============================================================!
 
-  subroutine TPotEATM3B_Construct( this, i1, i2, j1, j2, Molecule1, Molecule2, RCutoff )
+  subroutine TPotEATM3B_Construct( this, i1, i2, i3, j1, j2, j3, Molecule1, Molecule2, Molecule3, RCutoff )
 
     implicit none
 
     ! Declare arguments
     type(TPotEATM3B)            :: this
-    integer, intent(in)         :: i1, i2, j1, j2
-    type(TMolecule), intent(in) :: Molecule1, Molecule2
+    integer, intent(in)         :: i1, i2, i3, j1, j2, j3
+    type(TMolecule), intent(in) :: Molecule1, Molecule2, Molecule3
     real(RK), intent(in)        :: RCutoff
 
     ! Construct potential
     this%Site1 => Molecule1%SiteEATM(j1)
     this%Site2 => Molecule2%SiteEATM(j2)
-    this%SameComponent = i1 == i2
+    this%Site3 => Molecule2%SiteEATM(j2)
+    this%SameComponent = ((i1 == i2) .and. (i2 == i3))
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
     this%RCutoffSquared = RCutoff**2
-    if (i1 == i2) then
+    if ((i1 == i2) .and. (i2 == i3)) then
       this%CATM = this%Site1%CATM
       this%A0 = this%Site1%A0
       this%A2 = this%Site1%A2
@@ -4071,7 +4072,7 @@ loop2:  do j = 1, N2
     real(RK)          :: PXik, PYik, PZik
     real(RK)          :: FXik, FYik, FZik, Fik
     real(RK)          :: RXjk, RYjk, RZjk
-    real(RK)          :: PXjk, PYjk, PZjk
+    real(RK)          :: PXjk, PYjk, PZjk, PjkSquared
     real(RK)          :: FXjk, FYjk, FZjk, Fjk
     real(RK)          :: Rij, Rik, Rjk, RijSquared, RikSquared, RjkSquared, Rij5, Rik5, Rjk5
     real(RK)          :: Rijk, Rijk23, Rijk2
@@ -4175,9 +4176,15 @@ loop2:  do j = 1, N2
           RXij = RXi - RX2(j)
           RYij = RYi - RY2(j)
           RZij = RZi - RZ2(j)
-          RXij = (RXij - anint( RXij )) * BoxLength
-          RYij = (RYij - anint( RYij )) * BoxLength
-          RZij = (RZij - anint( RZij )) * BoxLength
+          PXij = PXi - PX2(j)
+          PYij = PYi - PY2(j)
+          PZij = PZi - PZ2(j)
+          RXij = (RXij - anint( PXij )) * BoxLength
+          RYij = (RYij - anint( PYij )) * BoxLength
+          RZij = (RZij - anint( PZij )) * BoxLength
+          PXij = (PXij - anint( PXij )) * BoxLength
+          PYij = (PYij - anint( PYij )) * BoxLength
+          PZij = (PZij - anint( PZij )) * BoxLength
           RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
           do l = i+1, this%NInCutoff(np) !ik
             k = this%CutoffPartner(l, np)
@@ -4185,15 +4192,25 @@ loop2:  do j = 1, N2
               RXik = RXi - RX2(k)
               RYik = RYi - RY2(k)
               RZik = RZi - RZ2(k)
-              RXik = (RXik - anint( RXik )) * BoxLength
-              RYik = (RYik - anint( RYik )) * BoxLength
-              RZik = (RZik - anint( RZik )) * BoxLength
-              RikSquared = RXik*RXik + RYik*RYik + RZik*RZik
-              RXjk = RXij - RXik !jk
-              RYjk = RYij - RYik
-              RZjk = RZij - RZik
-              RjkSquared = RXjk*RXjk + RYjk*RYjk + RZjk*RZjk
-              if (RjkSquared < RCutoffSquared) then
+              PXik = PXi - PX2(k)
+              PYik = PYi - PY2(k)
+              PZik = PZi - PZ2(k)
+              RXik = (RXik - anint( PXik )) * BoxLength
+              RYik = (RYik - anint( PYik )) * BoxLength
+              RZik = (RZik - anint( PZik )) * BoxLength
+              PXik = (PXik - anint( PXik )) * BoxLength
+              PYik = (PYik - anint( PYik )) * BoxLength
+              PZik = (PZik - anint( PZik )) * BoxLength
+              PXjk = PXij - PXik !COM
+              PYjk = PYij - PYik
+              PZjk = PZij - PZik
+              PjkSquared = PXjk*PXjk + PYjk*PYjk + PZjk*PZjk
+              if (PjkSquared < RCutoffSquared) then
+                RikSquared = RXik*RXik + RYik*RYik + RZik*RZik
+                RXjk = RXij - RXik !jk
+                RYjk = RYij - RYik
+                RZjk = RZij - RZik
+                RjkSquared = RXjk*RXjk + RYjk*RYjk + RZjk*RZjk
                 Rij = sqrt( RijSquared )
                 Rik = sqrt( RikSquared )
                 Rjk = sqrt( RjkSquared )
@@ -4249,7 +4266,7 @@ loop2:  do j = 1, N2
                 FYij = Fij * RYij
                 FZij = Fij * RZij
 
-                VirialLocal = VirialLocal + (RXij * FXij + RYij * FYij + RZij * FZij) * Third
+                VirialLocal = VirialLocal + (PXij * FXij + PYij * FYij + PZij * FZij) * Third
 
                 ! Rik
 
@@ -4263,7 +4280,7 @@ loop2:  do j = 1, N2
                 FYik = Fik * RYik
                 FZik = Fik * RZik
 
-                VirialLocal = VirialLocal + (RXik * FXik + RYik * FYik + RZik * FZik) * Third
+                VirialLocal = VirialLocal + (PXik * FXik + PYik * FYik + PZik * FZik) * Third
             
                 ! Rjk
 
@@ -4277,7 +4294,7 @@ loop2:  do j = 1, N2
                 FYjk = Fjk * RYjk
                 FZjk = Fjk * RZjk
 
-                VirialLocal = VirialLocal + (RXjk * FXjk + RYjk * FYjk + RZjk * FZjk) * Third
+                VirialLocal = VirialLocal + (PXjk * FXjk + PYjk * FYjk + PZjk * FZjk) * Third
 
                 FXi = FXi + FXij + FXik
                 FYi = FYi + FYij + FYik
@@ -4394,7 +4411,7 @@ loop2:  do j = 1, N2
     real(RK)          :: RXik, RYik, RZik
     real(RK)          :: PXik, PYik, PZik
     real(RK)          :: RXjk, RYjk, RZjk
-    real(RK)          :: PXjk, PYjk, PZjk
+    real(RK)          :: PXjk, PYjk, PZjk, PjkSquared
 
     real(RK)          :: CATM, A0, A2, A4, A6, A8, alpha, alpha2expdsum
     real(RK)          :: cosThetai, cosThetaj, cosThetak, cosThetaProd
@@ -4459,6 +4476,9 @@ loop2:  do j = 1, N2
         RXij = (RXij - anint( PXij )) * BoxLength
         RYij = (RYij - anint( PYij )) * BoxLength
         RZij = (RZij - anint( PZij )) * BoxLength
+        PXij = (PXij - anint( PXij )) * BoxLength
+        PYij = (PYij - anint( PYij )) * BoxLength
+        PZij = (PZij - anint( PZij )) * BoxLength
         RijSquared = RXij*RXij + RYij*RYij + RZij*RZij
         if (RijSquared > RShieldSquared) then
           do l = 1, this%NInCutoff(np) ! ik
@@ -4473,14 +4493,21 @@ loop2:  do j = 1, N2
               RXik = (RXik - anint( PXik )) * BoxLength
               RYik = (RYik - anint( PYik )) * BoxLength
               RZik = (RZik - anint( PZik )) * BoxLength
+              PXik = (PXik - anint( PXik )) * BoxLength
+              PYik = (PYik - anint( PYik )) * BoxLength
+              PZik = (PZik - anint( PZik )) * BoxLength
               RikSquared = RXik*RXik + RYik*RYik + RZik*RZik
               if (RikSquared > RShieldSquared) then
                 RXjk = RXij - RXik ! jk
                 RYjk = RYij - RYik
                 RZjk = RZij - RZik
+                PXjk = PXij - PXik !COM
+                PYjk = PYij - PYik
+                PZjk = PZij - PZik
+                PjkSquared = PXjk*PXjk + PYjk*PYjk + PZjk*PZjk
                 RjkSquared = RXjk*RXjk + RYjk*RYjk + RZjk*RZjk
                 if (RjkSquared > RShieldSquared) then
-                  if (RjkSquared < RCutoffSquared) then
+                  if (PjkSquared < RCutoffSquared) then
                     Rij = sqrt( RijSquared )
                     Rik = sqrt( RikSquared )
                     Rjk = sqrt( RjkSquared )
