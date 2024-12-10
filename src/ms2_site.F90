@@ -1138,6 +1138,7 @@ contains
     call FileReadParameter( this%shield, potmodFile%iounit, IdEATM_shielding, .false. )
 
     ! Convert to SI units
+    this%r(:) = this%r(:) * Angstroem
     this%CATM = this%CATM * kBoltzmann * Angstroem**9
     this%A0 = this%A0 * kBoltzmann
     this%A2 = this%A2 * kBoltzmann / Angstroem**2
@@ -1148,6 +1149,7 @@ contains
     this%shield = this%shield * Angstroem
 
     ! Convert to derived units
+    this%r(:) = this%r(:) / UnitLength
     this%CATM = this%CATM / ( UnitEnergy * UnitVolume**3 )
     this%A0 = this%A0 / UnitEnergy
     this%A2 = this%A2 * UnitLength**2 / UnitEnergy
