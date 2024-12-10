@@ -2096,7 +2096,7 @@ loop2:  do j = 1, N2
     real(RK) :: Pi2CF6, Pi2CF8
     real(RK) :: Piminus23CF6, Piminus23CF8
     real(RK) :: Pi29CF6, Pi29CF8
-    integer  :: i
+    integer  :: i, s1, s2
     real(RK) :: EpotCorr, Rij, Rik, Rjk, VirialCorr, d2EPotdR2, fun, M
 
     ! Construct potential
@@ -2106,13 +2106,59 @@ loop2:  do j = 1, N2
     this%RShieldSquared = .25_RK * ( this%Site1%shield + this%Site2%shield )**2
     this%RCutoffSquared = RCutoff**2
 
-    this%a1 = 2._RK * this%Site1%a1 * this%Site2%a1 / (this%Site1%a1 + this%Site2%a1)
-    this%TT_A = (((this%Site1%tt_a * this%Site1%a1)**(1/this%Site1%a1) * &
-&                 (this%Site2%tt_a * this%Site2%a1)**(1/this%Site2%a1))  &
-&                **(.5_RK * this%a1)) / this%a1
-    this%TT_b = 2._RK * this%Site1%tt_b * this%Site2%tt_b / (this%Site1%tt_b + this%Site2%tt_b)
-    this%C6 = (this%Site1%c6**(1/this%Site1%tt_b) * this%Site2%c6**(1/this%Site2%tt_b))**(.5_RK * this%TT_b)
-    this%C8 = (this%Site1%c8**(1/this%Site1%tt_b) * this%Site2%c8**(1/this%Site2%tt_b))**(.5_RK * this%TT_b)
+    if (j1 == 10) then 
+      s1 = 0
+    else if (j1 == 1) then 
+      s1 = 1
+    elseif ( (j1>1) .and. (j1<6)) then 
+      s1 = 2
+    else 
+      s1 = 3
+    end if 
+    if (j2 == 10) then 
+      s2 = 0
+    else if (j2 == 1) then 
+      s2 = 1 
+    elseif ( (j2>1) .and. (j2<6)) then 
+      s2 = 2
+    else 
+      s2 = 3
+    end if 
+
+    if (s1 == s2) then 
+      this%TT_A = this%Site1%tt_a
+      this%TT_b = this%Site1%tt_b
+      this%a1 = this%Site1%a1
+      this%C6 = this%Site1%c6
+      this%C8 = this%Site1%c8
+    elseif ( ((s1 == 1) .and. (s2 == 2)) .or. ((s1 == 2) .and. (s2 == 1)) ) then 
+      this%TT_A = 2654139.49 * kBoltzmann / UnitEnergy
+      this%TT_b = 2.88261054 / Angstroem * UnitLength
+      this%a1 = 2.8827219 / Angstroem * UnitLength
+      this%c6 = -1396335.37 * kBoltzmann * Angstroem**6 / ( UnitEnergy * UnitVolume**2 )
+      this%C8 = 38507806 * kBoltzmann * Angstroem**8 / ( UnitEnergy * UnitVolume**2 * UnitLength**2)
+    elseif ( ((s1 == 1) .and. (s2 == 3)) .or. ((s1 == 3) .and. (s2 == 1)) ) then 
+      this%TT_A = -271732.286 * kBoltzmann / UnitEnergy
+      this%TT_b = 1.5501196 / Angstroem * UnitLength
+      this%a1 = 1.6490747 / Angstroem * UnitLength
+      this%c6 = 1278443.94 * kBoltzmann * Angstroem**6 / ( UnitEnergy * UnitVolume**2 )
+      this%C8 = 1747627.64 * kBoltzmann * Angstroem**8 / ( UnitEnergy * UnitVolume**2 * UnitLength**2)
+    else if ( (s1 .ne. 0) .and. (s2 .ne. 0) ) then  
+      this%TT_A = -74971.5218 * kBoltzmann / UnitEnergy
+      this%TT_b = 2.66424603 / Angstroem * UnitLength
+      this%a1 = 2.0593086 / Angstroem * UnitLength
+      this%c6 = 169329.268 * kBoltzmann * Angstroem**6 / ( UnitEnergy * UnitVolume**2 )
+      this%C8 = -8104016.88 * kBoltzmann * Angstroem**8 / ( UnitEnergy * UnitVolume**2 * UnitLength**2)
+    end if
+
+
+!     this%a1 = 2._RK * this%Site1%a1 * this%Site2%a1 / (this%Site1%a1 + this%Site2%a1)
+!     this%TT_A = (((this%Site1%tt_a * this%Site1%a1)**(1/this%Site1%a1) * &
+! &                 (this%Site2%tt_a * this%Site2%a1)**(1/this%Site2%a1))  &
+! &                **(.5_RK * this%a1)) / this%a1
+!     this%TT_b = 2._RK * this%Site1%tt_b * this%Site2%tt_b / (this%Site1%tt_b + this%Site2%tt_b)
+!     this%C6 = (this%Site1%c6**(1/this%Site1%tt_b) * this%Site2%c6**(1/this%Site2%tt_b))**(.5_RK * this%TT_b)
+!     this%C8 = (this%Site1%c8**(1/this%Site1%tt_b) * this%Site2%c8**(1/this%Site2%tt_b))**(.5_RK * this%TT_b)
     select case( TT68orEXT )
     case( 'TT68' ) !Case: TT68-Potential
       this%a2 = 0
