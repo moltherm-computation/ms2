@@ -583,18 +583,24 @@ module ms2_ensemble
     integer  :: NSpanCF,Nviewcf
 
     real(RK), pointer, contiguous :: cf_soret(:,:), average_cf_soret(:,:), sinte_soret(:,:), average_sinte_soret(:,:)
-!   real(RK), pointer, contiguous :: cf_db(:), average_cf_db(:)
     real(RK), pointer, contiguous :: cf_vs(:), cf_vb(:), cf_c(:), cf_ec(:)
+    real(RK), pointer, contiguous :: cf_vs_kk(:), cf_vs_pp(:), cf_vs_kp(:)
+    real(RK), pointer, contiguous :: cf_c_kk(:), cf_c_pp(:), cf_c_kp(:)
     real(RK), pointer, contiguous :: average_cf_vs(:), average_cf_vb(:), average_cf_c(:), average_cf_ec(:)
+    real(RK), pointer, contiguous :: average_cf_vs_kk(:), average_cf_vs_pp(:), average_cf_vs_kp(:)
+    real(RK), pointer, contiguous :: average_cf_c_kk(:), average_cf_c_pp(:), average_cf_c_kp(:)
     real(RK), pointer, contiguous :: lamda(:, :)
     real(RK), pointer, contiguous :: average_lamda(:, :)
     real(RK), pointer, contiguous :: sinte_i(:, :), sinte_lamda(:,:)
     real(RK), pointer, contiguous :: average_sinte_i(:, :), average_sinte_lamda(:,:)
-!   real(RK), pointer, contiguous :: sinte_db(:), average_sinte_db(:)
     real(RK), pointer, contiguous :: sinte_vs(:), sinte_vb(:)
+    real(RK), pointer, contiguous :: sinte_vs_kk(:), sinte_vs_pp(:), sinte_vs_kp(:)
     real(RK), pointer, contiguous :: average_sinte_vs(:), average_sinte_vb(:)
+    real(RK), pointer, contiguous :: average_sinte_vs_kk(:), average_sinte_vs_pp(:), average_sinte_vs_kp(:)
     real(RK), pointer, contiguous :: sinte_c(:), sinte_ec(:)
+    real(RK), pointer, contiguous :: sinte_c_kk(:), sinte_c_pp(:), sinte_c_kp(:)
     real(RK), pointer, contiguous :: average_sinte_c(:), average_sinte_ec(:)
+    real(RK), pointer, contiguous :: average_sinte_c_kk(:), average_sinte_c_pp(:), average_sinte_c_kp(:)
     real(RK), pointer, contiguous :: a(:, :), A_SpanCF(:,:)
     real(RK), pointer, contiguous :: velcompX(:,:), velcompY(:,:), velcompZ(:,:)
     real(RK), pointer, contiguous :: cf_d (:, :),  average_cf_d (:, :), vsk(:, :)
@@ -606,8 +612,14 @@ module ms2_ensemble
     real(RK),pointer, contiguous :: Onsager(:,:)
     real(RK),pointer, contiguous :: soret(:)
     real(RK)         :: visco_s
+    real(RK)         :: visco_s_kk
+    real(RK)         :: visco_s_pp
+    real(RK)         :: visco_s_kp
     real(RK)         :: visco_b
     real(RK)         :: conduct
+    real(RK)         :: conduct_kk
+    real(RK)         :: conduct_pp
+    real(RK)         :: conduct_kp
     real(RK)         :: econduct
 
     !Accumulators
@@ -615,8 +627,14 @@ module ms2_ensemble
     type(TAccumulator),pointer, contiguous :: SumOnsager(:,:)
     type(TAccumulator),pointer, contiguous :: SumSoret(:)
     type(TAccumulator)         :: SumVisco_s
+    type(TAccumulator)         :: SumVisco_s_kk
+    type(TAccumulator)         :: SumVisco_s_pp
+    type(TAccumulator)         :: SumVisco_s_kp
     type(TAccumulator)         :: SumVisco_b
     type(TAccumulator)         :: SumConduct
+    type(TAccumulator)         :: SumConduct_kk
+    type(TAccumulator)         :: SumConduct_pp
+    type(TAccumulator)         :: SumConduct_kp
     type(TAccumulator)         :: SumEConduct
 #endif
 
@@ -3075,7 +3093,15 @@ contains
         end do
         call Construct( this%SumVisco_s, .false., .true. )
         call Construct( this%SumConduct, .false., .true. )
-      end if
+        if (ContributionMode .eq. Separation) then
+          call Construct( this%SumVisco_s_kk, .false., .true. )
+          call Construct( this%SumVisco_s_pp, .false., .true. )
+          call Construct( this%SumVisco_s_kp, .false., .true. )
+          call Construct( this%SumConduct_kk, .false., .true. )
+          call Construct( this%SumConduct_pp, .false., .true. )
+          call Construct( this%SumConduct_kp, .false., .true. )
+        end if  
+      end if !GreenKubo
 
       if (this%NComponents .gt. 1) then
         if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
@@ -3111,14 +3137,16 @@ contains
        end if
 
        call Construct( this%EinsteinShearAcc, .false., .true. )
-       call Construct( this%EinsteinShear_kk_Acc, .false., .true. )
-       call Construct( this%EinsteinShear_pp_Acc, .false., .true. )
-       call Construct( this%EinsteinShear_kp_Acc, .false., .true. )
        call Construct( this%EinsteinTCondAcc, .false., .true. )
-       call Construct( this%EinsteinTCond_kk_Acc, .false., .true. )
-       call Construct( this%EinsteinTCond_pp_Acc, .false., .true. )
-       call Construct( this%EinsteinTCond_kp_Acc, .false., .true. )
-    end if
+       if (ContributionMode .eq. Separation) then 
+         call Construct( this%EinsteinShear_kk_Acc, .false., .true. )
+         call Construct( this%EinsteinShear_pp_Acc, .false., .true. )
+         call Construct( this%EinsteinShear_kp_Acc, .false., .true. )
+         call Construct( this%EinsteinTCond_kk_Acc, .false., .true. )
+         call Construct( this%EinsteinTCond_pp_Acc, .false., .true. )
+         call Construct( this%EinsteinTCond_kp_Acc, .false., .true. )
+      end if !Separation
+    end if !Einstein
 
 #endif
 
@@ -3373,7 +3401,15 @@ contains
             call Destruct( this%Sumself_i(i) )
           end do
           call Destruct( this%SumVisco_s )
-          call Destruct( this%SumConduct )         
+          call Destruct( this%SumConduct )
+          if(ContributionMode .eq. Separation) then
+            call Destruct( this%SumVisco_s_kk )
+            call Destruct( this%SumVisco_s_pp )
+            call Destruct( this%SumVisco_s_kp )
+            call Destruct( this%SumConduct_kk )
+            call Destruct( this%SumConduct_pp )
+            call Destruct( this%SumConduct_kp )
+          end if       
        end if
 
        if (this%NComponents .gt. 1) then
@@ -3407,13 +3443,15 @@ contains
           end do
         end if
         call Destruct( this%EinsteinShearAcc )
-        call Destruct( this%EinsteinShear_kk_Acc )
-        call Destruct( this%EinsteinShear_pp_Acc )
-        call Destruct( this%EinsteinShear_kp_Acc )
         call Destruct( this%EinsteinTCondAcc )
-        call Destruct( this%EinsteinTCond_kk_Acc )
-        call Destruct( this%EinsteinTCond_pp_Acc )
-        call Destruct( this%EinsteinTCond_kp_Acc )
+        if(ContributionMode .eq. Separation) then
+          call Destruct( this%EinsteinShear_kk_Acc )
+          call Destruct( this%EinsteinShear_pp_Acc )
+          call Destruct( this%EinsteinShear_kp_Acc )
+          call Destruct( this%EinsteinTCond_kk_Acc )
+          call Destruct( this%EinsteinTCond_pp_Acc )
+          call Destruct( this%EinsteinTCond_kp_Acc )
+        end if
     end if
 #endif
 
@@ -3794,71 +3832,75 @@ contains
       nullify( this%EinsteinShear_x)
       nullify( this%EinsteinShear_y)
       nullify( this%EinsteinShear_z)
-      nullify( this%EinsteinShear_kk_x)
-      nullify( this%EinsteinShear_kk_y)
-      nullify( this%EinsteinShear_kk_z)
-      nullify( this%EinsteinShear_pp_x)
-      nullify( this%EinsteinShear_pp_y)
-      nullify( this%EinsteinShear_pp_z)
-      nullify( this%EinsteinShear_kp_x)
-      nullify( this%EinsteinShear_kp_y)
-      nullify( this%EinsteinShear_kp_z)
       nullify( this%EinsteinShearAve)
-      nullify( this%EinsteinShearAve_kk)
-      nullify( this%EinsteinShearAve_pp)
-      nullify( this%EinsteinShearAve_kp)
       nullify( this%EinsteinShearInt)
-      nullify( this%EinsteinShearInt_kk)
-      nullify( this%EinsteinShearInt_pp)
-      nullify( this%EinsteinShearInt_kp)
       nullify( this%EinsteinShearInt_x)
       nullify( this%EinsteinShearInt_y)
       nullify( this%EinsteinShearInt_z)
-      nullify( this%EinsteinShearInt_kk_x)
-      nullify( this%EinsteinShearInt_kk_y)
-      nullify( this%EinsteinShearInt_kk_z)
-      nullify( this%EinsteinShearInt_pp_x)
-      nullify( this%EinsteinShearInt_pp_y)
-      nullify( this%EinsteinShearInt_pp_z)
-      nullify( this%EinsteinShearInt_kp_x)
-      nullify( this%EinsteinShearInt_kp_y)
-      nullify( this%EinsteinShearInt_kp_z)
+      if(ContributionMode .eq. Separation) then
+        nullify( this%EinsteinShear_kk_x)
+        nullify( this%EinsteinShear_kk_y)
+        nullify( this%EinsteinShear_kk_z)
+        nullify( this%EinsteinShear_pp_x)
+        nullify( this%EinsteinShear_pp_y)
+        nullify( this%EinsteinShear_pp_z)
+        nullify( this%EinsteinShear_kp_x)
+        nullify( this%EinsteinShear_kp_y)
+        nullify( this%EinsteinShear_kp_z)
+        nullify( this%EinsteinShearAve_kk)
+        nullify( this%EinsteinShearAve_pp)
+        nullify( this%EinsteinShearAve_kp)
+        nullify( this%EinsteinShearInt_kk)
+        nullify( this%EinsteinShearInt_pp)
+        nullify( this%EinsteinShearInt_kp)
+        nullify( this%EinsteinShearInt_kk_x)
+        nullify( this%EinsteinShearInt_kk_y)
+        nullify( this%EinsteinShearInt_kk_z)
+        nullify( this%EinsteinShearInt_pp_x)
+        nullify( this%EinsteinShearInt_pp_y)
+        nullify( this%EinsteinShearInt_pp_z)
+        nullify( this%EinsteinShearInt_kp_x)
+        nullify( this%EinsteinShearInt_kp_y)
+        nullify( this%EinsteinShearInt_kp_z)
+      end if
       nullify( this%EinsteinTCond)
       nullify( this%EinsteinTCond_x)
       nullify( this%EinsteinTCond_y)
       nullify( this%EinsteinTCond_z)
-      nullify( this%EinsteinTCond_kk_x)
-      nullify( this%EinsteinTCond_kk_y)
-      nullify( this%EinsteinTCond_kk_z)
-      nullify( this%EinsteinTCond_pp_x)
-      nullify( this%EinsteinTCond_pp_y)
-      nullify( this%EinsteinTCond_pp_z)
-      nullify( this%EinsteinTCond_kp_x)
-      nullify( this%EinsteinTCond_kp_y)
-      nullify( this%EinsteinTCond_kp_z)
       nullify( this%EinsteinTCondAve)
-      nullify( this%EinsteinTCondAve_kk)
-      nullify( this%EinsteinTCondAve_pp)
-      nullify( this%EinsteinTCondAve_kp)
       nullify( this%EinsteinTCondInt)
-      nullify( this%EinsteinTCondInt_kk)
-      nullify( this%EinsteinTCondInt_pp)
-      nullify( this%EinsteinTCondInt_kp)
       nullify( this%EinsteinTCondInt_x)
       nullify( this%EinsteinTCondInt_y)
       nullify( this%EinsteinTCondInt_z)
-      nullify( this%EinsteinTCondInt_kk_x)
-      nullify( this%EinsteinTCondInt_kk_y)
-      nullify( this%EinsteinTCondInt_kk_z)
-      nullify( this%EinsteinTCondInt_pp_x)
-      nullify( this%EinsteinTCondInt_pp_y)
-      nullify( this%EinsteinTCondInt_pp_z)
-      nullify( this%EinsteinTCondInt_kp_x)
-      nullify( this%EinsteinTCondInt_kp_y)
-      nullify( this%EinsteinTCondInt_kp_z)
+
+      if(ContributionMode .eq. Separation) then
+        nullify( this%EinsteinTCond_kk_x)
+        nullify( this%EinsteinTCond_kk_y)
+        nullify( this%EinsteinTCond_kk_z)
+        nullify( this%EinsteinTCond_pp_x)
+        nullify( this%EinsteinTCond_pp_y)
+        nullify( this%EinsteinTCond_pp_z)
+        nullify( this%EinsteinTCond_kp_x)
+        nullify( this%EinsteinTCond_kp_y)
+        nullify( this%EinsteinTCond_kp_z)
+        nullify( this%EinsteinTCondAve_kk)
+        nullify( this%EinsteinTCondAve_pp)
+        nullify( this%EinsteinTCondAve_kp)
+        nullify( this%EinsteinTCondInt_kk)
+        nullify( this%EinsteinTCondInt_pp)
+        nullify( this%EinsteinTCondInt_kp)
+        nullify( this%EinsteinTCondInt_kk_x)
+        nullify( this%EinsteinTCondInt_kk_y)
+        nullify( this%EinsteinTCondInt_kk_z)
+        nullify( this%EinsteinTCondInt_pp_x)
+        nullify( this%EinsteinTCondInt_pp_y)
+        nullify( this%EinsteinTCondInt_pp_z)
+        nullify( this%EinsteinTCondInt_kp_x)
+        nullify( this%EinsteinTCondInt_kp_y)
+        nullify( this%EinsteinTCondInt_kp_z)
+      end if
     end if
 #endif
-
 
     ! Allocate scale coefficients for sigma and epsilon
     allocate( this%ScaleSigma(this%NComponents, this%NComponents), STAT = stat )
@@ -3959,6 +4001,15 @@ contains
         this%ShearEinsteinCurrent = 0
         this%TCondEinsteinCurrent = 0
 
+        if(ContributionMode .eq. Separation) then
+          this%ShearEinsteinCurrent_kk = 0
+          this%ShearEinsteinCurrent_pp = 0
+          this%ShearEinsteinCurrent_kp = 0
+          this%TCondEinsteinCurrent_kk = 0
+          this%TCondEinsteinCurrent_pp = 0
+          this%TCondEinsteinCurrent_kp = 0
+        end if
+
         allocate( this%EinsteinShear(this%NCorr), STAT = stat)
         call AllocationError (stat, 'EinsteinShear')
         allocate( this%EinsteinShear_x(this%NCorr), STAT = stat)
@@ -3967,97 +4018,105 @@ contains
         call AllocationError (stat, 'EinsteinShear_y')
         allocate( this%EinsteinShear_z(this%NCorr), STAT = stat)
         call AllocationError (stat, 'EinsteinShear_z')
-        allocate( this%EinsteinShear_kk_x(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShear_kk_x')
-        allocate( this%EinsteinShear_kk_y(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShear_kk_y')
-        allocate( this%EinsteinShear_kk_z(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShear_kk_z')
-        allocate( this%EinsteinShear_pp_x(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShear_pp_x')
-        allocate( this%EinsteinShear_pp_y(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShear_pp_y')
-        allocate( this%EinsteinShear_pp_z(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShear_pp_z')
-        allocate( this%EinsteinShear_kp_x(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShear_kp_x')
-        allocate( this%EinsteinShear_kp_y(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShear_kp_y')
-        allocate( this%EinsteinShear_kp_z(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShear_kp_z')
         allocate( this%EinsteinShearAve(this%NCorr), STAT = stat)
         call AllocationError (stat, 'EinsteinShearAve')
-        allocate( this%EinsteinShearAve_kk(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShearAve_kk')
-        allocate( this%EinsteinShearAve_pp(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShearAve_pp')
-        allocate( this%EinsteinShearAve_kp(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShearAve_kp')
         allocate( this%EinsteinShearInt(this%NCorr), STAT = stat)
         call AllocationError (stat, 'EinsteinShearInt')
-        allocate( this%EinsteinShearInt_kk(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShearInt_kk')
-        allocate( this%EinsteinShearInt_pp(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShearInt_pp')
-        allocate( this%EinsteinShearInt_kp(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShearInt_kp')
         allocate( this%EinsteinShearInt_x(this%NCorr), STAT = stat)
         call AllocationError (stat, 'EinsteinShearInt_x')
         allocate( this%EinsteinShearInt_y(this%NCorr), STAT = stat)
         call AllocationError (stat, 'EinsteinShearInt_y')
         allocate( this%EinsteinShearInt_z(this%NCorr), STAT = stat)
         call AllocationError (stat, 'EinsteinShearInt_z')
-        allocate( this%EinsteinShearInt_kk_x(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShearInt_kk_x')
-        allocate( this%EinsteinShearInt_kk_y(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShearInt_kk_y')
-        allocate( this%EinsteinShearInt_kk_z(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShearInt_kk_z')
-        allocate( this%EinsteinShearInt_pp_x(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShearInt_pp_x')
-        allocate( this%EinsteinShearInt_pp_y(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShearInt_pp_y')
-        allocate( this%EinsteinShearInt_pp_z(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShearInt_pp_z')
-        allocate( this%EinsteinShearInt_kp_x(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShearInt_kp_x')
-        allocate( this%EinsteinShearInt_kp_y(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShearInt_kp_y')
-        allocate( this%EinsteinShearInt_kp_z(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinShearInt_kp_z')
+
+        if(ContributionMode .eq. Separation) then
+          allocate( this%EinsteinShear_kk_x(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShear_kk_x')
+          allocate( this%EinsteinShear_kk_y(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShear_kk_y')
+          allocate( this%EinsteinShear_kk_z(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShear_kk_z')
+          allocate( this%EinsteinShear_pp_x(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShear_pp_x')
+          allocate( this%EinsteinShear_pp_y(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShear_pp_y')
+          allocate( this%EinsteinShear_pp_z(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShear_pp_z')
+          allocate( this%EinsteinShear_kp_x(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShear_kp_x')
+          allocate( this%EinsteinShear_kp_y(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShear_kp_y')
+          allocate( this%EinsteinShear_kp_z(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShear_kp_z')
+          allocate( this%EinsteinShearAve_kk(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShearAve_kk')
+          allocate( this%EinsteinShearAve_pp(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShearAve_pp')
+          allocate( this%EinsteinShearAve_kp(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShearAve_kp')
+          allocate( this%EinsteinShearInt_kk(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShearInt_kk')
+          allocate( this%EinsteinShearInt_pp(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShearInt_pp')
+          allocate( this%EinsteinShearInt_kp(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShearInt_kp')
+          allocate( this%EinsteinShearInt_kk_x(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShearInt_kk_x')
+          allocate( this%EinsteinShearInt_kk_y(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShearInt_kk_y')
+          allocate( this%EinsteinShearInt_kk_z(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShearInt_kk_z')
+          allocate( this%EinsteinShearInt_pp_x(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShearInt_pp_x')
+          allocate( this%EinsteinShearInt_pp_y(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShearInt_pp_y')
+          allocate( this%EinsteinShearInt_pp_z(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShearInt_pp_z')
+          allocate( this%EinsteinShearInt_kp_x(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShearInt_kp_x')
+          allocate( this%EinsteinShearInt_kp_y(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShearInt_kp_y')
+          allocate( this%EinsteinShearInt_kp_z(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinShearInt_kp_z')
+        end if
+
         this%EinsteinShear = 0
         this%EinsteinShear_x = 0
         this%EinsteinShear_y = 0
         this%EinsteinShear_z = 0
-        this%EinsteinShear_kk_x = 0
-        this%EinsteinShear_kk_y = 0
-        this%EinsteinShear_kk_z = 0
-        this%EinsteinShear_pp_x = 0
-        this%EinsteinShear_pp_y = 0
-        this%EinsteinShear_pp_z = 0
-        this%EinsteinShear_kp_x = 0
-        this%EinsteinShear_kp_y = 0
-        this%EinsteinShear_kp_z = 0
         this%EinsteinShearAve = 0
-        this%EinsteinShearAve_kk = 0
-        this%EinsteinShearAve_pp = 0
-        this%EinsteinShearAve_kp = 0
         this%EinsteinShearInt = 0
-        this%EinsteinShearInt_kk = 0
-        this%EinsteinShearInt_pp = 0
-        this%EinsteinShearInt_kp = 0
         this%EinsteinShearInt_x = 0
         this%EinsteinShearInt_y = 0
         this%EinsteinShearInt_z = 0
-        this%EinsteinShearInt_kk_x = 0
-        this%EinsteinShearInt_kk_y = 0
-        this%EinsteinShearInt_kk_z = 0
-        this%EinsteinShearInt_pp_x = 0
-        this%EinsteinShearInt_pp_y = 0
-        this%EinsteinShearInt_pp_z = 0
-        this%EinsteinShearInt_kp_x = 0
-        this%EinsteinShearInt_kp_y = 0
-        this%EinsteinShearInt_kp_z = 0
+
+        if(ContributionMode .eq. Separation) then
+          this%EinsteinShear_kk_x = 0
+          this%EinsteinShear_kk_y = 0
+          this%EinsteinShear_kk_z = 0
+          this%EinsteinShear_pp_x = 0
+          this%EinsteinShear_pp_y = 0
+          this%EinsteinShear_pp_z = 0
+          this%EinsteinShear_kp_x = 0
+          this%EinsteinShear_kp_y = 0
+          this%EinsteinShear_kp_z = 0
+          this%EinsteinShearAve_kk = 0
+          this%EinsteinShearAve_pp = 0
+          this%EinsteinShearAve_kp = 0
+          this%EinsteinShearInt_kk = 0
+          this%EinsteinShearInt_pp = 0
+          this%EinsteinShearInt_kp = 0
+          this%EinsteinShearInt_kk_x = 0
+          this%EinsteinShearInt_kk_y = 0
+          this%EinsteinShearInt_kk_z = 0
+          this%EinsteinShearInt_pp_x = 0
+          this%EinsteinShearInt_pp_y = 0
+          this%EinsteinShearInt_pp_z = 0
+          this%EinsteinShearInt_kp_x = 0
+          this%EinsteinShearInt_kp_y = 0
+          this%EinsteinShearInt_kp_z = 0
+        end if
+
         allocate( this%EinsteinTCond(this%NCorr), STAT = stat)
         call AllocationError (stat, 'EinsteinTCond')
         allocate( this%EinsteinTCond_x(this%NCorr), STAT = stat)
@@ -4066,99 +4125,104 @@ contains
         call AllocationError (stat, 'EinsteinTCond_y')
         allocate( this%EinsteinTCond_z(this%NCorr), STAT = stat)
         call AllocationError (stat, 'EinsteinTCond_z')
-        allocate( this%EinsteinTCond_kk_x(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCond_kk_x')
-        allocate( this%EinsteinTCond_kk_y(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCond_kk_y')
-        allocate( this%EinsteinTCond_kk_z(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCond_kk_z')
-        allocate( this%EinsteinTCond_pp_x(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCond_pp_x')
-        allocate( this%EinsteinTCond_pp_y(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCond_pp_y')
-        allocate( this%EinsteinTCond_pp_z(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCond_pp_z')
-        allocate( this%EinsteinTCond_kp_x(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCond_kp_x')
-        allocate( this%EinsteinTCond_kp_y(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCond_kp_y')
-        allocate( this%EinsteinTCond_kp_z(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCond_kp_z')
-
         allocate( this%EinsteinTCondAve(this%NCorr), STAT = stat)
         call AllocationError (stat, 'EinsteinTCondAve')
-        allocate( this%EinsteinTCondAve_kk(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCondAve_kk')
-        allocate( this%EinsteinTCondAve_pp(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCondAve_pp')
-        allocate( this%EinsteinTCondAve_kp(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCondAve_kp')
         allocate( this%EinsteinTCondInt(this%NCorr), STAT = stat)
         call AllocationError (stat, 'EinsteinTCondInt')
-        allocate( this%EinsteinTCondInt_kk(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCondInt_kk')
-        allocate( this%EinsteinTCondInt_pp(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCondInt_pp')
-        allocate( this%EinsteinTCondInt_kp(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCondInt_kp')
         allocate( this%EinsteinTCondInt_x(this%NCorr), STAT = stat)
         call AllocationError (stat, 'EinsteinTCondInt_x')
         allocate( this%EinsteinTCondInt_y(this%NCorr), STAT = stat)
         call AllocationError (stat, 'EinsteinTCondInt_y')
         allocate( this%EinsteinTCondInt_z(this%NCorr), STAT = stat)
         call AllocationError (stat, 'EinsteinTCondInt_z')
-        allocate( this%EinsteinTCondInt_kk_x(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCondInt_x')
-        allocate( this%EinsteinTCondInt_kk_y(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCondInt_y')
-        allocate( this%EinsteinTCondInt_kk_z(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCondInt_z')
-        allocate( this%EinsteinTCondInt_pp_x(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCondInt_x')
-        allocate( this%EinsteinTCondInt_pp_y(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCondInt_y')
-        allocate( this%EinsteinTCondInt_pp_z(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCondInt_z')
-        allocate( this%EinsteinTCondInt_kp_x(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCondInt_x')
-        allocate( this%EinsteinTCondInt_kp_y(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCondInt_y')
-        allocate( this%EinsteinTCondInt_kp_z(this%NCorr), STAT = stat)
-        call AllocationError (stat, 'EinsteinTCondInt_z')
+
+        if(ContributionMode .eq. Separation) then
+          allocate( this%EinsteinTCond_kk_x(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCond_kk_x')
+          allocate( this%EinsteinTCond_kk_y(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCond_kk_y')
+          allocate( this%EinsteinTCond_kk_z(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCond_kk_z')
+          allocate( this%EinsteinTCond_pp_x(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCond_pp_x')
+          allocate( this%EinsteinTCond_pp_y(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCond_pp_y')
+          allocate( this%EinsteinTCond_pp_z(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCond_pp_z')
+          allocate( this%EinsteinTCond_kp_x(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCond_kp_x')
+          allocate( this%EinsteinTCond_kp_y(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCond_kp_y')
+          allocate( this%EinsteinTCond_kp_z(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCond_kp_z')
+          allocate( this%EinsteinTCondAve_kk(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCondAve_kk')
+          allocate( this%EinsteinTCondAve_pp(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCondAve_pp')
+          allocate( this%EinsteinTCondAve_kp(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCondAve_kp')
+          allocate( this%EinsteinTCondInt_kk(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCondInt_kk')
+          allocate( this%EinsteinTCondInt_pp(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCondInt_pp')
+          allocate( this%EinsteinTCondInt_kp(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCondInt_kp')
+          allocate( this%EinsteinTCondInt_kk_x(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCondInt_kk_x')
+          allocate( this%EinsteinTCondInt_kk_y(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCondInt_kk_y')
+          allocate( this%EinsteinTCondInt_kk_z(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCondInt_kk_z')
+          allocate( this%EinsteinTCondInt_pp_x(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCondInt_pp_x')
+          allocate( this%EinsteinTCondInt_pp_y(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCondInt_pp_y')
+          allocate( this%EinsteinTCondInt_pp_z(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCondInt_pp_z')
+          allocate( this%EinsteinTCondInt_kp_x(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCondInt_kp_x')
+          allocate( this%EinsteinTCondInt_kp_y(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCondInt_kp_y')
+          allocate( this%EinsteinTCondInt_kp_z(this%NCorr), STAT = stat)
+          call AllocationError (stat, 'EinsteinTCondInt_kp_z')
+        end if
 
         this%EinsteinTCond = 0
         this%EinsteinTCond_x = 0
         this%EinsteinTCond_y = 0
         this%EinsteinTCond_z = 0
-        this%EinsteinTCond_kk_x = 0
-        this%EinsteinTCond_kk_y = 0
-        this%EinsteinTCond_kk_z = 0
-        this%EinsteinTCond_pp_x = 0
-        this%EinsteinTCond_pp_y = 0
-        this%EinsteinTCond_pp_z = 0
-        this%EinsteinTCond_kp_x = 0
-        this%EinsteinTCond_kp_y = 0
-        this%EinsteinTCond_kp_z = 0
         this%EinsteinTCondAve = 0
-        this%EinsteinTCondAve_kk = 0
-        this%EinsteinTCondAve_pp = 0
-        this%EinsteinTCondAve_kp = 0
         this%EinsteinTCondInt = 0
-        this%EinsteinTCondInt_kk = 0
-        this%EinsteinTCondInt_pp = 0
-        this%EinsteinTCondInt_kp = 0
         this%EinsteinTCondInt_x = 0
         this%EinsteinTCondInt_y = 0
         this%EinsteinTCondInt_z = 0
-        this%EinsteinTCondInt_kk_x = 0
-        this%EinsteinTCondInt_kk_y = 0
-        this%EinsteinTCondInt_kk_z = 0
-        this%EinsteinTCondInt_pp_x = 0
-        this%EinsteinTCondInt_pp_y = 0
-        this%EinsteinTCondInt_pp_z = 0
-        this%EinsteinTCondInt_kp_x = 0
-        this%EinsteinTCondInt_kp_y = 0
-        this%EinsteinTCondInt_kp_z = 0
+
+        if(ContributionMode .eq. Separation) then
+          this%EinsteinTCond_kk_x = 0
+          this%EinsteinTCond_kk_y = 0
+          this%EinsteinTCond_kk_z = 0
+          this%EinsteinTCond_pp_x = 0
+          this%EinsteinTCond_pp_y = 0
+          this%EinsteinTCond_pp_z = 0
+          this%EinsteinTCond_kp_x = 0
+          this%EinsteinTCond_kp_y = 0
+          this%EinsteinTCond_kp_z = 0
+          this%EinsteinTCondAve_kk = 0
+          this%EinsteinTCondAve_pp = 0
+          this%EinsteinTCondAve_kp = 0
+          this%EinsteinTCondInt_kk = 0
+          this%EinsteinTCondInt_pp = 0
+          this%EinsteinTCondInt_kp = 0
+          this%EinsteinTCondInt_kk_x = 0
+          this%EinsteinTCondInt_kk_y = 0
+          this%EinsteinTCondInt_kk_z = 0
+          this%EinsteinTCondInt_pp_x = 0
+          this%EinsteinTCondInt_pp_y = 0
+          this%EinsteinTCondInt_pp_z = 0
+          this%EinsteinTCondInt_kp_x = 0
+          this%EinsteinTCondInt_kp_y = 0
+          this%EinsteinTCondInt_kp_z = 0
+        end if
     end if
 #endif
 
@@ -4252,64 +4316,117 @@ contains
       NC     = this%NComponents
 
     ! Allocate correlation fucntions
-     if( this%CorrfunMode ) then
+    if( this%CorrfunMode ) then
 
-       if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
-         allocate( this%cf_vs(this%NCorr), STAT = stat )
-         call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
+      if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
+        allocate( this%cf_vs(this%NCorr), STAT = stat )
+        call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
 
-         allocate( this%average_cf_vs(this%NCorr), STAT = stat )
-         call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
+        allocate( this%average_cf_vs(this%NCorr), STAT = stat )
+        call AllocationError( stat, 'viscosity_shear_cf_vs', this%NCorr )
          
-         allocate( this%cf_c(this%NCorr), STAT = stat )
-         call AllocationError( stat, 'conductivity_cf_c', this%NCorr )
+        allocate( this%cf_c(this%NCorr), STAT = stat )
+        call AllocationError( stat, 'conductivity_cf_c', this%NCorr )
 
-         allocate( this%average_cf_c(this%NCorr), STAT = stat )
-         call AllocationError( stat, 'conductivity_cf_c', this%NCorr )
-
-         allocate( this%cf_d( this%NComponents, this%NCorr), STAT = stat )
-         call AllocationError( stat, 'self_diffusion', this%NCorr )
-
-         allocate( this%average_cf_d( this%NComponents, this%NCorr), STAT = stat )
-         call AllocationError( stat, 'self_diffusion', this%NCorr )
-
-         allocate( this%lamda( NComp2, this%NCorr ), STAT = stat )
-         call AllocationError( stat, 'onsager_coefficient', this%NCorr )
-
-         allocate( this%average_lamda( NComp2, this%NCorr ), STAT = stat )
-         call AllocationError( stat, 'onsager_coefficient', this%NCorr )
-
-         allocate( this%sinte_i( this%NComponents, this%NCorr), STAT = stat )
-         call AllocationError( stat, 'self_diffusion_integrated', this%NCorr )
-
-         allocate( this%average_sinte_i( this%NComponents, this%NCorr), STAT = stat )
-         call AllocationError( stat, 'self_diffusion_integrated', this%NCorr )
-
-         allocate( this%sinte_lamda( NComp2, this%NCorr), STAT = stat )
-         call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )
-
-         allocate( this%average_sinte_lamda( NComp2, this%NCorr), STAT = stat )
-         call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )
-
-         allocate( this%sinte_vs( this%NCorr), STAT = stat )
-         call AllocationError( stat, 'shear_viscosity_integrated', this%NCorr )
-
-         allocate( this%average_sinte_vs( this%NCorr), STAT = stat )
-         call AllocationError( stat, 'shear_viscosity_integrated', this%NCorr )
+        allocate( this%average_cf_c(this%NCorr), STAT = stat )
+        call AllocationError( stat, 'conductivity_cf_c', this%NCorr )
         
-         allocate( this%sinte_c( this%NCorr), STAT = stat )
-         call AllocationError( stat, 'Thermal_conductivity_integrated', this%NCorr )
+        if(ContributionMode .eq. Separation) then
+          allocate( this%cf_vs_kk(this%NCorr), STAT = stat )
+          call AllocationError( stat, 'viscosity_shear_cf_vs_kk', this%NCorr )
+          allocate( this%cf_vs_pp(this%NCorr), STAT = stat )
+          call AllocationError( stat, 'viscosity_shear_cf_vs_pp', this%NCorr )
+          allocate( this%cf_vs_kp(this%NCorr), STAT = stat )
+          call AllocationError( stat, 'viscosity_shear_cf_vs_kp', this%NCorr )
+          allocate( this%average_cf_vs_kk(this%NCorr), STAT = stat )
+          call AllocationError( stat, 'viscosity_shear_cf_vs_kk', this%NCorr )
+          allocate( this%average_cf_vs_pp(this%NCorr), STAT = stat )
+          call AllocationError( stat, 'viscosity_shear_cf_vs_pp', this%NCorr )
+          allocate( this%average_cf_vs_kp(this%NCorr), STAT = stat )
+          call AllocationError( stat, 'viscosity_shear_cf_vs_kp', this%NCorr )
+          allocate( this%cf_c_kk(this%NCorr), STAT = stat )
+          call AllocationError( stat, 'conductivity_cf_c_kk', this%NCorr )
+          allocate( this%cf_c_pp(this%NCorr), STAT = stat )
+          call AllocationError( stat, 'conductivity_cf_c_pp', this%NCorr )
+          allocate( this%cf_c_kp(this%NCorr), STAT = stat )
+          call AllocationError( stat, 'conductivity_cf_c_kp', this%NCorr )
+          allocate( this%average_cf_c_kk(this%NCorr), STAT = stat )
+          call AllocationError( stat, 'conductivity_cf_c_kk', this%NCorr )
+          allocate( this%average_cf_c_pp(this%NCorr), STAT = stat )
+          call AllocationError( stat, 'conductivity_cf_c_pp', this%NCorr )
+          allocate( this%average_cf_c_kp(this%NCorr), STAT = stat )
+          call AllocationError( stat, 'conductivity_cf_c_kp', this%NCorr )
+        end if
 
-         allocate( this%average_sinte_c( this%NCorr), STAT = stat )
-         call AllocationError( stat, 'Thermal_conductivity_integrated', this%NCorr )
+        allocate( this%cf_d( this%NComponents, this%NCorr), STAT = stat )
+        call AllocationError( stat, 'self_diffusion', this%NCorr )
 
-         allocate( this%a( NPart3, this%NCorr), STAT = stat  )
-         call AllocationError( stat, 'diffusion_matrix', NPart3 )
+        allocate( this%average_cf_d( this%NComponents, this%NCorr), STAT = stat )
+        call AllocationError( stat, 'self_diffusion', this%NCorr )
 
-         allocate( this%A_SpanCF( NPart3, this%NSpanCF), STAT = stat  )
-         call AllocationError( stat, 'diffusion_matrix', NPart3 )
+        allocate( this%lamda( NComp2, this%NCorr ), STAT = stat )
+        call AllocationError( stat, 'onsager_coefficient', this%NCorr )
+
+        allocate( this%average_lamda( NComp2, this%NCorr ), STAT = stat )
+        call AllocationError( stat, 'onsager_coefficient', this%NCorr )
+
+        allocate( this%sinte_i( this%NComponents, this%NCorr), STAT = stat )
+        call AllocationError( stat, 'self_diffusion_integrated', this%NCorr )
+
+        allocate( this%average_sinte_i( this%NComponents, this%NCorr), STAT = stat )
+        call AllocationError( stat, 'self_diffusion_integrated', this%NCorr )
+
+        allocate( this%sinte_lamda( NComp2, this%NCorr), STAT = stat )
+        call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )
+
+        allocate( this%average_sinte_lamda( NComp2, this%NCorr), STAT = stat )
+        call AllocationError( stat, 'mutual diffusion integrated', this%NCorr )
+
+        allocate( this%sinte_vs( this%NCorr), STAT = stat )
+        call AllocationError( stat, 'shear_viscosity_integrated', this%NCorr )
+
+        allocate( this%average_sinte_vs( this%NCorr), STAT = stat )
+        call AllocationError( stat, 'shear_viscosity_integrated', this%NCorr )
+        
+        allocate( this%sinte_c( this%NCorr), STAT = stat )
+        call AllocationError( stat, 'Thermal_conductivity_integrated', this%NCorr )
+
+        allocate( this%average_sinte_c( this%NCorr), STAT = stat )
+        call AllocationError( stat, 'Thermal_conductivity_integrated', this%NCorr )
+
+        if (ContributionMode .eq. Separation) then
+          allocate( this%sinte_vs_kk( this%NCorr), STAT = stat )
+          call AllocationError( stat, 'shear_viscosity_integrated_kk', this%NCorr )
+          allocate( this%sinte_vs_pp( this%NCorr), STAT = stat )
+          call AllocationError( stat, 'shear_viscosity_integrated_pp', this%NCorr )
+          allocate( this%sinte_vs_kp( this%NCorr), STAT = stat )
+          call AllocationError( stat, 'shear_viscosity_integrated_kp', this%NCorr )
+          allocate( this%average_sinte_vs_kk( this%NCorr), STAT = stat )
+          call AllocationError( stat, 'shear_viscosity_integrated_kk', this%NCorr )
+          allocate( this%average_sinte_vs_pp( this%NCorr), STAT = stat )
+          call AllocationError( stat, 'shear_viscosity_integrated_pp', this%NCorr )
+          allocate( this%average_sinte_vs_kp( this%NCorr), STAT = stat )
+          call AllocationError( stat, 'shear_viscosity_integrated_kp', this%NCorr )
+          allocate( this%sinte_c_kk( this%NCorr), STAT = stat )
+          call AllocationError( stat, 'Thermal_conductivity_integrated_kk', this%NCorr )
+          allocate( this%sinte_c_pp( this%NCorr), STAT = stat )
+          call AllocationError( stat, 'Thermal_conductivity_integrated_pp', this%NCorr )
+          allocate( this%sinte_c_kp( this%NCorr), STAT = stat )
+          call AllocationError( stat, 'Thermal_conductivity_integrated_kp', this%NCorr )
+          allocate( this%average_sinte_c_kk( this%NCorr), STAT = stat )
+          call AllocationError( stat, 'Thermal_conductivity_integrated_kk', this%NCorr )
+          allocate( this%average_sinte_c_pp( this%NCorr), STAT = stat )
+          call AllocationError( stat, 'Thermal_conductivity_integrated_pp', this%NCorr )
+          allocate( this%average_sinte_c_kp( this%NCorr), STAT = stat )
+          call AllocationError( stat, 'Thermal_conductivity_integrated_kp', this%NCorr )
+        end if
+
+        allocate( this%a( NPart3, this%NCorr), STAT = stat  )
+        call AllocationError( stat, 'diffusion_matrix', NPart3 )
+
+        allocate( this%A_SpanCF( NPart3, this%NSpanCF), STAT = stat  )
+        call AllocationError( stat, 'diffusion_matrix', NPart3 )
       end if
-
 
       allocate( this%cf_vb(this%NCorr), STAT = stat )
       call AllocationError( stat, 'viscosity_bulk_cf_vb', this%NCorr )
@@ -4448,6 +4565,33 @@ contains
         this%sinte_lamda(:,:) = 0._RK
         this%sinte_vs(:)      = 0._RK
         this%sinte_c(:)       = 0._RK
+
+        if (ContributionMode .eq. Separation) then
+          this%cf_vs_kk(:)          = 0._RK
+          this%cf_vs_pp(:)          = 0._RK
+          this%cf_vs_kp(:)          = 0._RK
+          this%cf_c_kk(:)           = 0._RK
+          this%cf_c_pp(:)           = 0._RK
+          this%cf_c_kp(:)           = 0._RK
+          this%average_cf_vs_kk(:)  = 0._RK
+          this%average_cf_vs_pp(:)  = 0._RK
+          this%average_cf_vs_kp(:)  = 0._RK
+          this%average_cf_c_kk(:)   = 0._RK
+          this%average_cf_c_pp(:)   = 0._RK
+          this%average_cf_c_kp(:)   = 0._RK
+          this%sinte_vs_kk(:)       = 0._RK
+          this%sinte_vs_pp(:)       = 0._RK
+          this%sinte_vs_kp(:)       = 0._RK
+          this%sinte_c_kk(:)        = 0._RK
+          this%sinte_c_pp(:)        = 0._RK
+          this%sinte_c_kp(:)        = 0._RK
+          this%average_sinte_vs_kk(:) = 0._RK
+          this%average_sinte_vs_pp(:) = 0._RK
+          this%average_sinte_vs_kp(:) = 0._RK
+          this%average_sinte_c_kk(:)  = 0._RK
+          this%average_sinte_c_pp(:)  = 0._RK
+          this%average_sinte_c_kp(:)  = 0._RK      
+        end if
 
         this%average_sinte_i(:,:)     = 0._RK
         this%average_sinte_lamda(:,:) = 0._RK
@@ -4954,8 +5098,32 @@ if (associated (this%EinsteinTCondInt_kk_x) ) then
       deallocate( this%cf_vs )
     end if
 
+    if( associated( this%cf_vs_kk ) )   then
+      deallocate( this%cf_vs_kk )
+    end if
+
+    if( associated( this%cf_vs_pp ) )   then
+      deallocate( this%cf_vs_pp )
+    end if
+
+    if( associated( this%cf_vs_kp ) )   then
+      deallocate( this%cf_vs_kp )
+    end if
+
     if( associated( this%average_cf_vs ) )   then
       deallocate( this%average_cf_vs )
+    end if
+
+    if( associated( this%average_cf_vs_kk ) )   then
+      deallocate( this%average_cf_vs_kk )
+    end if
+
+    if( associated( this%average_cf_vs_pp ) )   then
+      deallocate( this%average_cf_vs_pp )
+    end if
+
+    if( associated( this%average_cf_vs_kp ) )   then
+      deallocate( this%average_cf_vs_kp )
     end if
 
     if( associated( this%cf_vb ) )   then
@@ -4970,8 +5138,32 @@ if (associated (this%EinsteinTCondInt_kk_x) ) then
       deallocate( this%cf_c )
     end if
 
+    if( associated( this%cf_c_kk ) )   then
+      deallocate( this%cf_c_kk )
+    end if
+
+    if( associated( this%cf_c_pp ) )   then
+      deallocate( this%cf_c_pp )
+    end if
+
+    if( associated( this%cf_c_kp ) )   then
+      deallocate( this%cf_c_kp )
+    end if
+
     if( associated( this%average_cf_c ) )   then
       deallocate( this%average_cf_c )
+    end if
+
+     if( associated( this%average_cf_c_kk ) )   then
+      deallocate( this%average_cf_c_kk )
+    end if
+    
+     if( associated( this%average_cf_c_pp ) )   then
+      deallocate( this%average_cf_c_pp )
+    end if
+
+     if( associated( this%average_cf_c_kp ) )   then
+      deallocate( this%average_cf_c_kp )
     end if
 
     if( associated( this%cf_ec ) )   then
@@ -4998,14 +5190,6 @@ if (associated (this%EinsteinTCondInt_kk_x) ) then
       deallocate( this%average_sinte_i  )
     end if
 
- !    if( associated( this%sinte_db) ) then
- !      deallocate( this%sinte_db )
- !   end if
-
- !   if( associated( this%average_sinte_db) ) then
- !      deallocate( this%average_sinte_db )
- !   end if
-
     if( associated( this%sinte_soret) ) then
        deallocate( this%sinte_soret )
     end if
@@ -5018,9 +5202,33 @@ if (associated (this%EinsteinTCondInt_kk_x) ) then
       deallocate( this%sinte_vs )
     end if
 
+    if( associated( this%sinte_vs_kk) ) then
+      deallocate( this%sinte_vs_kk )
+    end if
+
+    if( associated( this%sinte_vs_pp) ) then
+      deallocate( this%sinte_vs_pp )
+    end if
+
+    if( associated( this%sinte_vs_kp) ) then
+      deallocate( this%sinte_vs_kp )
+    end if
+
     if( associated( this%average_sinte_vs) ) then
       deallocate( this%average_sinte_vs )
     end if
+
+    if( associated( this%average_sinte_vs_kk) ) then
+      deallocate( this%average_sinte_vs_kk )
+    end if
+
+    if( associated( this%average_sinte_vs_pp) ) then
+      deallocate( this%average_sinte_vs_pp )
+    end if
+
+    if( associated( this%average_sinte_vs_kp) ) then
+      deallocate( this%average_sinte_vs_kp )
+    end if    
 
     if( associated( this%sinte_vb) ) then
       deallocate( this%sinte_vb )
@@ -5034,8 +5242,32 @@ if (associated (this%EinsteinTCondInt_kk_x) ) then
       deallocate( this%sinte_c )
     end if
 
+    if( associated( this%sinte_c_kk) ) then
+      deallocate( this%sinte_c_kk )
+    end if
+
+    if( associated( this%sinte_c_pp) ) then
+      deallocate( this%sinte_c_pp )
+    end if
+
+    if( associated( this%sinte_c_kp) ) then
+      deallocate( this%sinte_c_kp )
+    end if
+
     if( associated( this%average_sinte_c) ) then
       deallocate( this%average_sinte_c )
+    end if
+
+    if( associated( this%average_sinte_c_kk) ) then
+      deallocate( this%average_sinte_c_kk )
+    end if
+
+    if( associated( this%average_sinte_c_pp) ) then
+      deallocate( this%average_sinte_c_pp )
+    end if
+
+    if( associated( this%average_sinte_c_kp) ) then
+      deallocate( this%average_sinte_c_kp )
     end if
 
     if( associated( this%sinte_ec) ) then
@@ -11360,6 +11592,14 @@ componentLoop:       do i = 1, this%NRealComponents
           end do
           call Update( this%SumVisco_s, this%visco_s, this%Mmess )
           call Update( this%SumConduct, this%conduct, this%Mmess )
+          if(ContributionMode .eq. Separation) then
+            call Update( this%SumVisco_s_kk, this%visco_s_kk, this%Mmess )
+            call Update( this%SumVisco_s_pp, this%visco_s_pp, this%Mmess )
+            call Update( this%SumVisco_s_kp, this%visco_s_kp, this%Mmess )
+            call Update( this%SumConduct_kk, this%conduct_kk, this%Mmess )
+            call Update( this%SumConduct_pp, this%conduct_pp, this%Mmess )
+            call Update( this%SumConduct_kp, this%conduct_kp, this%Mmess )
+          end if
         end if
 
         if(this%NComponents .gt. 1) then
@@ -12231,15 +12471,33 @@ componentLoop:       do i = 1, this%NRealComponents
           call FileWriteNoAdvance(this%rescfFile)
         end do
 
-        write( IOBuffer, '(T13,"Shr_Vis.")')
+        write( IOBuffer, '(T13,"ShV")')
         call FileWriteNoAdvance(this%rescfFile)
 
-        write( IOBuffer, '(T13,"Th_Cond.")')
+        if(ContributionMode .eq. Separation) then
+          write( IOBuffer, '(T13,"ShVk")')
+          call FileWriteNoAdvance(this%rescfFile)
+          write( IOBuffer, '(T13,"ShVp")')
+          call FileWriteNoAdvance(this%rescfFile)
+          write( IOBuffer, '(T13,"ShVkp")')
+          call FileWriteNoAdvance(this%rescfFile)
+        end if
+
+        write( IOBuffer, '(T13,"TCond")')
         call FileWriteNoAdvance(this%rescfFile)
+
+        if(ContributionMode .eq. Separation) then
+          write( IOBuffer, '(T13,"TCondk")')
+          call FileWriteNoAdvance(this%rescfFile)
+          write( IOBuffer, '(T13,"TCondp")')
+          call FileWriteNoAdvance(this%rescfFile)
+          write( IOBuffer, '(T13,"TCondkp")')
+          call FileWriteNoAdvance(this%rescfFile)
+        end if
       end if
 
       if (this%Bulkviscosity) then
-        write( IOBuffer, '(T13,"Bulk_Vis.")')
+        write( IOBuffer, '(T13,"Bulk_Vis")')
         call FileWriteNoAdvance(this%rescfFile)
       end if
 
@@ -12251,7 +12509,7 @@ componentLoop:       do i = 1, this%NRealComponents
       end if
 
       if (this%EConductivity) then
-        write( IOBuffer, '(T13,"El_Cond.")')
+        write( IOBuffer, '(T13,"El_Cond")')
         call FileWriteNoAdvance(this%rescfFile)
       end if
 
@@ -12268,11 +12526,29 @@ componentLoop:       do i = 1, this%NRealComponents
           call FileWriteNoAdvance(this%rescfFile)
         end do
 
-        write( IOBuffer, '(T10,"Int_Sh_Vis.")' )
+        write( IOBuffer, '(T10,"IntShV")' )
         call FileWriteNoAdvance(this%rescfFile)
 
-        write( IOBuffer, '(T10,"Int_Th_Cond.")' )
-        call FileWriteNoAdvance(this%rescfFile)        
+        if(ContributionMode .eq. Separation) then
+          write( IOBuffer, '(T10,"IntShVk")' )
+          call FileWriteNoAdvance(this%rescfFile)
+          write( IOBuffer, '(T10,"IntShVp")' )
+          call FileWriteNoAdvance(this%rescfFile)
+          write( IOBuffer, '(T10,"IntShVkp")' )
+          call FileWriteNoAdvance(this%rescfFile)
+        end if
+
+        write( IOBuffer, '(T10,"IntTCond")' )
+        call FileWriteNoAdvance(this%rescfFile)
+
+        if(ContributionMode .eq. Separation) then
+          write( IOBuffer, '(T10,"IntTCondk")' )
+          call FileWriteNoAdvance(this%rescfFile)
+          write( IOBuffer, '(T10,"IntTCondp")' )
+          call FileWriteNoAdvance(this%rescfFile)
+          write( IOBuffer, '(T10,"IntTCondkp")' )
+          call FileWriteNoAdvance(this%rescfFile)
+        end if
       end if
 
       if (this%Bulkviscosity) then
@@ -12319,9 +12595,27 @@ componentLoop:       do i = 1, this%NRealComponents
           write( IOBuffer, '(T5, F12.5)' ) this%average_cf_vs(i)/this%average_cf_vs(1)
           call FileWriteNoAdvance(this%rescfFile)
 
+          if(ContributionMode .eq. Separation) then
+            write( IOBuffer, '(T5, F12.5)' ) this%average_cf_vs_kk(i)/this%average_cf_vs_kk(1)
+            call FileWriteNoAdvance(this%rescfFile)
+            write( IOBuffer, '(T5, F12.5)' ) this%average_cf_vs_pp(i)/this%average_cf_vs_pp(1)
+            call FileWriteNoAdvance(this%rescfFile)
+            write( IOBuffer, '(T5, F12.5)' ) this%average_cf_vs_kp(i)/this%average_cf_vs_kp(1)
+            call FileWriteNoAdvance(this%rescfFile)
+          end if
+
           ! Thermal conductivity and thermal diffusion
           write( IOBuffer, '(T5, F12.5)' )  this%average_cf_c(i)/this%average_cf_c(1)
           call FileWriteNoAdvance(this%rescfFile)
+
+          if(ContributionMode .eq. Separation) then
+            write( IOBuffer, '(T5, F12.5)' )  this%average_cf_c_kk(i)/this%average_cf_c_kk(1)
+            call FileWriteNoAdvance(this%rescfFile)
+            write( IOBuffer, '(T5, F12.5)' )  this%average_cf_c_pp(i)/this%average_cf_c_pp(1)
+            call FileWriteNoAdvance(this%rescfFile)
+            write( IOBuffer, '(T5, F12.5)' )  this%average_cf_c_kp(i)/this%average_cf_c_kp(1)
+            call FileWriteNoAdvance(this%rescfFile)
+          end if
         end if
 
         ! Bulk viscosity
@@ -12366,11 +12660,31 @@ componentLoop:       do i = 1, this%NRealComponents
           value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
           write( IOBuffer, '(T5, F12.5)' )  this%average_sinte_vs(i)* value !this%sinte_vs(i) / this%sinte_vs(this%NCorr) * this%visco_s * value
           call FileWriteNoAdvance(this%rescfFile)
+
+          if(ContributionMode .eq. Separation) then
+            value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
+            write( IOBuffer, '(T5, F12.5)' )  this%average_sinte_vs_kk(i)* value 
+            call FileWriteNoAdvance(this%rescfFile)
+            write( IOBuffer, '(T5, F12.5)' )  this%average_sinte_vs_pp(i)* value 
+            call FileWriteNoAdvance(this%rescfFile)
+            write( IOBuffer, '(T5, F12.5)' )  this%average_sinte_vs_kp(i)* value 
+            call FileWriteNoAdvance(this%rescfFile)
+          end if
     
           !Thermal conductivity
           value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
           write( IOBuffer, '(T5, F12.5)' ) this%average_sinte_c(i)*value !this%sinte_c(i) / this%sinte_c(this%NCorr) * this%conduct * value
-          call FileWriteNoAdvance(this%rescfFile)        
+          call FileWriteNoAdvance(this%rescfFile) 
+
+          if(ContributionMode .eq. Separation) then
+            value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
+            write( IOBuffer, '(T5, F12.5)' ) this%average_sinte_c_kk(i)*value 
+            call FileWriteNoAdvance(this%rescfFile)
+            write( IOBuffer, '(T5, F12.5)' ) this%average_sinte_c_pp(i)*value 
+            call FileWriteNoAdvance(this%rescfFile)
+            write( IOBuffer, '(T5, F12.5)' ) this%average_sinte_c_kp(i)*value 
+            call FileWriteNoAdvance(this%rescfFile)
+          end if     
         end if
 
         ! bulk viscosity
@@ -14108,7 +14422,15 @@ end if
               call Error(this%Sumself_i(i), .true.)
             end do
             call Error(this%SumVisco_s, .true.)
-            call Error(this%SumConduct, .true.)  
+            call Error(this%SumConduct, .true.)
+            if(ContributionMode .eq. Separation) then
+               call Error(this%SumVisco_s_kk, .true.)
+               call Error(this%SumVisco_s_pp, .true.)
+               call Error(this%SumVisco_s_kp, .true.)
+               call Error(this%SumConduct_kk, .true.)
+               call Error(this%SumConduct_pp, .true.)
+               call Error(this%SumConduct_kp, .true.)
+            end if
           end if
 
           call Error(this%SumVisco_b, .true.)
@@ -14368,6 +14690,19 @@ end if
           Variance = this%SumVisco_s%Variance
           value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
           call writeValue("Shear viscosity", Average, Variance, value, "1E-4 Pa s", this%errorsFile)
+
+          if(ContributionMode .eq. Separation) then
+            value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
+            Average  = this%SumVisco_s_kk%Average
+            Variance = this%SumVisco_s_kk%Variance
+            call writeValue("Sh. viscosity kin.", Average, Variance, value, "1E-4 Pa s", this%errorsFile)
+            Average  = this%SumVisco_s_pp%Average
+            Variance = this%SumVisco_s_pp%Variance
+            call writeValue("Sh. viscosity pot.", Average, Variance, value, "1E-4 Pa s", this%errorsFile)
+            Average  = this%SumVisco_s_kp%Average
+            Variance = this%SumVisco_s_kp%Variance
+            call writeValue("Sh. viscosity kin-pot.", Average, Variance, value, "1E-4 Pa s", this%errorsFile)
+          end if
         end if
 
         !bulk viscosity
@@ -14392,11 +14727,40 @@ end if
             Variance = this%SumConduct%Variance
             factor   = 1._RK/(this%Temperature*this%Temperature)
             value    = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
-
             write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) Average*factor, Variance*factor
             call FileWrite(this%errorsFile)
             write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value*factor, Variance*value*factor
             call FileWrite(this%errorsFile)
+            call FileWriteBlank(this%errorsFile)
+
+            if(ContributionMode .eq. Separation) then
+              factor   = 1._RK/(this%Temperature*this%Temperature)
+              value    = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
+              Average  = this%SumConduct_kk%Average
+              Variance = this%SumConduct_kk%Variance
+              write( IOBuffer, '("Th. conductivity kin. ", T29, "reduced:", 2F20.9)' ) Average*factor, Variance*factor
+              call FileWrite(this%errorsFile)
+              write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value*factor, Variance*value*factor
+              call FileWrite(this%errorsFile)
+              call FileWriteBlank(this%errorsFile)
+
+              Average  = this%SumConduct_pp%Average
+              Variance = this%SumConduct_pp%Variance
+              write( IOBuffer, '("Th. conductivity pot. ", T29, "reduced:", 2F20.9)' ) Average*factor, Variance*factor
+              call FileWrite(this%errorsFile)
+              write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value*factor, Variance*value*factor
+              call FileWrite(this%errorsFile)
+              call FileWriteBlank(this%errorsFile)
+
+              Average  = this%SumConduct_kp%Average
+              Variance = this%SumConduct_kp%Variance
+              write( IOBuffer, '("Th. conductivity kin-pot. ", T29, "reduced:", 2F20.9)' ) Average*factor, Variance*factor
+              call FileWrite(this%errorsFile)
+              write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) Average*value*factor, Variance*value*factor
+              call FileWrite(this%errorsFile)
+              call FileWriteBlank(this%errorsFile)
+            end if
+
             if (this%NComponents > 1 ) then
               if (this%MolarEnthConduct) then
                 write( IOBuffer, '("Note: Thermal conductivity includes the enthalpic contribution")')
@@ -14561,12 +14925,49 @@ end if
           write( IOBuffer, '(T23, "in 1E-4 Pa s:", F20.9)' ) 0._RK
           call FileWrite(this%errorsFile)
           call FileWriteBlank(this%errorsFile)
+          if(ContributionMode .eq. Separation) then
+            write( IOBuffer, '("Sh. viscosity kin.", T29, "reduced:", F20.9)' )  0._RK
+            call FileWrite(this%errorsFile)
+            write( IOBuffer, '(T23, "in 1E-4 Pa s:", F20.9)' ) 0._RK
+            call FileWrite(this%errorsFile)
+            call FileWriteBlank(this%errorsFile)
+            write( IOBuffer, '("Sh. viscosity pot.", T29, "reduced:", F20.9)' )  0._RK
+            call FileWrite(this%errorsFile)
+            write( IOBuffer, '(T23, "in 1E-4 Pa s:", F20.9)' ) 0._RK
+            call FileWrite(this%errorsFile)
+            call FileWriteBlank(this%errorsFile)
+            write( IOBuffer, '("Sh. viscosity kin-pot.", T29, "reduced:", F20.9)' )  0._RK
+            call FileWrite(this%errorsFile)
+            write( IOBuffer, '(T23, "in 1E-4 Pa s:", F20.9)' ) 0._RK
+            call FileWrite(this%errorsFile)
+            call FileWriteBlank(this%errorsFile)
+          end if
           
           if ( LongRange .eq. Rfield) then
             write( IOBuffer, '("Thermal conductivity ", T29, "reduced:", 2F20.9)' ) 0._RK
             call FileWrite(this%errorsFile)
             write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
             call FileWrite(this%errorsFile)
+            call FileWriteBlank(this%errorsFile)
+
+            if(ContributionMode .eq. Separation) then
+              write( IOBuffer, '("Th. conductivity kin. ", T29, "reduced:", 2F20.9)' ) 0._RK
+              call FileWrite(this%errorsFile)
+              write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
+              call FileWrite(this%errorsFile)
+              call FileWriteBlank(this%errorsFile)
+              write( IOBuffer, '("Th. conductivity pot. ", T29, "reduced:", 2F20.9)' ) 0._RK
+              call FileWrite(this%errorsFile)
+              write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
+              call FileWrite(this%errorsFile)
+              call FileWriteBlank(this%errorsFile)
+              write( IOBuffer, '("Th. conductivity kin-pot. ", T29, "reduced:", 2F20.9)' ) 0._RK
+              call FileWrite(this%errorsFile)
+              write( IOBuffer, '(T23, "in W / (m K) :", 2F20.9)' ) 0._RK
+              call FileWrite(this%errorsFile)
+              call FileWriteBlank(this%errorsFile)
+            end if
+
             if ( this%NComponents > 1 ) then
               if (this%MolarEnthConduct) then
                  write( IOBuffer, '("Thermal conductivity includes the  enthalpic contribution")' )
@@ -14669,16 +15070,19 @@ end if
         end do
 
         call Error(this%EinsteinShearAcc, .true.)
-        call Error(this%EinsteinShear_kk_Acc, .true.)
-        call Error(this%EinsteinShear_pp_Acc, .true.)
-        call Error(this%EinsteinShear_kp_Acc, .true.)
         call Error(this%EinsteinTCondAcc, .true.)
-        call Error(this%EinsteinTCond_kk_Acc, .true.)
-        call Error(this%EinsteinTCond_pp_Acc, .true.)
-        call Error(this%EinsteinTCond_kp_Acc, .true.)
+
+        if(ContributionMode .eq. Separation) then
+          call Error(this%EinsteinShear_kk_Acc, .true.)
+          call Error(this%EinsteinShear_pp_Acc, .true.)
+          call Error(this%EinsteinShear_kp_Acc, .true.)        
+          call Error(this%EinsteinTCond_kk_Acc, .true.)
+          call Error(this%EinsteinTCond_pp_Acc, .true.)
+          call Error(this%EinsteinTCond_kp_Acc, .true.)
+        end if
 
          ! Separator         
-        write( IOBuffer, '(15("-.-"))' )
+        write( IOBuffer, '(22("-.-"))' )
         call FileWrite(this%errorsFile)
         call FileWriteBlank(this%errorsFile)
 
@@ -14912,20 +15316,20 @@ end if
         value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
         call writeValue("Shear viscosity", Average, Variance, value, "1E-4 Pa s", this%errorsFile)
  
-        Average  =  this%EinsteinShear_kk_Acc%Average
-        Variance =  this%EinsteinShear_kk_Acc%Variance
-        value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-        call writeValue("Shear viscosity kin.", Average, Variance, value, "1E-4 Pa s", this%errorsFile)
+        if(ContributionMode .eq. Separation) then
+          Average  =  this%EinsteinShear_kk_Acc%Average
+          Variance =  this%EinsteinShear_kk_Acc%Variance
+          value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
+          call writeValue("Sh. viscosity kin.", Average, Variance, value, "1E-4 Pa s", this%errorsFile)
 
-        Average  =  this%EinsteinShear_pp_Acc%Average
-        Variance =  this%EinsteinShear_pp_Acc%Variance
-        value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-        call writeValue("Shear viscosity conf.", Average, Variance, value, "1E-4 Pa s", this%errorsFile)
+          Average  =  this%EinsteinShear_pp_Acc%Average
+          Variance =  this%EinsteinShear_pp_Acc%Variance
+          call writeValue("Sh. viscosity pot.", Average, Variance, value, "1E-4 Pa s", this%errorsFile)
 
-        Average  =  this%EinsteinShear_kp_Acc%Average
-        Variance =  this%EinsteinShear_kp_Acc%Variance
-        value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-        call writeValue("Shear viscosity kin-cof.", Average, Variance, value, "1E-4 Pa s", this%errorsFile)
+          Average  =  this%EinsteinShear_kp_Acc%Average
+          Variance =  this%EinsteinShear_kp_Acc%Variance
+          call writeValue("Sh. viscosity kin-cof.", Average, Variance, value, "1E-4 Pa s", this%errorsFile)
+        end if
 
         if (LongRange .eq. Rfield) then
           Average  =  this%EinsteinTCondAcc%Average
@@ -14936,7 +15340,7 @@ end if
           write( IOBuffer, '("Thermal conductivity only implemented for reaction field")' )
         end if
 
-        if (LongRange .eq. Rfield) then
+        if ((LongRange .eq. Rfield) .and. (ContributionMode .eq. Separation)) then
           Average  =  this%EinsteinTCond_kk_Acc%Average
           Variance =  this%EinsteinTCond_kk_Acc%Variance
           value    = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
@@ -14944,12 +15348,10 @@ end if
 
           Average  =  this%EinsteinTCond_pp_Acc%Average
           Variance =  this%EinsteinTCond_pp_Acc%Variance
-          value    = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
           call writeValue("Thermal conductivity conf.", Average, Variance, value, "W/(m K)", this%errorsFile)
         
           Average  =  this%EinsteinTCond_kp_Acc%Average
           Variance =  this%EinsteinTCond_kp_Acc%Variance
-          value    = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
           call writeValue("Thermal conductivity kin-conf.", Average, Variance, value, "W/(m K)", this%errorsFile)
         end if
 
@@ -15520,102 +15922,105 @@ end if
 #if TRANS==1
     !EinsteinCoef ecoef output
     if(  (TransMethod .eq. Einstein) .or. (TransMethod .eq. GKEinstein)) then
-       if (RootProc) then
-         write( IOBuffer, '(I16)' ) this%EnsembleNumber
-         call FileRewrite(this%ecoefFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension)
-         write(IOBuffer, '(T8,"t*")')
-         call FileWriteNoAdvance(this%ecoefFile)
-         write(IOBuffer, '(T12,"t")')
-         call FileWriteNoAdvance(this%ecoefFile)
-         do t=1,this%NComponents
-            write( IOBuffer, '(T4,"Dself_",I1)' )t
-            call FileWriteNoAdvance(this%ecoefFile)
-         end do
+      if (RootProc) then
+        write( IOBuffer, '(I16)' ) this%EnsembleNumber
+        call FileRewrite(this%ecoefFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension)
+        write(IOBuffer, '(T8,"t*")')
+        call FileWriteNoAdvance(this%ecoefFile)
+        write(IOBuffer, '(T12,"t")')
+        call FileWriteNoAdvance(this%ecoefFile)
+        do t=1,this%NComponents
+          write( IOBuffer, '(T4,"Dself_",I1)' )t
+          call FileWriteNoAdvance(this%ecoefFile)
+        end do
 
-         if (this%NComponents > 1) then
+        if (this%NComponents > 1) then
+          do t=1,this%NComponents
+            do j=1,this%NComponents
+              write( IOBuffer, '(T4,"Onsager_",2I1)' ) t,j
+              call FileWriteNoAdvance(this%ecoefFile)
+            end do
+          end do
+        end if
+        
+        
+        write( IOBuffer, '(T4,"ShV")' )
+        call FileWriteNoAdvance(this%ecoefFile)
+        if(ContributionMode .eq. Separation) then
+          write( IOBuffer, '(T4,"ShVk")' )
+          call FileWriteNoAdvance(this%ecoefFile)
+          write( IOBuffer, '(T4,"ShVp")' )
+          call FileWriteNoAdvance(this%ecoefFile)
+          write( IOBuffer, '(T4,"ShVkp")' )
+          call FileWriteNoAdvance(this%ecoefFile)
+        end if
+        write( IOBuffer, '(T4,"TCond")' )
+        call FileWriteNoAdvance(this%ecoefFile)
+        if(ContributionMode .eq. Separation) then
+          write( IOBuffer, '(T4,"TCondk")' )
+          call FileWriteNoAdvance(this%ecoefFile)
+          write( IOBuffer, '(T4,"TCondp")' )
+          call FileWriteNoAdvance(this%ecoefFile)
+          write( IOBuffer, '(T4,"TCondkp")' )
+          call FileWriteNoAdvance(this%ecoefFile)
+        end if
+        
+        call FileWriteBlank(this%ecoefFile)
+
+        do i=1,this%NCorr
+          value = (this%BoxLength**2)*(dsqrt(UnitEnergy/UnitMass)*UnitLength*1E10_RK)
+          write(IOBuffer, '(T3,F12.4)') i * this%NStepCorr * TimeStep * UnitTime * 1E12_RK
+          call FileWriteNoAdvance(this%ecoefFile)
+          write(IOBuffer, '(T2,F12.4)') i * this%NStepCorr * TimeStep
+          call FileWriteNoAdvance(this%ecoefFile)
+
+          do t=1,this%NComponents
+            write( IOBuffer, '(T4,F10.4)') this%DselfEinsteinAve(i,t)*value
+            call FileWriteNoAdvance(this%ecoefFile)
+          end do
+
+          if (this%NComponents > 1) then
             do t=1,this%NComponents
               do j=1,this%NComponents
-                write( IOBuffer, '(T4,"Onsager_",2I1)' ) t,j
+                write( IOBuffer, '(T4,F10.4)') this%OnsagerEinsteinAve(i,t,j)*value
                 call FileWriteNoAdvance(this%ecoefFile)
               end do
             end do
-         end if
+          end if
 
-         write( IOBuffer, '(T4,"Shear_Visc.")' )
-         call FileWriteNoAdvance(this%ecoefFile)
-         write( IOBuffer, '(T4,"Shear_Visc_kin.")' )
-         call FileWriteNoAdvance(this%ecoefFile)
-         write( IOBuffer, '(T4,"Shear_Visc_conf.")' )
-         call FileWriteNoAdvance(this%ecoefFile)
-         write( IOBuffer, '(T4,"Shear_Visc_kin-conf.")' )
-         call FileWriteNoAdvance(this%ecoefFile)
-         write( IOBuffer, '(T4,"Therm_Cond.")' )
-         call FileWriteNoAdvance(this%ecoefFile)
-         write( IOBuffer, '(T4,"Therm_Cond_kin.")' )
-         call FileWriteNoAdvance(this%ecoefFile)
-         write( IOBuffer, '(T4,"Therm_Cond_conf.")' )
-         call FileWriteNoAdvance(this%ecoefFile)
-         write( IOBuffer, '(T4,"Therm_Cond_kin-conf.")' )
-         call FileWriteNoAdvance(this%ecoefFile)
-         call FileWriteBlank(this%ecoefFile)
-
-        do i=1,this%NCorr
-           value = (this%BoxLength**2)*(dsqrt(UnitEnergy/UnitMass)*UnitLength*1E10_RK)
-           write(IOBuffer, '(T3,F12.4)') i * this%NStepCorr * TimeStep * UnitTime * 1E12_RK
-           call FileWriteNoAdvance(this%ecoefFile)
-           write(IOBuffer, '(T2,F12.4)') i * this%NStepCorr * TimeStep
-           call FileWriteNoAdvance(this%ecoefFile)
-
-           do t=1,this%NComponents
-              write( IOBuffer, '(T4,F10.4)') this%DselfEinsteinAve(i,t)*value
-              call FileWriteNoAdvance(this%ecoefFile)
-           end do
-
-           if (this%NComponents > 1) then
-            !I know, an extra information is here, it's just for checking
-             do t=1,this%NComponents
-               do j=1,this%NComponents
-                  write( IOBuffer, '(T4,F10.4)') this%OnsagerEinsteinAve(i,t,j)*value
-                  call FileWriteNoAdvance(this%ecoefFile)
-               end do
-             end do
-           end if
-
-           value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-           ! helpvar =  this%Density /(5._RK *this%NPart * this%Temperature)
-           write( IOBuffer, '(T4,F10.4)')  this%EinsteinShearAve(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
-           call FileWriteNoAdvance(this%ecoefFile)
-
-           value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-           ! helpvar =  this%Density /(5._RK *this%NPart * this%Temperature)
-           write( IOBuffer, '(T4,F10.4)')  this%EinsteinShearAve_kk(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
-           call FileWriteNoAdvance(this%ecoefFile)
-
-           value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-           ! helpvar =  this%Density /(5._RK *this%NPart * this%Temperature)
-           write( IOBuffer, '(T4,F10.4)')  this%EinsteinShearAve_pp(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
-           call FileWriteNoAdvance(this%ecoefFile)
-
-           value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-           ! helpvar =  this%Density /(5._RK *this%NPart * this%Temperature)
-           write( IOBuffer, '(T4,F10.4)')  this%EinsteinShearAve_kp(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
-           call FileWriteNoAdvance(this%ecoefFile)
+          value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
+          ! helpvar =  this%Density /(5._RK *this%NPart * this%Temperature)
+          write( IOBuffer, '(T4,F10.4)')  this%EinsteinShearAve(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
+          call FileWriteNoAdvance(this%ecoefFile)
           
-           value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
-           write( IOBuffer, '(T6,F10.4)')  this%EinsteinTCondAve(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
-           call FileWriteNoAdvance(this%ecoefFile)
+          if(ContributionMode .eq. Separation) then
+            value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
+            write( IOBuffer, '(T4,F10.4)')  this%EinsteinShearAve_kk(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
+            call FileWriteNoAdvance(this%ecoefFile)
 
-           value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
-           write( IOBuffer, '(T6,F10.4)')  this%EinsteinTCondAve_kk(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
-           call FileWriteNoAdvance(this%ecoefFile)
+            write( IOBuffer, '(T4,F10.4)')  this%EinsteinShearAve_pp(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
+            call FileWriteNoAdvance(this%ecoefFile)
 
-           value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
-           write( IOBuffer, '(T6,F10.4)')  this%EinsteinTCondAve_pp(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
-           call FileWriteNoAdvance(this%ecoefFile)
+            write( IOBuffer, '(T4,F10.4)')  this%EinsteinShearAve_kp(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
+            call FileWriteNoAdvance(this%ecoefFile)
+          end if
+          
+          value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
+          write( IOBuffer, '(T6,F10.4)')  this%EinsteinTCondAve(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
+          call FileWriteNoAdvance(this%ecoefFile)
 
-           value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
-           write( IOBuffer, '(T6,F10.4)')  this%EinsteinTCondAve_kp(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
-           call FileWriteBlank(this%ecoefFile)
+          if(ContributionMode .eq. Separation) then
+            value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
+            write( IOBuffer, '(T6,F10.4)')  this%EinsteinTCondAve_kk(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
+            call FileWriteNoAdvance(this%ecoefFile)
+
+            write( IOBuffer, '(T6,F10.4)')  this%EinsteinTCondAve_pp(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
+            call FileWriteNoAdvance(this%ecoefFile)
+
+            write( IOBuffer, '(T6,F10.4)')  this%EinsteinTCondAve_kp(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
+            call FileWriteNoAdvance(this%ecoefFile)
+          end if
+          call FileWriteBlank(this%ecoefFile)
         end do
 
         write( IOBuffer, '("Number of records", T36, ":", I10)' ) this%EinsteinCoefAveCount
@@ -20692,46 +21097,56 @@ end if
             if (Mindex .eq. this%NCorr) CFindex = 1
 
             do nmess = 1, this%NCorr
-                s=CFindex+nmess-1
-                if (s > this%NCorr) s = s-this%NCorr
-!                this%EinsteinShear(nmess) = (this%vsk(s,1) + this%vsk(s,2) + this%vsk(s,3) + this%vsp(s,1) + this%vsp(s,2) + this%vsp(s,3))
-                 this%EinsteinShear_x(nmess) = (this%vsk(s,1) + this%vsp(s,1))
-                 this%EinsteinShear_y(nmess) = (this%vsk(s,2) + this%vsp(s,2))
-                 this%EinsteinShear_z(nmess) = (this%vsk(s,3) + this%vsp(s,3))
-                 this%EinsteinShear_kk_x(nmess) = this%vsk(s,1)
-                 this%EinsteinShear_kk_y(nmess) = this%vsk(s,2)
-                 this%EinsteinShear_kk_z(nmess) = this%vsk(s,3)
-                 this%EinsteinShear_pp_x(nmess) = this%vsp(s,1)
-                 this%EinsteinShear_pp_y(nmess) = this%vsp(s,2)
-                 this%EinsteinShear_pp_z(nmess) = this%vsp(s,3) 
+              s=CFindex+nmess-1
+              if (s > this%NCorr) s = s-this%NCorr
+!             this%EinsteinShear(nmess) = (this%vsk(s,1) + this%vsk(s,2) + this%vsk(s,3) + this%vsp(s,1) + this%vsp(s,2) + this%vsp(s,3))
+              this%EinsteinShear_x(nmess) = (this%vsk(s,1) + this%vsp(s,1))
+              this%EinsteinShear_y(nmess) = (this%vsk(s,2) + this%vsp(s,2))
+              this%EinsteinShear_z(nmess) = (this%vsk(s,3) + this%vsp(s,3))
+              if(ContributionMode .eq. Separation) then
+                this%EinsteinShear_kk_x(nmess) = this%vsk(s,1)
+                this%EinsteinShear_kk_y(nmess) = this%vsk(s,2)
+                this%EinsteinShear_kk_z(nmess) = this%vsk(s,3)
+                this%EinsteinShear_pp_x(nmess) = this%vsp(s,1)
+                this%EinsteinShear_pp_y(nmess) = this%vsp(s,2)
+                this%EinsteinShear_pp_z(nmess) = this%vsp(s,3)
+              end if 
             end do
 
 !           this%EinsteinShearInt = simpson2(this%EinsteinShear, tau , this%NCorr)  !it is raised to the power of 2
             this%EinsteinShearInt_x = simpson2(this%EinsteinShear_x, tau , this%NCorr) 
             this%EinsteinShearInt_y = simpson2(this%EinsteinShear_y, tau , this%NCorr)
             this%EinsteinShearInt_z = simpson2(this%EinsteinShear_z, tau , this%NCorr)
-            this%EinsteinShearInt_kk_x = simpson2(this%EinsteinShear_kk_x, tau , this%NCorr)
-            this%EinsteinShearInt_kk_y = simpson2(this%EinsteinShear_kk_y, tau , this%NCorr)
-            this%EinsteinShearInt_kk_z = simpson2(this%EinsteinShear_kk_z, tau , this%NCorr)
-            this%EinsteinShearInt_pp_x = simpson2(this%EinsteinShear_pp_x, tau , this%NCorr)
-            this%EinsteinShearInt_pp_y = simpson2(this%EinsteinShear_pp_y, tau , this%NCorr)
-            this%EinsteinShearInt_pp_z = simpson2(this%EinsteinShear_pp_z, tau , this%NCorr)
-            this%EinsteinShearInt_kp_x = simpson1(this%EinsteinShear_kk_x, this%EinsteinShear_pp_x, tau , this%NCorr)
-            this%EinsteinShearInt_kp_y = simpson1(this%EinsteinShear_kk_y, this%EinsteinShear_pp_y, tau , this%NCorr)
-            this%EinsteinShearInt_kp_z = simpson1(this%EinsteinShear_kk_z, this%EinsteinShear_pp_z, tau , this%NCorr)
             this%EinsteinShearInt = this%EinsteinShearInt_x + this%EinsteinShearInt_y + this%EinsteinShearInt_z
-            this%EinsteinShearInt_kk = this%EinsteinShearInt_kk_x + this%EinsteinShearInt_kk_y + this%EinsteinShearInt_kk_z
-            this%EinsteinShearInt_pp = this%EinsteinShearInt_pp_x + this%EinsteinShearInt_pp_y + this%EinsteinShearInt_pp_z
-            this%EinsteinShearInt_kp = 2._RK* (this%EinsteinShearInt_kp_x + this%EinsteinShearInt_kp_y + this%EinsteinShearInt_kp_z)
+
+            if(ContributionMode .eq. Separation) then            
+              this%EinsteinShearInt_kk_x = simpson2(this%EinsteinShear_kk_x, tau , this%NCorr)
+              this%EinsteinShearInt_kk_y = simpson2(this%EinsteinShear_kk_y, tau , this%NCorr)
+              this%EinsteinShearInt_kk_z = simpson2(this%EinsteinShear_kk_z, tau , this%NCorr)
+              this%EinsteinShearInt_pp_x = simpson2(this%EinsteinShear_pp_x, tau , this%NCorr)
+              this%EinsteinShearInt_pp_y = simpson2(this%EinsteinShear_pp_y, tau , this%NCorr)
+              this%EinsteinShearInt_pp_z = simpson2(this%EinsteinShear_pp_z, tau , this%NCorr)
+              this%EinsteinShearInt_kp_x = simpson1(this%EinsteinShear_kk_x, this%EinsteinShear_pp_x, tau , this%NCorr)
+              this%EinsteinShearInt_kp_y = simpson1(this%EinsteinShear_kk_y, this%EinsteinShear_pp_y, tau , this%NCorr)
+              this%EinsteinShearInt_kp_z = simpson1(this%EinsteinShear_kk_z, this%EinsteinShear_pp_z, tau , this%NCorr)
+              this%EinsteinShearInt_kk = this%EinsteinShearInt_kk_x + this%EinsteinShearInt_kk_y + this%EinsteinShearInt_kk_z
+              this%EinsteinShearInt_pp = this%EinsteinShearInt_pp_x + this%EinsteinShearInt_pp_y + this%EinsteinShearInt_pp_z
+              this%EinsteinShearInt_kp = 2._RK* (this%EinsteinShearInt_kp_x + this%EinsteinShearInt_kp_y + this%EinsteinShearInt_kp_z)
+            end if
             this%EinsteinShearAve(:) = ( this%EinsteinShearAve(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinShearInt(:) )/this%EinsteinCoefAveCount
-            this%EinsteinShearAve_kk(:) = ( this%EinsteinShearAve_kk(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinShearInt_kk(:) )/this%EinsteinCoefAveCount
-            this%EinsteinShearAve_pp(:) = ( this%EinsteinShearAve_pp(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinShearInt_pp(:) )/this%EinsteinCoefAveCount
-            this%EinsteinShearAve_kp(:) = ( this%EinsteinShearAve_kp(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinShearInt_kp(:) )/this%EinsteinCoefAveCount
+            if(ContributionMode .eq. Separation)then
+              this%EinsteinShearAve_kk(:) = ( this%EinsteinShearAve_kk(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinShearInt_kk(:) )/this%EinsteinCoefAveCount
+              this%EinsteinShearAve_pp(:) = ( this%EinsteinShearAve_pp(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinShearInt_pp(:) )/this%EinsteinCoefAveCount
+              this%EinsteinShearAve_kp(:) = ( this%EinsteinShearAve_kp(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinShearInt_kp(:) )/this%EinsteinCoefAveCount
+            end if
             helpvar =  1/6.0* this%Density /( this%NPart * this%Temperature)
             this%ShearEinsteinCurrent = this%EinsteinShearInt(this%NCorr)*helpvar
-            this%ShearEinsteinCurrent_kk = this%EinsteinShearInt_kk(this%NCorr)*helpvar
-            this%ShearEinsteinCurrent_pp = this%EinsteinShearInt_pp(this%NCorr)*helpvar
-            this%ShearEinsteinCurrent_kp = this%EinsteinShearInt_kp(this%NCorr)*helpvar
+            if(ContributionMode .eq. Separation) then
+              this%ShearEinsteinCurrent_kk = this%EinsteinShearInt_kk(this%NCorr)*helpvar
+              this%ShearEinsteinCurrent_pp = this%EinsteinShearInt_pp(this%NCorr)*helpvar
+              this%ShearEinsteinCurrent_kp = this%EinsteinShearInt_kp(this%NCorr)*helpvar
+            end if
+
             !Thermal Conductivity
             do nmess = 1, this%NCorr
               s=CFindex+nmess-1
@@ -20739,40 +21154,48 @@ end if
               this%EinsteinTCond_x(nmess) = (this%vckt(s,1) + this%vcpt(s,1) + this%vckr(s,1) + this%vcpr(s,1) + this%vcmt(s,1))
               this%EinsteinTCond_y(nmess) = (this%vckt(s,2) + this%vcpt(s,2) + this%vckr(s,2) + this%vcpr(s,2) + this%vcmt(s,2))
               this%EinsteinTCond_z(nmess) = (this%vckt(s,3) + this%vcpt(s,3) + this%vckr(s,3) + this%vcpr(s,3) + this%vcmt(s,3))
-              this%EinsteinTCond_kk_x(nmess) = (this%vckt(s,1) + this%vckr(s,1) + this%vcmt(s,1))
-              this%EinsteinTCond_kk_y(nmess) = (this%vckt(s,2) + this%vckr(s,2) + this%vcmt(s,2))
-              this%EinsteinTCond_kk_z(nmess) = (this%vckt(s,3) + this%vckr(s,3) + this%vcmt(s,3))
-              this%EinsteinTCond_pp_x(nmess) = (this%vcpt(s,1) + this%vcpr(s,1))
-              this%EinsteinTCond_pp_y(nmess) = (this%vcpt(s,2) + this%vcpr(s,2))
-              this%EinsteinTCond_pp_z(nmess) = (this%vcpt(s,3) + this%vcpr(s,3))
+              if(ContributionMode .eq. Separation) then
+                this%EinsteinTCond_kk_x(nmess) = (this%vckt(s,1) + this%vckr(s,1) + this%vcmt(s,1))
+                this%EinsteinTCond_kk_y(nmess) = (this%vckt(s,2) + this%vckr(s,2) + this%vcmt(s,2))
+                this%EinsteinTCond_kk_z(nmess) = (this%vckt(s,3) + this%vckr(s,3) + this%vcmt(s,3))
+                this%EinsteinTCond_pp_x(nmess) = (this%vcpt(s,1) + this%vcpr(s,1))
+                this%EinsteinTCond_pp_y(nmess) = (this%vcpt(s,2) + this%vcpr(s,2))
+                this%EinsteinTCond_pp_z(nmess) = (this%vcpt(s,3) + this%vcpr(s,3))
+              end if
             end do
 
             this%EinsteinTCondInt_x = simpson2(this%EinsteinTCond_x, tau , this%NCorr)
             this%EinsteinTCondInt_y = simpson2(this%EinsteinTCond_y, tau , this%NCorr)
             this%EinsteinTCondInt_z = simpson2(this%EinsteinTCond_z, tau , this%NCorr)
-            this%EinsteinTCondInt_kk_x = simpson2(this%EinsteinTCond_kk_x, tau , this%NCorr)
-            this%EinsteinTCondInt_kk_y = simpson2(this%EinsteinTCond_kk_y, tau , this%NCorr)
-            this%EinsteinTCondInt_kk_z = simpson2(this%EinsteinTCond_kk_z, tau , this%NCorr)
-            this%EinsteinTCondInt_pp_x = simpson2(this%EinsteinTCond_pp_x, tau , this%NCorr)
-            this%EinsteinTCondInt_pp_y = simpson2(this%EinsteinTCond_pp_y, tau , this%NCorr)
-            this%EinsteinTCondInt_pp_z = simpson2(this%EinsteinTCond_pp_z, tau , this%NCorr)
-            this%EinsteinTCondInt_kp_x = simpson1(this%EinsteinTCond_kk_x, this%EinsteinTCond_pp_x, tau , this%NCorr)
-            this%EinsteinTCondInt_kp_y = simpson1(this%EinsteinTCond_kk_y, this%EinsteinTCond_pp_y, tau , this%NCorr)
-            this%EinsteinTCondInt_kp_z = simpson1(this%EinsteinTCond_kk_z, this%EinsteinTCond_pp_z, tau , this%NCorr)
             this%EinsteinTCondInt =   this%EinsteinTCondInt_x + this%EinsteinTCondInt_y + this%EinsteinTCondInt_z
-            this%EinsteinTCondInt_kk =   this%EinsteinTCondInt_kk_x + this%EinsteinTCondInt_kk_y + this%EinsteinTCondInt_kk_z
-            this%EinsteinTCondInt_pp =   this%EinsteinTCondInt_pp_x + this%EinsteinTCondInt_pp_y + this%EinsteinTCondInt_pp_z
-            this%EinsteinTCondInt_kp =   2._RK* (this%EinsteinTCondInt_kp_x + this%EinsteinTCondInt_kp_y + this%EinsteinTCondInt_kp_z)
-            this%EinsteinTCondAve(:) = ( this%EinsteinTCondAve(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinTCondInt(:) )/this%EinsteinCoefAveCount
-            this%EinsteinTCondAve_kk(:) = ( this%EinsteinTCondAve_kk(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinTCondInt_kk(:) )/this%EinsteinCoefAveCount
-            this%EinsteinTCondAve_pp(:) = ( this%EinsteinTCondAve_pp(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinTCondInt_pp(:) )/this%EinsteinCoefAveCount
-            this%EinsteinTCondAve_kp(:) = ( this%EinsteinTCondAve_kp(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinTCondInt_kp(:) )/this%EinsteinCoefAveCount
 
+            if(ContributionMode .eq. Separation) then
+              this%EinsteinTCondInt_kk_x = simpson2(this%EinsteinTCond_kk_x, tau , this%NCorr)
+              this%EinsteinTCondInt_kk_y = simpson2(this%EinsteinTCond_kk_y, tau , this%NCorr)
+              this%EinsteinTCondInt_kk_z = simpson2(this%EinsteinTCond_kk_z, tau , this%NCorr)
+              this%EinsteinTCondInt_pp_x = simpson2(this%EinsteinTCond_pp_x, tau , this%NCorr)
+              this%EinsteinTCondInt_pp_y = simpson2(this%EinsteinTCond_pp_y, tau , this%NCorr)
+              this%EinsteinTCondInt_pp_z = simpson2(this%EinsteinTCond_pp_z, tau , this%NCorr)
+              this%EinsteinTCondInt_kp_x = simpson1(this%EinsteinTCond_kk_x, this%EinsteinTCond_pp_x, tau , this%NCorr)
+              this%EinsteinTCondInt_kp_y = simpson1(this%EinsteinTCond_kk_y, this%EinsteinTCond_pp_y, tau , this%NCorr)
+              this%EinsteinTCondInt_kp_z = simpson1(this%EinsteinTCond_kk_z, this%EinsteinTCond_pp_z, tau , this%NCorr)
+              this%EinsteinTCondInt_kk =   this%EinsteinTCondInt_kk_x + this%EinsteinTCondInt_kk_y + this%EinsteinTCondInt_kk_z
+              this%EinsteinTCondInt_pp =   this%EinsteinTCondInt_pp_x + this%EinsteinTCondInt_pp_y + this%EinsteinTCondInt_pp_z
+              this%EinsteinTCondInt_kp =   2._RK* (this%EinsteinTCondInt_kp_x + this%EinsteinTCondInt_kp_y + this%EinsteinTCondInt_kp_z)
+            end if
+            this%EinsteinTCondAve(:) = ( this%EinsteinTCondAve(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinTCondInt(:) )/this%EinsteinCoefAveCount
+            if(ContributionMode .eq. Separation) then
+              this%EinsteinTCondAve_kk(:) = ( this%EinsteinTCondAve_kk(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinTCondInt_kk(:) )/this%EinsteinCoefAveCount
+              this%EinsteinTCondAve_pp(:) = ( this%EinsteinTCondAve_pp(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinTCondInt_pp(:) )/this%EinsteinCoefAveCount
+              this%EinsteinTCondAve_kp(:) = ( this%EinsteinTCondAve_kp(:)*(this%EinsteinCoefAveCount-1) + this%EinsteinTCondInt_kp(:) )/this%EinsteinCoefAveCount
+            end if
             helpvar =  1._RK/6._RK* this%Density/ ( this%NPart * this%Temperature* this%Temperature)
             this%TCondEinsteinCurrent = this%EinsteinTCondInt(this%NCorr)*helpvar
-            this%TCondEinsteinCurrent_kk = this%EinsteinTCondInt_kk(this%NCorr)*helpvar
-            this%TCondEinsteinCurrent_pp = this%EinsteinTCondInt_pp(this%NCorr)*helpvar
-            this%TCondEinsteinCurrent_kp = this%EinsteinTCondInt_kp(this%NCorr)*helpvar
+            if(ContributionMode .eq. Separation) then
+              this%TCondEinsteinCurrent_kk = this%EinsteinTCondInt_kk(this%NCorr)*helpvar
+              this%TCondEinsteinCurrent_pp = this%EinsteinTCondInt_pp(this%NCorr)*helpvar
+              this%TCondEinsteinCurrent_kp = this%EinsteinTCondInt_kp(this%NCorr)*helpvar
+            end if
 
             !Update
             do i=1, this%NComponents
@@ -20788,13 +21211,16 @@ end if
             end if
 
             call Update (this%EinsteinShearAcc, this%ShearEinsteinCurrent, this%EinsteinCoefAveCount)
-            call Update (this%EinsteinShear_kk_Acc, this%ShearEinsteinCurrent_kk, this%EinsteinCoefAveCount)
-            call Update (this%EinsteinShear_pp_Acc, this%ShearEinsteinCurrent_pp, this%EinsteinCoefAveCount)
-            call Update (this%EinsteinShear_kp_Acc, this%ShearEinsteinCurrent_kp, this%EinsteinCoefAveCount)
             call Update (this%EinsteinTCondAcc, this%TCondEinsteinCurrent, this%EinsteinCoefAveCount)
-            call Update (this%EinsteinTCond_kk_Acc, this%TCondEinsteinCurrent_kk, this%EinsteinCoefAveCount)
-            call Update (this%EinsteinTCond_pp_Acc, this%TCondEinsteinCurrent_pp, this%EinsteinCoefAveCount)
-            call Update (this%EinsteinTCond_kp_Acc, this%TCondEinsteinCurrent_kp, this%EinsteinCoefAveCount)
+
+            if(ContributionMode .eq. Separation) then
+              call Update (this%EinsteinShear_kk_Acc, this%ShearEinsteinCurrent_kk, this%EinsteinCoefAveCount)
+              call Update (this%EinsteinShear_pp_Acc, this%ShearEinsteinCurrent_pp, this%EinsteinCoefAveCount)
+              call Update (this%EinsteinShear_kp_Acc, this%ShearEinsteinCurrent_kp, this%EinsteinCoefAveCount)            
+              call Update (this%EinsteinTCond_kk_Acc, this%TCondEinsteinCurrent_kk, this%EinsteinCoefAveCount)
+              call Update (this%EinsteinTCond_pp_Acc, this%TCondEinsteinCurrent_pp, this%EinsteinCoefAveCount)
+              call Update (this%EinsteinTCond_kp_Acc, this%TCondEinsteinCurrent_kp, this%EinsteinCoefAveCount)
+            end if
         end if ! end Average
 
         do i = 1, this%NComponents !save ri0_E(t0)
@@ -21533,6 +21959,18 @@ if( RootProc .and. this%CorrfunMode ) then
       do i = 1, this%NCorr
         write( restartFile%iounit, '(ES20.12E3)' ) this%average_cf_c(i)
       end do
+
+      if(ContributionMode .eq. Separation) then
+        do i = 1, this%NCorr
+          write( restartFile%iounit, '(ES20.12E3)' ) this%average_cf_c_kk(i)
+        end do
+        do i = 1, this%NCorr
+          write( restartFile%iounit, '(ES20.12E3)' ) this%average_cf_c_pp(i)
+        end do
+        do i = 1, this%NCorr
+          write( restartFile%iounit, '(ES20.12E3)' ) this%average_cf_c_kp(i)
+        end do
+      end if
     end if  
 
     do i = 1, this%NCorr
@@ -21543,6 +21981,18 @@ if( RootProc .and. this%CorrfunMode ) then
       do i = 1, this%NCorr
         write( restartFile%iounit, '(ES20.12E3)' )  this%average_cf_vs(i)
       end do
+
+      if(ContributionMode .eq. Separation) then
+        do i = 1, this%NCorr
+          write( restartFile%iounit, '(ES20.12E3)' )  this%average_cf_vs_kk(i)
+        end do
+        do i = 1, this%NCorr
+          write( restartFile%iounit, '(ES20.12E3)' )  this%average_cf_vs_pp(i)
+        end do
+        do i = 1, this%NCorr
+          write( restartFile%iounit, '(ES20.12E3)' )  this%average_cf_vs_kp(i)
+        end do
+      end if
     end if
 
     do i = 1, this%NCorr
@@ -21614,12 +22064,22 @@ if( RootProc .and. this%CorrfunMode ) then
 
     if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
       call RestartSave( this%SumVisco_s, .true. )
+      if(ContributionMode .eq. Separation) then
+        call RestartSave( this%SumVisco_s_kk, .true. )
+        call RestartSave( this%SumVisco_s_pp, .true. )
+        call RestartSave( this%SumVisco_s_kp, .true. )
+      end if
     end if
 
     call RestartSave( this%SumVisco_b, .true. )
     
     if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
       call RestartSave( this%SumConduct, .true. )
+      if(ContributionMode .eq. Separation) then
+        call RestartSave( this%SumConduct_kk, .true. )
+        call RestartSave( this%SumConduct_pp, .true. )
+        call RestartSave( this%SumConduct_kp, .true. )
+      end if
     end if
 
     call RestartSave( this%SumEConduct,.true. )
@@ -21711,69 +22171,76 @@ if( RootProc .and. this%CorrfunMode ) then
           write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_z(i)
         end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kk_x(i)
-        end do
+        if(ContributionMode .eq. Separation) then
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kk_y(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kk_x(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kk_z(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kk_y(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_pp_x(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kk_z(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_pp_y(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_pp_x(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_pp_z(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_pp_y(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kp_x(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_pp_z(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kp_y(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kp_x(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kp_z(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kp_y(i)
+          end do
+
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kp_z(i)
+          end do
+        end if
 
         do i = 1, this%NCorr
           write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShearAve(i)
         end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShearAve_kk(i)
-        end do
+        if(ContributionMode .eq. Separation) then
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShearAve_kk(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShearAve_pp(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShearAve_pp(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShearAve_kp(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShearAve_kp(i)
+          end do
+        end if
 
         call RestartSave( this%EinsteinShearAcc, .true.)
         write(  restartFile%iounit, '((ES20.12E3))' ) this%ShearEinsteinCurrent
 
-        call RestartSave( this%EinsteinShear_kk_Acc, .true.)
-        write(  restartFile%iounit, '((ES20.12E3))' ) this%ShearEinsteinCurrent_kk        
+        if(ContributionMode .eq. Separation) then
+          call RestartSave( this%EinsteinShear_kk_Acc, .true.)
+          write(  restartFile%iounit, '((ES20.12E3))' ) this%ShearEinsteinCurrent_kk        
 
-        call RestartSave( this%EinsteinShear_pp_Acc, .true.)
-        write(  restartFile%iounit, '((ES20.12E3))' ) this%ShearEinsteinCurrent_pp
+          call RestartSave( this%EinsteinShear_pp_Acc, .true.)
+          write(  restartFile%iounit, '((ES20.12E3))' ) this%ShearEinsteinCurrent_pp
 
-        call RestartSave( this%EinsteinShear_kp_Acc, .true.)
-        write(  restartFile%iounit, '((ES20.12E3))' ) this%ShearEinsteinCurrent_kp  
+          call RestartSave( this%EinsteinShear_kp_Acc, .true.)
+          write(  restartFile%iounit, '((ES20.12E3))' ) this%ShearEinsteinCurrent_kp  
+        end if 
 
         do i = 1, this%NCorr
           write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_x(i)
@@ -21787,69 +22254,75 @@ if( RootProc .and. this%CorrfunMode ) then
           write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_z(i)
         end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kk_x(i)
-        end do
+        if(ContributionMode .eq. Separation) then
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kk_x(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kk_y(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kk_y(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kk_z(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kk_z(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_pp_x(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_pp_x(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_pp_y(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_pp_y(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_pp_z(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_pp_z(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kp_x(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kp_x(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kp_y(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kp_y(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kp_z(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kp_z(i)
+          end do
+        end if
 
         do i = 1, this%NCorr
           write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCondAve(i)
         end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCondAve_kk(i)
-        end do
+        if(ContributionMode .eq. Separation) then
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCondAve_kk(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCondAve_pp(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCondAve_pp(i)
+          end do
 
-        do i = 1, this%NCorr
-          write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCondAve_kp(i)
-        end do
+          do i = 1, this%NCorr
+            write( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCondAve_kp(i)
+          end do
+        end if
 
         call RestartSave( this%EinsteinTCondAcc, .true.)
         write(  restartFile%iounit, '((ES20.12E3))' )  this%TCondEinsteinCurrent
 
-        call RestartSave( this%EinsteinTCond_kk_Acc, .true.)
-        write(  restartFile%iounit, '((ES20.12E3))' )  this%TCondEinsteinCurrent_kk
+        if(ContributionMode .eq. Separation) then
+          call RestartSave( this%EinsteinTCond_kk_Acc, .true.)
+          write(  restartFile%iounit, '((ES20.12E3))' )  this%TCondEinsteinCurrent_kk
 
-        call RestartSave( this%EinsteinTCond_pp_Acc, .true.)
-        write(  restartFile%iounit, '((ES20.12E3))' )  this%TCondEinsteinCurrent_pp
+          call RestartSave( this%EinsteinTCond_pp_Acc, .true.)
+          write(  restartFile%iounit, '((ES20.12E3))' )  this%TCondEinsteinCurrent_pp
 
-        call RestartSave( this%EinsteinTCond_kp_Acc, .true.)
-        write(  restartFile%iounit, '((ES20.12E3))' )  this%TCondEinsteinCurrent_kp
+          call RestartSave( this%EinsteinTCond_kp_Acc, .true.)
+          write(  restartFile%iounit, '((ES20.12E3))' )  this%TCondEinsteinCurrent_kp
+        end if
     end if
  endif
 #endif
@@ -22531,6 +23004,17 @@ if( RootProc .and. this%CorrfunMode ) then
         do i = 1, this%NCorr
           read( restartFile%iounit, '(ES20.12E3)' ) this%average_cf_c(i)
         end do
+        if(ContributionMode .eq. Separation) then
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '(ES20.12E3)' ) this%average_cf_c_kk(i)
+          end do
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '(ES20.12E3)' ) this%average_cf_c_pp(i)
+          end do
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '(ES20.12E3)' ) this%average_cf_c_kp(i)
+          end do
+        end if
       end if
 
       do i = 1, this%NCorr
@@ -22541,6 +23025,17 @@ if( RootProc .and. this%CorrfunMode ) then
         do i = 1, this%NCorr
           read( restartFile%iounit, '(ES20.12E3)' )  this%average_cf_vs(i)
         end do
+        if(ContributionMode .eq. Separation) then
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '(ES20.12E3)' )  this%average_cf_vs_kk(i)
+          end do
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '(ES20.12E3)' )  this%average_cf_vs_pp(i)
+          end do
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '(ES20.12E3)' )  this%average_cf_vs_kp(i)
+          end do
+        end if  
       end if
 
       do i = 1, this%NCorr
@@ -22611,10 +23106,20 @@ if( RootProc .and. this%CorrfunMode ) then
 
       if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
         call RestartRead( this%SumVisco_s )
+        if(ContributionMode .eq. Separation) then
+          call RestartRead( this%SumVisco_s_kk )
+          call RestartRead( this%SumVisco_s_pp )
+          call RestartRead( this%SumVisco_s_kp )
+        end if
       end if
       call RestartRead( this%SumVisco_b )
       if ((TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
         call RestartRead( this%SumConduct )
+        if(ContributionMode .eq. Separation) then
+          call RestartRead( this%SumConduct_kk )
+          call RestartRead( this%SumConduct_pp )
+          call RestartRead( this%SumConduct_kp )
+        end if
       end if
       call RestartRead( this%SumEConduct)
 
@@ -22704,69 +23209,75 @@ if( RootProc .and. this%CorrfunMode ) then
             read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_z(i)
         end do
 
-        do i = 1, this%NCorr
+        if(ContributionMode .eq. Separation) then
+          do i = 1, this%NCorr
             read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kk_x(i)
-        end do
+          end do
 
-        do i = 1, this%NCorr
+          do i = 1, this%NCorr
             read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kk_y(i)
-        end do
+          end do
 
-        do i = 1, this%NCorr
+          do i = 1, this%NCorr
             read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kk_z(i)
-        end do
+         end do
 
-        do i = 1, this%NCorr
+          do i = 1, this%NCorr
             read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_pp_x(i)
-        end do
+          end do
 
-        do i = 1, this%NCorr
+          do i = 1, this%NCorr
             read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_pp_y(i)
-        end do
+          end do
 
-        do i = 1, this%NCorr
+          do i = 1, this%NCorr
             read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_pp_z(i)
-        end do
+          end do
 
-        do i = 1, this%NCorr
+          do i = 1, this%NCorr
             read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kp_x(i)
-        end do
+          end do
 
-        do i = 1, this%NCorr
+          do i = 1, this%NCorr
             read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kp_y(i)
-        end do
+          end do
 
-        do i = 1, this%NCorr
+          do i = 1, this%NCorr
             read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShear_kp_z(i)
-        end do
+          end do
+        end if
 
         do i = 1, this%NCorr
             read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShearAve(i)
         end do
 
-        do i = 1, this%NCorr
+        if(ContributionMode .eq. Separation) then
+          do i = 1, this%NCorr
             read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShearAve_kk(i)
-        end do
+          end do
 
-        do i = 1, this%NCorr
+          do i = 1, this%NCorr
             read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShearAve_pp(i)
-        end do
+          end do
 
-        do i = 1, this%NCorr
+          do i = 1, this%NCorr
             read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinShearAve_kp(i)
-        end do
+          end do
+        end if
 
         call RestartRead( this%EinsteinShearAcc, .true.)
         read( restartFile%iounit, '((ES20.12E3))' )     this%ShearEinsteinCurrent
 
-        call RestartRead( this%EinsteinShear_kk_Acc, .true.)
-        read( restartFile%iounit, '((ES20.12E3))' )     this%ShearEinsteinCurrent_kk
+        if(ContributionMode .eq. Separation) then
+          call RestartRead( this%EinsteinShear_kk_Acc, .true.)
+          read( restartFile%iounit, '((ES20.12E3))' )     this%ShearEinsteinCurrent_kk
 
-        call RestartRead( this%EinsteinShear_pp_Acc, .true.)
-        read( restartFile%iounit, '((ES20.12E3))' )     this%ShearEinsteinCurrent_pp
+          call RestartRead( this%EinsteinShear_pp_Acc, .true.)
+          read( restartFile%iounit, '((ES20.12E3))' )     this%ShearEinsteinCurrent_pp
 
-        call RestartRead( this%EinsteinShear_kp_Acc, .true.)
-        read( restartFile%iounit, '((ES20.12E3))' )     this%ShearEinsteinCurrent_kp
+          call RestartRead( this%EinsteinShear_kp_Acc, .true.)
+          read( restartFile%iounit, '((ES20.12E3))' )     this%ShearEinsteinCurrent_kp
+        end if
 
         do i = 1, this%NCorr
           read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_x(i)
@@ -22780,69 +23291,75 @@ if( RootProc .and. this%CorrfunMode ) then
           read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_z(i)
         end do
 
-        do i = 1, this%NCorr
-          read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kk_x(i)
-        end do
+        if(ContributionMode .eq. Separation) then
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kk_x(i)
+          end do
 
-        do i = 1, this%NCorr
-          read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kk_y(i)
-        end do
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kk_y(i)
+          end do
 
-        do i = 1, this%NCorr
-          read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kk_z(i)
-        end do
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kk_z(i)
+          end do
 
-        do i = 1, this%NCorr
-          read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_pp_x(i)
-        end do
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_pp_x(i)
+          end do
 
-        do i = 1, this%NCorr
-          read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_pp_y(i)
-        end do
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_pp_y(i)
+          end do
 
-        do i = 1, this%NCorr
-          read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_pp_z(i)
-        end do
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_pp_z(i)
+          end do
 
-        do i = 1, this%NCorr
-          read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kp_x(i)
-        end do
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kp_x(i)
+          end do
 
-        do i = 1, this%NCorr
-          read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kp_y(i)
-        end do
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kp_y(i)
+          end do
 
-        do i = 1, this%NCorr
-          read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kp_z(i)
-        end do
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCond_kp_z(i)
+          end do
+        end if
 
         do i = 1, this%NCorr
           read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCondAve(i)
         end do
 
-        do i = 1, this%NCorr
-          read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCondAve_kk(i)
-        end do
+        if(ContributionMode .eq. Separation) then
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCondAve_kk(i)
+          end do
 
-        do i = 1, this%NCorr
-          read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCondAve_pp(i)
-        end do
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCondAve_pp(i)
+          end do
 
-        do i = 1, this%NCorr
-          read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCondAve_kp(i)
-        end do
+          do i = 1, this%NCorr
+            read( restartFile%iounit, '((ES20.12E3))' )  this%EinsteinTCondAve_kp(i)
+          end do
+        end if
 
         call RestartRead( this%EinsteinTCondAcc, .true.)
         read( restartFile%iounit, '((ES20.12E3))' )  this%TCondEinsteinCurrent
 
-        call RestartRead( this%EinsteinTCond_kk_Acc, .true.)
-        read( restartFile%iounit, '((ES20.12E3))' )  this%TCondEinsteinCurrent_kk
+        if(ContributionMode .eq. Separation) then
+          call RestartRead( this%EinsteinTCond_kk_Acc, .true.)
+          read( restartFile%iounit, '((ES20.12E3))' )  this%TCondEinsteinCurrent_kk
 
-        call RestartRead( this%EinsteinTCond_pp_Acc, .true.)
-        read( restartFile%iounit, '((ES20.12E3))' )  this%TCondEinsteinCurrent_pp
+          call RestartRead( this%EinsteinTCond_pp_Acc, .true.)
+          read( restartFile%iounit, '((ES20.12E3))' )  this%TCondEinsteinCurrent_pp
 
-        call RestartRead( this%EinsteinTCond_kp_Acc, .true.)
-        read( restartFile%iounit, '((ES20.12E3))' )  this%TCondEinsteinCurrent_kp
+          call RestartRead( this%EinsteinTCond_kp_Acc, .true.)
+          read( restartFile%iounit, '((ES20.12E3))' )  this%TCondEinsteinCurrent_kp
+        end if
       end if
     end if
 #endif
@@ -25763,7 +26280,7 @@ contains
 !$OMP&   private (i,j,j0,j1,j2,k,l,nc,nmess,np,np1,np2,qi,qj,s)          &
 !$OMP&   shared  (this,cfindex,econductivity,npart,npart2,sxindex,       &
 !$OMP&            syindex,szindex,tempf,unitcharge,virf,CFtmp,           &
-!$OMP&            BoxLength_dt,Sindex,Bulkviscosity, TransMethod)        &
+!$OMP&            BoxLength_dt,Sindex,Bulkviscosity, TransMethod, ContributionMode)        &
 !$OMP&   private (sx,sy,sz,ss)
 
 
@@ -25830,6 +26347,11 @@ contains
 &                                                   this%vsp(CFindex, k)*this%vsp(s, k) + &
 &                                                   this%vsk(CFindex, k)*this%vsp(s, k) + &
 &                                                   this%vsp(CFindex, k)*this%vsk(s, k)
+            if(ContributionMode .eq. Separation) then
+              this%cf_vs_kk(nmess) = this%cf_vs_kk(nmess) + this%vsk(CFindex, k)*this%vsk(s, k)
+              this%cf_vs_pp(nmess) = this%cf_vs_pp(nmess) + this%vsp(CFindex, k)*this%vsp(s, k)
+              this%cf_vs_kp(nmess) = this%cf_vs_kp(nmess) + this%vsp(CFindex, k)*this%vsk(s, k) + this%vsk(CFindex, k)*this%vsp(s, k)
+            end if
           end if
 
           ! bulk viscosity
@@ -25870,6 +26392,37 @@ contains
 &                                                  this%vcmt(CFindex, k)*this%vckr(s, k) - &
 &                                                  this%vcmt(CFindex, k)*this%vcpr(s, k) + &
 &                                                  this%vcmt(CFindex, k)*this%vcmt(s, k)
+            if(ContributionMode .eq. Separation) then
+              this%cf_c_kk(nmess) = this%cf_c_kk(nmess) + this%vckt(CFindex, k)*this%vckt(s, k) + &
+&                                                          this%vckt(CFindex, k)*this%vckr(s, k) + &
+&                                                          this%vckr(CFindex, k)*this%vckt(s, k) + &
+&                                                          this%vckr(CFindex, k)*this%vckr(s, k) + &
+&                                                          this%vcmt(CFindex, k)*this%vcmt(s, k)
+
+              ! 2) Translational (vcpt) and Rotational (vcpr) terms
+              this%cf_c_pp(nmess) = this%cf_c_pp(nmess) + this%vcpt(CFindex, k)*this%vcpt(s, k) + &
+&                                                         this%vcpt(CFindex, k)*this%vcpr(s, k) + &
+&                                                         this%vcpr(CFindex, k)*this%vcpt(s, k) + &
+&                                                         this%vcpr(CFindex, k)*this%vcpr(s, k)
+
+              ! 3) Mixed terms between vckt/vckr and vcpt/vcpr
+              this%cf_c_kp(nmess) = this%cf_c_kp(nmess) + this%vckt(CFindex, k)*this%vcpt(s, k) + &
+&                                                         this%vckt(CFindex, k)*this%vcpr(s, k) + &
+&                                                         this%vckr(CFindex, k)*this%vcpt(s, k) + &
+&                                                         this%vckr(CFindex, k)*this%vcpr(s, k) + &
+&                                                         this%vcpt(CFindex, k)*this%vckt(s, k) + &
+&                                                         this%vcpr(CFindex, k)*this%vckt(s, k) + &
+&                                                         this%vcpt(CFindex, k)*this%vckr(s, k) + &
+&                                                         this%vcpr(CFindex, k)*this%vckr(s, k) - &
+&                                                         this%vckt(CFindex, k)*this%vcmt(s, k) - &
+&                                                         this%vckr(CFindex, k)*this%vcmt(s, k) - &
+&                                                         this%vcpt(CFindex, k)*this%vcmt(s, k) - &
+&                                                         this%vcpr(CFindex, k)*this%vcmt(s, k) - &
+&                                                         this%vcmt(CFindex, k)*this%vckt(s, k) - &
+&                                                         this%vcmt(CFindex, k)*this%vckr(s, k) - &
+&                                                         this%vcmt(CFindex, k)*this%vcpt(s, k) - &
+&                                                         this%vcmt(CFindex, k)*this%vcpr(s, k)    
+            end if
           end if
         end do !k = 1, 3
 
@@ -25883,7 +26436,21 @@ contains
 &                                                                (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
 &                                                                (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
 &                                                                (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)))
-         end if
+          if(ContributionMode .eq. Separation) then
+            this%cf_vs_kk(nmess) = this%cf_vs_kk(nmess) + (1._RK/4._RK)* ((this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
+&                                                                        (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)))
+
+            this%cf_vs_pp(nmess) = this%cf_vs_pp(nmess) + (1._RK/4._RK)* ((this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
+&                                                                        (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)))
+
+
+            this%cf_vs_kp(nmess) = this%cf_vs_kp(nmess) + (1._RK/4._RK)* ((this%vbk(CFindex, 1)-this%vbk(CFindex, 2))*(this%vbp(s, 1)-this%vbp(s, 2)) + &
+&                                                                        (this%vbp(CFindex, 1)-this%vbp(CFindex, 2))*(this%vbk(s, 1)-this%vbk(s, 2)) + &
+&                                                                        (this%vbk(CFindex, 2)-this%vbk(CFindex, 3))*(this%vbp(s, 2)-this%vbp(s, 3)) + &
+&                                                                        (this%vbp(CFindex, 2)-this%vbp(CFindex, 3))*(this%vbk(s, 2)-this%vbk(s, 3)))
+
+          end if
+        end if
 
          !Thermal diffusivity
          if (this%Ncomponents .gt. 1) then
@@ -25943,6 +26510,14 @@ contains
         end do
         this%average_cf_vs(:)= (this%average_cf_vs(:) + this%cf_vs(:))
         this%average_cf_c(:) = (this%average_cf_c(:) + this%cf_c(:))
+        if(ContributionMode .eq. Separation) then
+          this%average_cf_vs_kk(:)= (this%average_cf_vs_kk(:) + this%cf_vs_kk(:))
+          this%average_cf_vs_pp(:)= (this%average_cf_vs_pp(:) + this%cf_vs_pp(:))
+          this%average_cf_vs_kp(:)= (this%average_cf_vs_kp(:) + this%cf_vs_kp(:))
+          this%average_cf_c_kk(:) = (this%average_cf_c_kk(:) + this%cf_c_kk(:))
+          this%average_cf_c_pp(:) = (this%average_cf_c_pp(:) + this%cf_c_pp(:))
+          this%average_cf_c_kp(:) = (this%average_cf_c_kp(:) + this%cf_c_kp(:))
+        end if
       end if
 
       this%average_cf_vb(:)= (this%average_cf_vb(:) + this%cf_vb(:))
@@ -26035,6 +26610,22 @@ contains
       this%average_sinte_vs = simpson( this%average_cf_vs(:)/this%average_cf_vs(1), this%TimeStepCorr, this%NCorr)
       this%average_sinte_vs = this%average_sinte_vs(:)*this%average_cf_vs(1)*helpvar/this%Mmess
       this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
+      if(ContributionMode .eq. Separation) then
+         this%sinte_vs_kk = simpson( this%cf_vs_kk(:)/this%cf_vs_kk(1), this%TimeStepCorr, this%NCorr )
+        this%average_sinte_vs_kk = simpson( this%average_cf_vs_kk(:)/this%average_cf_vs_kk(1), this%TimeStepCorr, this%NCorr)
+        this%average_sinte_vs_kk = this%average_sinte_vs_kk(:)*this%average_cf_vs_kk(1)*helpvar/this%Mmess
+        this%visco_s_kk = this%sinte_vs_kk( this%NCorr ) * this%cf_vs_kk(1) * helpvar
+
+        this%sinte_vs_pp = simpson( this%cf_vs_pp(:)/this%cf_vs_pp(1), this%TimeStepCorr, this%NCorr )
+        this%average_sinte_vs_pp = simpson( this%average_cf_vs_pp(:)/this%average_cf_vs_pp(1), this%TimeStepCorr, this%NCorr)
+        this%average_sinte_vs_pp = this%average_sinte_vs_pp(:)*this%average_cf_vs_pp(1)*helpvar/this%Mmess
+        this%visco_s_pp = this%sinte_vs_pp( this%NCorr ) * this%cf_vs_pp(1) * helpvar
+
+        this%sinte_vs_kp = simpson( this%cf_vs_kp(:)/this%cf_vs_kp(1), this%TimeStepCorr, this%NCorr )
+        this%average_sinte_vs_kp = simpson( this%average_cf_vs_kp(:)/this%average_cf_vs_kp(1), this%TimeStepCorr, this%NCorr)
+        this%average_sinte_vs_kp = this%average_sinte_vs_kp(:)*this%average_cf_vs_kp(1)*helpvar/this%Mmess
+        this%visco_s_kp = this%sinte_vs_kp( this%NCorr ) * this%cf_vs_kp(1) * helpvar
+      end if 
 
       ! Thermal Conductivity    
       helpvar = this%Density*Third/this%NPart
@@ -26043,6 +26634,32 @@ contains
         this%average_sinte_c = simpson( this%average_cf_c(:)/this%average_cf_c(1),this%TimeStepCorr, this%NCorr)
         this%average_sinte_c = this%average_sinte_c(:)*this%average_cf_c(1)*(helpvar/this%Mmess)
         this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * helpvar
+      end if
+      if(ContributionMode .eq. Separation) then
+        if (abs(this%cf_c_kk(1)) .gt. 1e-15) then 
+          this%sinte_c_kk = simpson( this%cf_c_kk(:)/this%cf_c_kk(1), this%TimeStepCorr, this%NCorr )
+          this%average_sinte_c_kk = simpson( this%average_cf_c_kk(:)/this%average_cf_c_kk(1),this%TimeStepCorr, this%NCorr)
+          this%average_sinte_c_kk = this%average_sinte_c_kk(:)*this%average_cf_c_kk(1)*(helpvar/this%Mmess)
+          this%conduct_kk = this%sinte_c_kk( this%NCorr ) * this%cf_c_kk(1) * helpvar
+        end if
+      end if
+
+      if(ContributionMode .eq. Separation) then
+        if(abs(this%cf_c_pp(1)) .gt. 1e-15) then
+          this%sinte_c_pp = simpson( this%cf_c_pp(:)/this%cf_c_pp(1), this%TimeStepCorr, this%NCorr )
+          this%average_sinte_c_pp = simpson( this%average_cf_c_pp(:)/this%average_cf_c_pp(1),this%TimeStepCorr, this%NCorr)
+          this%average_sinte_c_pp = this%average_sinte_c_pp(:)*this%average_cf_c_pp(1)*(helpvar/this%Mmess)
+          this%conduct_pp = this%sinte_c_pp( this%NCorr ) * this%cf_c_pp(1) * helpvar
+        end if
+      end if
+
+      if(ContributionMode .eq. Separation) then
+        if (abs(this%cf_c_kp(1)) .gt. 1e-15) then
+          this%sinte_c_kp = simpson( this%cf_c_kp(:)/this%cf_c_kp(1), this%TimeStepCorr, this%NCorr )
+          this%average_sinte_c_kp = simpson( this%average_cf_c_kp(:)/this%average_cf_c_kp(1),this%TimeStepCorr, this%NCorr)
+          this%average_sinte_c_kp = this%average_sinte_c_kp(:)*this%average_cf_c_kp(1)*(helpvar/this%Mmess)
+          this%conduct_kp = this%sinte_c_kp( this%NCorr ) * this%cf_c_kp(1) * helpvar
+        end if
       end if
     end if
 

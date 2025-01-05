@@ -347,7 +347,6 @@ module ms2_global
   character(*), parameter :: IdALPHA2UpdateFrequency       = 'ALPHA2Freq' !Alpha2 correlation function
   character(*), parameter :: IdALPHA2Length                = 'ALPHA2Length'
   character(*), parameter :: IdALPHA2Shift                 = 'ALPHA2Span'
-  !character(*), parameter :: IdEinsteinCoefCalc            = 'EinsteinCoefCalc' !EinsteinCoefN
   character(*), parameter :: IdTransMethod                 = 'TransMethod'
   character(*), parameter :: IdNBinsDen                    = 'NumDenBins'
   character(*), parameter :: IdWallForce                   = 'Wallforce'
@@ -410,7 +409,7 @@ module ms2_global
   character(*), parameter :: IdRCutoffCOM                  = 'Cutoff'
   character(*), parameter :: IdRCutoffMIEnmMIEnm           = 'CutoffMIE'
   character(*), parameter :: IdRCutoffTT                   = 'CutoffTT'
-  character(*), parameter :: IdRCutoffEATM                   = 'CutoffEATM'
+  character(*), parameter :: IdRCutoffEATM                 = 'CutoffEATM'
   character(*), parameter :: IdRCutoffDipoleDipole         = 'CutoffDD'
   character(*), parameter :: IdRCutoffDipoleQuadrupole     = 'CutoffDQ'
   character(*), parameter :: IdRCutoffQuadrupoleQuadrupole = 'CutoffQQ'
@@ -430,6 +429,7 @@ module ms2_global
   character(*), parameter :: IdNStepcf                     = 'StepsCorrfun'
   character(*), parameter :: IdSpancf                      = 'SpanCorrfun'
   character(*), parameter :: IdNviewcf                     = 'ViewCorrfun'
+  character(*), parameter :: IdSeparation                  = 'ContributionMode'
 
   character(*), parameter :: IdMolecule_mass               = 'TotalMass'
 
@@ -647,7 +647,13 @@ module ms2_global
   integer, parameter :: GreenKubo     = 1
   integer, parameter :: Einstein      = 2
   integer, parameter :: GKEinstein    = 3
-  integer            :: TransMEthod
+  integer            :: TransMethod
+
+  character(80)      :: TransportSepString
+  integer, parameter :: Separation     = 1
+  integer, parameter :: Together       = 2
+  integer            :: ContributionMode
+
 
   ! Type of method for chemical potential
   integer, parameter :: ChemPotMethodNone    = 0
