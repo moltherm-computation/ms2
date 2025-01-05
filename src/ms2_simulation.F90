@@ -1287,9 +1287,31 @@ contains
             TransportString = 'GKEinstein'
             write( IOBuffer, '("Method for transport: ", A)' ) trim( TransportString )
             call LogWrite
-         case default
-           call Error( 'Unknown transport properties ('//trim(IdCorrFun)//'='//trim(str)//')' )
+        case default
+            call Error( 'Unknown transport properties ('//trim(IdTransMEthod)//'='//trim(str)//')' )
       end select
+
+! Read if separation is required
+      call FileReadParameter( str, paramsFile%iounit , IdSeparation, .true., "SEP" )
+      select case( str )
+        case( 'Separation', 'contribution', 'split', 'SEPARATION', 'separation', 'yes', 'ja')
+            ContributionMode = Separation
+            TransportSepString = 'Separation'
+            write( IOBuffer, '("transport: ", A)' ) trim( TransportSepString )
+            call LogWrite
+        case( 'Normal', 'none', 'NO', 'no', 'NONE', 'NORMAL', 'regular', 'together')
+            ContributionMode = Together
+            TransportSepString = 'Together'
+            write( IOBuffer, '("transport will be calculated: ", A)' ) trim( TransportSepString )
+            call LogWrite
+        case default
+            ContributionMode = Together    
+            TransportSepString = 'Together'
+            write( IOBuffer, '("transport will be calculated: ", A)' ) trim( TransportSepString )
+            call LogWrite
+      end select
+
+
 #endif
 
 #if MPI_VER > 0
