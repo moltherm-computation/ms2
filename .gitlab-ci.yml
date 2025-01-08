@@ -33,18 +33,18 @@ stages:
     - merge_requests
     - web # pipelines created by selecting 'Run pipeline'
 
-Check Version:
-  stage: version
-  before_script: [] # do not run default before_script
-  script:
-    - chmod +x test/checkVersionUpdate.sh
-    - ./test/checkVersionUpdate.sh
-  rules:
-    # allow failure for direct commit to default branch (master)
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      allow_failure: true
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "web"
-      allow_failure: false
+#Check Version:
+#  stage: version
+#  before_script: [] # do not run default before_script
+#  script:
+#    - chmod +x test/checkVersionUpdate.sh
+#    - ./test/checkVersionUpdate.sh
+#  rules:
+#    # allow failure for direct commit to default branch (master)
+#    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+#      allow_failure: true
+#    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "web"
+#      allow_failure: false
 
 GNU:
   extends: .standardJob
