@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 4.0                !
-!  (c) 2020 by TU Kaiserslautern / TU Berlin                   !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 5.0                !
+!  (c) 2025 by RPTU Kaiserslautern / TU Berlin                 !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -1295,13 +1295,11 @@ contains
     call FileWrite(file)
     write( IOBuffer, '("* ------------------------------------------------------------------------ *")')
     call FileWrite(file)
-    write( IOBuffer, '("* R. Fingerhut, G. Guevara-Carrion, I. Nitzke, D. Saric, J. Marx,          *")')
+    write( IOBuffer, '("* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *")')
     call FileWrite(file)
-    write( IOBuffer, '("* K. Langenbach, S. Prokopev, D. Celny, M. Bernreuther, S. Stephan,        *")')
+    write( IOBuffer, '("* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *")')
     call FileWrite(file)
-    write( IOBuffer, '("* M. Kohns, H. Hasse, J. Vrabec                                            *")')
-    call FileWrite(file)
-    write( IOBuffer, '("* Computer Physics Communications (2020)                                   *")')
+    write( IOBuffer, '("* Computer Physics Communications (2025)                                   *")')
     call FileWrite(file)
     write( IOBuffer, '(76("="))')
     call FileWrite(file)

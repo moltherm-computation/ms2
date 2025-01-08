@@ -1,6 +1,6 @@
 !==============================================================!
-!  MOLECULAR SIMULATION PROGRAM ms2 Version 4.0                !
-!  (c) 2020 by TU Kaiserslautern / TU Berlin                   !
+!  MOLECULAR SIMULATION PROGRAM ms2 Version 5.0                !
+!  (c) 2025 by RPTU Kaiserslautern / TU Berlin                 !
 !      P.O. Box 67653                                          !
 !      67653 Kaiserslautern                                    !
 !==============================================================!
@@ -10,7 +10,7 @@
 
 module ms2_version
 
-  character(*), parameter :: VersionString = '4.125'
-  real(4)                :: ms2VersionNr = 4.125
+  character(*), parameter :: VersionString = '5.000'
+  real(4)                :: ms2VersionNr = 5.000
 
 end module ms2_version 
