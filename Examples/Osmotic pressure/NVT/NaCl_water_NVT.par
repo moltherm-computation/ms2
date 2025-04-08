@@ -1,0 +1,60 @@
+#
+# MS2 Parameterfile created with ms2par
+#
+
+#
+# General simulation parameters
+#
+Units       =       SI
+LengthUnit  =       3.5
+EnergyUnit  =       100.0
+MassUnit    =       60.0
+Simulation  =       MD
+Integrator  =       Gear
+TimeStep    =       0.35E-3
+Ensemble    =       NVT
+NVTSteps    =       7000000
+RunSteps    =       10000000
+ResultFreq  =       1000
+ErrorsFreq  =       4000
+NumDenBins  =       160
+CutoffMode  =       COM
+LongRange   =       Ewald
+Kappa       =       5.6
+NsqMax      =       27
+NVecMax     =       1000
+NMax        =       5
+NEnsembles  =       1
+
+#
+# Ensemble 1
+#
+Temperature =       298.15
+Density     =       56.098570172
+NParticles  =       4000
+NComponents =       3
+
+PotModel    =       H2O_V.pm
+MolarFract  =       0.99
+Permeability=	    on
+
+PotModel    =       Na_1+_XXVII.pm
+MolarFract  =       0.005
+Permeability=	    off
+
+PotModel    =       Cl_1-_XXVIII.pm
+MolarFract  =       0.005
+Permeability=	    off
+
+
+eta         =       1.0
+xi          =       1.0
+
+eta         =       1.0
+xi          =       1.0
+
+eta         =       1.0
+xi          =       1.0
+
+Cutoff      =       6.0
+Epsilon     =       1.0E10

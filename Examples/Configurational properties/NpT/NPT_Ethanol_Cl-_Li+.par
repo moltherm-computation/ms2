@@ -1,0 +1,59 @@
+#
+# MS2 Parameterfile created with ms2par
+#
+
+#
+# General simulation parameters
+#
+Units        =       SI
+LengthUnit   =       3.5
+EnergyUnit   =       100.0
+MassUnit     =       40.0
+Simulation   =       MD
+Integrator   =       Gear
+TimeStep     =       0.5E-03
+Ensemble     =       NPT
+MCORSteps    =       200
+NVTSteps     =       150000
+NPTSteps     =       200000
+RunSteps     =       2000000
+ResultFreq   =       1000
+ErrorsFreq   =       5000
+CutoffMode   =       COM
+LongRange    =       Ewald
+Kappa	     =       5.6
+NsqMax	     =       27
+NMax	     =       5
+NVecMax	     =       1000
+NEnsembles   =       1
+#
+# Ensemble 1
+#
+Temperature  =       298.15
+Pressure     =       0.1
+Density      =       17.76075
+PistonMass   =       5.0E-4
+NParticles   =       1000
+NComponents  =       3
+NumShells    =       704
+
+PotModel     =       C2H6O_IV.pm
+MolarFract   =       0.996
+
+PotModel     =       Cl_1-_X.pm
+MolarFract   =       0.002
+
+PotModel     =       Li_1+_IX.pm
+MolarFract   =       0.002
+
+eta          =       1.0
+xi           =       1.0
+
+eta          =       1.0
+xi           =       1.0
+
+eta          =       1.0
+xi           =       1.0
+
+Cutoff       =       6
+Epsilon      =       1.0E10

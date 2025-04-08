@@ -1,0 +1,88 @@
+#
+# General simulation parameters
+#
+Units       =       SI
+LengthUnit  =       3.50
+EnergyUnit  =       100.0
+MassUnit    =       40.0
+Simulation  =       MD
+Integrator  =       Gear
+TimeStep    =       0.5E-3
+Ensemble    =       NPT
+NVTSteps    =       750000
+NPTSteps    =       750000
+RunSteps    =       1500000
+ResultFreq  =       1000
+ErrorsFreq  =       5000
+VisualFreq  =       0
+CutoffMode  =       COM
+LongRange   =       Ewald
+Kappa       =       5.6
+NsqMax      =       27
+NVecMax     =       1000
+NMax        =       5
+NEnsembles  =       2
+
+#
+# Ensemble 1
+#
+Temperature = 298.15 
+Pressure    = 0.1
+Density     = 50
+PistonMass  = 5.0E-4
+NParticles  = 8000
+NComponents = 3
+
+
+PotModel    = H2O_XI.pm
+MoleFract  = 0.999
+
+PotModel    = K_1+_XIII.pm
+MoleFract  = 0.0005
+
+PotModel    = NO3_1-_I.pm
+MoleFract  = 0.0005
+
+eta         = 1.0
+xi          = 1.0
+
+eta         = 1.0
+xi          = 1.0
+
+eta         = 1.0
+xi          = 1.0
+
+Cutoff      = 4.0
+Epsilon     = 1.0E10
+
+#
+# Ensemble 2
+#
+Temperature = 298.15 
+Pressure    = 0.1
+Density     = 50
+PistonMass  = 5.0E-4
+NParticles  = 8000
+NComponents = 3
+
+
+PotModel    = H2O_XI.pm
+MoleFract  = 0.998
+
+PotModel    = K_1+_XIII.pm
+MoleFract  = 0.001
+
+PotModel    = NO3_1-_I.pm
+MoleFract  = 0.001
+
+eta         = 1.0
+xi          = 1.0
+
+eta         = 1.0
+xi          = 1.0
+
+eta         = 1.0
+xi          = 1.0
+
+Cutoff      = 4.0
+Epsilon     = 1.0E10
