@@ -264,6 +264,7 @@ contains
     integer :: j1, j2, j3
     integer :: stat
     real    :: fac
+    real    :: scaleRC_shifted
 
 
     ! RFConst2
@@ -361,7 +362,13 @@ contains
 
     ! Set squared cutoff radius
     if( RCutoffMIEnmMIEnm > 0 ) then
+#if SHIFTED == 1
+      ! LB mixing rule; assuming that all components consist of only one site
+      scaleRC_shifted = .5_RK * (Component1%Molecule%SiteMIEnm(1)%sig + Component2%Molecule%SiteMIEnm(1)%sig)
+      this%RCutoffSquared = (RCutoffMIEnmMIEnm*scaleRC_shifted)**2
+#else
       this%RCutoffSquared = RCutoffMIEnmMIEnm**2
+#endif
     endif
     if( RCutoffTT > 0 ) then
       this%RCutoffSquared = RCutoffTT**2
@@ -397,9 +404,15 @@ contains
       call AllocationError( stat, 'sites', this%N1MIEnm + this%N2MIEnm )
       do j1 = 1, this%N1MIEnm
         do j2 = 1, this%N2MIEnm
+#if SHIFTED == 1
+          call Construct( this%PotMIEnmMIEnm(j1, j2), &
+&              i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
+&              (RCutoffMIEnmMIEnm*scaleRC_shifted), ScaleSigma, ScaleEpsilon )
+#else
           call Construct( this%PotMIEnmMIEnm(j1, j2), &
 &              i1, i2, j1, j2, Component1%Molecule, Component2%Molecule, &
 &              RCutoffMIEnmMIEnm, ScaleSigma, ScaleEpsilon )
+#endif
 
           this%PotMIEnmMIEnm(j1, j2)%NInCutoff => this%NInCutoff
           this%PotMIEnmMIEnm(j1, j2)%CutoffPartner => this%CutoffPartner
