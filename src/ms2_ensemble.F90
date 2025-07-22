@@ -6174,8 +6174,9 @@ xloop:do i = 1, NCells1dim(1)
     type(TEnsemble) :: this
 
     ! Declare local variables
+    integer  :: r, s
     integer  :: nc, np, ndf, N_min
-    integer  :: i, j, k, l, r, s, p
+    integer  :: i, k
     real(RK) :: rx, sx, tx
     real(RK) :: diffpressure
     real(RK) :: EPot, d2EdV2, Virial
@@ -6183,132 +6184,21 @@ xloop:do i = 1, NCells1dim(1)
     ! Zero number of MC attempts and successes
     if( Step == 1 ) call ZeroNAttempts( this )
 
-    if ( OpenSystem ) then 
-      j = 2 !0.1*this%NPartInitial
-    else
-      j = 0
-    end if
-
-    p = 1
-
     ! Outer loop
-    do i = 1, this%NDF / 3 + j + p
+    do i = 1, this%NDF / 3
 
       ! Choose particle randomly
       s = 0
-      r = rnd( this%NDF + j + p )
+      r = rnd( this%NDF )
 
-      if ( r <= this%NDF ) then
-loop1:  do nc = 1, this%NComponents
-          s = s + this%Component(nc)%NDF
-          if( r <= s ) exit loop1
-        end do loop1
+loop1:do nc = 1, this%NComponents
+        s = s + this%Component(nc)%NDF
+        if( r <= s ) exit loop1
+      end do loop1
 
-        call moveOrRotateParticle(this, nc, s, r)
-
-      elseif ( r >= (this%NDF + j) ) then
-
-        ! Resize simulation box
-        if( ConstantPressure .and. .not. NVTEquilibration ) then
-          call Resize( this )
-          ! Check whether cutoff radius is too large
-          if( this%RCutoffMax2 > this%BoxLength ) this%NRCutoffMax = this%NRCutoffMax + 1
-        end if
-
-        ! Calculate pressure
-        this%Pressure = this%Density * this%Temperature + this%Virial / this%Volume0
-
-      elseif( OpenSystem ) then
-
-        if( .not. NVTEquilibration ) then
-  
-          ! Attempt inserts and deletes
-          ! Prevent insertion of ions - look at Gibbs Ensemble - Particle Transfer
-  
-          k = 1
-          ! Update chemical potentials
-          diffpressure = ( this%Pressure - this%RefPressure ) / this%Temperature
-          do nc = 1, this%NComponents
-            call UpdateChemPot( this%Component(nc), diffpressure )
-          end do
-  
-          if ( (EnsembleType .eq. EnsembleTypeMUVL) .or. (EnsembleType .eq. EnsembleTypeMUPR) ) then
-            do l = 1, k
-              sx = 0._RK
-              rx = rnd( 0._RK, 1._RK )
-              tx = rnd( 0._RK, 1._RK )
-  
-loop2:          do nc = 1, this%NComponents
-                sx = sx + this%Component(nc)%Fraction
-                if( tx <= sx ) exit loop2
-              end do loop2
-              if ( (rx < 0.5_RK) ) then
-                call Insert_Adiabatic( this, nc )
-              else
-                s = 0._RK
-                r = rnd( this%NPart )
-  
-loop3:            do nc = 1, this%NComponents
-                  s = s + this%Component(nc)%NPart
-                  if( r <= s ) exit loop3
-                end do loop3
-  
-                np = 1 + s - r
-                call Delete_Adiabatic( this, nc, np )
-              end if
-            end do
-  
-          else   ! MUVT or MUPT
-            N_min = this%Density * ( 2*this%RCutoffMIEnmMIEnm)**3
-            do l = 1, k
-              sx = 0._RK
-              rx = rnd( 0._RK, 1._RK )
-              tx = rnd( 0._RK, 1._RK )
-  
-loop4:          do nc = 1, this%NComponents
-                sx = sx + this%Component(nc)%Fraction
-                if( rx <= sx ) exit loop4
-              end do loop4
-              if ( (tx < 0.5_RK) .and. (this%Npart < this%NPartMax) ) then 
-                call Insert( this, nc )
-              else if( this%NPart > N_min ) then
-                s = 0._RK
-                r = rnd( this%NPart )
-  
-loop5:            do nc = 1, this%NComponents
-                  s = s + this%Component(nc)%NPart
-                  if( r <= s ) exit loop5
-                end do loop5
-  
-                np = 1 + s - r
-                call Delete( this, nc, np )
-              end if
-            end do
-          end if
-  
-        end if
-  
-      elseif( EnsembleType .eq. EnsembleTypeHA ) then
-  
-        if( .not. NVTEquilibration ) then
-          ! Attempt inserts and deletes on phase changing component (first one)
-          do l = 1, 2
-            if( rnd( 0._RK, 1._RK ) < this%Component(1)%Fraction ) call Insert( this, 1 )
-            np = rnd( this%NPart )
-            if( np <= this%Component(1)%NPart ) call Delete( this, 1, np )
-          end do
-  
-        end if
-  
-      ! else
-  
-      !   ! Calculate chemical potential
-      !   call ChemicalPotential( this )
-  
-      end if
+      call moveOrRotateParticle(this, nc, s, r)
 
     end do
-
 
     ! Calculate potential energy and virial
 #if MPI_VER > 0
@@ -6328,15 +6218,104 @@ loop5:            do nc = 1, this%NComponents
     call Energy( this, this%EPot, this%d2EpotdV2, this%Virial )
 #endif
 
-    ! ! Resize simulation box
-    ! if( ConstantPressure .and. .not. NVTEquilibration ) then
-    !   call Resize( this )
-    !   ! Check whether cutoff radius is too large
-    !   if( this%RCutoffMax2 > this%BoxLength ) this%NRCutoffMax = this%NRCutoffMax + 1
-    ! end if
+    ! Resize simulation box
+    if( ConstantPressure .and. .not. NVTEquilibration ) then
+      call Resize( this )
+      ! Check whether cutoff radius is too large
+      if( this%RCutoffMax2 > this%BoxLength ) this%NRCutoffMax = this%NRCutoffMax + 1
+    end if
 
     ! Calculate pressure
     this%Pressure = this%Density * this%Temperature + this%Virial / this%Volume0
+
+    if( OpenSystem ) then
+
+      if( .not. NVTEquilibration ) then
+
+        ! Attempt inserts and deletes
+        ! Prevent insertion of ions - look at Gibbs Ensemble - Particle Transfer
+
+        k = 2
+        ! Update chemical potentials
+        diffpressure = ( this%Pressure - this%RefPressure ) / this%Temperature
+        do nc = 1, this%NComponents
+          call UpdateChemPot( this%Component(nc), diffpressure )
+        end do
+
+        if ( (EnsembleType .eq. EnsembleTypeMUVL) .or. (EnsembleType .eq. EnsembleTypeMUPR) ) then
+          do i = 1, k
+            sx = 0._RK
+            rx = rnd( 0._RK, 1._RK )
+            tx = rnd( 0._RK, 1._RK )
+
+loop2:      do nc = 1, this%NComponents
+              sx = sx + this%Component(nc)%Fraction
+              if( tx <= sx ) exit loop2
+            end do loop2
+            if ( (rx < 0.5_RK) ) then
+              call Insert_Adiabatic( this, nc )
+            else
+              s = 0._RK
+              r = rnd( this%NPart )
+
+loop3:        do nc = 1, this%NComponents
+                s = s + this%Component(nc)%NPart
+                if( r <= s ) exit loop3
+              end do loop3
+
+              np = 1 + s - r
+              call Delete_Adiabatic( this, nc, np )
+            end if
+          end do
+
+        else   ! MUVT or MUPT
+          N_min = this%Density * ( 2*this%RCutoffMIEnmMIEnm)**3
+          do i = 1, k
+            sx = 0._RK
+            rx = rnd( 0._RK, 1._RK )
+            tx = rnd( 0._RK, 1._RK )
+
+loop4:      do nc = 1, this%NComponents
+              sx = sx + this%Component(nc)%Fraction
+              if( rx <= sx ) exit loop4
+            end do loop4
+            if ( (tx < 0.5_RK) .and. (this%Npart < this%NPartMax) ) then 
+              call Insert( this, nc )
+            else if( this%NPart > N_min ) then
+              s = 0._RK
+              r = rnd( this%NPart )
+
+loop5:        do nc = 1, this%NComponents
+                s = s + this%Component(nc)%NPart
+                if( r <= s ) exit loop5
+              end do loop5
+
+              np = 1 + s - r
+              call Delete( this, nc, np )
+            end if
+          end do
+        end if
+
+      end if
+
+    elseif( EnsembleType .eq. EnsembleTypeHA ) then
+
+      if( .not. NVTEquilibration ) then
+        ! Attempt inserts and deletes on phase changing component (first one)
+        do i = 1, 2
+          if( rnd( 0._RK, 1._RK ) < this%Component(1)%Fraction ) call Insert( this, 1 )
+          np = rnd( this%NPart )
+          if( np <= this%Component(1)%NPart ) call Delete( this, 1, np )
+        end do
+
+      end if
+
+    else
+
+      ! Calculate chemical potential
+      call ChemicalPotential( this )
+
+    end if
 
 #if HBOND > 0
     call HBonding(this)
