@@ -13785,7 +13785,7 @@ componentLoop:       do i = 1, this%NRealComponents
 
     end if
 
-    if( EnsembleType .eq. EnsembleTypeNPT .and. LongRange .eq. Rfield ) then
+    if( (EnsembleType .eq. EnsembleTypeNPT .or. Ensembletype .eq. EnsembletypeNPTSVC) .and. LongRange .eq. Rfield ) then
       ! Separator
       write( IOBuffer, '(76("="))' )
       call FileWrite(this%errorsFile)
