@@ -13,7 +13,7 @@ ifeq ($(MPI), 1) # if MPI is active
     # Get the first (major) version number, e.g. 5 from 5.4.0
     MAJORGCCVERSION = $(shell echo $(GCCVERSION) | cut -f1 -d.)
 
-    ifneq ($(filter $(MAJORGCCVERSION),10 11),)
+    ifneq ($(filter $(MAJORGCCVERSION),10 11 12 13 14),)
         # version is 10.* or 11.*
 
         ifndef MPI_USE_MODULE # MPI module is not explicitly set
