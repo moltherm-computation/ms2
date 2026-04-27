@@ -15,9 +15,9 @@ default:
   before_script:
     - cd src
     - if [ $COMPILER == 'COMPILER=INTEL' ]; then module load mpi compiler ;fi
-    - if [ $COMPILER == 'COMPILER=INTEL' ]; then ifort --version; mpiifort --version; else gfortran --version; mpif90 --version ;fi
+    - if [ $COMPILER == 'COMPILER=INTEL' ]; then ifx --version; mpiifx --version; else gfortran --version; mpif90 --version ;fi
     - if [ $MPI == 'MPI=1' ]; then mpirun --version; fi
-    - if [ $COMPILER == 'COMPILER=INTEL' ]; then sed 's!mpif90!mpiifort!g' makefiles/INTEL.mk -i; fi
+    - if [ $COMPILER == 'COMPILER=INTEL' ]; then sed 's!mpif90!mpiifx!g' makefiles/INTEL.mk -i; fi
   after_script:
     - if [ $COMPILER == 'COMPILER=INTEL' ]; then module unload mpi compiler ;fi
 
