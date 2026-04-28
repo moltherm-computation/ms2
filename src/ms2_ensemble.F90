@@ -26224,6 +26224,14 @@ contains
          end do
          this%cf_vs(:) = 0._RK
          this%cf_c(:)  = 0._RK
+         if(ContributionMode .eq. Separation) then
+            this%cf_vs_kk(:) = 0._RK
+            this%cf_vs_kp(:) = 0._RK
+            this%cf_vs_pp(:) = 0._RK
+            this%cf_c_kk(:)  = 0._RK
+            this%cf_c_kp(:)  = 0._RK
+            this%cf_c_pp(:)  = 0._RK
+         end if 
        end if
        
        this%cf_vb(:) = 0._RK
@@ -26610,7 +26618,8 @@ contains
       this%average_sinte_vs = this%average_sinte_vs(:)*this%average_cf_vs(1)*helpvar/this%Mmess
       this%visco_s = this%sinte_vs( this%NCorr ) * this%cf_vs(1) * helpvar
       if(ContributionMode .eq. Separation) then
-         this%sinte_vs_kk = simpson( this%cf_vs_kk(:)/this%cf_vs_kk(1), this%TimeStepCorr, this%NCorr )
+        helpvar =  this%Density /(5._RK *this%NPart * this%Temperature)
+        this%sinte_vs_kk = simpson( this%cf_vs_kk(:)/this%cf_vs_kk(1), this%TimeStepCorr, this%NCorr )
         this%average_sinte_vs_kk = simpson( this%average_cf_vs_kk(:)/this%average_cf_vs_kk(1), this%TimeStepCorr, this%NCorr)
         this%average_sinte_vs_kk = this%average_sinte_vs_kk(:)*this%average_cf_vs_kk(1)*helpvar/this%Mmess
         this%visco_s_kk = this%sinte_vs_kk( this%NCorr ) * this%cf_vs_kk(1) * helpvar
@@ -26635,7 +26644,8 @@ contains
         this%conduct = this%sinte_c( this%NCorr ) * this%cf_c(1) * helpvar
       end if
       if(ContributionMode .eq. Separation) then
-        if (abs(this%cf_c_kk(1)) .gt. 1e-15) then 
+        if (abs(this%cf_c_kk(1)) .gt. 1e-15) then
+          helpvar = this%Density*Third/this%NPart
           this%sinte_c_kk = simpson( this%cf_c_kk(:)/this%cf_c_kk(1), this%TimeStepCorr, this%NCorr )
           this%average_sinte_c_kk = simpson( this%average_cf_c_kk(:)/this%average_cf_c_kk(1),this%TimeStepCorr, this%NCorr)
           this%average_sinte_c_kk = this%average_sinte_c_kk(:)*this%average_cf_c_kk(1)*(helpvar/this%Mmess)
@@ -26645,6 +26655,7 @@ contains
 
       if(ContributionMode .eq. Separation) then
         if(abs(this%cf_c_pp(1)) .gt. 1e-15) then
+          helpvar = this%Density*Third/this%NPart
           this%sinte_c_pp = simpson( this%cf_c_pp(:)/this%cf_c_pp(1), this%TimeStepCorr, this%NCorr )
           this%average_sinte_c_pp = simpson( this%average_cf_c_pp(:)/this%average_cf_c_pp(1),this%TimeStepCorr, this%NCorr)
           this%average_sinte_c_pp = this%average_sinte_c_pp(:)*this%average_cf_c_pp(1)*(helpvar/this%Mmess)
@@ -26654,6 +26665,7 @@ contains
 
       if(ContributionMode .eq. Separation) then
         if (abs(this%cf_c_kp(1)) .gt. 1e-15) then
+          helpvar = this%Density*Third/this%NPart
           this%sinte_c_kp = simpson( this%cf_c_kp(:)/this%cf_c_kp(1), this%TimeStepCorr, this%NCorr )
           this%average_sinte_c_kp = simpson( this%average_cf_c_kp(:)/this%average_cf_c_kp(1),this%TimeStepCorr, this%NCorr)
           this%average_sinte_c_kp = this%average_sinte_c_kp(:)*this%average_cf_c_kp(1)*(helpvar/this%Mmess)
