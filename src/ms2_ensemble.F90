@@ -5437,10 +5437,8 @@ if (associated (this%EinsteinTCondInt_kk_x) ) then
 
     do i1 = 1, this%NComponents
       this%Component(i1)%EPotTestCorrMIE = 0._RK
-    end do
-
-    do i1 = 1, this%NComponents
       this%Component(i1)%EPotTestCorrTT = 0._RK
+      this%Component(i1)%EPotTestCorrRF = 0._RK
     end do
 
     ! Calculate MIE long-range corrections
