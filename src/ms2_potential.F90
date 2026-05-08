@@ -2291,8 +2291,8 @@ loop2:  do j = 1, N2
       Attr14 = C14 * RijInv8 * RijInv6 * F14
       Attr16 = C16 * RijInv10 * RijInv6 * F16
 
-      this%EPot_aux = Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
-      this%EPot_aux = this%EPot_aux * RijSquared
+      TTExt_CC = Rep - Attr6 - Attr8 - Attr10 - Attr12 - Attr14 - Attr16
+      this%EPot_aux = TTExt_CC * RijSquared
 
       ! 1st derivative
 
