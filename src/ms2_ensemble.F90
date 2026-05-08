@@ -12452,117 +12452,86 @@ componentLoop:       do i = 1, this%NRealComponents
 &       .and. (mod((Step + this%NStepCorr -1), (this%NSpanCF*this%NStepCorr)) == 0) ) then
 
       rewind( this%rescfFile%iounit )
-      write( IOBuffer, '("  TIME[ps]")' )
-      call FileWriteNoAdvance(this%rescfFile)
+      call write_col(this, 'TIME[ps]', '(A10)')
 
       if ( (TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
         if(this%Ncomponents>1)then
           do i=1,this%NComponents*this%NComponents
-            write( IOBuffer, '(T10, "L_ij_",I1)')i
-            call FileWriteNoAdvance(this%rescfFile)
+            call write_col_i( this, 'L_ij_', i, '(A15, I1)')
           end do
         end if
 
         do i = 1, this%NComponents
-          write( IOBuffer, '(T10,"D_i_",I2)')i
-          call FileWriteNoAdvance(this%rescfFile)
+          call write_col_i( this, 'D_i_', i, '(A14, I0.2)')
         end do
 
-        write( IOBuffer, '(T13,"ShV")')
-        call FileWriteNoAdvance(this%rescfFile)
-
+        call write_col(this, 'ShV', '(A16)')
         if(ContributionMode .eq. Separation) then
-          write( IOBuffer, '(T13,"ShVk")')
-          call FileWriteNoAdvance(this%rescfFile)
-          write( IOBuffer, '(T13,"ShVp")')
-          call FileWriteNoAdvance(this%rescfFile)
-          write( IOBuffer, '(T13,"ShVkp")')
-          call FileWriteNoAdvance(this%rescfFile)
+          call write_col(this, 'ShVk', '(A16)')
+          call write_col(this, 'ShVp', '(A16)')
+          call write_col(this, 'ShVkp', '(A16)')
         end if
 
-        write( IOBuffer, '(T13,"TCond")')
-        call FileWriteNoAdvance(this%rescfFile)
-
+        call write_col(this, 'T_Cond', '(A16)')
         if(ContributionMode .eq. Separation) then
-          write( IOBuffer, '(T13,"TCondk")')
-          call FileWriteNoAdvance(this%rescfFile)
-          write( IOBuffer, '(T13,"TCondp")')
-          call FileWriteNoAdvance(this%rescfFile)
-          write( IOBuffer, '(T13,"TCondkp")')
-          call FileWriteNoAdvance(this%rescfFile)
+          call write_col(this, 'T_Condk', '(A16)')
+          call write_col(this, 'T_Condp', '(A16)')
+          call write_col(this, 'T_Condkp', '(A16)')
         end if
       end if
 
       if (this%Bulkviscosity) then
-        write( IOBuffer, '(T13,"Bulk_Vis")')
-        call FileWriteNoAdvance(this%rescfFile)
+        call write_col(this, 'Bulk_Vis', '(A16)')
       end if
 
       if(this%Ncomponents .gt. 1)then
         do i = 1, this%NComponents
-          write( IOBuffer, '(T10,"L_iQ_",I1)')i
-          call FileWriteNoAdvance(this%rescfFile)
+          call write_col_i( this, 'L_iQ_', i, '(A17, I1)')
         end do
       end if
 
       if (this%EConductivity) then
-        write( IOBuffer, '(T13,"El_Cond")')
-        call FileWriteNoAdvance(this%rescfFile)
+        call write_col(this, 'El_Cond', '(A16)')
       end if
 
       if ( (TransMethod .eq. GreenKubo) .or. (TransMethod .eq. GKEinstein)) then
         if( this%Ncomponents > 1 ) then
           do i=1,this%NComponents*this%NComponents
-            write( IOBuffer, '(T10,"Int_Lij_",I1)')i
-            call FileWriteNoAdvance(this%rescfFile)
+            call write_col_i( this, 'Int_Lij_', i, '(A15, I1)')
           end do
         end if
 
         do i = 1, this%NComponents
-          write( IOBuffer, '(T10,"IntD_i_",I2)')i
-          call FileWriteNoAdvance(this%rescfFile)
+          call write_col_i( this, 'IntD_i_', i, '(A14, I0.2)')
         end do
 
-        write( IOBuffer, '(T10,"IntShV")' )
-        call FileWriteNoAdvance(this%rescfFile)
-
+        call write_col(this, 'IntShV', '(A16)')
         if(ContributionMode .eq. Separation) then
-          write( IOBuffer, '(T10,"IntShVk")' )
-          call FileWriteNoAdvance(this%rescfFile)
-          write( IOBuffer, '(T10,"IntShVp")' )
-          call FileWriteNoAdvance(this%rescfFile)
-          write( IOBuffer, '(T10,"IntShVkp")' )
-          call FileWriteNoAdvance(this%rescfFile)
+          call write_col(this, 'IntShVk', '(A16)')
+          call write_col(this, 'IntShVp', '(A16)')
+          call write_col(this, 'IntShVkp', '(A16)')
         end if
 
-        write( IOBuffer, '(T10,"IntTCond")' )
-        call FileWriteNoAdvance(this%rescfFile)
-
+        call write_col(this, 'IntTCond', '(A16)')
         if(ContributionMode .eq. Separation) then
-          write( IOBuffer, '(T10,"IntTCondk")' )
-          call FileWriteNoAdvance(this%rescfFile)
-          write( IOBuffer, '(T10,"IntTCondp")' )
-          call FileWriteNoAdvance(this%rescfFile)
-          write( IOBuffer, '(T10,"IntTCondkp")' )
-          call FileWriteNoAdvance(this%rescfFile)
+          call write_col(this, 'IntTCondk', '(A16)')
+          call write_col(this, 'IntTCondp', '(A16)')
+          call write_col(this, 'IntTCondkp', '(A16)')
         end if
       end if
 
       if (this%Bulkviscosity) then
-        write( IOBuffer, '(T10,"Int_Bulk_Vis.")' )
-        call FileWriteNoAdvance(this%rescfFile)
+        call write_col(this, 'Int_Bulk_Vis', '(A16)')
       end if
 
       if (this%NComponents .gt. 1 ) then
         do i = 1, this%NComponents
-          write( IOBuffer, '(T10,"Int_L_iQ_",I1)')i
-          call FileWriteNoAdvance(this%rescfFile)
+          call write_col_i( this, 'Int_L_iQ_', i, '(A15, I1)')
         end do
       end if
 
       if (this%EConductivity) then
-        write( IOBuffer, '(T9,"Int_El_Cond.")' )
-        call FileWriteNoAdvance(this%rescfFile)
+        call write_col(this, 'Int_El_Cond', '(A16)')
       end if
 
       call FileWriteBlank(this%rescfFile)
@@ -12750,6 +12719,27 @@ componentLoop:       do i = 1, this%NRealComponents
 #endif
 
   end subroutine TEnsemble_ResultUpdate
+
+  subroutine write_col(this, str, fmt)
+
+    type(TEnsemble) :: this
+    character(*), intent(in) :: str, fmt
+
+    write(IOBuffer, fmt) str
+    call FileWriteNoAdvance(this%rescfFile)
+
+  end subroutine write_col
+
+  subroutine write_col_i(this, str, i, fmt)
+
+    type(TEnsemble) :: this
+    character(*), intent(in) :: str, fmt
+    integer, intent(in) :: i
+
+    write(IOBuffer, fmt) str, i
+    call FileWriteNoAdvance(this%rescfFile)
+
+  end subroutine
 
 
 
