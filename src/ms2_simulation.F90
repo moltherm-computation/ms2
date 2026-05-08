@@ -1260,7 +1260,7 @@ contains
         this%Ensemble(:)%CorrFunMode = .false.
         str = 'No transport properties for any ensemble'
         call Error( 'Use a binary compiled without -DTRANS if you do not &
-&                    wish to calculate transport properties. If you do, set CorrFunMode = yes ' )
+&                    wish to calculate transport properties. If you do, set CorrfunMode = yes ' )
 
       case default
         call Error( 'Unknown transport properties ('//trim(IdCorrFun)//'='//trim(str)//')' )
@@ -1368,7 +1368,7 @@ contains
       if ( .not. ANY(this%Ensemble(:)%CorrFunMode) ) then
         str = 'No transport properties for any ensemble'
         call Error( 'Use a binary compiled without -DTRANS if you do not &
-&                    wish to calculate transport properties. If you do, set CorrFunMode = yes for one ensemble ' )
+&                    wish to calculate transport properties. If you do, set CorrfunMode = yes for one ensemble ' )
 
         write( IOBuffer, '("Transport properties:",T26, A)' ) trim(str)
         call LogWrite
