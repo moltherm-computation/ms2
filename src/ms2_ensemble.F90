@@ -1521,24 +1521,6 @@ contains
 #if  TRANS == 1
 
     call LogWriteBlank
-    if ( parVersionNr .ge. 2.0_RK ) then
-      call FileReadParameter( str , paramsFile%iounit , IdCorrFun, .false. , 'no' )
-      select case( str )
-
-      case( 'yes' , 'ok', 'ja' )
-        this%CorrFunMode = .true.
-        str = 'Include transport properties'
-
-      case( 'no', 'nein' )
-        this%CorrFunMode = .false.
-        str = 'No transport properties'
-
-      case default
-        call Error( 'Unknown transport properties ('//trim(IdCorrFun)//'='//trim(str)//')' )
-      end select
-      write( IOBuffer, '("Transport properties:",T26, A)' ) trim(str)
-      call LogWrite
-    endif
 
     ! Read correlation function
     if( this%CorrfunMode ) then

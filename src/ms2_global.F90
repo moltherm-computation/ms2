@@ -306,7 +306,6 @@ module ms2_global
 
   ! Define identifiers used in parameters file
   character(*), parameter :: IdOutputNameTag               = 'OutputNameTag'
-  character(*), parameter :: IdparVersionNr                = 'ms2Version'
   character(*), parameter :: IdWallTime                    = 'WallTime'
   character(*), parameter :: IdTimeLimit                   = 'TimeLimit'
   character(*), parameter :: IdUseReducedUnits             = 'Units'
@@ -542,9 +541,6 @@ module ms2_global
   real(8)             :: BuckinghamsInSI
   real(RK)            :: kForceOsmoticPressure
 
-
-  ! Version of the parameter file
-  real(RK) :: parVersionNr
 
   ! Walltime settings
   integer :: max_time

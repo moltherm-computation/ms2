@@ -296,10 +296,6 @@ contains
       write( IOBuffer, '("Restarting ",A," using ",A,"_*",A," files")' ) &
 &            trim( ParameterFileName ),trim(OutputNameTag),RestartFileExtension
       call LogWrite
-
-    else
-      write( IOBuffer, '("Using parameters from file: ", A)' ) trim( ParameterFileName )
-      call LogWrite
     end if
 
 #else
@@ -329,29 +325,12 @@ contains
     call LogWrite
     write( IOBuffer, '(72(1H*))')
     call LogWrite
-    write( IOBuffer, '("Parameter file name: ", A)' ) trim( ParameterFileName )
-    call LogWrite
 
 #if ARCH != 1 && ARCH != 2 && ARCH != 3
     call FileClose( configFile%iounit )
 #endif
-!    call LogWriteBlank
 
-    ! Open parameter file for reading
     call FileReset(paramsFile, trim(ParameterFileName) )
-    ! Read parVersionNr
-    call FileReadParameter( parVersionNr, paramsFile%iounit , IdparVersionNr, .true., 1.0_RK )
-    if ( parVersionNr .lt. 0 ) then
-      write( IOBuffer, '("Remark: No ms2-version given within your parameter file - unable to check")' )
-      call LogWrite
-    else
-      write( IOBuffer, '("File created with/for ms2-version: ",T38, F6.3)' ) parVersionNr
-      call LogWrite
-      if ( parVersionNr .lt. ms2VersionNr ) then
-        write( IOBuffer, '("Hint: Your ms2-version is newer than your parameter file, consider updating it.")' )
-        call LogWrite
-      endif
-    end if
     call LogWriteBlank
     write( IOBuffer, '(72(1H-))')
     call LogWrite
@@ -529,12 +508,7 @@ contains
         ! Time step
         call FileReadParameter( TimeStep, paramsFile%iounit , IdTimeStep, .true., 5.0E-4_RK )
         if (.not. UseReducedUnits ) then
-          if ( parVersionNr .ge. 2.0_RK ) then
-            TimeStep = TimeStep / UnitTime
-          else
-            write( IOBuffer, '("WARNING: Time step in SI-Units was not implemented for your version of the par-file.")' )
-            call LogWrite
-          endif
+          TimeStep = TimeStep / UnitTime
         endif
         write( IOBuffer, '("Time step: ",T26, F9.6, " fs")' ) TimeStep * UnitTime * 1E15_RK
         call LogWrite
@@ -1248,7 +1222,6 @@ contains
 #if  TRANS == 1
 
     ! Read correlation function mode
-    if ( parVersionNr .lt. 2.0_RK ) then
       call FileReadParameter( str , paramsFile%iounit , IdCorrFun, .true. , 'no' )
       select case( str )
 
@@ -1267,7 +1240,6 @@ contains
       end select
       write( IOBuffer, '("Transport properties:",T26, A)' ) trim(str)
       call LogWrite
-    endif
 
       !Read Transport Method
       call FileReadParameter( str, paramsFile%iounit , IdTransMethod, .true., "GK" )
@@ -1360,20 +1332,6 @@ contains
       end if
       call MPI_Barrier( MPI_COMM_WORLD, ierror )
     end do
-#endif
-
-#if  TRANS == 1
-    ! Read correlation function mode
-    if ( parVersionNr .ge. 2.0_RK ) then
-      if ( .not. ANY(this%Ensemble(:)%CorrFunMode) ) then
-        str = 'No transport properties for any ensemble'
-        call Error( 'Use a binary compiled without -DTRANS if you do not &
-&                    wish to calculate transport properties. If you do, set CorrfunMode = yes for one ensemble ' )
-
-        write( IOBuffer, '("Transport properties:",T26, A)' ) trim(str)
-        call LogWrite
-      endif
-    endif
 #endif
 
   ! Close parameter file
