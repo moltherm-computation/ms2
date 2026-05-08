@@ -21054,14 +21054,23 @@ end if
         this%EinsteinCoefTimeStep(k) = this%EinsteinCoefTimeStep(k)+1
     end do !end  do k=0,l
 
-    do i=1, this%NComponents
-        this%DselfEinsteinCurrent(i) = this%DselfEinstein(this%EinsteinCoefTimeStep(j)-1,j, i)
-    end do
-    if (this%NComponents > 1) then
-        do i = 1, this%NComponents
-            do q = 1, this%NComponents
-                this%OnsagerEinsteinCurrent(i,q) = this%OnsagerEinstein (this%EinsteinCoefTimeStep(j)-1, j, i, q)
-            end do
+    if (this%EinsteinCoefTimeStep(j) > 1) then
+        do i=1, this%NComponents
+            this%DselfEinsteinCurrent(i) = this%DselfEinstein(this%EinsteinCoefTimeStep(j)-1,j, i)
+            if (this%NComponents > 1) then
+                do q = 1, this%NComponents
+                    this%OnsagerEinsteinCurrent(i,q) = this%OnsagerEinstein (this%EinsteinCoefTimeStep(j)-1, j, i, q)
+                end do
+            end if
+        end do
+    else 
+        do i=1, this%NComponents
+            this%DselfEinsteinCurrent(i) = 0._RK
+            if (this%NComponents > 1) then
+                do q = 1, this%NComponents
+                    this%OnsagerEinsteinCurrent(i,q) = 0._RK
+                end do
+            end if
         end do
     end if
 
