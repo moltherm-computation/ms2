@@ -1503,10 +1503,6 @@ contains
     if ( SimulationType .ne. MonteCarlo ) call ProfileOpen(this )
 #endif
 
-#ifdef USE_PRINTPROCSTATUS
-    call printProcStatus("end of Construct")
-#endif
-
   end subroutine TSimulation_Construct
 
 
@@ -1524,10 +1520,6 @@ contains
 
     ! Declare local variables
     integer :: i
-
-#ifdef USE_PRINTPROCSTATUS
-    call printProcStatus("beginning of Destruct")
-#endif
 
     ! Close result and visualisation files
     call LogWriteBlank
@@ -1646,10 +1638,6 @@ contains
     character(255) :: hostnameStr
     logical :: multNodes
     logical :: AnyNPartOk = .false.
-#endif
-
-#ifdef USE_PRINTPROCSTATUS
-    call printProcStatus("beginning of Run")
 #endif
 
     tooManyParticles = .false.

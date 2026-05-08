@@ -13,8 +13,6 @@
 !* http://www.ms-2.de                                           *
 !****************************************************************
 
-!#define USE_PRINTPROCSTATUS
-
 #ifndef ARCH
 #define ARCH    0
 #define FORTRAN 90
@@ -1086,12 +1084,6 @@ module ms2_global
     module procedure Global_GetProcRange
   end interface
 
-#ifdef USE_PRINTPROCSTATUS
-  interface printProcStatus
-    module procedure Global_printProcStatus
-  end interface
-#endif
-
 !==============================================================!
 !  External (intrinsic) procedures                             !
 !==============================================================!
@@ -1767,10 +1759,6 @@ contains
     BuckinghamsInSI = sqrt( 1E69_RK / (4._RK * Pi * VacuumPermittivity) )
 #endif
 
-#ifdef USE_PRINTPROCSTATUS
-    call printProcStatus("end of InitializeProgram")
-#endif
-
   end subroutine Global_InitializeProgram
 
 
@@ -1786,10 +1774,6 @@ contains
     ! Include MPI header
 #if MPI_VER > 0 && !defined(MPI_USE_MODULE)
     include 'mpif.h'
-#endif
-
-#ifdef USE_PRINTPROCSTATUS
-    call printProcStatus("beginning of FinalizeProgram")
 #endif
 
     call LogWriteBlank
@@ -3265,102 +3249,5 @@ subroutine time_left(time_limit)
     end if
 
   end subroutine time_left
-
-
-#ifdef USE_PRINTPROCSTATUS
-!==============================================================!
-!  Subroutine Global_printprocStatus
-!==============================================================!
-
-subroutine Global_printprocStatus(tag_string)
-
-      implicit none
-
-#if MPI_VER > 0 && !defined(MPI_USE_MODULE)
-      ! Include MPI header
-      include 'mpif.h'
-#endif
-
-      ! Declare arguments
-      character(*), intent(in), optional :: tag_string
-
-      ! Declare local variables
-      character(*), parameter   :: procfilename = '/proc/self/status'
-      character(IOBufferLength) :: buffer,token,valbuffer
-      integer                   :: stat, linenr, seppos, i, val, nvalread
-      integer, parameter        :: numvalues = 3
-      character(*),parameter,dimension(numvalues) :: tokens = (/ &
-&                                                       "VmPeak" &
-&                                                      ,"VmSize" &
-&                                                      ,"VmRSS " &
-&                                                             /)
-      integer(8) values(numvalues)
-#if MPI_VER > 0
-      integer(8) values_minmaxsum(numvalues,3)
-#endif
-
-      open(unit=procFile%iounit, file=procfilename, action='read', iostat=stat)
-      !if ( stat /= 0 ) return  ! dangerous for MPI version if not all ranks do exit...
-
-      !linenr = 0
-      nvalread = 0
-      values=0
-
-      do ! endless loop
-        read(procFile%iounit, '(A)', iostat=stat) buffer
-        if (stat /= 0) exit  ! exit if nothing to read (EOF)
-        !linenr = linenr + 1
-        seppos=scan(buffer,': ')
-        token=trim(adjustl(buffer(1:seppos-1)))
-        valbuffer=trim(adjustl(buffer(seppos+1:)))
-        do i=1,numvalues
-          if ( trim(token) .eq. trim(tokens(i)) ) then
-            read(valbuffer,*,iostat=stat)  values(i)
-            !if (stat /= 0) continue
-            nvalread = nvalread + 1
-            if (index(valbuffer,'kB',.true.).gt.0) then
-              values(i)=values(i)*1024
-            end if
-            if (nvalread .ge. numvalues) exit  ! exit if all data already read
-          end if
-        end do
-      end do
-
-      close(procFile%iounit)
-
-      call LogWriteBlank
-      if( present( tag_string ) ) then
-        write( IOBuffer, '("( ",A," ",A)' ) trim(procfilename), trim(tag_string)
-      else
-        write( IOBuffer, '( "(",A)' ) trim(procfilename)
-      end if
-      call LogWriteTime
-#if MPI_VER > 0
-      values_minmaxsum(:,1)=-values
-      values_minmaxsum(:,2)=values
-      values_minmaxsum(:,3)=values
-      if ( RootProc_W ) then
-        call MPI_Reduce( MPI_IN_PLACE, values_minmaxsum, numvalues*2, MPI_INTEGER8, MPI_MAX, NRootProc_W, MPI_COMM_WORLD, ierror )
-      else
-        call MPI_Reduce( values_minmaxsum, values_minmaxsum, numvalues*2, MPI_INTEGER8, MPI_MAX, NRootProc_W, MPI_COMM_WORLD, ierror )
-      end if
-      call MPI_Reduce( values, values_minmaxsum(:,3), numvalues, MPI_INTEGER8, MPI_SUM, NRootProc_W, MPI_COMM_WORLD, ierror )
-      values_minmaxsum(:,1)=-values_minmaxsum(:,1)
-      do i=1,numvalues
-        write( IOBuffer, '(" ",A,"(min max sum):",3I20)' ) trim(tokens(i)),values_minmaxsum(i,:)
-        call LogWrite
-      end do
-#else
-      do i=1,numvalues
-        write( IOBuffer, '(" ",A,":",I16)' ) trim(tokens(i)),values(i)
-        call LogWrite
-      end do
-#endif
-      write( IOBuffer, '(") ",A)' ) trim(procfilename)
-      call LogWriteTime
-      call LogWriteBlank
-
-  end subroutine Global_printprocStatus
-#endif
 
 end module ms2_global
