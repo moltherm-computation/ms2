@@ -1,0 +1,72 @@
+#
+# MS2 Parameterfile created with ms2par
+#
+
+#
+# General simulation parameters
+#
+
+
+Units       =       SI
+LengthUnit  =       3.5
+EnergyUnit  =       100.0
+MassUnit    =       40.0
+Simulation  =       MC
+Acceptance  =       0.5
+Ensemble    =       NVT
+NVTSteps    =       5000
+RunSteps    =       200000
+ResultFreq  =       100
+ErrorsFreq  =       1000
+VisualFreq  =       0
+CutoffMode  =       COM
+NEnsembles  =       1
+RDFFreq     =       1
+
+#
+# Ensemble 1
+#
+Temperature = 383.15
+Density     = 10.76075
+NParticles  = 2048
+NComponents = 4
+NumShells   = 200
+
+PotModel    = ClBen5Q1D.pm
+MolarFract  = 0.4
+ChemPotMethod= none
+
+PotModel    = PhosgenRU.pm
+MolarFract  = 0.5
+ChemPotMethod= none
+
+PotModel    = HClpc.pm
+MolarFract  = 0.07
+ChemPotMethod= none
+
+PotModel    = 24DAT.pm
+MolarFract  = 0.03
+ChemPotMethod= none
+
+
+eta         = 1.0
+xi          = 0.990
+
+eta         = 1.0
+xi          = 1.02
+
+eta         = 1.0
+xi          = 1.0
+
+eta         = 1.0
+xi          = 0.751
+
+eta         = 1.0
+xi          = 1.0
+
+eta         = 1.0
+xi          = 1.0
+
+
+Cutoff      = 5.0
+Epsilon     = 1.0E10

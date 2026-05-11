@@ -1,0 +1,48 @@
+#
+# MS2 Parameterfile created with ms2par
+#
+
+#
+# General simulation parameters
+#
+Units       =       SI
+LengthUnit  =       3.5
+EnergyUnit  =       100.0
+MassUnit    =       58.0
+Simulation  =       MD
+Integrator  =       Gear
+TimeStep    =       5.0E-4
+Ensemble    =       NVT
+MCORSteps   =       100
+NVTSteps    =       50000
+RunSteps    =       300000
+ResultFreq  =       100
+ErrorsFreq  =       5000
+VisualFreq  =       0
+CutoffMode  =       COM
+NEnsembles  =       1
+CorrfunMode  =     yes
+
+#
+# Ensemble 1
+#
+Temperature = 170
+Density     = 36.114348708
+NParticles  = 1372
+NComponents = 1
+StepsCorrfun= 1
+Corrlength = 1000
+SpanCorrfun = 10
+ViewCorrfun = 20
+ResultFreqCF= 1
+
+PotModel    = N2.pm
+MoleFract   = 1.0
+ChemPotMethod= none
+
+
+eta         = 1.0
+xi          = 1.0
+
+Cutoff      = 4.0
+Epsilon     = 1.0E10

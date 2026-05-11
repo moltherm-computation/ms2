@@ -37,8 +37,8 @@ Check Version:
   stage: version
   before_script: [] # do not run default before_script
   script:
-    - chmod +x test/checkVersionUpdate.sh
-    - ./test/checkVersionUpdate.sh
+    - chmod +x cases/checkVersionUpdate.sh
+    - ./cases/checkVersionUpdate.sh
   rules:
     # allow failure for direct commit to default branch (master)
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
