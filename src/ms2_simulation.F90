@@ -2695,7 +2695,7 @@ eqloop: do
         call LogWrite
         !DC NOTE- this ensures that message will be printed only once
         !DC NOTE- signifies for other PU that this one is done
-        !DC TODO- correct the index calculation for proper stop
+        !DC NOTE- correct the index calculation for proper stop
         this%terminate_cc_multiensemble = 1 + this%lastEnsembleIdx - this%firstEnsembleIdx
       end if
     end if

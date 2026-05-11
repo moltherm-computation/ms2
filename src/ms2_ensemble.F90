@@ -25960,9 +25960,7 @@ contains
          dr = sqrt(dx**2 + dy**2 + dz**2)
 
          KappaRij = Kappa*dr
-!          !TODO: Check if this should be changed to ErrorApprox
 !          call erfc_approx(KappaRij,approx)
-         !Michael: For SPME correct?
          if (dr .ge. 0.0000001) then
            call ErrorApprox(this%Interaction(i,i)%PotChargeCharge(j,jj), KappaRij, approx)
            Fij  = (qj*qjj/dr*(1._RK-approx) - Faktor*exp(-KappaRij**2)*qj*qjj) /dr
@@ -25997,9 +25995,7 @@ contains
          dr = sqrt(dx**2 + dy**2 + dz**2)
 
          KappaRij = Kappa*dr
-!          !TODO: Check if this should be changed to ErrorApprox
 !          call erfc_approx(KappaRij,approx)
-         !Michael: For SPME correct?
          if (dr .ge. 0.0000001) then
            call ErrorApprox(this%Interaction(i,i)%PotChargeCharge(j,jj), KappaRij, approx)
            Fij  = (qj*qjj/dr*(1._RK-approx) - Faktor*exp(-KappaRij**2)*qj*qjj) /dr
@@ -27293,7 +27289,6 @@ contains
 !  Subroutine TEnsemble_ClustCrit                              !
 !==============================================================!
 
-
   function TEnsemble_ClustCrit_vapgrid( this, DistCrit ) result(ClusterCounter)
   ! this fucntion calculate neighbour entities on the regular grid and check if the grid
   ! points have GRATER (.gt.) tham specified number of elements
@@ -27327,7 +27322,6 @@ contains
 
     ClusterCounter = 0
 
-    !DC TODO- calculate components in parallel -based on assumption that components form independent clusters
     pcur => this%Component(1)
 
     call TEnsemble_count_direct_atom3(this, NeighborCounter_da3, pcur, DistCrit)
@@ -27382,7 +27376,6 @@ contains
 
     ClusterCounter = 0
 
-    !DC TODO- calculate components in parallel -based on assumption that components form independent clusters
     pcur => this%Component(1)
 
     call TEnsemble_count_direct_atom3(this, NeighborCounter_da3, pcur, DistCrit)

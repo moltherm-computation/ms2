@@ -714,8 +714,6 @@ contains
 !==============================================================!
 !  Subroutine TStopwatch_LogWriteStart                         !
 !==============================================================!
-! TODO: argument to set options for writing short/detailed information...
-
   !> write start information to log; this means additional (I)O within the tested code part!
   !> \param this     ... object  TStopwatch
   subroutine TStopwatch_LogWriteStart( this )
@@ -764,8 +762,6 @@ contains
 !==============================================================!
 !  Subroutine TStopwatch_LogWriteStop                          !
 !==============================================================!
-! TODO: argument to set options for writing short/detailed...
-
   !> write stop information to log
   !> \param this     ... object  TStopwatch
   subroutine TStopwatch_LogWriteStop( this )
