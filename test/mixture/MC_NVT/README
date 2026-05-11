@@ -1,1 +1,0 @@
-Monte Carlo NVT simulations for the binary mixtures CH4 + CO2, O2 + acetone and hydrazine + water. The chemical potential is calculated either by the gradual insertion method or Widom's test particle method. The State points are close to the saturated liquid lines (at moderate temperatures). 
