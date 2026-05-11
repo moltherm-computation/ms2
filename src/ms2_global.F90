@@ -281,8 +281,8 @@ module ms2_global
   type(TFile), parameter :: a2ravFile    = TFile(iounit = iounit_start + 17)
   type(TFile), parameter :: procFile     = TFile(iounit = iounit_start + 18)
   type(TFile), parameter :: ecoefFile    = TFile(iounit = iounit_start + 19)   !EinsteinCoef
-  type(TFile), parameter :: ccFile       = TFile(iounit = iounit_start + 20) !DC TODO - this should be changed appropriate to the other output files
-  type(TFile), parameter :: ccgridFile   = TFile(iounit = iounit_start + 21) !DC TODO - this should be changed appropriate to the other output files
+  type(TFile), parameter :: ccFile       = TFile(iounit = iounit_start + 20) 
+  type(TFile), parameter :: ccgridFile   = TFile(iounit = iounit_start + 21) 
 
   ! Define number of output files for each ensemble
   integer, parameter :: FilesPerEnsemble = dcpFile%iounit - resultFile%iounit + 1
