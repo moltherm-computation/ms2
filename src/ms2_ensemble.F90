@@ -3044,7 +3044,7 @@ contains
           call Construct( this%SumS11, .true. )
           call Construct( this%SumS20, .true. )
           call Construct( this%SumS02, .true. )
-        elseif ( EnsembleType .eq. EnsembleTypeNPT ) then
+        elseif ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) then
           call Construct( this%SumConfEnthalpyTot, .false. )
           call Construct( this%SumConfEnthalpy2, .false. )
           call Construct( this%SumConfEnthalpyV, .false. )
@@ -3353,7 +3353,7 @@ contains
         call Destruct( this%SumS11 )
         call Destruct( this%SumS02 )
         call Destruct( this%SumS20 )
-      elseif ( EnsembleType .eq. EnsembleTypeNPT ) then
+      elseif ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) then
         call Destruct( this%SumConfEnthalpyTot )
         call Destruct( this%SumConfEnthalpy2 )
         call Destruct( this%SumConfEnthalpyV )
@@ -10695,7 +10695,7 @@ componentLoop:       do i = 1, this%NRealComponents
           call Reset( this%SumS11 )
           call Reset( this%SumS02 )
           call Reset( this%SumS20 )
-        elseif ( EnsembleType .eq. EnsembleTypeNPT ) then
+        elseif ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) then
           call Reset( this%SumConfEnthalpyTot )
           call Reset( this%SumConfEnthalpy2 )
           call Reset( this%SumConfEnthalpyV )
@@ -11426,7 +11426,7 @@ componentLoop:       do i = 1, this%NRealComponents
       call Update( this%SumA12resII, -Beta*(specv2*A12res*Numb + 2._RK*specv*A11res) ) !=-Beta*(V^2*A12res+2V*A11res)/Numb
     end if
 
-    if( EnsembleType .eq. EnsembleTypeNpT .and. LongRange .eq. Rfield) then
+    if( ((EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC)) .and. LongRange .eq. Rfield) then
 
       call Update( this%SumConfEnthalpyTot, ( this%EPot +  real( this%NPart, RK )*this%RefPressure / this%Density) )
       call Update( this%SumConfEnthalpy2, ( this%EPot +  real( this%NPart, RK )*this%RefPressure / this%Density)**2 )
@@ -13124,7 +13124,7 @@ componentLoop:       do i = 1, this%NRealComponents
         call Error( this%SumA30resI )
         call Error( this%SumA21resI )
         call Error( this%SumA12resI )
-      elseif( EnsembleType .eq. EnsembleTypeNPT ) then
+      elseif( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) then
         call Error( this%SumConfEnthalpyTot )
         call Error( this%SumConfEnthalpy2 )
         call Error( this%SumConfEnthalpyV )
@@ -13755,7 +13755,7 @@ componentLoop:       do i = 1, this%NRealComponents
 
     end if
 
-    if( (EnsembleType .eq. EnsembleTypeNPT .or. Ensembletype .eq. EnsembletypeNPTSVC) .and. LongRange .eq. Rfield ) then
+    if( ((EnsembleType .eq. EnsembleTypeNPT) .or. (Ensembletype .eq. EnsembletypeNPTSVC)) .and. LongRange .eq. Rfield ) then
       ! Separator
       write( IOBuffer, '(76("="))' )
       call FileWrite(this%errorsFile)
@@ -21629,7 +21629,7 @@ end function
             call RestartSave( this%SumS11 )
             call RestartSave( this%SumS02 )
             call RestartSave( this%SumS20 )
-          elseif ( EnsembleType .eq. EnsembleTypeNPT ) then
+          elseif ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) then
             call RestartSave( this%SumConfEnthalpyTot )
             call RestartSave( this%SumConfEnthalpy2 )
             call RestartSave( this%SumConfEnthalpyV )
@@ -22637,7 +22637,7 @@ if( RootProc .and. this%CorrfunMode ) then
         call RestartRead( this%SumS11 )
         call RestartRead( this%SumS02 )
         call RestartRead( this%SumS20 )
-      elseif ( EnsembleType .eq. EnsembleTypeNPT ) then
+      elseif ( (EnsembleType .eq. EnsembleTypeNPT) .or. (EnsembleType .eq. EnsembleTypeNPTSVC) ) then
         call RestartRead( this%SumConfEnthalpyTot )
         call RestartRead( this%SumConfEnthalpy2 )
         call RestartRead( this%SumConfEnthalpyV )
