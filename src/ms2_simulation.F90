@@ -507,9 +507,6 @@ contains
 
         ! Time step
         call FileReadParameter( TimeStep, paramsFile%iounit , IdTimeStep, .true., 5.0E-4_RK )
-        if (.not. UseReducedUnits ) then
-          TimeStep = TimeStep / UnitTime
-        endif
         write( IOBuffer, '("Time step: ",T26, F9.6, " fs")' ) TimeStep * UnitTime * 1E15_RK
         call LogWrite
         write( IOBuffer, '("Reduced time step: ",T26, F9.6)' ) TimeStep
