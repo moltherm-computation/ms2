@@ -1280,7 +1280,11 @@ contains
             call LogWrite
       end select
 
-
+#else
+    call FileReadParameter( str, paramsFile%iounit , IdTransMethod, .true., 'None' )
+    if (str .ne. 'None') then
+      call Error( 'Use a binary compiled with -DTRANS if you wish to calculate transport properties.' )
+    end if
 #endif
 
 #if MPI_VER > 0
