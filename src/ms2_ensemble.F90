@@ -1361,7 +1361,7 @@ contains
       call FileReadParameter( this%PistonMass, paramsFile%iounit , IdPistonMass, .false. )
       write( IOBuffer, '("Mass of piston (reduced): ",T26, F15.9)' ) this%PistonMass
       call LogWrite
-      write( IOBuffer, '("Mass of piston: ",T26, F15.9, " kg/m^4")' ) this%PistonMass * UnitMass / UnitLength**4
+      write( IOBuffer, '("Mass of piston: ",T26, ES15.5, " kg/m^4")' ) this%PistonMass * UnitMass / UnitLength**4
       call LogWrite
     end if
 
@@ -13317,7 +13317,7 @@ componentLoop:       do i = 1, this%NRealComponents
     if( SimulationType .eq. MolecularDynamics .and. ConstantPressure ) then
       write( IOBuffer, '("Mass of piston (reduced)", T36, ":", F20.9)' ) this%PistonMass
       call FileWrite(this%errorsFile)
-      write( IOBuffer, '("Mass of piston", T36, ":", F20.9," kg/m^4")' ) this%PistonMass * UnitMass / UnitLength**4
+      write( IOBuffer, '("Mass of piston", T36, ":", ES20.5," kg/m^4")' ) this%PistonMass * UnitMass / UnitLength**4
       call FileWrite(this%errorsFile)
       call FileWriteBlank(this%errorsFile)
     end if
@@ -15894,43 +15894,42 @@ end if
       if (RootProc) then
         write( IOBuffer, '(I16)' ) this%EnsembleNumber
         call FileRewrite(this%ecoefFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//EinsteinCoefFileExtension)
-        write(IOBuffer, '(T8,"t*")')
+        write(IOBuffer, '(A10)') 't*'
         call FileWriteNoAdvance(this%ecoefFile)
-        write(IOBuffer, '(T12,"t")')
+        write(IOBuffer, '(A13)') 't'
         call FileWriteNoAdvance(this%ecoefFile)
         do t=1,this%NComponents
-          write( IOBuffer, '(T4,"Dself_",I1)' )t
+          write( IOBuffer, '(A14,I1)' ) 'Dself_', t
           call FileWriteNoAdvance(this%ecoefFile)
         end do
 
         if (this%NComponents > 1) then
           do t=1,this%NComponents
             do j=1,this%NComponents
-              write( IOBuffer, '(T4,"Onsager_",2I1)' ) t,j
+              write( IOBuffer, '(A13,2I1)' ) 'Onsager', t,j
               call FileWriteNoAdvance(this%ecoefFile)
             end do
           end do
         end if
         
-        
-        write( IOBuffer, '(T4,"ShV")' )
+        write( IOBuffer, '(A15)' ) 'ShV'
         call FileWriteNoAdvance(this%ecoefFile)
         if(ContributionMode .eq. Separation) then
-          write( IOBuffer, '(T4,"ShVk")' )
+          write( IOBuffer, '(A15)' ) 'ShVk'
           call FileWriteNoAdvance(this%ecoefFile)
-          write( IOBuffer, '(T4,"ShVp")' )
+          write( IOBuffer, '(A15)' ) 'ShVp'
           call FileWriteNoAdvance(this%ecoefFile)
-          write( IOBuffer, '(T4,"ShVkp")' )
+          write( IOBuffer, '(A15)' ) 'ShVkp'
           call FileWriteNoAdvance(this%ecoefFile)
         end if
-        write( IOBuffer, '(T4,"TCond")' )
+        write( IOBuffer, '(A15)' ) 'TCond'
         call FileWriteNoAdvance(this%ecoefFile)
         if(ContributionMode .eq. Separation) then
-          write( IOBuffer, '(T4,"TCondk")' )
+          write( IOBuffer, '(A15)' ) 'TCondk'
           call FileWriteNoAdvance(this%ecoefFile)
-          write( IOBuffer, '(T4,"TCondp")' )
+          write( IOBuffer, '(A15)' ) 'TCondp'
           call FileWriteNoAdvance(this%ecoefFile)
-          write( IOBuffer, '(T4,"TCondkp")' )
+          write( IOBuffer, '(A15)' ) 'TCondkp'
           call FileWriteNoAdvance(this%ecoefFile)
         end if
         
@@ -15938,20 +15937,20 @@ end if
 
         do i=1,this%NCorr
           value = (this%BoxLength**2)*(dsqrt(UnitEnergy/UnitMass)*UnitLength*1E10_RK)
-          write(IOBuffer, '(T3,F12.4)') i * this%NStepCorr * TimeStep * UnitTime * 1E12_RK
+          write(IOBuffer, '(F10.4)') i * this%NStepCorr * TimeStep * UnitTime * 1E12_RK
           call FileWriteNoAdvance(this%ecoefFile)
           write(IOBuffer, '(T2,F12.4)') i * this%NStepCorr * TimeStep
           call FileWriteNoAdvance(this%ecoefFile)
 
           do t=1,this%NComponents
-            write( IOBuffer, '(T4,F10.4)') this%DselfEinsteinAve(i,t)*value
+            write( IOBuffer, '(T5,F11.4)') this%DselfEinsteinAve(i,t)*value
             call FileWriteNoAdvance(this%ecoefFile)
           end do
 
           if (this%NComponents > 1) then
             do t=1,this%NComponents
               do j=1,this%NComponents
-                write( IOBuffer, '(T4,F10.4)') this%OnsagerEinsteinAve(i,t,j)*value
+                write( IOBuffer, '(T5,F11.4)') this%OnsagerEinsteinAve(i,t,j)*value
                 call FileWriteNoAdvance(this%ecoefFile)
               end do
             end do
@@ -15959,34 +15958,34 @@ end if
 
           value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
           ! helpvar =  this%Density /(5._RK *this%NPart * this%Temperature)
-          write( IOBuffer, '(T4,F10.4)')  this%EinsteinShearAve(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
+          write( IOBuffer, '(T5,F11.4)')  this%EinsteinShearAve(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
           call FileWriteNoAdvance(this%ecoefFile)
           
           if(ContributionMode .eq. Separation) then
             value = dsqrt(UnitEnergy*UnitMass)/UnitLength**2/1E-4_RK
-            write( IOBuffer, '(T4,F10.4)')  this%EinsteinShearAve_kk(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
+            write( IOBuffer, '(T5,F11.4)')  this%EinsteinShearAve_kk(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
             call FileWriteNoAdvance(this%ecoefFile)
 
-            write( IOBuffer, '(T4,F10.4)')  this%EinsteinShearAve_pp(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
+            write( IOBuffer, '(T5,F11.4)')  this%EinsteinShearAve_pp(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
             call FileWriteNoAdvance(this%ecoefFile)
 
-            write( IOBuffer, '(T4,F10.4)')  this%EinsteinShearAve_kp(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
+            write( IOBuffer, '(T5,F11.4)')  this%EinsteinShearAve_kp(i)*value/6.0*this%Density /(this%NPart * this%Temperature)
             call FileWriteNoAdvance(this%ecoefFile)
           end if
           
           value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
-          write( IOBuffer, '(T6,F10.4)')  this%EinsteinTCondAve(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
+          write( IOBuffer, '(T5,F11.4)')  this%EinsteinTCondAve(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
           call FileWriteNoAdvance(this%ecoefFile)
 
           if(ContributionMode .eq. Separation) then
             value = dsqrt(UnitEnergy/UnitMass)*kBoltzmann/UnitLength**2
-            write( IOBuffer, '(T6,F10.4)')  this%EinsteinTCondAve_kk(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
+            write( IOBuffer, '(T5,F11.4)')  this%EinsteinTCondAve_kk(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
             call FileWriteNoAdvance(this%ecoefFile)
 
-            write( IOBuffer, '(T6,F10.4)')  this%EinsteinTCondAve_pp(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
+            write( IOBuffer, '(T5,F11.4)')  this%EinsteinTCondAve_pp(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
             call FileWriteNoAdvance(this%ecoefFile)
 
-            write( IOBuffer, '(T6,F10.4)')  this%EinsteinTCondAve_kp(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
+            write( IOBuffer, '(T5,F11.4)')  this%EinsteinTCondAve_kp(i)*value/6.0*this%Density/(this%NPart * this%Temperature * this%Temperature)
             call FileWriteNoAdvance(this%ecoefFile)
           end if
           call FileWriteBlank(this%ecoefFile)
