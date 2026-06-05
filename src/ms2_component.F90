@@ -538,6 +538,7 @@ contains
       &       trim( this%PotModFileName ), this%ChemPot0, this%VarChemPot
       call LogWrite
       this%ChemPotMethod = ChemPotMethodNone
+      this%PartialMolarVolume = 0.0
 
     else
       ! Read method for calculation of chemical potential
