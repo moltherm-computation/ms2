@@ -547,8 +547,9 @@ contains
       case( 'NONE', 'None', 'none' )
         this%ChemPotMethod = ChemPotMethodNone
         str = 'no calculation'
-            if (EnsembleType .eq. EnsembleTypeNPTSVC) then
-        this%ChemPotMethod = ChemPotMethodWidom
+        if (EnsembleType .eq. EnsembleTypeNPTSVC) then
+          this%ChemPotMethod = ChemPotMethodWidom
+          str = 'Widom''s test particle method'
         end if
       case( 'WIDOM', 'Widom', 'widom' )
         this%ChemPotMethod = ChemPotMethodWidom

@@ -204,6 +204,10 @@ contains
           end do
         end if
 
+#if SHIFTED == 1
+        LJorMIE = 'LJTS'
+#endif
+
       case( 'TT68', 'tt68', 'tt' ) !Case: Tang-Tönnies-Potential
         TT68orEXT = 'TT68'
           call FileReadParameter( this%NTT, potmodFile%iounit, IdSite_NSites, .false. )

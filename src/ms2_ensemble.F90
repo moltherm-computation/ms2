@@ -13425,7 +13425,7 @@ componentLoop:       do i = 1, this%NRealComponents
 
     ! Dielectric constant
     if( this%NDipoleMax > 0 ) then
-      write( IOBuffer, '("Dielectric constant:", F36.9)' ) this%RFEpsilon
+      write( IOBuffer, '("Dielectric constant" T36, ":",  ES20.5 )' ) this%RFEpsilon
       call FileWrite(this%errorsFile)
     end if
     call FileWriteBlank(this%errorsFile)
@@ -13490,21 +13490,21 @@ componentLoop:       do i = 1, this%NRealComponents
     if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
         Average = this%SumDielectricConstant%Average
         Variance = this%SumDielectricConstant%Variance
-        write( IOBuffer, '("Dielectric Constant", T29, "SI:", 2F20.9)' ) Average, Variance
+        write( IOBuffer, '("Dielectric Constant", T34, "SI:", 2F20.9)' ) Average, Variance
         call FileWrite(this%errorsFile)
         call FileWriteBlank(this%errorsFile)
 
         ! Sampling of Dielectric Constant
         Average = this%SumTotalDipoleMoment%Average
         Variance = this%SumTotalDipoleMoment%Variance
-        write( IOBuffer, '("<M>", T29, "red:", 2F20.9)' ) Average, Variance
+        write( IOBuffer, '("<M>", T29, "reduced:", 2F20.9)' ) Average, Variance
         call FileWrite(this%errorsFile)
         call FileWriteBlank(this%errorsFile)
 
         ! Sampling of Dielectric Constant
         Average = this%SumTotalDipoleMomentSquared%Average
         Variance = this%SumTotalDipoleMomentSquared%Variance
-        write( IOBuffer, '("<M^2>", T29, "red:", 2F20.9)' ) Average, Variance
+        write( IOBuffer, '("<M^2>", T29, "reduced:", 2F20.9)' ) Average, Variance
         call FileWrite(this%errorsFile)
         call FileWriteBlank(this%errorsFile)
     endif
@@ -13702,7 +13702,7 @@ componentLoop:       do i = 1, this%NRealComponents
         end do
         Average  = Average - this%SumA01resI%Average - log(this%Density)
         Variance = sqrt(Variance + this%SumA01resI%Variance**2)
-        write( IOBuffer, '("A00", T29, "Dimensionless, residual:", 2F20.9)' ) Average, Variance
+        write( IOBuffer, '("A00", T13, "Dimensionless, residual:", 2F20.9)' ) Average, Variance
         call FileWrite(this%errorsFile)
         call FileWriteBlank(this%errorsFile)
       end if

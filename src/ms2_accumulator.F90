@@ -537,10 +537,10 @@ contains
 
     if (present(reducedTitle) .and. reducedTitle) then
 
-        formatString = '("'//variableName//'", T29, "Dimensionless:", 2F20.9)'
+        formatString = '("'//variableName//'", T13, "Dimensionless:", 2F20.9)'
     else
 
-        formatString = '("'//variableName//'", T29, "Dimensionless, residual:", 2F20.9)'
+        formatString = '("'//variableName//'", T13, "Dimensionless, residual:", 2F20.9)'
     end if
 
     write( IOBuffer, formatString) average, error
