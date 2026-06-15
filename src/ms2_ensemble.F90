@@ -2063,13 +2063,6 @@ contains
              this%Interaction(i,j)%DebyeLen = this%DebyeLen
            end do
          end do
-
-      else if (LongRange .eq. Rodgers) then
-         do i=1,this%NComponents
-           do j=1,this%NComponents
-             this%Interaction(i,j)%Kappa = this%Kappa
-           end do
-         end do
       end if
 
       if( SimulationType .eq. MolecularDynamics .and. .not. MCOverlapReduction ) then
@@ -3668,8 +3661,6 @@ contains
         call PMESelfTermMC ( this )
 #endif
 
-      else if (LongRange .eq. Rodgers ) then
-        this%EPotCorrRF = this%EPotCorrRFVol*this%Volume0 + this%EPotCorrRFPart
       end if
 
     end if
@@ -5474,58 +5465,14 @@ if (associated (this%EinsteinTCondInt_kk_x) ) then
     ! Calculate electrostatic long-range corrections
     ! This is the self term of the reaction field
     if( (this%NChargeMax > 0).or.(this%NDipoleMax > 0) ) then
-
-      if (LongRange .ne. Rodgers ) then
-        do i1 = 1, this%NComponents
-          pc => this%Component(i1)
-          pc%EPotTestCorrRF = pc%Molecule%MueSquared * 2._RK * RFConst
-          this%EPotCorrRF = this%EPotCorrRF + pc%Molecule%MueSquared * pc%NPart
-        end do
-        this%EPotCorrRF = this%EPotCorrRF * RFConst / NProcs
-        this%VirialCorrRF = 3_RK * this%EPotCorrRF
-
-      else ! Rodgers
-        this%Kappa = UnitLength * this%KappaL / Angstroem  ! = 1/sigma* aus Paper
-        fac_charge1 = 1._RK /  sqrt(Pi) * this%Kappa
-        fac_charge2 = fac_charge1 /  3._RK * this%Kappa*this%Kappa
-        fac_neutral = 2._RK *fac_charge1 * this%Kappa*this%Kappa
-
-        this%EPotCorrRFVol = fac_neutral/(4._RK*PI) * (1._RK-1._RK/this%RFEpsilon) * this%RefTemperature / NProcs
-        this%EPotCorrRFPart = 0._RK
-
-        do i1 = 1, this%NComponents
-          pc => this%Component(i1)
-
-          if ( pc%charged ) then
-
-            ! Calculate total charge * distances
-            totcharge = 0._RK
-            sumcharge = 0._RK
-            do j1 = 1, pc%Molecule%NCharge
-              do j2 = 1, pc%Molecule%NCharge
-                drx = pc%Molecule%SiteCharge(j1)%r(1) - pc%Molecule%SiteCharge(j2)%r(1)
-                dry = pc%Molecule%SiteCharge(j1)%r(2) - pc%Molecule%SiteCharge(j2)%r(2)
-                drz = pc%Molecule%SiteCharge(j1)%r(3) - pc%Molecule%SiteCharge(j2)%r(3)
-                dr2  = drx*drx + dry*dry + drz*drz
-                totcharge = totcharge + pc%Molecule%SiteCharge(j1)%e * pc%Molecule%SiteCharge(j2)%e * dr2
-              end do
-              sumcharge = sumcharge + pc%Molecule%SiteCharge(j1)%e
-            end do
-
-            this%EPotCorrRFPart = this%EPotCorrRFPart - fac_charge1 * sumcharge*sumcharge * pc%NPart / NProcs + &
-&                   fac_charge2 * totcharge * pc%NPart / NProcs
-
-          else ! charged
-            this%EPotCorrRFPart = this%EPotCorrRFPart - fac_neutral / 3._RK * pc%Molecule%MueSquared * pc%NPart / NProcs
-            this%VirialCorrRF   = this%VirialCorrRF - fac_neutral / (4._RK*PI) * this%RefTemperature * &
-&                     (1._RK-1._RK/this%RFEpsilon) / NProcs
-          end if
-
-        end do
-        this%EPotCorrRF = this%EPotCorrRFVol* this%Volume0 + this%EPotCorrRFPart
-      end if
+      do i1 = 1, this%NComponents
+        pc => this%Component(i1)
+        pc%EPotTestCorrRF = pc%Molecule%MueSquared * 2._RK * RFConst
+        this%EPotCorrRF = this%EPotCorrRF + pc%Molecule%MueSquared * pc%NPart
+      end do
+      this%EPotCorrRF = this%EPotCorrRF * RFConst / NProcs
+      this%VirialCorrRF = 3_RK * this%EPotCorrRF
     end if
-
 
 
 #if MPI_VER >0
@@ -5546,11 +5493,6 @@ if (associated (this%EinsteinTCondInt_kk_x) ) then
         this%EPotCorrRF = this%EPotCorrRF * NProcs
         this%VirialCorrRF = this%VirialCorrRF * NProcs
       endif
-
-      if (LongRange .eq. Rodgers ) then
-        this%EPotCorrRFPart = this%EPotCorrRFPart * NProcs
-        this%EPotCorrRFVol  = this%EPotCorrRFVol  * NProcs
-      end if
   endif
 #endif
 
@@ -11788,7 +11730,7 @@ componentLoop:       do i = 1, this%NRealComponents
 
                   call writeAverages(this%SumTotalDipoleMoment, this%resultFile, this%runaveFile, parallelMC=.true.)
 
-                  call writeAverages(this%SumTotalDipoleMomentSquared, this%resultFile, this%runaveFile, parallelMC=.true.)
+                  call writeAverages(this%SumTotalDipoleMomentSquared, this%resultFile, this%runaveFile,'(" ",F10.3)', parallelMC=.true.)
 
               endif
 
@@ -11883,7 +11825,7 @@ componentLoop:       do i = 1, this%NRealComponents
 
                 call writeAverages(this%SumTotalDipoleMoment, this%resultFile, this%runaveFile, parallelMC=.true.)
 
-                call writeAverages(this%SumTotalDipoleMomentSquared, this%resultFile, this%runaveFile, parallelMC=.true.)
+                call writeAverages(this%SumTotalDipoleMomentSquared, this%resultFile, this%runaveFile,'(" ",F10.3)', parallelMC=.true.)
 
             endif
 
@@ -11999,7 +11941,7 @@ componentLoop:       do i = 1, this%NRealComponents
 
               call writeAverages(this%SumTotalDipoleMoment, this%resultFile, this%runaveFile, parallelMC=.true.)
 
-              call writeAverages(this%SumTotalDipoleMomentSquared, this%resultFile, this%runaveFile, parallelMC=.true.)
+              call writeAverages(this%SumTotalDipoleMomentSquared, this%resultFile, this%runaveFile,'(" ",F10.3)', parallelMC=.true.)
 
           endif
 
@@ -12109,7 +12051,7 @@ componentLoop:       do i = 1, this%NRealComponents
 
             call writeAverages(this%SumTotalDipoleMoment, this%resultFile, this%runaveFile, parallelMC=.false.)
 
-            call writeAverages(this%SumTotalDipoleMomentSquared, this%resultFile, this%runaveFile, parallelMC=.false.)
+            call writeAverages(this%SumTotalDipoleMomentSquared, this%resultFile, this%runaveFile,'(" ",F10.3)', parallelMC=.true.)
 
         endif
 
@@ -12232,7 +12174,7 @@ componentLoop:       do i = 1, this%NRealComponents
 
             call writeAverages(this%SumTotalDipoleMoment, this%resultFile, this%runaveFile, parallelMC=.false.)
 
-            call writeAverages(this%SumTotalDipoleMomentSquared, this%resultFile, this%runaveFile, parallelMC=.false.)
+            call writeAverages(this%SumTotalDipoleMomentSquared, this%resultFile, this%runaveFile,'(" ",F10.3)', parallelMC=.false.)
 
         endif
 
@@ -13425,7 +13367,7 @@ componentLoop:       do i = 1, this%NRealComponents
 
     ! Dielectric constant
     if( this%NDipoleMax > 0 ) then
-      write( IOBuffer, '("Dielectric constant" T36, ":",  ES20.5 )' ) this%RFEpsilon
+      write( IOBuffer, '("Dielectric constant", T36, ":",  ES20.5 )' ) this%RFEpsilon
       call FileWrite(this%errorsFile)
     end if
     call FileWriteBlank(this%errorsFile)
@@ -23402,12 +23344,6 @@ if( RootProc .and. this%CorrfunMode ) then
 
        call PMESetup(this)
 #endif
-    else if ( LongRange .eq. Rodgers ) then
-       do i=1,this%NComponents
-         do j=1,this%NComponents
-           this%Interaction(i,j)%Kappa = this%Kappa
-         end do
-       end do
     end if
 
     ! Reading and broadcasting thi-file for ThermoInt
