@@ -1099,15 +1099,6 @@ contains
             ! Read extended Reaction Field Parameters
             call FileReadParameter( debyelen_h, paramsFile%iounit , IdDebyeLen, .true.)
             write( IOBuffer, '("Debye Length [A]:", F8.3)' )debyelen_h
-
-        case( 'Rodgers', 'rodgers' )
-            LongRange = rodgers
-            LongRangeString = 'Rodgers'
-            write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
-            call LogWrite
-            ! Read Rodgers Parameters
-            call FileReadParameter( KappaL_h, paramsFile%iounit , IdKappa, .true., 0.15_RK )
-            write( IOBuffer, '("Rodgers Parameter KappaL:", F8.3)' )KappaL_h
             call LogWrite
 
       case default
@@ -1316,8 +1307,6 @@ contains
 
       else if (LongRange .eq. ExtRField) then
             this%Ensemble(i)%DebyeLen = debyelen_h / Angstroem * UnitLength
-      else if (LongRange .eq. Rodgers) then
-            this%Ensemble(i)%KappaL = KappaL_h
       end if
       if( SimulationType .eq. SecondVirialCoeff ) then
         call ConstructSVC( this%Ensemble(i), i )

@@ -633,7 +633,6 @@ module ms2_global
   integer, parameter :: RField        = 2
   integer, parameter :: PME           = 3
   integer, parameter :: extRField     = 4
-  integer, parameter :: Rodgers       = 5
   integer            :: LongRange
 
   ! Type of Transport Method
