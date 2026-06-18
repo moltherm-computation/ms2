@@ -1,0 +1,21 @@
+Input files for MC and MD simulations in 8 statistical ensembles:
+NVE, NVT, NPH, NPT, MUVL, MUVT, MUPR, MUPT
+
+The specified state point for the Lennard-Jones fluid in reduced units is based on the following inputs: 
+Temperature 		= 	4.0
+Density 			= 	0.5
+Pressure 			= 	3.522
+Hamiltonian 		= 	3.396
+Enthalpy 			=  10.438
+Chemical potential 	= 	0.448
+
+Output data have to agree within statistical uncertainties for all ensembles with the following reference data (for sufficient system size and MC cycles):
+Potential energy               red.:        -2.605       
+Isochoric heat capacity        red.:         0.249    
+Thermal pressure coefficient   red.:         1.164        
+Isothermal compressibility     red.:         0.138      
+Thermal expansion coefficient  red.:         0.161        
+Isobaric heat capacity         red.:         0.745        
+Speed of sound                 red.:         5.187        
+Joule Thomson coefficient      red.:        -0.220      
+

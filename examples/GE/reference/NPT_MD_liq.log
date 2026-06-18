@@ -1,0 +1,921 @@
+ms2 logfile NPT_MD_liq.log created by PE0 on 10.06.2026 at 08:49:39
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.019
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran140200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jun  9 2026,15:19:02
+Real Kind            : 8
+
+Hostname             : Francis-1897.local
+started by user Isabel on 10.06.2026 at 08:49:39
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Francis-1897.local
+    1   +   Francis-1897.local
+    2   +   Francis-1897.local
+    3   +   Francis-1897.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NPT_MD_liq.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NPT_MD_liq
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         SI
+Unit of length:          3.500 A
+Unit of energy:        100.000 K
+Unit of mass:           40.000 a.u.
+
+Simulation type:         Molecular Dynamics
+Integrator type:         Gear predictor-corrector
+Time step:                1.213807 fs
+Reduced time step:        0.000500
+
+Ensemble type:           NPT
+
+setting MCORSteps to default value       0
+No MC overlap reduction
+Number of NVT equilibration steps:      100000
+Number of NPT equilibration steps:      100000
+Number of production steps:             300000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:               400.000 K
+Pressure:                    0.700 MPa
+Density:                    11.141 mol/l
+Reduced temperature:         4.000000
+Reduced pressure:            0.021738
+Reduced density:             0.287660
+Mass of piston (reduced):    0.000500000
+Mass of piston:              2.21313E+09 kg/m^4
+setting ResidTime to default value no
+Calculation of residence time: no
+setting CommonEqui to default value no
+MD simulation: Logical CommonEqui no is invalid, set to yes
+Number of components:        1
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component acetone.pm:  1.000000
+Chemical potential of acetone.pm will be calculated by:
+         -> Widom's test particle method
+Opening file <acetone.pm> for reading (unit 1003)
+File <acetone.pm> closed (unit 1003)
+Opening file <NPT_MD_liq.acetone.nrm> for writing (unit 1004)
+File <NPT_MD_liq.acetone.nrm> closed (unit 1004)
+Normalized potential model for acetone.pm saved to file <NPT_MD_liq.acetone.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       500
+Mole fraction of acetone.pm:                 1.000
+         ->  number of particles:          500
+Number of test particles:                 1500
+
+Memory for test particles allocated successfully
+Memory for acetone.pm allocated successfully
+
+Reduced center of mass cutoff radius:        4.000
+
+Characteristic dielectric constant:          0.10000E+11
+
+Cutoff correction to
+- potential energy from LJ                  -1.66569359
+- pressure from LJ                          -3.39952390
+- chem. pot. of acetone.pm from LJ          -3.33138718
+- potential energy from reaction field (RF) -0.00978854
+- pressure from reaction field:             -0.46984987
+- chem. pot. of acetone.pm from RF          -0.31323324
+
+Initialize positions:
+         FCC lattice:   4 *   5x   5x   5 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NPT_MD_liq.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+Opening file <NPT_MD_liq_1.run> for writing (unit 1015)
+Opening file <NPT_MD_liq_1.rav> for writing (unit 1016)
+
+========================================================================
+TSimulation_Run timer start: 10.06.2026, 08:49:39.077 (UTC+120)
+------------------------------------------------------------------------
+
+
+========================================================================
+NVT equilibration timer start: 10.06.2026, 08:49:39.077 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 10.06.2026 at 08:49:42
+     2000 steps completed on 10.06.2026 at 08:49:45
+     3000 steps completed on 10.06.2026 at 08:49:48
+     4000 steps completed on 10.06.2026 at 08:49:51
+     5000 steps completed on 10.06.2026 at 08:49:54
+     6000 steps completed on 10.06.2026 at 08:49:57
+     7000 steps completed on 10.06.2026 at 08:50:00
+     8000 steps completed on 10.06.2026 at 08:50:03
+     9000 steps completed on 10.06.2026 at 08:50:06
+    10000 steps completed on 10.06.2026 at 08:50:09
+    11000 steps completed on 10.06.2026 at 08:50:12
+    12000 steps completed on 10.06.2026 at 08:50:14
+    13000 steps completed on 10.06.2026 at 08:50:17
+    14000 steps completed on 10.06.2026 at 08:50:20
+    15000 steps completed on 10.06.2026 at 08:50:23
+    16000 steps completed on 10.06.2026 at 08:50:26
+    17000 steps completed on 10.06.2026 at 08:50:29
+    18000 steps completed on 10.06.2026 at 08:50:32
+    19000 steps completed on 10.06.2026 at 08:50:35
+    20000 steps completed on 10.06.2026 at 08:50:38
+    21000 steps completed on 10.06.2026 at 08:50:41
+    22000 steps completed on 10.06.2026 at 08:50:44
+    23000 steps completed on 10.06.2026 at 08:50:47
+    24000 steps completed on 10.06.2026 at 08:50:50
+    25000 steps completed on 10.06.2026 at 08:50:53
+    26000 steps completed on 10.06.2026 at 08:50:55
+    27000 steps completed on 10.06.2026 at 08:50:58
+    28000 steps completed on 10.06.2026 at 08:51:01
+    29000 steps completed on 10.06.2026 at 08:51:04
+    30000 steps completed on 10.06.2026 at 08:51:07
+    31000 steps completed on 10.06.2026 at 08:51:10
+    32000 steps completed on 10.06.2026 at 08:51:13
+    33000 steps completed on 10.06.2026 at 08:51:16
+    34000 steps completed on 10.06.2026 at 08:51:19
+    35000 steps completed on 10.06.2026 at 08:51:21
+    36000 steps completed on 10.06.2026 at 08:51:24
+    37000 steps completed on 10.06.2026 at 08:51:27
+    38000 steps completed on 10.06.2026 at 08:51:31
+    39000 steps completed on 10.06.2026 at 08:51:34
+    40000 steps completed on 10.06.2026 at 08:51:36
+    41000 steps completed on 10.06.2026 at 08:51:39
+    42000 steps completed on 10.06.2026 at 08:51:42
+    43000 steps completed on 10.06.2026 at 08:51:45
+    44000 steps completed on 10.06.2026 at 08:51:48
+    45000 steps completed on 10.06.2026 at 08:51:51
+    46000 steps completed on 10.06.2026 at 08:51:54
+    47000 steps completed on 10.06.2026 at 08:51:57
+    48000 steps completed on 10.06.2026 at 08:52:00
+    49000 steps completed on 10.06.2026 at 08:52:03
+    50000 steps completed on 10.06.2026 at 08:52:06
+    51000 steps completed on 10.06.2026 at 08:52:09
+    52000 steps completed on 10.06.2026 at 08:52:12
+    53000 steps completed on 10.06.2026 at 08:52:15
+    54000 steps completed on 10.06.2026 at 08:52:18
+    55000 steps completed on 10.06.2026 at 08:52:20
+    56000 steps completed on 10.06.2026 at 08:52:23
+    57000 steps completed on 10.06.2026 at 08:52:26
+    58000 steps completed on 10.06.2026 at 08:52:29
+    59000 steps completed on 10.06.2026 at 08:52:32
+    60000 steps completed on 10.06.2026 at 08:52:35
+    61000 steps completed on 10.06.2026 at 08:52:38
+    62000 steps completed on 10.06.2026 at 08:52:41
+    63000 steps completed on 10.06.2026 at 08:52:44
+    64000 steps completed on 10.06.2026 at 08:52:47
+    65000 steps completed on 10.06.2026 at 08:52:49
+    66000 steps completed on 10.06.2026 at 08:52:52
+    67000 steps completed on 10.06.2026 at 08:52:55
+    68000 steps completed on 10.06.2026 at 08:52:58
+    69000 steps completed on 10.06.2026 at 08:53:01
+    70000 steps completed on 10.06.2026 at 08:53:04
+    71000 steps completed on 10.06.2026 at 08:53:07
+    72000 steps completed on 10.06.2026 at 08:53:10
+    73000 steps completed on 10.06.2026 at 08:53:13
+    74000 steps completed on 10.06.2026 at 08:53:16
+    75000 steps completed on 10.06.2026 at 08:53:18
+    76000 steps completed on 10.06.2026 at 08:53:21
+    77000 steps completed on 10.06.2026 at 08:53:24
+    78000 steps completed on 10.06.2026 at 08:53:27
+    79000 steps completed on 10.06.2026 at 08:53:30
+    80000 steps completed on 10.06.2026 at 08:53:33
+    81000 steps completed on 10.06.2026 at 08:53:36
+    82000 steps completed on 10.06.2026 at 08:53:39
+    83000 steps completed on 10.06.2026 at 08:53:42
+    84000 steps completed on 10.06.2026 at 08:53:45
+    85000 steps completed on 10.06.2026 at 08:53:48
+    86000 steps completed on 10.06.2026 at 08:53:50
+    87000 steps completed on 10.06.2026 at 08:53:53
+    88000 steps completed on 10.06.2026 at 08:53:56
+    89000 steps completed on 10.06.2026 at 08:53:59
+    90000 steps completed on 10.06.2026 at 08:54:02
+    91000 steps completed on 10.06.2026 at 08:54:05
+    92000 steps completed on 10.06.2026 at 08:54:08
+    93000 steps completed on 10.06.2026 at 08:54:11
+    94000 steps completed on 10.06.2026 at 08:54:14
+    95000 steps completed on 10.06.2026 at 08:54:17
+    96000 steps completed on 10.06.2026 at 08:54:20
+    97000 steps completed on 10.06.2026 at 08:54:23
+    98000 steps completed on 10.06.2026 at 08:54:26
+    99000 steps completed on 10.06.2026 at 08:54:29
+   100000 steps completed on 10.06.2026 at 08:54:31
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  292.839133    -  292.839148
+                             <=    0h  4min 52.83915sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 10.06.2026, 08:54:31.916 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 10.06.2026 at 08:54:31
+
+
+========================================================================
+NPT equilibration timer start: 10.06.2026, 08:54:31.916 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 10.06.2026 at 08:54:34
+     2000 steps completed on 10.06.2026 at 08:54:37
+     3000 steps completed on 10.06.2026 at 08:54:40
+     4000 steps completed on 10.06.2026 at 08:54:43
+     5000 steps completed on 10.06.2026 at 08:54:46
+     6000 steps completed on 10.06.2026 at 08:54:49
+     7000 steps completed on 10.06.2026 at 08:54:52
+     8000 steps completed on 10.06.2026 at 08:54:55
+     9000 steps completed on 10.06.2026 at 08:54:58
+    10000 steps completed on 10.06.2026 at 08:55:01
+    11000 steps completed on 10.06.2026 at 08:55:04
+    12000 steps completed on 10.06.2026 at 08:55:07
+    13000 steps completed on 10.06.2026 at 08:55:10
+    14000 steps completed on 10.06.2026 at 08:55:13
+    15000 steps completed on 10.06.2026 at 08:55:16
+    16000 steps completed on 10.06.2026 at 08:55:19
+    17000 steps completed on 10.06.2026 at 08:55:21
+    18000 steps completed on 10.06.2026 at 08:55:24
+    19000 steps completed on 10.06.2026 at 08:55:27
+    20000 steps completed on 10.06.2026 at 08:55:30
+    21000 steps completed on 10.06.2026 at 08:55:33
+    22000 steps completed on 10.06.2026 at 08:55:36
+    23000 steps completed on 10.06.2026 at 08:55:39
+    24000 steps completed on 10.06.2026 at 08:55:42
+    25000 steps completed on 10.06.2026 at 08:55:45
+    26000 steps completed on 10.06.2026 at 08:55:48
+    27000 steps completed on 10.06.2026 at 08:55:51
+    28000 steps completed on 10.06.2026 at 08:55:54
+    29000 steps completed on 10.06.2026 at 08:55:57
+    30000 steps completed on 10.06.2026 at 08:56:00
+    31000 steps completed on 10.06.2026 at 08:56:03
+    32000 steps completed on 10.06.2026 at 08:56:06
+    33000 steps completed on 10.06.2026 at 08:56:09
+    34000 steps completed on 10.06.2026 at 08:56:11
+    35000 steps completed on 10.06.2026 at 08:56:14
+    36000 steps completed on 10.06.2026 at 08:56:17
+    37000 steps completed on 10.06.2026 at 08:56:20
+    38000 steps completed on 10.06.2026 at 08:56:23
+    39000 steps completed on 10.06.2026 at 08:56:26
+    40000 steps completed on 10.06.2026 at 08:56:29
+    41000 steps completed on 10.06.2026 at 08:56:32
+    42000 steps completed on 10.06.2026 at 08:56:35
+    43000 steps completed on 10.06.2026 at 08:56:38
+    44000 steps completed on 10.06.2026 at 08:56:41
+    45000 steps completed on 10.06.2026 at 08:56:43
+    46000 steps completed on 10.06.2026 at 08:56:46
+    47000 steps completed on 10.06.2026 at 08:56:49
+    48000 steps completed on 10.06.2026 at 08:56:52
+    49000 steps completed on 10.06.2026 at 08:56:55
+    50000 steps completed on 10.06.2026 at 08:56:58
+    51000 steps completed on 10.06.2026 at 08:57:01
+    52000 steps completed on 10.06.2026 at 08:57:04
+    53000 steps completed on 10.06.2026 at 08:57:07
+    54000 steps completed on 10.06.2026 at 08:57:10
+    55000 steps completed on 10.06.2026 at 08:57:13
+    56000 steps completed on 10.06.2026 at 08:57:16
+    57000 steps completed on 10.06.2026 at 08:57:19
+    58000 steps completed on 10.06.2026 at 08:57:22
+    59000 steps completed on 10.06.2026 at 08:57:24
+    60000 steps completed on 10.06.2026 at 08:57:27
+    61000 steps completed on 10.06.2026 at 08:57:30
+    62000 steps completed on 10.06.2026 at 08:57:33
+    63000 steps completed on 10.06.2026 at 08:57:36
+    64000 steps completed on 10.06.2026 at 08:57:39
+    65000 steps completed on 10.06.2026 at 08:57:42
+    66000 steps completed on 10.06.2026 at 08:57:45
+    67000 steps completed on 10.06.2026 at 08:57:48
+    68000 steps completed on 10.06.2026 at 08:57:51
+    69000 steps completed on 10.06.2026 at 08:57:54
+    70000 steps completed on 10.06.2026 at 08:57:57
+    71000 steps completed on 10.06.2026 at 08:58:00
+    72000 steps completed on 10.06.2026 at 08:58:03
+    73000 steps completed on 10.06.2026 at 08:58:06
+    74000 steps completed on 10.06.2026 at 08:58:09
+    75000 steps completed on 10.06.2026 at 08:58:12
+    76000 steps completed on 10.06.2026 at 08:58:15
+    77000 steps completed on 10.06.2026 at 08:58:17
+    78000 steps completed on 10.06.2026 at 08:58:20
+    79000 steps completed on 10.06.2026 at 08:58:23
+    80000 steps completed on 10.06.2026 at 08:58:26
+    81000 steps completed on 10.06.2026 at 08:58:29
+    82000 steps completed on 10.06.2026 at 08:58:32
+    83000 steps completed on 10.06.2026 at 08:58:35
+    84000 steps completed on 10.06.2026 at 08:58:38
+    85000 steps completed on 10.06.2026 at 08:58:41
+    86000 steps completed on 10.06.2026 at 08:58:44
+    87000 steps completed on 10.06.2026 at 08:58:47
+    88000 steps completed on 10.06.2026 at 08:58:50
+    89000 steps completed on 10.06.2026 at 08:58:53
+    90000 steps completed on 10.06.2026 at 08:58:55
+    91000 steps completed on 10.06.2026 at 08:58:58
+    92000 steps completed on 10.06.2026 at 08:59:01
+    93000 steps completed on 10.06.2026 at 08:59:04
+    94000 steps completed on 10.06.2026 at 08:59:07
+    95000 steps completed on 10.06.2026 at 08:59:10
+    96000 steps completed on 10.06.2026 at 08:59:13
+    97000 steps completed on 10.06.2026 at 08:59:16
+    98000 steps completed on 10.06.2026 at 08:59:19
+    99000 steps completed on 10.06.2026 at 08:59:22
+   100000 steps completed on 10.06.2026 at 08:59:25
+------------------------------------------------------------------------
+Duration:
+ NPT equilibration wtime        diff:  293.537043    -  293.537060
+                             <=    0h  4min 53.53706sec (+- 0.10E-05sec)
+NPT equilibration timer stop: 10.06.2026, 08:59:25.453 (UTC+120)
+========================================================================
+
+NPT equilibration completed on 10.06.2026 at 08:59:25
+
+
+========================================================================
+simulation timer start: 10.06.2026, 08:59:25.453 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 10.06.2026 at 08:59:40
+     2000 steps completed on 10.06.2026 at 08:59:55
+     3000 steps completed on 10.06.2026 at 09:00:10
+     4000 steps completed on 10.06.2026 at 09:00:26
+     5000 steps completed on 10.06.2026 at 09:00:42
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+     6000 steps completed on 10.06.2026 at 09:00:57
+     7000 steps completed on 10.06.2026 at 09:01:12
+     8000 steps completed on 10.06.2026 at 09:01:28
+     9000 steps completed on 10.06.2026 at 09:01:43
+    10000 steps completed on 10.06.2026 at 09:01:58
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    11000 steps completed on 10.06.2026 at 09:02:13
+    12000 steps completed on 10.06.2026 at 09:02:28
+    13000 steps completed on 10.06.2026 at 09:02:44
+    14000 steps completed on 10.06.2026 at 09:02:58
+    15000 steps completed on 10.06.2026 at 09:03:13
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    16000 steps completed on 10.06.2026 at 09:03:28
+    17000 steps completed on 10.06.2026 at 09:03:43
+    18000 steps completed on 10.06.2026 at 09:03:58
+    19000 steps completed on 10.06.2026 at 09:04:14
+    20000 steps completed on 10.06.2026 at 09:04:29
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    21000 steps completed on 10.06.2026 at 09:04:44
+    22000 steps completed on 10.06.2026 at 09:05:00
+    23000 steps completed on 10.06.2026 at 09:05:15
+    24000 steps completed on 10.06.2026 at 09:05:30
+    25000 steps completed on 10.06.2026 at 09:05:45
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    26000 steps completed on 10.06.2026 at 09:06:00
+    27000 steps completed on 10.06.2026 at 09:06:16
+    28000 steps completed on 10.06.2026 at 09:06:31
+    29000 steps completed on 10.06.2026 at 09:06:45
+    30000 steps completed on 10.06.2026 at 09:07:00
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    31000 steps completed on 10.06.2026 at 09:07:16
+    32000 steps completed on 10.06.2026 at 09:07:31
+    33000 steps completed on 10.06.2026 at 09:07:46
+    34000 steps completed on 10.06.2026 at 09:08:01
+    35000 steps completed on 10.06.2026 at 09:08:17
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    36000 steps completed on 10.06.2026 at 09:08:32
+    37000 steps completed on 10.06.2026 at 09:08:47
+    38000 steps completed on 10.06.2026 at 09:09:02
+    39000 steps completed on 10.06.2026 at 09:09:17
+    40000 steps completed on 10.06.2026 at 09:09:32
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    41000 steps completed on 10.06.2026 at 09:09:48
+    42000 steps completed on 10.06.2026 at 09:10:03
+    43000 steps completed on 10.06.2026 at 09:10:18
+    44000 steps completed on 10.06.2026 at 09:10:33
+    45000 steps completed on 10.06.2026 at 09:10:49
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    46000 steps completed on 10.06.2026 at 09:11:04
+    47000 steps completed on 10.06.2026 at 09:11:19
+    48000 steps completed on 10.06.2026 at 09:11:34
+    49000 steps completed on 10.06.2026 at 09:11:49
+    50000 steps completed on 10.06.2026 at 09:12:04
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    51000 steps completed on 10.06.2026 at 09:12:19
+    52000 steps completed on 10.06.2026 at 09:12:34
+    53000 steps completed on 10.06.2026 at 09:12:50
+    54000 steps completed on 10.06.2026 at 09:13:05
+    55000 steps completed on 10.06.2026 at 09:13:20
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    56000 steps completed on 10.06.2026 at 09:13:35
+    57000 steps completed on 10.06.2026 at 09:13:50
+    58000 steps completed on 10.06.2026 at 09:14:05
+    59000 steps completed on 10.06.2026 at 09:14:20
+    60000 steps completed on 10.06.2026 at 09:14:35
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    61000 steps completed on 10.06.2026 at 09:14:50
+    62000 steps completed on 10.06.2026 at 09:15:06
+    63000 steps completed on 10.06.2026 at 09:15:21
+    64000 steps completed on 10.06.2026 at 09:15:36
+    65000 steps completed on 10.06.2026 at 09:15:51
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    66000 steps completed on 10.06.2026 at 09:16:06
+    67000 steps completed on 10.06.2026 at 09:16:21
+    68000 steps completed on 10.06.2026 at 09:16:36
+    69000 steps completed on 10.06.2026 at 09:16:51
+    70000 steps completed on 10.06.2026 at 09:17:07
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    71000 steps completed on 10.06.2026 at 09:17:22
+    72000 steps completed on 10.06.2026 at 09:17:37
+    73000 steps completed on 10.06.2026 at 09:17:52
+    74000 steps completed on 10.06.2026 at 09:18:07
+    75000 steps completed on 10.06.2026 at 09:18:22
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    76000 steps completed on 10.06.2026 at 09:18:37
+    77000 steps completed on 10.06.2026 at 09:18:52
+    78000 steps completed on 10.06.2026 at 09:19:07
+    79000 steps completed on 10.06.2026 at 09:19:22
+    80000 steps completed on 10.06.2026 at 09:19:37
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    81000 steps completed on 10.06.2026 at 09:19:52
+    82000 steps completed on 10.06.2026 at 09:20:07
+    83000 steps completed on 10.06.2026 at 09:20:22
+    84000 steps completed on 10.06.2026 at 09:20:38
+    85000 steps completed on 10.06.2026 at 09:20:53
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    86000 steps completed on 10.06.2026 at 09:21:08
+    87000 steps completed on 10.06.2026 at 09:21:23
+    88000 steps completed on 10.06.2026 at 09:21:38
+    89000 steps completed on 10.06.2026 at 09:21:54
+    90000 steps completed on 10.06.2026 at 09:22:09
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    91000 steps completed on 10.06.2026 at 09:22:24
+    92000 steps completed on 10.06.2026 at 09:22:40
+    93000 steps completed on 10.06.2026 at 09:22:55
+    94000 steps completed on 10.06.2026 at 09:23:10
+    95000 steps completed on 10.06.2026 at 09:23:25
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+    96000 steps completed on 10.06.2026 at 09:23:40
+    97000 steps completed on 10.06.2026 at 09:23:56
+    98000 steps completed on 10.06.2026 at 09:24:11
+    99000 steps completed on 10.06.2026 at 09:24:26
+   100000 steps completed on 10.06.2026 at 09:24:41
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   101000 steps completed on 10.06.2026 at 09:24:57
+   102000 steps completed on 10.06.2026 at 09:25:12
+   103000 steps completed on 10.06.2026 at 09:25:27
+   104000 steps completed on 10.06.2026 at 09:25:43
+   105000 steps completed on 10.06.2026 at 09:25:58
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   106000 steps completed on 10.06.2026 at 09:26:13
+   107000 steps completed on 10.06.2026 at 09:26:29
+   108000 steps completed on 10.06.2026 at 09:26:44
+   109000 steps completed on 10.06.2026 at 09:26:59
+   110000 steps completed on 10.06.2026 at 09:27:14
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   111000 steps completed on 10.06.2026 at 09:27:29
+   112000 steps completed on 10.06.2026 at 09:27:44
+   113000 steps completed on 10.06.2026 at 09:27:59
+   114000 steps completed on 10.06.2026 at 09:28:14
+   115000 steps completed on 10.06.2026 at 09:28:29
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   116000 steps completed on 10.06.2026 at 09:28:45
+   117000 steps completed on 10.06.2026 at 09:29:00
+   118000 steps completed on 10.06.2026 at 09:29:15
+   119000 steps completed on 10.06.2026 at 09:29:30
+   120000 steps completed on 10.06.2026 at 09:29:45
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   121000 steps completed on 10.06.2026 at 09:30:00
+   122000 steps completed on 10.06.2026 at 09:30:15
+   123000 steps completed on 10.06.2026 at 09:30:31
+   124000 steps completed on 10.06.2026 at 09:30:46
+   125000 steps completed on 10.06.2026 at 09:31:01
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   126000 steps completed on 10.06.2026 at 09:31:16
+   127000 steps completed on 10.06.2026 at 09:31:31
+   128000 steps completed on 10.06.2026 at 09:31:46
+   129000 steps completed on 10.06.2026 at 09:32:02
+   130000 steps completed on 10.06.2026 at 09:32:17
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   131000 steps completed on 10.06.2026 at 09:32:32
+   132000 steps completed on 10.06.2026 at 09:32:47
+   133000 steps completed on 10.06.2026 at 09:33:02
+   134000 steps completed on 10.06.2026 at 09:33:18
+   135000 steps completed on 10.06.2026 at 09:33:33
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   136000 steps completed on 10.06.2026 at 09:33:48
+   137000 steps completed on 10.06.2026 at 09:34:03
+   138000 steps completed on 10.06.2026 at 09:34:19
+   139000 steps completed on 10.06.2026 at 09:34:34
+   140000 steps completed on 10.06.2026 at 09:34:49
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   141000 steps completed on 10.06.2026 at 09:35:04
+   142000 steps completed on 10.06.2026 at 09:35:19
+   143000 steps completed on 10.06.2026 at 09:35:34
+   144000 steps completed on 10.06.2026 at 09:35:49
+   145000 steps completed on 10.06.2026 at 09:36:04
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   146000 steps completed on 10.06.2026 at 09:36:19
+   147000 steps completed on 10.06.2026 at 09:36:34
+   148000 steps completed on 10.06.2026 at 09:36:49
+   149000 steps completed on 10.06.2026 at 09:37:04
+   150000 steps completed on 10.06.2026 at 09:37:19
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   151000 steps completed on 10.06.2026 at 09:37:34
+   152000 steps completed on 10.06.2026 at 09:37:49
+   153000 steps completed on 10.06.2026 at 09:38:04
+   154000 steps completed on 10.06.2026 at 09:38:20
+   155000 steps completed on 10.06.2026 at 09:38:35
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   156000 steps completed on 10.06.2026 at 09:38:50
+   157000 steps completed on 10.06.2026 at 09:39:05
+   158000 steps completed on 10.06.2026 at 09:39:20
+   159000 steps completed on 10.06.2026 at 09:39:35
+   160000 steps completed on 10.06.2026 at 09:39:50
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   161000 steps completed on 10.06.2026 at 09:40:06
+   162000 steps completed on 10.06.2026 at 09:40:20
+   163000 steps completed on 10.06.2026 at 09:40:36
+   164000 steps completed on 10.06.2026 at 09:40:51
+   165000 steps completed on 10.06.2026 at 09:41:06
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   166000 steps completed on 10.06.2026 at 09:41:21
+   167000 steps completed on 10.06.2026 at 09:41:37
+   168000 steps completed on 10.06.2026 at 09:41:52
+   169000 steps completed on 10.06.2026 at 09:42:07
+   170000 steps completed on 10.06.2026 at 09:42:22
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   171000 steps completed on 10.06.2026 at 09:42:37
+   172000 steps completed on 10.06.2026 at 09:42:53
+   173000 steps completed on 10.06.2026 at 09:43:08
+   174000 steps completed on 10.06.2026 at 09:43:23
+   175000 steps completed on 10.06.2026 at 09:43:38
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   176000 steps completed on 10.06.2026 at 09:43:53
+   177000 steps completed on 10.06.2026 at 09:44:08
+   178000 steps completed on 10.06.2026 at 09:44:24
+   179000 steps completed on 10.06.2026 at 09:44:39
+   180000 steps completed on 10.06.2026 at 09:44:54
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   181000 steps completed on 10.06.2026 at 09:45:09
+   182000 steps completed on 10.06.2026 at 09:45:24
+   183000 steps completed on 10.06.2026 at 09:45:39
+   184000 steps completed on 10.06.2026 at 09:45:54
+   185000 steps completed on 10.06.2026 at 09:46:10
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   186000 steps completed on 10.06.2026 at 09:46:25
+   187000 steps completed on 10.06.2026 at 09:46:40
+   188000 steps completed on 10.06.2026 at 09:46:55
+   189000 steps completed on 10.06.2026 at 09:47:10
+   190000 steps completed on 10.06.2026 at 09:47:25
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   191000 steps completed on 10.06.2026 at 09:47:40
+   192000 steps completed on 10.06.2026 at 09:47:55
+   193000 steps completed on 10.06.2026 at 09:48:11
+   194000 steps completed on 10.06.2026 at 09:48:26
+   195000 steps completed on 10.06.2026 at 09:48:41
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   196000 steps completed on 10.06.2026 at 09:48:56
+   197000 steps completed on 10.06.2026 at 09:49:12
+   198000 steps completed on 10.06.2026 at 09:49:27
+   199000 steps completed on 10.06.2026 at 09:49:42
+   200000 steps completed on 10.06.2026 at 09:49:57
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   201000 steps completed on 10.06.2026 at 09:50:13
+   202000 steps completed on 10.06.2026 at 09:50:28
+   203000 steps completed on 10.06.2026 at 09:50:43
+   204000 steps completed on 10.06.2026 at 09:50:58
+   205000 steps completed on 10.06.2026 at 09:51:14
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   206000 steps completed on 10.06.2026 at 09:51:29
+   207000 steps completed on 10.06.2026 at 09:51:44
+   208000 steps completed on 10.06.2026 at 09:51:59
+   209000 steps completed on 10.06.2026 at 09:52:14
+   210000 steps completed on 10.06.2026 at 09:52:29
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   211000 steps completed on 10.06.2026 at 09:52:44
+   212000 steps completed on 10.06.2026 at 09:52:59
+   213000 steps completed on 10.06.2026 at 09:53:15
+   214000 steps completed on 10.06.2026 at 09:53:30
+   215000 steps completed on 10.06.2026 at 09:53:45
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   216000 steps completed on 10.06.2026 at 09:54:00
+   217000 steps completed on 10.06.2026 at 09:54:16
+   218000 steps completed on 10.06.2026 at 09:54:31
+   219000 steps completed on 10.06.2026 at 09:54:45
+   220000 steps completed on 10.06.2026 at 09:55:00
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   221000 steps completed on 10.06.2026 at 09:55:15
+   222000 steps completed on 10.06.2026 at 09:55:31
+   223000 steps completed on 10.06.2026 at 09:55:46
+   224000 steps completed on 10.06.2026 at 09:56:01
+   225000 steps completed on 10.06.2026 at 09:56:16
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   226000 steps completed on 10.06.2026 at 09:56:31
+   227000 steps completed on 10.06.2026 at 09:56:46
+   228000 steps completed on 10.06.2026 at 09:57:00
+   229000 steps completed on 10.06.2026 at 09:57:16
+   230000 steps completed on 10.06.2026 at 09:57:31
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   231000 steps completed on 10.06.2026 at 09:57:47
+   232000 steps completed on 10.06.2026 at 09:58:02
+   233000 steps completed on 10.06.2026 at 09:58:17
+   234000 steps completed on 10.06.2026 at 09:58:32
+   235000 steps completed on 10.06.2026 at 09:58:47
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   236000 steps completed on 10.06.2026 at 09:59:03
+   237000 steps completed on 10.06.2026 at 09:59:18
+   238000 steps completed on 10.06.2026 at 09:59:33
+   239000 steps completed on 10.06.2026 at 09:59:48
+   240000 steps completed on 10.06.2026 at 10:00:04
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   241000 steps completed on 10.06.2026 at 10:00:19
+   242000 steps completed on 10.06.2026 at 10:00:34
+   243000 steps completed on 10.06.2026 at 10:00:49
+   244000 steps completed on 10.06.2026 at 10:01:04
+   245000 steps completed on 10.06.2026 at 10:01:19
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   246000 steps completed on 10.06.2026 at 10:01:34
+   247000 steps completed on 10.06.2026 at 10:01:49
+   248000 steps completed on 10.06.2026 at 10:02:04
+   249000 steps completed on 10.06.2026 at 10:02:19
+   250000 steps completed on 10.06.2026 at 10:02:34
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   251000 steps completed on 10.06.2026 at 10:02:49
+   252000 steps completed on 10.06.2026 at 10:03:05
+   253000 steps completed on 10.06.2026 at 10:03:20
+   254000 steps completed on 10.06.2026 at 10:03:36
+   255000 steps completed on 10.06.2026 at 10:03:51
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   256000 steps completed on 10.06.2026 at 10:04:06
+   257000 steps completed on 10.06.2026 at 10:04:21
+   258000 steps completed on 10.06.2026 at 10:04:36
+   259000 steps completed on 10.06.2026 at 10:04:51
+   260000 steps completed on 10.06.2026 at 10:05:06
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   261000 steps completed on 10.06.2026 at 10:05:22
+   262000 steps completed on 10.06.2026 at 10:05:37
+   263000 steps completed on 10.06.2026 at 10:05:51
+   264000 steps completed on 10.06.2026 at 10:06:06
+   265000 steps completed on 10.06.2026 at 10:06:21
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   266000 steps completed on 10.06.2026 at 10:06:37
+   267000 steps completed on 10.06.2026 at 10:06:52
+   268000 steps completed on 10.06.2026 at 10:07:07
+   269000 steps completed on 10.06.2026 at 10:07:22
+   270000 steps completed on 10.06.2026 at 10:07:38
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   271000 steps completed on 10.06.2026 at 10:07:53
+   272000 steps completed on 10.06.2026 at 10:08:08
+   273000 steps completed on 10.06.2026 at 10:08:23
+   274000 steps completed on 10.06.2026 at 10:08:39
+   275000 steps completed on 10.06.2026 at 10:08:54
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   276000 steps completed on 10.06.2026 at 10:09:08
+   277000 steps completed on 10.06.2026 at 10:09:23
+   278000 steps completed on 10.06.2026 at 10:09:39
+   279000 steps completed on 10.06.2026 at 10:09:54
+   280000 steps completed on 10.06.2026 at 10:10:09
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   281000 steps completed on 10.06.2026 at 10:10:24
+   282000 steps completed on 10.06.2026 at 10:10:39
+   283000 steps completed on 10.06.2026 at 10:10:54
+   284000 steps completed on 10.06.2026 at 10:11:09
+   285000 steps completed on 10.06.2026 at 10:11:24
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   286000 steps completed on 10.06.2026 at 10:11:39
+   287000 steps completed on 10.06.2026 at 10:11:54
+   288000 steps completed on 10.06.2026 at 10:12:09
+   289000 steps completed on 10.06.2026 at 10:12:24
+   290000 steps completed on 10.06.2026 at 10:12:39
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   291000 steps completed on 10.06.2026 at 10:12:55
+   292000 steps completed on 10.06.2026 at 10:13:10
+   293000 steps completed on 10.06.2026 at 10:13:24
+   294000 steps completed on 10.06.2026 at 10:13:40
+   295000 steps completed on 10.06.2026 at 10:13:55
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+   296000 steps completed on 10.06.2026 at 10:14:11
+   297000 steps completed on 10.06.2026 at 10:14:26
+   298000 steps completed on 10.06.2026 at 10:14:41
+   299000 steps completed on 10.06.2026 at 10:14:56
+   300000 steps completed on 10.06.2026 at 10:15:11
+Saving simulation results
+Opening file <NPT_MD_liq_1.res> for writing (unit 1017)
+File <NPT_MD_liq_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  4545.60181    -  4545.60184
+                             <=    1h 15min 45.60184sec (+- 0.10E-05sec)
+simulation timer stop: 10.06.2026, 10:15:11.055 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NPT_MD_liq.rst on 10.06.2026 at 10:15:11
+Opening file <NPT_MD_liq.rst> for writing (unit 1005)
+saving restart data at step    300000 /    500000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 10.06.2026 at 10:15:11
+File <NPT_MD_liq.rst> closed (unit 1005)
+Finished saving restart file NPT_MD_liq.rst on 10.06.2026 at 10:15:11
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  5131.99609    sec
+                 =    1h 25min 31.99609sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  5131.99585
+                              =    1h 25min 31.99585sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 10.06.2026, 10:15:11.073 (UTC+120)
+========================================================================
+
+
+File <NPT_MD_liq_1.rav> closed (unit 1016)
+File <NPT_MD_liq_1.run> closed (unit 1015)
+
+************************************************************************
+Program terminated on 10.06.2026 at 10:15:11
+************************************************************************

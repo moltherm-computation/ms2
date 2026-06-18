@@ -1,0 +1,77 @@
+Units = SI
+LengthUnit = 3.5
+EnergyUnit = 100.0
+MassUnit = 40.0
+Simulation = MD
+Integrator = Gear
+TimeStep = 0.0005
+Ensemble = NVT
+NVTSteps = 30000
+RunSteps = 100000
+ResultFreq = 1000
+ErrorsFreq = 5000
+VisualFreq = 0
+CutoffMode = COM
+NEnsembles = 4
+mpiEnsembleGroups = 1
+
+# Ensemble 1
+
+Temperature = 200
+Density= 1.0
+NParticles = 500
+NComponents = 1
+
+PotModel = Kr_2B.pm
+MolarFract = 1.000
+ChemPotMethod = None
+NTest = 2500
+
+Cutoff = 4.0
+Epsilon = 1.0E10
+
+# Ensemble 2
+
+Temperature = 200
+Density= 2.0
+NParticles = 500
+NComponents = 1
+
+PotModel = Kr_2B.pm
+MolarFract = 1.000
+ChemPotMethod = None
+NTest = 2500
+
+Cutoff = 4.0
+Epsilon = 1.0E10
+
+# Ensemble 3
+
+Temperature = 200
+Density= 3.0
+NParticles = 500
+NComponents = 1
+
+PotModel = Kr_2B.pm
+MolarFract = 1.000
+ChemPotMethod = None
+
+Cutoff = 4.0
+Epsilon = 1.0E10
+
+# Ensemble 4
+
+Temperature = 200
+Density= 4.0
+NParticles = 500
+NComponents = 1
+
+PotModel = Kr_2B.pm
+MolarFract = 1.000
+ChemPotMethod = None
+
+Cutoff = 4.0
+Epsilon = 1.0E10
+
+
+

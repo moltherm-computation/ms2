@@ -1,0 +1,358 @@
+ms2 logfile NVT_MC_3_components.log created by PE0 on 05.06.2026 at 13:33:45
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.017
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran150200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jun  5 2026,12:19:00
+Real Kind            : 8
+
+Hostname             : Stephen.local
+started by user Isabel on 05.06.2026 at 13:33:45
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Stephen.local
+    1   +   Stephen.local
+    2   +   Stephen.local
+    3   +   Stephen.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NVT_MC_3_components.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NVT_MC_3_components
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         SI
+Unit of length:          3.500 A
+Unit of energy:        100.000 K
+Unit of mass:           40.000 a.u.
+
+Simulation type:         Monte-Carlo
+Acceptance rate:        50.00%
+
+Ensemble type:           NVT
+
+mpiMCCommonGroups:       2
+splitting communicator with   4 PEs to   2 subcommunicators
+
+File <NVT_MC_3_components.par> closed (unit 1002)
+Opening file <NVT_MC_3_components.par> for reading (unit 1002)
+
+Number of NVT equilibration steps:       20000
+Number of production steps:             100000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:               420.000 K
+Density:                     9.000 mol/l
+Reduced temperature:         4.200000
+Reduced density:             0.232379
+setting CommonEqui to default value no
+Common equilibration:        no
+Number of components:        3
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component CH4.pm:  0.450000
+Chemical potential of CH4.pm will be calculated by:
+         -> no calculation
+Opening file <CH4.pm> for reading (unit 1003)
+File <CH4.pm> closed (unit 1003)
+Opening file <NVT_MC_3_components.CH4.nrm> for writing (unit 1004)
+File <NVT_MC_3_components.CH4.nrm> closed (unit 1004)
+Normalized potential model for CH4.pm saved to file <NVT_MC_3_components.CH4.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+            Reading component  2 for ensemble
+Mole fraction of component C2H6.pm:  0.100000
+Chemical potential of C2H6.pm will be calculated by:
+         -> no calculation
+Opening file <C2H6.pm> for reading (unit 1003)
+File <C2H6.pm> closed (unit 1003)
+Opening file <NVT_MC_3_components.C2H6.nrm> for writing (unit 1004)
+File <NVT_MC_3_components.C2H6.nrm> closed (unit 1004)
+Normalized potential model for C2H6.pm saved to file <NVT_MC_3_components.C2H6.nrm>
+       Reading component  2 for ensemble successful
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+            Reading component  3 for ensemble
+Mole fraction of component C3H6_II.pm:  0.450000
+Chemical potential of C3H6_II.pm will be calculated by:
+         -> no calculation
+Opening file <C3H6_II.pm> for reading (unit 1003)
+File <C3H6_II.pm> closed (unit 1003)
+Opening file <NVT_MC_3_components.C3H6_II.nrm> for writing (unit 1004)
+File <NVT_MC_3_components.C3H6_II.nrm> closed (unit 1004)
+Normalized potential model for C3H6_II.pm saved to file <NVT_MC_3_components.C3H6_II.nrm>
+       Reading component  3 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       500
+Mole fraction of CH4.pm:                     0.450
+         ->  number of particles:          225
+Mole fraction of C2H6.pm:                    0.100
+         ->  number of particles:           50
+Mole fraction of C3H6_II.pm:                 0.450
+         ->  number of particles:          225
+Memory for CH4.pm allocated successfully
+Memory for C2H6.pm allocated successfully
+Memory for C3H6_II.pm allocated successfully
+CH4.pm-C2H6.pm LJ interaction:  eta = 1.001, xi = 0.999
+CH4.pm-C3H6_II.pm LJ interaction:  eta = 1.000, xi = 1.000
+C2H6.pm-C3H6_II.pm LJ interaction:  eta = 1.000, xi = 1.000
+
+Reduced center of mass cutoff radius:        4.000
+
+Cutoff correction to
+- potential energy from LJ                  -0.66641464
+- pressure from LJ                          -1.34257297
+- chem. pot. of CH4.pm from LJ              -0.87205673
+- chem. pot. of C2H6.pm from LJ             -1.40893589
+- chem. pot. of C3H6_II.pm from LJ          -1.77668926
+- potential energy from reaction field (RF)  0.00000000
+- pressure from reaction field:              0.00000000
+- chem. pot. of CH4.pm from RF               0.00000000
+- chem. pot. of C2H6.pm from RF              0.00000000
+- chem. pot. of C3H6_II.pm from RF           0.00000000
+
+Initialize positions:
+         FCC lattice:   4 *   5x   5x   5 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NVT_MC_3_components.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+opening file <NVT_MC_3_components_1.run> for writing
+opening file <NVT_MC_3_components_1.rav> for writing
+
+========================================================================
+TSimulation_Run timer start: 05.06.2026, 13:33:45.184 (UTC+120)
+------------------------------------------------------------------------
+Random number generator initialized
+------------------------------------------------------------------------
+
+
+
+========================================================================
+NVT equilibration timer start: 05.06.2026, 13:33:45.184 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 05.06.2026 at 13:33:50
+     2000 steps completed on 05.06.2026 at 13:33:55
+     3000 steps completed on 05.06.2026 at 13:34:00
+     4000 steps completed on 05.06.2026 at 13:34:05
+     5000 steps completed on 05.06.2026 at 13:34:10
+     6000 steps completed on 05.06.2026 at 13:34:16
+     7000 steps completed on 05.06.2026 at 13:34:21
+     8000 steps completed on 05.06.2026 at 13:34:26
+     9000 steps completed on 05.06.2026 at 13:34:32
+    10000 steps completed on 05.06.2026 at 13:34:37
+    11000 steps completed on 05.06.2026 at 13:34:42
+    12000 steps completed on 05.06.2026 at 13:34:48
+    13000 steps completed on 05.06.2026 at 13:34:53
+    14000 steps completed on 05.06.2026 at 13:34:58
+    15000 steps completed on 05.06.2026 at 13:35:04
+    16000 steps completed on 05.06.2026 at 13:35:09
+    17000 steps completed on 05.06.2026 at 13:35:14
+    18000 steps completed on 05.06.2026 at 13:35:20
+    19000 steps completed on 05.06.2026 at 13:35:25
+    20000 steps completed on 05.06.2026 at 13:35:31
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  105.983950    -  105.983950
+                             <=    0h  1min 45.98395sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 05.06.2026, 13:35:31.168 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 05.06.2026 at 13:35:31
+
+
+========================================================================
+simulation timer start: 05.06.2026, 13:35:31.168 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 05.06.2026 at 13:35:36
+     2000 steps completed on 05.06.2026 at 13:35:41
+     3000 steps completed on 05.06.2026 at 13:35:47
+     4000 steps completed on 05.06.2026 at 13:35:52
+     5000 steps completed on 05.06.2026 at 13:35:57
+Saving simulation results
+Opening file <NVT_MC_3_components_1.res> for writing (unit 1017)
+File <NVT_MC_3_components_1.res> closed (unit 1017)
+     6000 steps completed on 05.06.2026 at 13:36:03
+     7000 steps completed on 05.06.2026 at 13:36:08
+     8000 steps completed on 05.06.2026 at 13:36:13
+     9000 steps completed on 05.06.2026 at 13:36:19
+    10000 steps completed on 05.06.2026 at 13:36:24
+Saving simulation results
+Opening file <NVT_MC_3_components_1.res> for writing (unit 1017)
+File <NVT_MC_3_components_1.res> closed (unit 1017)
+    11000 steps completed on 05.06.2026 at 13:36:29
+    12000 steps completed on 05.06.2026 at 13:36:35
+    13000 steps completed on 05.06.2026 at 13:36:40
+    14000 steps completed on 05.06.2026 at 13:36:45
+    15000 steps completed on 05.06.2026 at 13:36:51
+Saving simulation results
+Opening file <NVT_MC_3_components_1.res> for writing (unit 1017)
+File <NVT_MC_3_components_1.res> closed (unit 1017)
+    16000 steps completed on 05.06.2026 at 13:36:56
+    17000 steps completed on 05.06.2026 at 13:37:01
+    18000 steps completed on 05.06.2026 at 13:37:07
+    19000 steps completed on 05.06.2026 at 13:37:12
+    20000 steps completed on 05.06.2026 at 13:37:18
+Saving simulation results
+Opening file <NVT_MC_3_components_1.res> for writing (unit 1017)
+File <NVT_MC_3_components_1.res> closed (unit 1017)
+    21000 steps completed on 05.06.2026 at 13:37:23
+    22000 steps completed on 05.06.2026 at 13:37:28
+    23000 steps completed on 05.06.2026 at 13:37:34
+    24000 steps completed on 05.06.2026 at 13:37:39
+    25000 steps completed on 05.06.2026 at 13:37:44
+Saving simulation results
+Opening file <NVT_MC_3_components_1.res> for writing (unit 1017)
+File <NVT_MC_3_components_1.res> closed (unit 1017)
+    26000 steps completed on 05.06.2026 at 13:37:50
+    27000 steps completed on 05.06.2026 at 13:37:55
+    28000 steps completed on 05.06.2026 at 13:38:00
+    29000 steps completed on 05.06.2026 at 13:38:06
+    30000 steps completed on 05.06.2026 at 13:38:11
+Saving simulation results
+Opening file <NVT_MC_3_components_1.res> for writing (unit 1017)
+File <NVT_MC_3_components_1.res> closed (unit 1017)
+    31000 steps completed on 05.06.2026 at 13:38:16
+    32000 steps completed on 05.06.2026 at 13:38:22
+    33000 steps completed on 05.06.2026 at 13:38:27
+    34000 steps completed on 05.06.2026 at 13:38:33
+    35000 steps completed on 05.06.2026 at 13:38:38
+Saving simulation results
+Opening file <NVT_MC_3_components_1.res> for writing (unit 1017)
+File <NVT_MC_3_components_1.res> closed (unit 1017)
+    36000 steps completed on 05.06.2026 at 13:38:43
+    37000 steps completed on 05.06.2026 at 13:38:49
+    38000 steps completed on 05.06.2026 at 13:38:54
+    39000 steps completed on 05.06.2026 at 13:38:59
+    40000 steps completed on 05.06.2026 at 13:39:05
+Saving simulation results
+Opening file <NVT_MC_3_components_1.res> for writing (unit 1017)
+File <NVT_MC_3_components_1.res> closed (unit 1017)
+    41000 steps completed on 05.06.2026 at 13:39:10
+    42000 steps completed on 05.06.2026 at 13:39:15
+    43000 steps completed on 05.06.2026 at 13:39:21
+    44000 steps completed on 05.06.2026 at 13:39:26
+    45000 steps completed on 05.06.2026 at 13:39:31
+Saving simulation results
+Opening file <NVT_MC_3_components_1.res> for writing (unit 1017)
+File <NVT_MC_3_components_1.res> closed (unit 1017)
+    46000 steps completed on 05.06.2026 at 13:39:37
+    47000 steps completed on 05.06.2026 at 13:39:42
+    48000 steps completed on 05.06.2026 at 13:39:48
+    49000 steps completed on 05.06.2026 at 13:39:53
+    50000 steps completed on 05.06.2026 at 13:39:58
+Saving simulation results
+Opening file <NVT_MC_3_components_1.res> for writing (unit 1017)
+File <NVT_MC_3_components_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  267.689069    -  267.689080
+                             <=    0h  4min 27.68908sec (+- 0.10E-05sec)
+simulation timer stop: 05.06.2026, 13:39:58.857 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NVT_MC_3_components_1.rst up to *_2.rst on 05.06.2026 at 13:39:58
+Opening file <NVT_MC_3_components_1.rst> for writing (unit 1005)
+saving restart data at step     50000 /     70000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 05.06.2026 at 13:39:58
+File <NVT_MC_3_components_1.rst> closed (unit 1005)
+Finished saving restart file NVT_MC_3_components_1.rst up to *_2.rst on 05.06.2026 at 13:39:58
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  373.674988    sec
+                 =    0h  6min 13.67499sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  373.674552
+                              =    0h  6min 13.67455sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 05.06.2026, 13:39:58.859 (UTC+120)
+========================================================================
+
+
+File <*.run or *.rav> closed
+File <*.run or *.rav> closed
+
+************************************************************************
+Program terminated on 05.06.2026 at 13:39:58
+************************************************************************

@@ -1,0 +1,350 @@
+ms2 logfile NPT_MC_1LCJ.log created by PE0 on 05.06.2026 at 10:50:48
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.017
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran140200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jun  4 2026,15:59:13
+Real Kind            : 8
+
+Hostname             : Francis-1897.local
+started by user Isabel on 05.06.2026 at 10:50:48
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Francis-1897.local
+    1   +   Francis-1897.local
+    2   +   Francis-1897.local
+    3   +   Francis-1897.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NPT_MC_1LCJ.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NPT_MC_1LCJ
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         reduced
+Unit of length:          1.000 A
+Unit of energy:          1.000 K
+Unit of mass:            1.000 a.u.
+
+Simulation type:         Monte-Carlo
+Acceptance rate:        50.00%
+
+Ensemble type:           NPT
+
+mpiMCCommonGroups:       2
+splitting communicator with   4 PEs to   2 subcommunicators
+
+File <NPT_MC_1LCJ.par> closed (unit 1002)
+Opening file <NPT_MC_1LCJ.par> for reading (unit 1002)
+
+Number of NVT equilibration steps:       10000
+Number of NPT equilibration steps:       20000
+Number of production steps:             100000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:                 4.000 K
+Pressure:                   48.627 MPa
+Density:                   830.270 mol/l
+Reduced temperature:         4.000000
+Reduced pressure:            3.522000
+Reduced density:             0.500000
+setting CommonEqui to default value no
+Common equilibration:        no
+Number of components:        1
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component 1CLJ.pm:  1.000000
+Chemical potential of 1CLJ.pm will be calculated by:
+         -> Widom's test particle method
+Opening file <1CLJ.pm> for reading (unit 1003)
+File <1CLJ.pm> closed (unit 1003)
+Opening file <NPT_MC_1LCJ.1CLJ.nrm> for writing (unit 1004)
+File <NPT_MC_1LCJ.1CLJ.nrm> closed (unit 1004)
+Normalized potential model for 1CLJ.pm saved to file <NPT_MC_1LCJ.1CLJ.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                      1372
+Mole fraction of 1CLJ.pm:                    1.000
+         ->  number of particles:         1372
+Number of test particles:                 1000
+
+Memory for test particles allocated successfully
+Memory for 1CLJ.pm allocated successfully
+
+Reduced center of mass cutoff radius:        4.000
+
+Cutoff correction to
+- potential energy from LJ                  -0.13088904
+- pressure from LJ                          -0.26175678
+- chem. pot. of 1CLJ.pm from LJ             -0.26177809
+- potential energy from reaction field (RF)  0.00000000
+- pressure from reaction field:              0.00000000
+- chem. pot. of 1CLJ.pm from RF              0.00000000
+
+Initialize positions:
+         FCC lattice:   4 *   7x   7x   7 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NPT_MC_1LCJ.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+opening file <NPT_MC_1LCJ_1.run> for writing
+opening file <NPT_MC_1LCJ_1.rav> for writing
+
+========================================================================
+TSimulation_Run timer start: 05.06.2026, 10:50:48.134 (UTC+120)
+------------------------------------------------------------------------
+Random number generator initialized
+------------------------------------------------------------------------
+
+
+
+========================================================================
+NVT equilibration timer start: 05.06.2026, 10:50:48.134 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 05.06.2026 at 10:51:03
+     2000 steps completed on 05.06.2026 at 10:51:19
+     3000 steps completed on 05.06.2026 at 10:51:35
+     4000 steps completed on 05.06.2026 at 10:51:50
+     5000 steps completed on 05.06.2026 at 10:52:06
+     6000 steps completed on 05.06.2026 at 10:52:22
+     7000 steps completed on 05.06.2026 at 10:52:38
+     8000 steps completed on 05.06.2026 at 10:52:53
+     9000 steps completed on 05.06.2026 at 10:53:09
+    10000 steps completed on 05.06.2026 at 10:53:25
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  157.226549    -  157.226554
+                             <=    0h  2min 37.22655sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 05.06.2026, 10:53:25.361 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 05.06.2026 at 10:53:25
+
+
+========================================================================
+NPT equilibration timer start: 05.06.2026, 10:53:25.361 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 05.06.2026 at 10:53:45
+     2000 steps completed on 05.06.2026 at 10:54:05
+     3000 steps completed on 05.06.2026 at 10:54:25
+     4000 steps completed on 05.06.2026 at 10:54:45
+     5000 steps completed on 05.06.2026 at 10:55:05
+     6000 steps completed on 05.06.2026 at 10:55:24
+     7000 steps completed on 05.06.2026 at 10:55:44
+     8000 steps completed on 05.06.2026 at 10:56:04
+     9000 steps completed on 05.06.2026 at 10:56:24
+    10000 steps completed on 05.06.2026 at 10:56:44
+    11000 steps completed on 05.06.2026 at 10:57:04
+    12000 steps completed on 05.06.2026 at 10:57:24
+    13000 steps completed on 05.06.2026 at 10:57:44
+    14000 steps completed on 05.06.2026 at 10:58:04
+    15000 steps completed on 05.06.2026 at 10:58:24
+    16000 steps completed on 05.06.2026 at 10:58:44
+    17000 steps completed on 05.06.2026 at 10:59:04
+    18000 steps completed on 05.06.2026 at 10:59:24
+    19000 steps completed on 05.06.2026 at 10:59:44
+    20000 steps completed on 05.06.2026 at 11:00:04
+------------------------------------------------------------------------
+Duration:
+ NPT equilibration wtime        diff:  399.620138    -  399.620172
+                             <=    0h  6min 39.62017sec (+- 0.10E-05sec)
+NPT equilibration timer stop: 05.06.2026, 11:00:04.981 (UTC+120)
+========================================================================
+
+NPT equilibration completed on 05.06.2026 at 11:00:04
+
+
+========================================================================
+simulation timer start: 05.06.2026, 11:00:04.981 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 05.06.2026 at 11:00:32
+     2000 steps completed on 05.06.2026 at 11:00:59
+     3000 steps completed on 05.06.2026 at 11:01:26
+     4000 steps completed on 05.06.2026 at 11:01:53
+     5000 steps completed on 05.06.2026 at 11:02:20
+Saving simulation results
+Opening file <NPT_MC_1LCJ_1.res> for writing (unit 1017)
+File <NPT_MC_1LCJ_1.res> closed (unit 1017)
+     6000 steps completed on 05.06.2026 at 11:02:47
+     7000 steps completed on 05.06.2026 at 11:03:15
+     8000 steps completed on 05.06.2026 at 11:03:42
+     9000 steps completed on 05.06.2026 at 11:04:09
+    10000 steps completed on 05.06.2026 at 11:04:36
+Saving simulation results
+Opening file <NPT_MC_1LCJ_1.res> for writing (unit 1017)
+File <NPT_MC_1LCJ_1.res> closed (unit 1017)
+    11000 steps completed on 05.06.2026 at 11:05:03
+    12000 steps completed on 05.06.2026 at 11:05:30
+    13000 steps completed on 05.06.2026 at 11:05:57
+    14000 steps completed on 05.06.2026 at 11:06:24
+    15000 steps completed on 05.06.2026 at 11:06:51
+Saving simulation results
+Opening file <NPT_MC_1LCJ_1.res> for writing (unit 1017)
+File <NPT_MC_1LCJ_1.res> closed (unit 1017)
+    16000 steps completed on 05.06.2026 at 11:07:18
+    17000 steps completed on 05.06.2026 at 11:07:45
+    18000 steps completed on 05.06.2026 at 11:08:12
+    19000 steps completed on 05.06.2026 at 11:08:39
+    20000 steps completed on 05.06.2026 at 11:09:06
+Saving simulation results
+Opening file <NPT_MC_1LCJ_1.res> for writing (unit 1017)
+File <NPT_MC_1LCJ_1.res> closed (unit 1017)
+    21000 steps completed on 05.06.2026 at 11:09:33
+    22000 steps completed on 05.06.2026 at 11:09:59
+    23000 steps completed on 05.06.2026 at 11:10:27
+    24000 steps completed on 05.06.2026 at 11:10:53
+    25000 steps completed on 05.06.2026 at 11:11:20
+Saving simulation results
+Opening file <NPT_MC_1LCJ_1.res> for writing (unit 1017)
+File <NPT_MC_1LCJ_1.res> closed (unit 1017)
+    26000 steps completed on 05.06.2026 at 11:11:48
+    27000 steps completed on 05.06.2026 at 11:12:14
+    28000 steps completed on 05.06.2026 at 11:12:41
+    29000 steps completed on 05.06.2026 at 11:13:08
+    30000 steps completed on 05.06.2026 at 11:13:35
+Saving simulation results
+Opening file <NPT_MC_1LCJ_1.res> for writing (unit 1017)
+File <NPT_MC_1LCJ_1.res> closed (unit 1017)
+    31000 steps completed on 05.06.2026 at 11:14:02
+    32000 steps completed on 05.06.2026 at 11:14:29
+    33000 steps completed on 05.06.2026 at 11:14:56
+    34000 steps completed on 05.06.2026 at 11:15:22
+    35000 steps completed on 05.06.2026 at 11:15:49
+Saving simulation results
+Opening file <NPT_MC_1LCJ_1.res> for writing (unit 1017)
+File <NPT_MC_1LCJ_1.res> closed (unit 1017)
+    36000 steps completed on 05.06.2026 at 11:16:16
+    37000 steps completed on 05.06.2026 at 11:16:44
+    38000 steps completed on 05.06.2026 at 11:17:11
+    39000 steps completed on 05.06.2026 at 11:17:38
+    40000 steps completed on 05.06.2026 at 11:18:05
+Saving simulation results
+Opening file <NPT_MC_1LCJ_1.res> for writing (unit 1017)
+File <NPT_MC_1LCJ_1.res> closed (unit 1017)
+    41000 steps completed on 05.06.2026 at 11:18:32
+    42000 steps completed on 05.06.2026 at 11:18:58
+    43000 steps completed on 05.06.2026 at 11:19:25
+    44000 steps completed on 05.06.2026 at 11:19:52
+    45000 steps completed on 05.06.2026 at 11:20:19
+Saving simulation results
+Opening file <NPT_MC_1LCJ_1.res> for writing (unit 1017)
+File <NPT_MC_1LCJ_1.res> closed (unit 1017)
+    46000 steps completed on 05.06.2026 at 11:20:46
+    47000 steps completed on 05.06.2026 at 11:21:13
+    48000 steps completed on 05.06.2026 at 11:21:40
+    49000 steps completed on 05.06.2026 at 11:22:07
+    50000 steps completed on 05.06.2026 at 11:22:34
+Saving simulation results
+Opening file <NPT_MC_1LCJ_1.res> for writing (unit 1017)
+File <NPT_MC_1LCJ_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  1349.43029    -  1349.43030
+                             <=    0h 22min 29.43030sec (+- 0.10E-05sec)
+simulation timer stop: 05.06.2026, 11:22:34.412 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NPT_MC_1LCJ_1.rst up to *_2.rst on 05.06.2026 at 11:22:34
+Opening file <NPT_MC_1LCJ_1.rst> for writing (unit 1005)
+saving restart data at step     50000 /     80000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 05.06.2026 at 11:22:34
+File <NPT_MC_1LCJ_1.rst> closed (unit 1005)
+Finished saving restart file NPT_MC_1LCJ_1.rst up to *_2.rst on 05.06.2026 at 11:22:34
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  1906.28198    sec
+                 =    0h 31min 46.28198sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  1906.28162
+                              =    0h 31min 46.28162sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 05.06.2026, 11:22:34.416 (UTC+120)
+========================================================================
+
+
+File <*.run or *.rav> closed
+File <*.run or *.rav> closed
+
+************************************************************************
+Program terminated on 05.06.2026 at 11:22:34
+************************************************************************

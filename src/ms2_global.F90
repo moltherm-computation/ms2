@@ -1,8 +1,6 @@
 !==============================================================!
 !  MOLECULAR SIMULATION PROGRAM ms2 Version 5.0                !
-!  (c) 2025 by RPTU Kaiserslautern / TU Berlin                 !
-!      P.O. Box 67653                                          !
-!      67653 Kaiserslautern                                    !
+!  (c) 2026 by OVGU Magdeburg / TU Berlin                      !
 !==============================================================!
 !  Module ms2_global                                           !
 !  Contains declarations of global constants and functions     !
@@ -1528,11 +1526,7 @@ contains
 
     write( IOBuffer, '(74("*"))')
     call LogWrite
-    write( IOBuffer, '("* (c) by TU Kaiserslautern / TU Berlin                                   *")')
-    call LogWrite
-    write( IOBuffer, '("*     P.O. Box 67653                                                     *")')
-    call LogWrite
-    write( IOBuffer, '("*     67653 Kaiserslautern                                               *")')
+    write( IOBuffer, '("* (c) by OVGU Magdeburg / TU Berlin                                      *")')
     call LogWrite
     write( IOBuffer, '(74("*"))')
     call LogWrite

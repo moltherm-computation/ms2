@@ -1,0 +1,466 @@
+ms2 logfile NVT_MD_thermoInt.log created by PE0 on 08.06.2026 at 09:29:36
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.018
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran150200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jun  5 2026,15:22:15
+Real Kind            : 8
+
+Hostname             : Stephen.local
+started by user Isabel on 08.06.2026 at 09:29:36
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Stephen.local
+    1   +   Stephen.local
+    2   +   Stephen.local
+    3   +   Stephen.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NVT_MD_thermoInt.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NVT_MD_thermoInt
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         SI
+Unit of length:          3.500 A
+Unit of energy:        100.000 K
+Unit of mass:           40.000 a.u.
+
+Simulation type:         Molecular Dynamics
+Integrator type:         Gear predictor-corrector
+Time step:                1.213807 fs
+Reduced time step:        0.000500
+
+Ensemble type:           NVT
+
+setting MCORSteps to default value       0
+No MC overlap reduction
+Number of NVT equilibration steps:       30000
+Number of production steps:             100000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:               400.000 K
+Density:                    11.400 mol/l
+Reduced temperature:         4.000000
+Reduced density:             0.294347
+setting ResidTime to default value no
+Calculation of residence time: no
+setting CommonEqui to default value no
+MD simulation: Logical CommonEqui no is invalid, set to yes
+Number of components:        1
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component aceton.pm:  1.000000
+Chemical potential of aceton.pm will be calculated by:
+         -> thermodynamic integration
+Thermo. Int. LambdaMin:                0.20000
+setting LambdaMax to default value   1.00000000
+Thermo. Int. LambdaMax:                1.00000
+Thermo. Int. NBins:                        100
+Thermo. Int. LambdaStepMax:            0.10000
+Thermo. Int. LambdaExponent:           4.00000
+         -> Number of test particles:       2000
+Opening file <aceton.pm> for reading (unit 1003)
+File <aceton.pm> closed (unit 1003)
+Opening file <NVT_MD_thermoInt.aceton.nrm> for writing (unit 1004)
+File <NVT_MD_thermoInt.aceton.nrm> closed (unit 1004)
+Normalized potential model for aceton.pm saved to file <NVT_MD_thermoInt.aceton.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+Opening file <aceton.pm> for reading (unit 1003)
+File <aceton.pm> closed (unit 1003)
+Opening file <NVT_MD_thermoInt.aceton.nrm> for writing (unit 1004)
+File <NVT_MD_thermoInt.aceton.nrm> closed (unit 1004)
+Normalized potential model for aceton.pm saved to file <NVT_MD_thermoInt.aceton.nrm>
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       500
+Mole fraction of aceton.pm:                  0.998
+         ->  number of particles:          499
+Number of test particles:                 2000
+
+Memory for test particles allocated successfully
+Memory for aceton.pm allocated successfully
+Memory for aceton.pm allocated successfully
+
+Reduced center of mass cutoff radius:        4.000
+
+Characteristic dielectric constant:          0.10000E+11
+
+Cutoff correction to
+- potential energy from LJ                  -1.66569359
+- pressure from LJ                          -3.39952390
+- chem. pot. of aceton.pm from LJ           -3.33138718
+- potential energy from reaction field (RF) -0.00978854
+- pressure from reaction field:             -0.46984987
+- chem. pot. of aceton.pm from RF           -0.31323324
+
+Initialize positions:
+         FCC lattice:   4 *   5x   5x   5 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NVT_MD_thermoInt.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+Opening file <NVT_MD_thermoInt_1.run> for writing (unit 1015)
+Opening file <NVT_MD_thermoInt_1.rav> for writing (unit 1016)
+
+========================================================================
+TSimulation_Run timer start: 08.06.2026, 09:29:36.968 (UTC+120)
+------------------------------------------------------------------------
+
+
+========================================================================
+NVT equilibration timer start: 08.06.2026, 09:29:36.968 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 08.06.2026 at 09:29:38
+     2000 steps completed on 08.06.2026 at 09:29:39
+     3000 steps completed on 08.06.2026 at 09:29:41
+     4000 steps completed on 08.06.2026 at 09:29:43
+     5000 steps completed on 08.06.2026 at 09:29:44
+     6000 steps completed on 08.06.2026 at 09:29:46
+     7000 steps completed on 08.06.2026 at 09:29:47
+     8000 steps completed on 08.06.2026 at 09:29:49
+     9000 steps completed on 08.06.2026 at 09:29:50
+    10000 steps completed on 08.06.2026 at 09:29:52
+    11000 steps completed on 08.06.2026 at 09:29:53
+    12000 steps completed on 08.06.2026 at 09:29:55
+    13000 steps completed on 08.06.2026 at 09:29:56
+    14000 steps completed on 08.06.2026 at 09:29:58
+    15000 steps completed on 08.06.2026 at 09:29:59
+    16000 steps completed on 08.06.2026 at 09:30:01
+    17000 steps completed on 08.06.2026 at 09:30:02
+    18000 steps completed on 08.06.2026 at 09:30:04
+    19000 steps completed on 08.06.2026 at 09:30:05
+    20000 steps completed on 08.06.2026 at 09:30:07
+    21000 steps completed on 08.06.2026 at 09:30:09
+    22000 steps completed on 08.06.2026 at 09:30:10
+    23000 steps completed on 08.06.2026 at 09:30:12
+    24000 steps completed on 08.06.2026 at 09:30:13
+    25000 steps completed on 08.06.2026 at 09:30:15
+    26000 steps completed on 08.06.2026 at 09:30:16
+    27000 steps completed on 08.06.2026 at 09:30:18
+    28000 steps completed on 08.06.2026 at 09:30:19
+    29000 steps completed on 08.06.2026 at 09:30:21
+    30000 steps completed on 08.06.2026 at 09:30:22
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  45.8613440    -  45.8613480
+                             <=    0h  0min 45.86135sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 08.06.2026, 09:30:22.829 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 08.06.2026 at 09:30:22
+
+
+========================================================================
+simulation timer start: 08.06.2026, 09:30:22.829 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 08.06.2026 at 09:30:33
+     2000 steps completed on 08.06.2026 at 09:30:43
+     3000 steps completed on 08.06.2026 at 09:30:53
+     4000 steps completed on 08.06.2026 at 09:31:03
+     5000 steps completed on 08.06.2026 at 09:31:13
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+     6000 steps completed on 08.06.2026 at 09:31:24
+     7000 steps completed on 08.06.2026 at 09:31:34
+     8000 steps completed on 08.06.2026 at 09:31:44
+     9000 steps completed on 08.06.2026 at 09:31:54
+    10000 steps completed on 08.06.2026 at 09:32:05
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    11000 steps completed on 08.06.2026 at 09:32:15
+    12000 steps completed on 08.06.2026 at 09:32:25
+    13000 steps completed on 08.06.2026 at 09:32:35
+    14000 steps completed on 08.06.2026 at 09:32:45
+    15000 steps completed on 08.06.2026 at 09:32:56
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    16000 steps completed on 08.06.2026 at 09:33:06
+    17000 steps completed on 08.06.2026 at 09:33:17
+    18000 steps completed on 08.06.2026 at 09:33:27
+    19000 steps completed on 08.06.2026 at 09:33:37
+    20000 steps completed on 08.06.2026 at 09:33:47
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    21000 steps completed on 08.06.2026 at 09:33:57
+    22000 steps completed on 08.06.2026 at 09:34:08
+    23000 steps completed on 08.06.2026 at 09:34:18
+    24000 steps completed on 08.06.2026 at 09:34:28
+    25000 steps completed on 08.06.2026 at 09:34:39
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    26000 steps completed on 08.06.2026 at 09:34:49
+    27000 steps completed on 08.06.2026 at 09:34:59
+    28000 steps completed on 08.06.2026 at 09:35:10
+    29000 steps completed on 08.06.2026 at 09:35:20
+    30000 steps completed on 08.06.2026 at 09:35:30
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    31000 steps completed on 08.06.2026 at 09:35:40
+    32000 steps completed on 08.06.2026 at 09:35:51
+    33000 steps completed on 08.06.2026 at 09:36:01
+    34000 steps completed on 08.06.2026 at 09:36:11
+    35000 steps completed on 08.06.2026 at 09:36:22
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    36000 steps completed on 08.06.2026 at 09:36:32
+    37000 steps completed on 08.06.2026 at 09:36:42
+    38000 steps completed on 08.06.2026 at 09:36:53
+    39000 steps completed on 08.06.2026 at 09:37:03
+    40000 steps completed on 08.06.2026 at 09:37:13
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    41000 steps completed on 08.06.2026 at 09:37:23
+    42000 steps completed on 08.06.2026 at 09:37:34
+    43000 steps completed on 08.06.2026 at 09:37:44
+    44000 steps completed on 08.06.2026 at 09:37:54
+    45000 steps completed on 08.06.2026 at 09:38:05
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    46000 steps completed on 08.06.2026 at 09:38:15
+    47000 steps completed on 08.06.2026 at 09:38:25
+    48000 steps completed on 08.06.2026 at 09:38:36
+    49000 steps completed on 08.06.2026 at 09:38:46
+    50000 steps completed on 08.06.2026 at 09:38:56
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    51000 steps completed on 08.06.2026 at 09:39:07
+    52000 steps completed on 08.06.2026 at 09:39:17
+    53000 steps completed on 08.06.2026 at 09:39:27
+    54000 steps completed on 08.06.2026 at 09:39:38
+    55000 steps completed on 08.06.2026 at 09:39:48
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    56000 steps completed on 08.06.2026 at 09:39:58
+    57000 steps completed on 08.06.2026 at 09:40:08
+    58000 steps completed on 08.06.2026 at 09:40:19
+    59000 steps completed on 08.06.2026 at 09:40:29
+    60000 steps completed on 08.06.2026 at 09:40:39
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    61000 steps completed on 08.06.2026 at 09:40:50
+    62000 steps completed on 08.06.2026 at 09:41:00
+    63000 steps completed on 08.06.2026 at 09:41:10
+    64000 steps completed on 08.06.2026 at 09:41:21
+    65000 steps completed on 08.06.2026 at 09:41:31
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    66000 steps completed on 08.06.2026 at 09:41:41
+    67000 steps completed on 08.06.2026 at 09:41:52
+    68000 steps completed on 08.06.2026 at 09:42:02
+    69000 steps completed on 08.06.2026 at 09:42:13
+    70000 steps completed on 08.06.2026 at 09:42:23
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    71000 steps completed on 08.06.2026 at 09:42:33
+    72000 steps completed on 08.06.2026 at 09:42:44
+    73000 steps completed on 08.06.2026 at 09:42:54
+    74000 steps completed on 08.06.2026 at 09:43:04
+    75000 steps completed on 08.06.2026 at 09:43:14
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    76000 steps completed on 08.06.2026 at 09:43:25
+    77000 steps completed on 08.06.2026 at 09:43:35
+    78000 steps completed on 08.06.2026 at 09:43:45
+    79000 steps completed on 08.06.2026 at 09:43:56
+    80000 steps completed on 08.06.2026 at 09:44:06
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    81000 steps completed on 08.06.2026 at 09:44:16
+    82000 steps completed on 08.06.2026 at 09:44:27
+    83000 steps completed on 08.06.2026 at 09:44:37
+    84000 steps completed on 08.06.2026 at 09:44:47
+    85000 steps completed on 08.06.2026 at 09:44:58
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    86000 steps completed on 08.06.2026 at 09:45:08
+    87000 steps completed on 08.06.2026 at 09:45:18
+    88000 steps completed on 08.06.2026 at 09:45:29
+    89000 steps completed on 08.06.2026 at 09:45:39
+    90000 steps completed on 08.06.2026 at 09:45:49
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    91000 steps completed on 08.06.2026 at 09:46:00
+    92000 steps completed on 08.06.2026 at 09:46:11
+    93000 steps completed on 08.06.2026 at 09:46:21
+    94000 steps completed on 08.06.2026 at 09:46:31
+    95000 steps completed on 08.06.2026 at 09:46:42
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+    96000 steps completed on 08.06.2026 at 09:46:52
+    97000 steps completed on 08.06.2026 at 09:47:02
+    98000 steps completed on 08.06.2026 at 09:47:13
+    99000 steps completed on 08.06.2026 at 09:47:23
+   100000 steps completed on 08.06.2026 at 09:47:33
+Saving simulation results
+Opening file <NVT_MD_thermoInt_1.res> for writing (unit 1017)
+File <NVT_MD_thermoInt_1.res> closed (unit 1017)
+Opening file <NVT_MD_thermoInt_1.thi> for writing (unit 1020)
+File <NVT_MD_thermoInt_1.thi> closed (unit 1020)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  1030.85336    -  1030.85339
+                             <=    0h 17min 10.85339sec (+- 0.10E-05sec)
+simulation timer stop: 08.06.2026, 09:47:33.683 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NVT_MD_thermoInt.rst on 08.06.2026 at 09:47:33
+Opening file <NVT_MD_thermoInt.rst> for writing (unit 1005)
+saving restart data at step    100000 /    130000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 08.06.2026 at 09:47:33
+File <NVT_MD_thermoInt.rst> closed (unit 1005)
+Finished saving restart file NVT_MD_thermoInt.rst on 08.06.2026 at 09:47:33
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  1076.72205    sec
+                 =    0h 17min 56.72205sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  1076.72254
+                              =    0h 17min 56.72254sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 08.06.2026, 09:47:33.690 (UTC+120)
+========================================================================
+
+
+File <NVT_MD_thermoInt_1.rav> closed (unit 1016)
+File <NVT_MD_thermoInt_1.run> closed (unit 1015)
+
+************************************************************************
+Program terminated on 08.06.2026 at 09:47:33
+************************************************************************

@@ -1,0 +1,27 @@
+Units       	= Reduced
+LengthUnit  	= 1.0
+EnergyUnit  	= 1.0
+MassUnit    	= 1.0
+Simulation  	= MD
+Integrator 		= Gear
+TimeStep 		= 0.0005
+Ensemble      	= NVT
+NVTSteps      	= 30000
+RunSteps      	= 100000
+ResultFreq    	= 1000
+ErrorsFreq    	= 5000
+VisualFreq    	= 0
+CutoffMode  	= COM
+NEnsembles    	= 1
+
+Temperature 	= 3.0
+Density 		= 0.25
+NParticles    	= 1372
+NComponents   	= 1
+
+PotModel   	    = LJ.pm
+MolarFract 	   	= 1.0
+ChemPotMethod.  = None
+
+Cutoff       	= 4.0
+Epsilon      	= 1.0E10

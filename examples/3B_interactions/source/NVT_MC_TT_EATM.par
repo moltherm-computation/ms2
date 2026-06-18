@@ -1,0 +1,30 @@
+Units = SI
+LengthUnit = 3.5
+EnergyUnit = 100.0
+MassUnit = 40.0
+Simulation = MC
+Acceptance = 0.5
+Ensemble = NVT
+NVTSteps = 20000
+RunSteps = 100000
+ResultFreq = 1000
+ErrorsFreq = 5000
+VisualFreq = 0
+CutoffMode = COM
+NEnsembles = 1
+mpiMCCommonGroups = 2
+
+Temperature = 140.000
+Density= 0.200
+NParticles = 500
+NComponents = 1
+
+PotModel = TT_EATM.pm
+MolarFract = 1.000
+ChemPotMethod = Widom
+NTest = 1000
+
+Cutoff = 4.0
+CutoffEATM = 4.0
+Epsilon = 1.0E10
+

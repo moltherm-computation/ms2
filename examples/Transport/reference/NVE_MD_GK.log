@@ -1,0 +1,595 @@
+ms2 logfile NVE_MD_GK.log created by PE0 on 16.06.2026 at 13:45:33
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi_trans version 5.020
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran140200
+Compiler flags       : MPI=1 TRANS=1 MPI_USE_MODULE=1
+Compile time         : Jun 16 2026,13:37:15
+Real Kind            : 8
+
+Hostname             : Francis-1897.local
+started by user Isabel on 16.06.2026 at 13:45:33
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Francis-1897.local
+    1   +   Francis-1897.local
+    2   +   Francis-1897.local
+    3   +   Francis-1897.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NVE_MD_GK.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NVE_MD_GK
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         reduced
+Unit of length:          1.000 A
+Unit of energy:          1.000 K
+Unit of mass:            1.000 a.u.
+
+Simulation type:         Molecular Dynamics
+Integrator type:         Gear predictor-corrector
+Time step:                0.548342 fs
+Reduced time step:        0.000500
+
+Ensemble type:           NVE
+
+setting MCORSteps to default value       0
+No MC overlap reduction
+Number of NVT equilibration steps:       10000
+Number of NVE equilibration steps:       20000
+Number of production steps:             200000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+mpiEnsembleGroups:       1
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+Transport properties:    Include transport properties for all ensembles
+Method for transport: Green-Kubo
+setting ContributionMode to default value SEP
+transport will be calculated: Together
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:                 1.188 K
+Density:                  1006.453 mol/l
+Hamiltonian:               -14.333 J/mol
+Reduced temperature:         1.188000
+Reduced density:             0.606100
+Reduced Hamiltonian:        -1.724 J/mol
+setting ResidTime to default value no
+Calculation of residence time: no
+setting CommonEqui to default value no
+MD simulation: Logical CommonEqui no is invalid, set to yes
+Number of components:        1
+
+Correlation Functions (CF) are calculated every  2-th time step
+Length of CF:              25000
+Time Span between CF:        100
+Print CF each:                 5
+Transport results will be updated each  5 CF
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component 1CLJ.pm:  1.000000
+setting PartMolEnt to default value   0.00000000
+Chemical potential of 1CLJ.pm will be calculated by:
+         -> no calculation
+Opening file <1CLJ.pm> for reading (unit 1003)
+File <1CLJ.pm> closed (unit 1003)
+Opening file <NVE_MD_GK.1CLJ.nrm> for writing (unit 1004)
+File <NVE_MD_GK.1CLJ.nrm> closed (unit 1004)
+Normalized potential model for 1CLJ.pm saved to file <NVE_MD_GK.1CLJ.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                      1372
+Mole fraction of 1CLJ.pm:                    1.000
+         ->  number of particles:         1372
+Memory for 1CLJ.pm allocated successfully
+
+Reduced center of mass cutoff radius:        3.000
+
+Cutoff correction to
+- potential energy from LJ                  -0.31013888
+- pressure from LJ                          -0.61999402
+- chem. pot. of 1CLJ.pm from LJ             -0.62027777
+- potential energy from reaction field (RF)  0.00000000
+- pressure from reaction field:              0.00000000
+- chem. pot. of 1CLJ.pm from RF              0.00000000
+
+Initialize positions:
+         FCC lattice:   4 *   7x   7x   7 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NVE_MD_GK.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+Opening file <NVE_MD_GK_1.run> for writing (unit 1015)
+Opening file <NVE_MD_GK_1.rav> for writing (unit 1016)
+Opening file <NVE_MD_GK_1.rtr> for writing (unit 1021)
+
+========================================================================
+TSimulation_Run timer start: 16.06.2026, 13:45:33.198 (UTC+120)
+------------------------------------------------------------------------
+
+
+========================================================================
+NVT equilibration timer start: 16.06.2026, 13:45:33.198 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 16.06.2026 at 13:45:34
+     2000 steps completed on 16.06.2026 at 13:45:34
+     3000 steps completed on 16.06.2026 at 13:45:35
+     4000 steps completed on 16.06.2026 at 13:45:36
+     5000 steps completed on 16.06.2026 at 13:45:37
+     6000 steps completed on 16.06.2026 at 13:45:38
+     7000 steps completed on 16.06.2026 at 13:45:39
+     8000 steps completed on 16.06.2026 at 13:45:40
+     9000 steps completed on 16.06.2026 at 13:45:41
+    10000 steps completed on 16.06.2026 at 13:45:42
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  9.41645500    -  9.41647200
+                             <=    0h  0min  9.41647sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 16.06.2026, 13:45:42.614 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 16.06.2026 at 13:45:42
+
+
+========================================================================
+NVE equilibration timer start: 16.06.2026, 13:45:42.614 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 16.06.2026 at 13:45:43
+     2000 steps completed on 16.06.2026 at 13:45:44
+     3000 steps completed on 16.06.2026 at 13:45:45
+     4000 steps completed on 16.06.2026 at 13:45:46
+     5000 steps completed on 16.06.2026 at 13:45:47
+     6000 steps completed on 16.06.2026 at 13:45:48
+     7000 steps completed on 16.06.2026 at 13:45:49
+     8000 steps completed on 16.06.2026 at 13:45:50
+     9000 steps completed on 16.06.2026 at 13:45:51
+    10000 steps completed on 16.06.2026 at 13:45:52
+    11000 steps completed on 16.06.2026 at 13:45:53
+    12000 steps completed on 16.06.2026 at 13:45:54
+    13000 steps completed on 16.06.2026 at 13:45:55
+    14000 steps completed on 16.06.2026 at 13:45:56
+    15000 steps completed on 16.06.2026 at 13:45:56
+    16000 steps completed on 16.06.2026 at 13:45:57
+    17000 steps completed on 16.06.2026 at 13:45:58
+    18000 steps completed on 16.06.2026 at 13:45:59
+    19000 steps completed on 16.06.2026 at 13:46:00
+    20000 steps completed on 16.06.2026 at 13:46:01
+------------------------------------------------------------------------
+Duration:
+ NVE equilibration wtime        diff:  19.1476700    -  19.1476930
+                             <=    0h  0min 19.14769sec (+- 0.10E-05sec)
+NVE equilibration timer stop: 16.06.2026, 13:46:01.762 (UTC+120)
+========================================================================
+
+NVE equilibration completed on 16.06.2026 at 13:46:01
+
+
+========================================================================
+simulation timer start: 16.06.2026, 13:46:01.762 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 16.06.2026 at 13:46:02
+     2000 steps completed on 16.06.2026 at 13:46:04
+     3000 steps completed on 16.06.2026 at 13:46:05
+     4000 steps completed on 16.06.2026 at 13:46:06
+     5000 steps completed on 16.06.2026 at 13:46:07
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+     6000 steps completed on 16.06.2026 at 13:46:08
+     7000 steps completed on 16.06.2026 at 13:46:09
+     8000 steps completed on 16.06.2026 at 13:46:11
+     9000 steps completed on 16.06.2026 at 13:46:12
+    10000 steps completed on 16.06.2026 at 13:46:13
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    11000 steps completed on 16.06.2026 at 13:46:14
+    12000 steps completed on 16.06.2026 at 13:46:15
+    13000 steps completed on 16.06.2026 at 13:46:16
+    14000 steps completed on 16.06.2026 at 13:46:18
+    15000 steps completed on 16.06.2026 at 13:46:19
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    16000 steps completed on 16.06.2026 at 13:46:20
+    17000 steps completed on 16.06.2026 at 13:46:21
+    18000 steps completed on 16.06.2026 at 13:46:22
+    19000 steps completed on 16.06.2026 at 13:46:24
+    20000 steps completed on 16.06.2026 at 13:46:25
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    21000 steps completed on 16.06.2026 at 13:46:26
+    22000 steps completed on 16.06.2026 at 13:46:27
+    23000 steps completed on 16.06.2026 at 13:46:28
+    24000 steps completed on 16.06.2026 at 13:46:30
+    25000 steps completed on 16.06.2026 at 13:46:31
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    26000 steps completed on 16.06.2026 at 13:46:33
+    27000 steps completed on 16.06.2026 at 13:46:35
+    28000 steps completed on 16.06.2026 at 13:46:37
+    29000 steps completed on 16.06.2026 at 13:46:39
+    30000 steps completed on 16.06.2026 at 13:46:41
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    31000 steps completed on 16.06.2026 at 13:46:43
+    32000 steps completed on 16.06.2026 at 13:46:45
+    33000 steps completed on 16.06.2026 at 13:46:47
+    34000 steps completed on 16.06.2026 at 13:46:49
+    35000 steps completed on 16.06.2026 at 13:46:51
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    36000 steps completed on 16.06.2026 at 13:46:53
+    37000 steps completed on 16.06.2026 at 13:46:55
+    38000 steps completed on 16.06.2026 at 13:46:57
+    39000 steps completed on 16.06.2026 at 13:46:59
+    40000 steps completed on 16.06.2026 at 13:47:01
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    41000 steps completed on 16.06.2026 at 13:47:03
+    42000 steps completed on 16.06.2026 at 13:47:05
+    43000 steps completed on 16.06.2026 at 13:47:07
+    44000 steps completed on 16.06.2026 at 13:47:09
+    45000 steps completed on 16.06.2026 at 13:47:11
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    46000 steps completed on 16.06.2026 at 13:47:13
+    47000 steps completed on 16.06.2026 at 13:47:15
+    48000 steps completed on 16.06.2026 at 13:47:17
+    49000 steps completed on 16.06.2026 at 13:47:19
+    50000 steps completed on 16.06.2026 at 13:47:21
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    51000 steps completed on 16.06.2026 at 13:47:23
+    52000 steps completed on 16.06.2026 at 13:47:25
+    53000 steps completed on 16.06.2026 at 13:47:27
+    54000 steps completed on 16.06.2026 at 13:47:29
+    55000 steps completed on 16.06.2026 at 13:47:31
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    56000 steps completed on 16.06.2026 at 13:47:33
+    57000 steps completed on 16.06.2026 at 13:47:35
+    58000 steps completed on 16.06.2026 at 13:47:37
+    59000 steps completed on 16.06.2026 at 13:47:39
+    60000 steps completed on 16.06.2026 at 13:47:41
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    61000 steps completed on 16.06.2026 at 13:47:43
+    62000 steps completed on 16.06.2026 at 13:47:45
+    63000 steps completed on 16.06.2026 at 13:47:47
+    64000 steps completed on 16.06.2026 at 13:47:49
+    65000 steps completed on 16.06.2026 at 13:47:51
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    66000 steps completed on 16.06.2026 at 13:47:53
+    67000 steps completed on 16.06.2026 at 13:47:55
+    68000 steps completed on 16.06.2026 at 13:47:57
+    69000 steps completed on 16.06.2026 at 13:47:59
+    70000 steps completed on 16.06.2026 at 13:48:01
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    71000 steps completed on 16.06.2026 at 13:48:03
+    72000 steps completed on 16.06.2026 at 13:48:05
+    73000 steps completed on 16.06.2026 at 13:48:07
+    74000 steps completed on 16.06.2026 at 13:48:09
+    75000 steps completed on 16.06.2026 at 13:48:11
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    76000 steps completed on 16.06.2026 at 13:48:13
+    77000 steps completed on 16.06.2026 at 13:48:15
+    78000 steps completed on 16.06.2026 at 13:48:17
+    79000 steps completed on 16.06.2026 at 13:48:19
+    80000 steps completed on 16.06.2026 at 13:48:21
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    81000 steps completed on 16.06.2026 at 13:48:23
+    82000 steps completed on 16.06.2026 at 13:48:25
+    83000 steps completed on 16.06.2026 at 13:48:27
+    84000 steps completed on 16.06.2026 at 13:48:29
+    85000 steps completed on 16.06.2026 at 13:48:31
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    86000 steps completed on 16.06.2026 at 13:48:33
+    87000 steps completed on 16.06.2026 at 13:48:35
+    88000 steps completed on 16.06.2026 at 13:48:37
+    89000 steps completed on 16.06.2026 at 13:48:39
+    90000 steps completed on 16.06.2026 at 13:48:41
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    91000 steps completed on 16.06.2026 at 13:48:43
+    92000 steps completed on 16.06.2026 at 13:48:45
+    93000 steps completed on 16.06.2026 at 13:48:47
+    94000 steps completed on 16.06.2026 at 13:48:49
+    95000 steps completed on 16.06.2026 at 13:48:51
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+    96000 steps completed on 16.06.2026 at 13:48:53
+    97000 steps completed on 16.06.2026 at 13:48:55
+    98000 steps completed on 16.06.2026 at 13:48:57
+    99000 steps completed on 16.06.2026 at 13:48:59
+   100000 steps completed on 16.06.2026 at 13:49:01
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   101000 steps completed on 16.06.2026 at 13:49:03
+   102000 steps completed on 16.06.2026 at 13:49:05
+   103000 steps completed on 16.06.2026 at 13:49:07
+   104000 steps completed on 16.06.2026 at 13:49:09
+   105000 steps completed on 16.06.2026 at 13:49:11
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   106000 steps completed on 16.06.2026 at 13:49:13
+   107000 steps completed on 16.06.2026 at 13:49:15
+   108000 steps completed on 16.06.2026 at 13:49:17
+   109000 steps completed on 16.06.2026 at 13:49:19
+   110000 steps completed on 16.06.2026 at 13:49:20
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   111000 steps completed on 16.06.2026 at 13:49:22
+   112000 steps completed on 16.06.2026 at 13:49:24
+   113000 steps completed on 16.06.2026 at 13:49:26
+   114000 steps completed on 16.06.2026 at 13:49:28
+   115000 steps completed on 16.06.2026 at 13:49:30
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   116000 steps completed on 16.06.2026 at 13:49:32
+   117000 steps completed on 16.06.2026 at 13:49:34
+   118000 steps completed on 16.06.2026 at 13:49:36
+   119000 steps completed on 16.06.2026 at 13:49:38
+   120000 steps completed on 16.06.2026 at 13:49:40
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   121000 steps completed on 16.06.2026 at 13:49:42
+   122000 steps completed on 16.06.2026 at 13:49:44
+   123000 steps completed on 16.06.2026 at 13:49:46
+   124000 steps completed on 16.06.2026 at 13:49:48
+   125000 steps completed on 16.06.2026 at 13:49:50
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   126000 steps completed on 16.06.2026 at 13:49:52
+   127000 steps completed on 16.06.2026 at 13:49:54
+   128000 steps completed on 16.06.2026 at 13:49:56
+   129000 steps completed on 16.06.2026 at 13:49:58
+   130000 steps completed on 16.06.2026 at 13:50:00
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   131000 steps completed on 16.06.2026 at 13:50:02
+   132000 steps completed on 16.06.2026 at 13:50:04
+   133000 steps completed on 16.06.2026 at 13:50:06
+   134000 steps completed on 16.06.2026 at 13:50:08
+   135000 steps completed on 16.06.2026 at 13:50:10
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   136000 steps completed on 16.06.2026 at 13:50:12
+   137000 steps completed on 16.06.2026 at 13:50:14
+   138000 steps completed on 16.06.2026 at 13:50:16
+   139000 steps completed on 16.06.2026 at 13:50:18
+   140000 steps completed on 16.06.2026 at 13:50:20
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   141000 steps completed on 16.06.2026 at 13:50:22
+   142000 steps completed on 16.06.2026 at 13:50:24
+   143000 steps completed on 16.06.2026 at 13:50:26
+   144000 steps completed on 16.06.2026 at 13:50:28
+   145000 steps completed on 16.06.2026 at 13:50:30
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   146000 steps completed on 16.06.2026 at 13:50:32
+   147000 steps completed on 16.06.2026 at 13:50:34
+   148000 steps completed on 16.06.2026 at 13:50:36
+   149000 steps completed on 16.06.2026 at 13:50:39
+   150000 steps completed on 16.06.2026 at 13:50:41
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   151000 steps completed on 16.06.2026 at 13:50:43
+   152000 steps completed on 16.06.2026 at 13:50:45
+   153000 steps completed on 16.06.2026 at 13:50:47
+   154000 steps completed on 16.06.2026 at 13:50:49
+   155000 steps completed on 16.06.2026 at 13:50:51
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   156000 steps completed on 16.06.2026 at 13:50:53
+   157000 steps completed on 16.06.2026 at 13:50:55
+   158000 steps completed on 16.06.2026 at 13:50:57
+   159000 steps completed on 16.06.2026 at 13:50:59
+   160000 steps completed on 16.06.2026 at 13:51:01
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   161000 steps completed on 16.06.2026 at 13:51:03
+   162000 steps completed on 16.06.2026 at 13:51:05
+   163000 steps completed on 16.06.2026 at 13:51:07
+   164000 steps completed on 16.06.2026 at 13:51:09
+   165000 steps completed on 16.06.2026 at 13:51:11
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   166000 steps completed on 16.06.2026 at 13:51:13
+   167000 steps completed on 16.06.2026 at 13:51:15
+   168000 steps completed on 16.06.2026 at 13:51:17
+   169000 steps completed on 16.06.2026 at 13:51:19
+   170000 steps completed on 16.06.2026 at 13:51:21
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   171000 steps completed on 16.06.2026 at 13:51:23
+   172000 steps completed on 16.06.2026 at 13:51:25
+   173000 steps completed on 16.06.2026 at 13:51:27
+   174000 steps completed on 16.06.2026 at 13:51:29
+   175000 steps completed on 16.06.2026 at 13:51:31
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   176000 steps completed on 16.06.2026 at 13:51:33
+   177000 steps completed on 16.06.2026 at 13:51:35
+   178000 steps completed on 16.06.2026 at 13:51:37
+   179000 steps completed on 16.06.2026 at 13:51:39
+   180000 steps completed on 16.06.2026 at 13:51:41
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   181000 steps completed on 16.06.2026 at 13:51:43
+   182000 steps completed on 16.06.2026 at 13:51:45
+   183000 steps completed on 16.06.2026 at 13:51:47
+   184000 steps completed on 16.06.2026 at 13:51:49
+   185000 steps completed on 16.06.2026 at 13:51:51
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   186000 steps completed on 16.06.2026 at 13:51:53
+   187000 steps completed on 16.06.2026 at 13:51:55
+   188000 steps completed on 16.06.2026 at 13:51:57
+   189000 steps completed on 16.06.2026 at 13:51:59
+   190000 steps completed on 16.06.2026 at 13:52:01
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   191000 steps completed on 16.06.2026 at 13:52:03
+   192000 steps completed on 16.06.2026 at 13:52:05
+   193000 steps completed on 16.06.2026 at 13:52:07
+   194000 steps completed on 16.06.2026 at 13:52:09
+   195000 steps completed on 16.06.2026 at 13:52:11
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+   196000 steps completed on 16.06.2026 at 13:52:13
+   197000 steps completed on 16.06.2026 at 13:52:15
+   198000 steps completed on 16.06.2026 at 13:52:17
+   199000 steps completed on 16.06.2026 at 13:52:19
+   200000 steps completed on 16.06.2026 at 13:52:21
+Saving simulation results
+Opening file <NVE_MD_GK_1.res> for writing (unit 1017)
+File <NVE_MD_GK_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  380.092464    -  380.092486
+                             <=    0h  6min 20.09249sec (+- 0.10E-05sec)
+simulation timer stop: 16.06.2026, 13:52:21.855 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NVE_MD_GK.rst on 16.06.2026 at 13:52:21
+Opening file <NVE_MD_GK.rst> for writing (unit 1005)
+saving restart data at step    200000 /    230000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 16.06.2026 at 13:52:21
+File <NVE_MD_GK.rst> closed (unit 1005)
+Finished saving restart file NVE_MD_GK.rst on 16.06.2026 at 13:52:44
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  431.324005    sec
+                 =    0h  7min 11.32401sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  431.324197
+                              =    0h  7min 11.32420sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 16.06.2026, 13:52:44.522 (UTC+120)
+========================================================================
+
+
+File <NVE_MD_GK_1.rav> closed (unit 1016)
+File <NVE_MD_GK_1.run> closed (unit 1015)
+
+************************************************************************
+Program terminated on 16.06.2026 at 13:52:44
+************************************************************************

@@ -1,0 +1,40 @@
+Units = Reduced
+LengthUnit = 1.0
+EnergyUnit = 1.0
+MassUnit = 1.0
+Simulation = MC
+Acceptance = 0.5
+Ensemble = NVT
+NVTSteps = 20000
+RunSteps = 100000
+ResultFreq = 1000
+ErrorsFreq = 5000
+VisualFreq = 0
+KBIFreq = 1
+KBIResetFreq = 5000
+KBINumShells = 200
+CutoffMode = COM
+NEnsembles = 1
+mpiMCCommonGroups = 2
+
+Temperature = 0.85
+Density= 0.231611107
+NParticles = 500
+NComponents = 2
+
+PotModel = 1CLJ.pm
+MolarFract = 0.200
+ChemPotMethod = Widom 
+NTest = 500
+
+PotModel = 1CLJ_1.pm
+MolarFract = 0.800
+ChemPotMethod = Widom 
+NTest = 500
+
+eta = 1.0
+xi = 1.0
+
+Cutoff = 4.0
+Epsilon = 1.0E10
+

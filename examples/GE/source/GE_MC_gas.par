@@ -1,0 +1,43 @@
+Units       =       SI
+LengthUnit  =       3.5
+EnergyUnit  =       100.0
+MassUnit    =       40.0
+Simulation    =       MC
+Acceptance    =       0.5
+Ensemble      =       GE
+NVTSteps      =   	  5000
+MUVTSteps     =   	  5000
+RunSteps      =  	  100000
+ResultFreq    =       1000
+ErrorsFreq    =       5000
+VisualFreq    =       0
+CutoffMode    =       COM
+NEnsembles    =       1
+
+#results from liquid run
+Temperature   =       400.0
+Pressure0     =       0.7
+LiqDensity    =       11.210109457
+VarDensity    =       0.009902053
+LiqEnthalpy   =       -26172.797267808
+VarEnthalpy   =       17.592794671
+LiqBetaT      =       0.003688680
+VarBetaT      =       0.000295364
+LiqdHdP       =       0.018457841
+VardHdP       =       0.005443427
+
+#parameters for vapor run
+Density       =       0.255
+NParticles    =       500
+NComponents   =       1
+
+PotModel      =       acetone.pm
+MolarFract    =       1.0000
+LiqMolarFract =       1.0000
+ChemPot       =       -5.323320891
+VarChemPot    =       0.025483135
+PartMolVol    =       0.072122554
+VarPartMolVol =       0.015862041
+
+Cutoff       = 4.0
+Epsilon      = 1.0E10

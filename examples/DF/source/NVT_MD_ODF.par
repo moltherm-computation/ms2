@@ -1,0 +1,31 @@
+Units           =       SI
+LengthUnit      =       3.5
+EnergyUnit      =       100.0
+MassUnit        =       40.0
+Simulation      =       MD
+TimeStep        =       5E-4
+Ensemble        =       NVT
+NVTSteps        =       30000
+RunSteps        =       200000
+ResultFreq      =       1000
+ErrorsFreq      =       5000
+VisualFreq      =       0
+CutoffMode      =       COM
+NEnsembles      =       1
+
+Temperature     = 300
+Density         = 10
+NParticles      = 1374
+NComponents     = 1
+
+PotModel        = CH2F2.pm
+MolarFract      = 1.0
+
+ODFRecordingFreq= 1
+ODFOutputFreq   = 100000
+NShellsODF      = 3
+nPhiODF         = 40
+nGammaODF       = 36
+
+Cutoff          = 4.5
+Epsilon         = 1.0E10

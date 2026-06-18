@@ -1,0 +1,78 @@
+Overview
+=========================
+new_tests/
+├── 2B_interactions/     			# types of two-body interactions
+|    ├── NVT MD LJ						# Lennard-Jones (12-6) potential
+|    ├── NVT MD Mie    					# Mie potential with variable exponents
+|    ├── NPT MD TT68					# Tang-Toennies potential
+|    ├── NPT MD TTExt					# extended Tang-Toennies potential
+|    ├── NVT MD Acetone					# 3x LJ, dipole and quadrupole
+|    └── NPT MD TIP4P_P	   				# LJ and 3x point charge
+├── 3B_interactions/     			# types of three-body interactions
+|    ├── NVT MC LJ+ATM					# two-body: Lennard-Jones, three-body: Axilrod-Teller-Muto
+|    ├── NVT MD LJ+ATM    				# two-body: Lennard-Jones, three-body: Axilrod-Teller-Muto
+|    ├── NVT MC TT+EATM		    		# two-body: Tang-Toennies type, three-body: extended Axilrod-Teller-Muto
+|    └── NVT MD TT+EATM	   				# two-body: Tang-Toennies type, three-body: extended Axilrod-Teller-Muto
+├── ChemPot/         				# chemical potential
+|    ├── NVT MD	Widom	 				# Widom's particle insertion method   	
+|    └── NVT MD ThermoInt				# Thermodynamic Integration
+├── Cutoff/         				# cutoff mode
+|    ├── NVT MD	com	 					# center of mass	
+|    └── NVT MD site					# site-site
+├── DF/         			   		# distribution function
+|    ├── NVT MD	ODF	    				# Oriental distribution function
+|    └── NPT MD RDF						# Radial distribution function
+├── GE/         			   		# Grand equilibrium method
+|    ├── NPT MD		    				# liquid run
+|    └── GE MC 							# vapor run
+├── HBond/         			   		# hydrogen bonding statistics (compiler flag HBOND=1)
+|    └── MD NPT 						
+├── Integrator/         			# numerical integration mehtod for solving Newton's equations of motion
+|    ├── NPT MD	gear	    			# fifth order Gear predictor-corrector integrator
+|    └── NPT MD leap					# second order leapfrog integrator
+├── KBI/         			   		# Kirkwood-Buff-Integration   				
+|    └── NVT MC						
+├── LJTS/                  			# Lennard-Jones truncated and shifted potential (compiler flag SHIFTED=1)
+|    ├── NPT MD		    	            
+|    └── NVT MD    
+├── LongRange/                  	# long range mode
+|    ├── NPT MD	ewald 	    	        # Ewald summation    
+|    ├── NPT MD SPME                    # smooth particle mesh Ewald summation (compiler flag SPME=1) 
+|    └── NPT MD	RF                      # reaction field method 
+├── Mixtures/                  		# mixture with 2,3 and 4 components
+|    ├── NVT MC 2 components	    	# methane + ethane
+|    ├── NVT MC 3 components			# methane + ethane + propane
+|    └── NVT MC 4 components			# methane + ethane + propane + nitrogen
+├── Multiensemble/             		# 4 ensembles in one simulation
+|    └── NVT MD
+├── OsmoP/                  		# osmotic pressure
+|    ├── NPT MD	osmop1	    	        # (compiler flag OSMOP=1)
+|    └── NPT MD osmop2                  # calculation of additional profiles (compiler flag OSMOP=2)
+├── Statistical_ensembles/    		# 1CLJ sampled in eight statistical ensembles
+|    ├── NVE MC							# microcanonical ensemble
+|    ├── NVT MC							# canonical ensemble
+|    ├── NPH MC							# isobaric-isoenthalpic ensemble
+|    ├── NPT MC							# isobaric-isothermal ensemble
+|    ├── MUVL MC						# open adiabatic ensemble
+|    ├── MUVT MC						# grand-canonical ensemble
+|    ├── MUPR MC						# open adiabatic-isobaric
+|    ├── MUPT MC						# generalized ensemble
+|    ├── NVE MD							# microcanonical ensemble
+|    ├── NVT MD							# canonical ensemble
+|    ├── NPH MD							# isobaric-isoenthalpic ensemble
+|    └── NPT MD  						# isobaric-isothermal ensemble
+├── SVC/                  			# second virial coefficient
+|    ├── SVC	    					# calculation of B(T)
+|    └── NPTSVC    						# calculation of B(T) followed by NPT MC
+├── Transport/                 		# transport properties (compiler flag TRANS=1)
+|    ├── NVT MD Einstein				# Einstein formalism
+|    ├── NVE MD Green-Kubo	    		# Green-Kubo formalism
+|    └── NVT MD GKEinstein 				# Green-Kubo and Einstein formalism
+└──README.md               			# this README file
+
+
+
+ 							
+ 							
+ 							
+ 							

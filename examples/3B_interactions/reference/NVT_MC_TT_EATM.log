@@ -1,0 +1,326 @@
+ms2 logfile NVT_MC_TT_EATM.log created by PE0 on 05.06.2026 at 15:58:18
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.018
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran150200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jun  5 2026,15:22:15
+Real Kind            : 8
+
+Hostname             : Stephen.local
+started by user Isabel on 05.06.2026 at 15:58:18
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Stephen.local
+    1   +   Stephen.local
+    2   +   Stephen.local
+    3   +   Stephen.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NVT_MC_TT_EATM.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NVT_MC_TT_EATM
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         SI
+Unit of length:          3.500 A
+Unit of energy:        100.000 K
+Unit of mass:           40.000 a.u.
+
+Simulation type:         Monte-Carlo
+Acceptance rate:        50.00%
+
+Ensemble type:           NVT
+
+mpiMCCommonGroups:       2
+splitting communicator with   4 PEs to   2 subcommunicators
+
+File <NVT_MC_TT_EATM.par> closed (unit 1002)
+Opening file <NVT_MC_TT_EATM.par> for reading (unit 1002)
+
+Number of NVT equilibration steps:       20000
+Number of production steps:             100000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:               140.000 K
+Density:                     0.200 mol/l
+Reduced temperature:         1.400000
+Reduced density:             0.005164
+setting CommonEqui to default value no
+Common equilibration:        no
+Number of components:        1
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component TT_EATM.pm:  1.000000
+Chemical potential of TT_EATM.pm will be calculated by:
+         -> Widom's test particle method
+Opening file <TT_EATM.pm> for reading (unit 1003)
+File <TT_EATM.pm> closed (unit 1003)
+Opening file <NVT_MC_TT_EATM.TT_EATM.nrm> for writing (unit 1004)
+File <NVT_MC_TT_EATM.TT_EATM.nrm> closed (unit 1004)
+Normalized potential model for TT_EATM.pm saved to file <NVT_MC_TT_EATM.TT_EATM.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       500
+Mole fraction of TT_EATM.pm:                 1.000
+         ->  number of particles:          500
+Number of test particles:                  500
+
+Memory for test particles allocated successfully
+Memory for TT_EATM.pm allocated successfully
+
+Reduced center of mass cutoff radius:        4.000
+
+Reduced EATM cutoff radius:                  4.000
+
+Cutoff correction to
+- potential energy from TTExt               -0.16468719
+- pressure from TTExt                       -0.33226212
+- chem. pot. of TT_EATM.pm from TTExt       -0.32937437
+- potential energy from reaction field (RF)  0.00000000
+- pressure from reaction field:              0.00000000
+- chem. pot. of TT_EATM.pm from RF           0.00000000
+
+Initialize positions:
+         FCC lattice:   4 *   5x   5x   5 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NVT_MC_TT_EATM.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+opening file <NVT_MC_TT_EATM_1.run> for writing
+opening file <NVT_MC_TT_EATM_1.rav> for writing
+
+========================================================================
+TSimulation_Run timer start: 05.06.2026, 15:58:19.015 (UTC+120)
+------------------------------------------------------------------------
+Random number generator initialized
+------------------------------------------------------------------------
+
+
+
+========================================================================
+NVT equilibration timer start: 05.06.2026, 15:58:19.015 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 05.06.2026 at 15:58:19
+     2000 steps completed on 05.06.2026 at 15:58:20
+     3000 steps completed on 05.06.2026 at 15:58:21
+     4000 steps completed on 05.06.2026 at 15:58:22
+     5000 steps completed on 05.06.2026 at 15:58:23
+     6000 steps completed on 05.06.2026 at 15:58:24
+     7000 steps completed on 05.06.2026 at 15:58:25
+     8000 steps completed on 05.06.2026 at 15:58:25
+     9000 steps completed on 05.06.2026 at 15:58:26
+    10000 steps completed on 05.06.2026 at 15:58:27
+    11000 steps completed on 05.06.2026 at 15:58:28
+    12000 steps completed on 05.06.2026 at 15:58:29
+    13000 steps completed on 05.06.2026 at 15:58:30
+    14000 steps completed on 05.06.2026 at 15:58:31
+    15000 steps completed on 05.06.2026 at 15:58:31
+    16000 steps completed on 05.06.2026 at 15:58:32
+    17000 steps completed on 05.06.2026 at 15:58:33
+    18000 steps completed on 05.06.2026 at 15:58:34
+    19000 steps completed on 05.06.2026 at 15:58:35
+    20000 steps completed on 05.06.2026 at 15:58:36
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  17.2566860    -  17.2566870
+                             <=    0h  0min 17.25669sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 05.06.2026, 15:58:36.272 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 05.06.2026 at 15:58:36
+
+
+========================================================================
+simulation timer start: 05.06.2026, 15:58:36.272 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 05.06.2026 at 15:58:37
+     2000 steps completed on 05.06.2026 at 15:58:38
+     3000 steps completed on 05.06.2026 at 15:58:39
+     4000 steps completed on 05.06.2026 at 15:58:40
+     5000 steps completed on 05.06.2026 at 15:58:41
+Saving simulation results
+Opening file <NVT_MC_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MC_TT_EATM_1.res> closed (unit 1017)
+     6000 steps completed on 05.06.2026 at 15:58:43
+     7000 steps completed on 05.06.2026 at 15:58:44
+     8000 steps completed on 05.06.2026 at 15:58:45
+     9000 steps completed on 05.06.2026 at 15:58:46
+    10000 steps completed on 05.06.2026 at 15:58:47
+Saving simulation results
+Opening file <NVT_MC_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MC_TT_EATM_1.res> closed (unit 1017)
+    11000 steps completed on 05.06.2026 at 15:58:48
+    12000 steps completed on 05.06.2026 at 15:58:49
+    13000 steps completed on 05.06.2026 at 15:58:51
+    14000 steps completed on 05.06.2026 at 15:58:52
+    15000 steps completed on 05.06.2026 at 15:58:53
+Saving simulation results
+Opening file <NVT_MC_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MC_TT_EATM_1.res> closed (unit 1017)
+    16000 steps completed on 05.06.2026 at 15:58:54
+    17000 steps completed on 05.06.2026 at 15:58:55
+    18000 steps completed on 05.06.2026 at 15:58:56
+    19000 steps completed on 05.06.2026 at 15:58:57
+    20000 steps completed on 05.06.2026 at 15:58:59
+Saving simulation results
+Opening file <NVT_MC_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MC_TT_EATM_1.res> closed (unit 1017)
+    21000 steps completed on 05.06.2026 at 15:59:00
+    22000 steps completed on 05.06.2026 at 15:59:01
+    23000 steps completed on 05.06.2026 at 15:59:02
+    24000 steps completed on 05.06.2026 at 15:59:03
+    25000 steps completed on 05.06.2026 at 15:59:04
+Saving simulation results
+Opening file <NVT_MC_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MC_TT_EATM_1.res> closed (unit 1017)
+    26000 steps completed on 05.06.2026 at 15:59:06
+    27000 steps completed on 05.06.2026 at 15:59:07
+    28000 steps completed on 05.06.2026 at 15:59:08
+    29000 steps completed on 05.06.2026 at 15:59:09
+    30000 steps completed on 05.06.2026 at 15:59:10
+Saving simulation results
+Opening file <NVT_MC_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MC_TT_EATM_1.res> closed (unit 1017)
+    31000 steps completed on 05.06.2026 at 15:59:11
+    32000 steps completed on 05.06.2026 at 15:59:13
+    33000 steps completed on 05.06.2026 at 15:59:14
+    34000 steps completed on 05.06.2026 at 15:59:15
+    35000 steps completed on 05.06.2026 at 15:59:16
+Saving simulation results
+Opening file <NVT_MC_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MC_TT_EATM_1.res> closed (unit 1017)
+    36000 steps completed on 05.06.2026 at 15:59:17
+    37000 steps completed on 05.06.2026 at 15:59:19
+    38000 steps completed on 05.06.2026 at 15:59:20
+    39000 steps completed on 05.06.2026 at 15:59:21
+    40000 steps completed on 05.06.2026 at 15:59:22
+Saving simulation results
+Opening file <NVT_MC_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MC_TT_EATM_1.res> closed (unit 1017)
+    41000 steps completed on 05.06.2026 at 15:59:24
+    42000 steps completed on 05.06.2026 at 15:59:25
+    43000 steps completed on 05.06.2026 at 15:59:26
+    44000 steps completed on 05.06.2026 at 15:59:27
+    45000 steps completed on 05.06.2026 at 15:59:28
+Saving simulation results
+Opening file <NVT_MC_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MC_TT_EATM_1.res> closed (unit 1017)
+    46000 steps completed on 05.06.2026 at 15:59:29
+    47000 steps completed on 05.06.2026 at 15:59:31
+    48000 steps completed on 05.06.2026 at 15:59:32
+    49000 steps completed on 05.06.2026 at 15:59:33
+    50000 steps completed on 05.06.2026 at 15:59:34
+Saving simulation results
+Opening file <NVT_MC_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MC_TT_EATM_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  58.3647040    -  58.3647160
+                             <=    0h  0min 58.36472sec (+- 0.10E-05sec)
+simulation timer stop: 05.06.2026, 15:59:34.637 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NVT_MC_TT_EATM_1.rst up to *_2.rst on 05.06.2026 at 15:59:34
+Opening file <NVT_MC_TT_EATM_1.rst> for writing (unit 1005)
+saving restart data at step     50000 /     70000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 05.06.2026 at 15:59:34
+File <NVT_MC_TT_EATM_1.rst> closed (unit 1005)
+Finished saving restart file NVT_MC_TT_EATM_1.rst up to *_2.rst on 05.06.2026 at 15:59:34
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  75.6230011    sec
+                 =    0h  1min 15.62300sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  75.6227690
+                              =    0h  1min 15.62277sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 05.06.2026, 15:59:34.638 (UTC+120)
+========================================================================
+
+
+File <*.run or *.rav> closed
+File <*.run or *.rav> closed
+
+************************************************************************
+Program terminated on 05.06.2026 at 15:59:34
+************************************************************************

@@ -1,0 +1,31 @@
+Units       =       SI
+LengthUnit  =       3.5
+EnergyUnit  =       100.0
+MassUnit    =       40.0
+Simulation  =       MD
+Integrator  =       Leapfrog
+TimeStep    =       0.0004
+Ensemble    =       NPT
+MCORSteps   =       10
+NVTSteps    =       10000
+NPTSteps    =       20000
+RunSteps    =       100000
+ResultFreq  =       1000
+ErrorsFreq  =       5000
+VisualFreq  =       0
+CutoffMode  =       COM
+NEnsembles  =       1
+
+Temperature = 405.0
+Pressure    = 1.0
+Density     = 15
+PistonMass  = 5.0E-4
+NParticles  = 864
+NComponents = 1
+
+PotModel    = MeOH.pm
+MoleFract  = 1.0
+ChemPotMethod= None
+
+Cutoff      = 4.0
+Epsilon     = 1.0E10

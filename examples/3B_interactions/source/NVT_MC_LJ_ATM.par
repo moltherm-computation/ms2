@@ -1,0 +1,29 @@
+Units = SI
+LengthUnit = 3.405
+EnergyUnit = 120
+MassUnit = 40.0
+Simulation = MC
+Acceptance = 0.5	
+Ensemble = NVT
+NVTSteps = 20000
+RunSteps = 100000
+ResultFreq = 1000
+ErrorsFreq = 5000
+VisualFreq = 0
+CutoffMode = COM
+mpiMCCommonGroups = 2
+
+Temperature = 500
+Density= 2
+NParticles = 500
+NComponents = 1
+
+PotModel = LJ_ATM.pm
+MolarFract = 1.000
+ChemPotMethod = Widom
+NTest = 1000
+
+Cutoff = 4
+CutoffEATM = 4
+Epsilon = 1.0E10
+

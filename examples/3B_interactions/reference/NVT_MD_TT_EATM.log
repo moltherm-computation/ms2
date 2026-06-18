@@ -1,0 +1,643 @@
+ms2 logfile NVT_MD_TT_EATM.log created by PE0 on 05.06.2026 at 16:01:46
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.018
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran150200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jun  5 2026,15:22:15
+Real Kind            : 8
+
+Hostname             : Stephen.local
+started by user Isabel on 05.06.2026 at 16:01:46
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Stephen.local
+    1   +   Stephen.local
+    2   +   Stephen.local
+    3   +   Stephen.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NVT_MD_TT_EATM.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NVT_MD_TT_EATM
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         SI
+Unit of length:          3.500 A
+Unit of energy:        100.000 K
+Unit of mass:           40.000 a.u.
+
+Simulation type:         Molecular Dynamics
+Integrator type:         Gear predictor-corrector
+Time step:                1.213807 fs
+Reduced time step:        0.000500
+
+Ensemble type:           NVT
+
+setting MCORSteps to default value       0
+No MC overlap reduction
+Number of NVT equilibration steps:      100000
+Number of production steps:             200000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:               140.000 K
+Density:                     0.200 mol/l
+Reduced temperature:         1.400000
+Reduced density:             0.005164
+setting ResidTime to default value no
+Calculation of residence time: no
+setting CommonEqui to default value no
+MD simulation: Logical CommonEqui no is invalid, set to yes
+Number of components:        1
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component TT_EATM.pm:  1.000000
+Chemical potential of TT_EATM.pm will be calculated by:
+         -> Widom's test particle method
+Opening file <TT_EATM.pm> for reading (unit 1003)
+File <TT_EATM.pm> closed (unit 1003)
+Opening file <NVT_MD_TT_EATM.TT_EATM.nrm> for writing (unit 1004)
+File <NVT_MD_TT_EATM.TT_EATM.nrm> closed (unit 1004)
+Normalized potential model for TT_EATM.pm saved to file <NVT_MD_TT_EATM.TT_EATM.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       500
+Mole fraction of TT_EATM.pm:                 1.000
+         ->  number of particles:          500
+Number of test particles:                 1000
+
+Memory for test particles allocated successfully
+Memory for TT_EATM.pm allocated successfully
+
+Reduced center of mass cutoff radius:        4.000
+
+Reduced EATM cutoff radius:                  4.000
+
+Cutoff correction to
+- potential energy from TTExt               -0.16468719
+- pressure from TTExt                       -0.33226212
+- chem. pot. of TT_EATM.pm from TTExt       -0.32937437
+- potential energy from reaction field (RF)  0.00000000
+- pressure from reaction field:              0.00000000
+- chem. pot. of TT_EATM.pm from RF           0.00000000
+
+Initialize positions:
+         FCC lattice:   4 *   5x   5x   5 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NVT_MD_TT_EATM.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+Opening file <NVT_MD_TT_EATM_1.run> for writing (unit 1015)
+Opening file <NVT_MD_TT_EATM_1.rav> for writing (unit 1016)
+
+========================================================================
+TSimulation_Run timer start: 05.06.2026, 16:01:46.532 (UTC+120)
+------------------------------------------------------------------------
+
+
+========================================================================
+NVT equilibration timer start: 05.06.2026, 16:01:46.533 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 05.06.2026 at 16:01:46
+     2000 steps completed on 05.06.2026 at 16:01:46
+     3000 steps completed on 05.06.2026 at 16:01:46
+     4000 steps completed on 05.06.2026 at 16:01:47
+     5000 steps completed on 05.06.2026 at 16:01:47
+     6000 steps completed on 05.06.2026 at 16:01:47
+     7000 steps completed on 05.06.2026 at 16:01:47
+     8000 steps completed on 05.06.2026 at 16:01:47
+     9000 steps completed on 05.06.2026 at 16:01:47
+    10000 steps completed on 05.06.2026 at 16:01:48
+    11000 steps completed on 05.06.2026 at 16:01:48
+    12000 steps completed on 05.06.2026 at 16:01:48
+    13000 steps completed on 05.06.2026 at 16:01:48
+    14000 steps completed on 05.06.2026 at 16:01:48
+    15000 steps completed on 05.06.2026 at 16:01:48
+    16000 steps completed on 05.06.2026 at 16:01:48
+    17000 steps completed on 05.06.2026 at 16:01:49
+    18000 steps completed on 05.06.2026 at 16:01:49
+    19000 steps completed on 05.06.2026 at 16:01:49
+    20000 steps completed on 05.06.2026 at 16:01:49
+    21000 steps completed on 05.06.2026 at 16:01:49
+    22000 steps completed on 05.06.2026 at 16:01:49
+    23000 steps completed on 05.06.2026 at 16:01:49
+    24000 steps completed on 05.06.2026 at 16:01:50
+    25000 steps completed on 05.06.2026 at 16:01:50
+    26000 steps completed on 05.06.2026 at 16:01:50
+    27000 steps completed on 05.06.2026 at 16:01:50
+    28000 steps completed on 05.06.2026 at 16:01:50
+    29000 steps completed on 05.06.2026 at 16:01:50
+    30000 steps completed on 05.06.2026 at 16:01:50
+    31000 steps completed on 05.06.2026 at 16:01:51
+    32000 steps completed on 05.06.2026 at 16:01:51
+    33000 steps completed on 05.06.2026 at 16:01:51
+    34000 steps completed on 05.06.2026 at 16:01:51
+    35000 steps completed on 05.06.2026 at 16:01:51
+    36000 steps completed on 05.06.2026 at 16:01:51
+    37000 steps completed on 05.06.2026 at 16:01:52
+    38000 steps completed on 05.06.2026 at 16:01:52
+    39000 steps completed on 05.06.2026 at 16:01:52
+    40000 steps completed on 05.06.2026 at 16:01:52
+    41000 steps completed on 05.06.2026 at 16:01:52
+    42000 steps completed on 05.06.2026 at 16:01:52
+    43000 steps completed on 05.06.2026 at 16:01:52
+    44000 steps completed on 05.06.2026 at 16:01:53
+    45000 steps completed on 05.06.2026 at 16:01:53
+    46000 steps completed on 05.06.2026 at 16:01:53
+    47000 steps completed on 05.06.2026 at 16:01:53
+    48000 steps completed on 05.06.2026 at 16:01:53
+    49000 steps completed on 05.06.2026 at 16:01:53
+    50000 steps completed on 05.06.2026 at 16:01:53
+    51000 steps completed on 05.06.2026 at 16:01:54
+    52000 steps completed on 05.06.2026 at 16:01:54
+    53000 steps completed on 05.06.2026 at 16:01:54
+    54000 steps completed on 05.06.2026 at 16:01:54
+    55000 steps completed on 05.06.2026 at 16:01:54
+    56000 steps completed on 05.06.2026 at 16:01:54
+    57000 steps completed on 05.06.2026 at 16:01:55
+    58000 steps completed on 05.06.2026 at 16:01:55
+    59000 steps completed on 05.06.2026 at 16:01:55
+    60000 steps completed on 05.06.2026 at 16:01:55
+    61000 steps completed on 05.06.2026 at 16:01:55
+    62000 steps completed on 05.06.2026 at 16:01:55
+    63000 steps completed on 05.06.2026 at 16:01:55
+    64000 steps completed on 05.06.2026 at 16:01:56
+    65000 steps completed on 05.06.2026 at 16:01:56
+    66000 steps completed on 05.06.2026 at 16:01:56
+    67000 steps completed on 05.06.2026 at 16:01:56
+    68000 steps completed on 05.06.2026 at 16:01:56
+    69000 steps completed on 05.06.2026 at 16:01:56
+    70000 steps completed on 05.06.2026 at 16:01:56
+    71000 steps completed on 05.06.2026 at 16:01:57
+    72000 steps completed on 05.06.2026 at 16:01:57
+    73000 steps completed on 05.06.2026 at 16:01:57
+    74000 steps completed on 05.06.2026 at 16:01:57
+    75000 steps completed on 05.06.2026 at 16:01:57
+    76000 steps completed on 05.06.2026 at 16:01:57
+    77000 steps completed on 05.06.2026 at 16:01:58
+    78000 steps completed on 05.06.2026 at 16:01:58
+    79000 steps completed on 05.06.2026 at 16:01:58
+    80000 steps completed on 05.06.2026 at 16:01:58
+    81000 steps completed on 05.06.2026 at 16:01:58
+    82000 steps completed on 05.06.2026 at 16:01:58
+    83000 steps completed on 05.06.2026 at 16:01:58
+    84000 steps completed on 05.06.2026 at 16:01:59
+    85000 steps completed on 05.06.2026 at 16:01:59
+    86000 steps completed on 05.06.2026 at 16:01:59
+    87000 steps completed on 05.06.2026 at 16:01:59
+    88000 steps completed on 05.06.2026 at 16:01:59
+    89000 steps completed on 05.06.2026 at 16:01:59
+    90000 steps completed on 05.06.2026 at 16:02:00
+    91000 steps completed on 05.06.2026 at 16:02:00
+    92000 steps completed on 05.06.2026 at 16:02:00
+    93000 steps completed on 05.06.2026 at 16:02:00
+    94000 steps completed on 05.06.2026 at 16:02:00
+    95000 steps completed on 05.06.2026 at 16:02:00
+    96000 steps completed on 05.06.2026 at 16:02:00
+    97000 steps completed on 05.06.2026 at 16:02:01
+    98000 steps completed on 05.06.2026 at 16:02:01
+    99000 steps completed on 05.06.2026 at 16:02:01
+   100000 steps completed on 05.06.2026 at 16:02:01
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  15.0416610    -  15.0416650
+                             <=    0h  0min 15.04167sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 05.06.2026, 16:02:01.574 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 05.06.2026 at 16:02:01
+
+
+========================================================================
+simulation timer start: 05.06.2026, 16:02:01.574 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 05.06.2026 at 16:02:01
+     2000 steps completed on 05.06.2026 at 16:02:02
+     3000 steps completed on 05.06.2026 at 16:02:02
+     4000 steps completed on 05.06.2026 at 16:02:02
+     5000 steps completed on 05.06.2026 at 16:02:02
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+     6000 steps completed on 05.06.2026 at 16:02:03
+     7000 steps completed on 05.06.2026 at 16:02:03
+     8000 steps completed on 05.06.2026 at 16:02:03
+     9000 steps completed on 05.06.2026 at 16:02:04
+    10000 steps completed on 05.06.2026 at 16:02:04
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    11000 steps completed on 05.06.2026 at 16:02:04
+    12000 steps completed on 05.06.2026 at 16:02:04
+    13000 steps completed on 05.06.2026 at 16:02:05
+    14000 steps completed on 05.06.2026 at 16:02:05
+    15000 steps completed on 05.06.2026 at 16:02:05
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    16000 steps completed on 05.06.2026 at 16:02:06
+    17000 steps completed on 05.06.2026 at 16:02:06
+    18000 steps completed on 05.06.2026 at 16:02:06
+    19000 steps completed on 05.06.2026 at 16:02:06
+    20000 steps completed on 05.06.2026 at 16:02:07
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    21000 steps completed on 05.06.2026 at 16:02:07
+    22000 steps completed on 05.06.2026 at 16:02:07
+    23000 steps completed on 05.06.2026 at 16:02:08
+    24000 steps completed on 05.06.2026 at 16:02:08
+    25000 steps completed on 05.06.2026 at 16:02:08
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    26000 steps completed on 05.06.2026 at 16:02:08
+    27000 steps completed on 05.06.2026 at 16:02:09
+    28000 steps completed on 05.06.2026 at 16:02:09
+    29000 steps completed on 05.06.2026 at 16:02:09
+    30000 steps completed on 05.06.2026 at 16:02:10
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    31000 steps completed on 05.06.2026 at 16:02:10
+    32000 steps completed on 05.06.2026 at 16:02:10
+    33000 steps completed on 05.06.2026 at 16:02:10
+    34000 steps completed on 05.06.2026 at 16:02:11
+    35000 steps completed on 05.06.2026 at 16:02:11
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    36000 steps completed on 05.06.2026 at 16:02:11
+    37000 steps completed on 05.06.2026 at 16:02:12
+    38000 steps completed on 05.06.2026 at 16:02:12
+    39000 steps completed on 05.06.2026 at 16:02:12
+    40000 steps completed on 05.06.2026 at 16:02:12
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    41000 steps completed on 05.06.2026 at 16:02:13
+    42000 steps completed on 05.06.2026 at 16:02:13
+    43000 steps completed on 05.06.2026 at 16:02:13
+    44000 steps completed on 05.06.2026 at 16:02:14
+    45000 steps completed on 05.06.2026 at 16:02:14
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    46000 steps completed on 05.06.2026 at 16:02:14
+    47000 steps completed on 05.06.2026 at 16:02:14
+    48000 steps completed on 05.06.2026 at 16:02:15
+    49000 steps completed on 05.06.2026 at 16:02:15
+    50000 steps completed on 05.06.2026 at 16:02:15
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    51000 steps completed on 05.06.2026 at 16:02:16
+    52000 steps completed on 05.06.2026 at 16:02:16
+    53000 steps completed on 05.06.2026 at 16:02:16
+    54000 steps completed on 05.06.2026 at 16:02:16
+    55000 steps completed on 05.06.2026 at 16:02:17
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    56000 steps completed on 05.06.2026 at 16:02:17
+    57000 steps completed on 05.06.2026 at 16:02:17
+    58000 steps completed on 05.06.2026 at 16:02:18
+    59000 steps completed on 05.06.2026 at 16:02:18
+    60000 steps completed on 05.06.2026 at 16:02:18
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    61000 steps completed on 05.06.2026 at 16:02:18
+    62000 steps completed on 05.06.2026 at 16:02:19
+    63000 steps completed on 05.06.2026 at 16:02:19
+    64000 steps completed on 05.06.2026 at 16:02:19
+    65000 steps completed on 05.06.2026 at 16:02:20
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    66000 steps completed on 05.06.2026 at 16:02:20
+    67000 steps completed on 05.06.2026 at 16:02:20
+    68000 steps completed on 05.06.2026 at 16:02:20
+    69000 steps completed on 05.06.2026 at 16:02:21
+    70000 steps completed on 05.06.2026 at 16:02:21
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    71000 steps completed on 05.06.2026 at 16:02:21
+    72000 steps completed on 05.06.2026 at 16:02:22
+    73000 steps completed on 05.06.2026 at 16:02:22
+    74000 steps completed on 05.06.2026 at 16:02:22
+    75000 steps completed on 05.06.2026 at 16:02:22
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    76000 steps completed on 05.06.2026 at 16:02:23
+    77000 steps completed on 05.06.2026 at 16:02:23
+    78000 steps completed on 05.06.2026 at 16:02:23
+    79000 steps completed on 05.06.2026 at 16:02:24
+    80000 steps completed on 05.06.2026 at 16:02:24
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    81000 steps completed on 05.06.2026 at 16:02:24
+    82000 steps completed on 05.06.2026 at 16:02:24
+    83000 steps completed on 05.06.2026 at 16:02:25
+    84000 steps completed on 05.06.2026 at 16:02:25
+    85000 steps completed on 05.06.2026 at 16:02:25
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    86000 steps completed on 05.06.2026 at 16:02:26
+    87000 steps completed on 05.06.2026 at 16:02:26
+    88000 steps completed on 05.06.2026 at 16:02:26
+    89000 steps completed on 05.06.2026 at 16:02:26
+    90000 steps completed on 05.06.2026 at 16:02:27
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    91000 steps completed on 05.06.2026 at 16:02:27
+    92000 steps completed on 05.06.2026 at 16:02:27
+    93000 steps completed on 05.06.2026 at 16:02:28
+    94000 steps completed on 05.06.2026 at 16:02:28
+    95000 steps completed on 05.06.2026 at 16:02:28
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+    96000 steps completed on 05.06.2026 at 16:02:28
+    97000 steps completed on 05.06.2026 at 16:02:29
+    98000 steps completed on 05.06.2026 at 16:02:29
+    99000 steps completed on 05.06.2026 at 16:02:29
+   100000 steps completed on 05.06.2026 at 16:02:30
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   101000 steps completed on 05.06.2026 at 16:02:30
+   102000 steps completed on 05.06.2026 at 16:02:30
+   103000 steps completed on 05.06.2026 at 16:02:30
+   104000 steps completed on 05.06.2026 at 16:02:31
+   105000 steps completed on 05.06.2026 at 16:02:31
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   106000 steps completed on 05.06.2026 at 16:02:31
+   107000 steps completed on 05.06.2026 at 16:02:32
+   108000 steps completed on 05.06.2026 at 16:02:32
+   109000 steps completed on 05.06.2026 at 16:02:32
+   110000 steps completed on 05.06.2026 at 16:02:32
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   111000 steps completed on 05.06.2026 at 16:02:33
+   112000 steps completed on 05.06.2026 at 16:02:33
+   113000 steps completed on 05.06.2026 at 16:02:33
+   114000 steps completed on 05.06.2026 at 16:02:34
+   115000 steps completed on 05.06.2026 at 16:02:34
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   116000 steps completed on 05.06.2026 at 16:02:34
+   117000 steps completed on 05.06.2026 at 16:02:34
+   118000 steps completed on 05.06.2026 at 16:02:35
+   119000 steps completed on 05.06.2026 at 16:02:35
+   120000 steps completed on 05.06.2026 at 16:02:35
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   121000 steps completed on 05.06.2026 at 16:02:36
+   122000 steps completed on 05.06.2026 at 16:02:36
+   123000 steps completed on 05.06.2026 at 16:02:36
+   124000 steps completed on 05.06.2026 at 16:02:36
+   125000 steps completed on 05.06.2026 at 16:02:37
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   126000 steps completed on 05.06.2026 at 16:02:37
+   127000 steps completed on 05.06.2026 at 16:02:37
+   128000 steps completed on 05.06.2026 at 16:02:38
+   129000 steps completed on 05.06.2026 at 16:02:38
+   130000 steps completed on 05.06.2026 at 16:02:38
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   131000 steps completed on 05.06.2026 at 16:02:38
+   132000 steps completed on 05.06.2026 at 16:02:39
+   133000 steps completed on 05.06.2026 at 16:02:39
+   134000 steps completed on 05.06.2026 at 16:02:39
+   135000 steps completed on 05.06.2026 at 16:02:40
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   136000 steps completed on 05.06.2026 at 16:02:40
+   137000 steps completed on 05.06.2026 at 16:02:40
+   138000 steps completed on 05.06.2026 at 16:02:40
+   139000 steps completed on 05.06.2026 at 16:02:41
+   140000 steps completed on 05.06.2026 at 16:02:41
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   141000 steps completed on 05.06.2026 at 16:02:41
+   142000 steps completed on 05.06.2026 at 16:02:42
+   143000 steps completed on 05.06.2026 at 16:02:42
+   144000 steps completed on 05.06.2026 at 16:02:42
+   145000 steps completed on 05.06.2026 at 16:02:42
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   146000 steps completed on 05.06.2026 at 16:02:43
+   147000 steps completed on 05.06.2026 at 16:02:43
+   148000 steps completed on 05.06.2026 at 16:02:43
+   149000 steps completed on 05.06.2026 at 16:02:44
+   150000 steps completed on 05.06.2026 at 16:02:44
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   151000 steps completed on 05.06.2026 at 16:02:44
+   152000 steps completed on 05.06.2026 at 16:02:44
+   153000 steps completed on 05.06.2026 at 16:02:45
+   154000 steps completed on 05.06.2026 at 16:02:45
+   155000 steps completed on 05.06.2026 at 16:02:45
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   156000 steps completed on 05.06.2026 at 16:02:46
+   157000 steps completed on 05.06.2026 at 16:02:46
+   158000 steps completed on 05.06.2026 at 16:02:46
+   159000 steps completed on 05.06.2026 at 16:02:46
+   160000 steps completed on 05.06.2026 at 16:02:47
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   161000 steps completed on 05.06.2026 at 16:02:47
+   162000 steps completed on 05.06.2026 at 16:02:47
+   163000 steps completed on 05.06.2026 at 16:02:48
+   164000 steps completed on 05.06.2026 at 16:02:48
+   165000 steps completed on 05.06.2026 at 16:02:48
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   166000 steps completed on 05.06.2026 at 16:02:48
+   167000 steps completed on 05.06.2026 at 16:02:49
+   168000 steps completed on 05.06.2026 at 16:02:49
+   169000 steps completed on 05.06.2026 at 16:02:49
+   170000 steps completed on 05.06.2026 at 16:02:50
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   171000 steps completed on 05.06.2026 at 16:02:50
+   172000 steps completed on 05.06.2026 at 16:02:50
+   173000 steps completed on 05.06.2026 at 16:02:50
+   174000 steps completed on 05.06.2026 at 16:02:51
+   175000 steps completed on 05.06.2026 at 16:02:51
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   176000 steps completed on 05.06.2026 at 16:02:51
+   177000 steps completed on 05.06.2026 at 16:02:52
+   178000 steps completed on 05.06.2026 at 16:02:52
+   179000 steps completed on 05.06.2026 at 16:02:52
+   180000 steps completed on 05.06.2026 at 16:02:52
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   181000 steps completed on 05.06.2026 at 16:02:53
+   182000 steps completed on 05.06.2026 at 16:02:53
+   183000 steps completed on 05.06.2026 at 16:02:53
+   184000 steps completed on 05.06.2026 at 16:02:54
+   185000 steps completed on 05.06.2026 at 16:02:54
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   186000 steps completed on 05.06.2026 at 16:02:54
+   187000 steps completed on 05.06.2026 at 16:02:54
+   188000 steps completed on 05.06.2026 at 16:02:55
+   189000 steps completed on 05.06.2026 at 16:02:55
+   190000 steps completed on 05.06.2026 at 16:02:55
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   191000 steps completed on 05.06.2026 at 16:02:56
+   192000 steps completed on 05.06.2026 at 16:02:56
+   193000 steps completed on 05.06.2026 at 16:02:56
+   194000 steps completed on 05.06.2026 at 16:02:56
+   195000 steps completed on 05.06.2026 at 16:02:57
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+   196000 steps completed on 05.06.2026 at 16:02:57
+   197000 steps completed on 05.06.2026 at 16:02:57
+   198000 steps completed on 05.06.2026 at 16:02:58
+   199000 steps completed on 05.06.2026 at 16:02:58
+   200000 steps completed on 05.06.2026 at 16:02:58
+Saving simulation results
+Opening file <NVT_MD_TT_EATM_1.res> for writing (unit 1017)
+File <NVT_MD_TT_EATM_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  57.0280720    -  57.0280790
+                             <=    0h  0min 57.02808sec (+- 0.10E-05sec)
+simulation timer stop: 05.06.2026, 16:02:58.602 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NVT_MD_TT_EATM.rst on 05.06.2026 at 16:02:58
+Opening file <NVT_MD_TT_EATM.rst> for writing (unit 1005)
+saving restart data at step    200000 /    300000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 05.06.2026 at 16:02:58
+File <NVT_MD_TT_EATM.rst> closed (unit 1005)
+Finished saving restart file NVT_MD_TT_EATM.rst on 05.06.2026 at 16:02:58
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  72.0749969    sec
+                 =    0h  1min 12.07500sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  72.0742250
+                              =    0h  1min 12.07422sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 05.06.2026, 16:02:58.607 (UTC+120)
+========================================================================
+
+
+File <NVT_MD_TT_EATM_1.rav> closed (unit 1016)
+File <NVT_MD_TT_EATM_1.run> closed (unit 1015)
+
+************************************************************************
+Program terminated on 05.06.2026 at 16:02:58
+************************************************************************
