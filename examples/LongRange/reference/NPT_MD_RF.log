@@ -1,0 +1,427 @@
+ms2 logfile NPT_MC_RF.log created by PE0 on 11.06.2026 at 14:31:13
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.019
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran140200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jun 10 2026,16:13:25
+Real Kind            : 8
+
+Hostname             : Francis-1897.local
+started by user Isabel on 11.06.2026 at 14:31:13
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Francis-1897.local
+    1   +   Francis-1897.local
+    2   +   Francis-1897.local
+    3   +   Francis-1897.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NPT_MC_RF.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NPT_MC_RF
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         SI
+Unit of length:          3.500 A
+Unit of energy:        100.000 K
+Unit of mass:           40.000 a.u.
+
+Simulation type:         Molecular Dynamics
+Integrator type:         Gear predictor-corrector
+Time step:                1.213807 fs
+Reduced time step:        0.000500
+
+Ensemble type:           NPT
+
+setting MCORSteps to default value       0
+No MC overlap reduction
+Number of NVT equilibration steps:       10000
+Number of NPT equilibration steps:       20000
+Number of production steps:             100000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:               400.000 K
+Pressure:                    2.940 MPa
+Density:                    11.400 mol/l
+Reduced temperature:         4.000000
+Reduced pressure:            0.091299
+Reduced density:             0.294347
+Mass of piston (reduced):    0.000500000
+Mass of piston:              2.21313E+09 kg/m^4
+setting ResidTime to default value no
+Calculation of residence time: no
+setting CommonEqui to default value no
+MD simulation: Logical CommonEqui no is invalid, set to yes
+Number of components:        1
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component aceton.pm:  1.000000
+Chemical potential of aceton.pm will be calculated by:
+         -> no calculation
+Opening file <aceton.pm> for reading (unit 1003)
+File <aceton.pm> closed (unit 1003)
+Opening file <NPT_MC_RF.aceton.nrm> for writing (unit 1004)
+File <NPT_MC_RF.aceton.nrm> closed (unit 1004)
+Normalized potential model for aceton.pm saved to file <NPT_MC_RF.aceton.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       500
+Mole fraction of aceton.pm:                  1.000
+         ->  number of particles:          500
+Memory for aceton.pm allocated successfully
+
+Reduced center of mass cutoff radius:        4.000
+
+Characteristic dielectric constant:          0.10000E+11
+
+Cutoff correction to
+- potential energy from LJ                  -1.66569359
+- pressure from LJ                          -3.39952390
+- chem. pot. of aceton.pm from LJ           -3.33138718
+- potential energy from reaction field (RF) -0.00978854
+- pressure from reaction field:             -0.46984987
+- chem. pot. of aceton.pm from RF           -0.31323324
+
+Initialize positions:
+         FCC lattice:   4 *   5x   5x   5 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NPT_MC_RF.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+Opening file <NPT_MC_RF_1.run> for writing (unit 1015)
+Opening file <NPT_MC_RF_1.rav> for writing (unit 1016)
+
+========================================================================
+TSimulation_Run timer start: 11.06.2026, 14:31:13.084 (UTC+120)
+------------------------------------------------------------------------
+
+
+========================================================================
+NVT equilibration timer start: 11.06.2026, 14:31:13.084 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 11.06.2026 at 14:31:16
+     2000 steps completed on 11.06.2026 at 14:31:19
+     3000 steps completed on 11.06.2026 at 14:31:22
+     4000 steps completed on 11.06.2026 at 14:31:25
+     5000 steps completed on 11.06.2026 at 14:31:28
+     6000 steps completed on 11.06.2026 at 14:31:31
+     7000 steps completed on 11.06.2026 at 14:31:34
+     8000 steps completed on 11.06.2026 at 14:31:37
+     9000 steps completed on 11.06.2026 at 14:31:40
+    10000 steps completed on 11.06.2026 at 14:31:43
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  30.5821260    -  30.5821330
+                             <=    0h  0min 30.58213sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 11.06.2026, 14:31:43.666 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 11.06.2026 at 14:31:43
+
+
+========================================================================
+NPT equilibration timer start: 11.06.2026, 14:31:43.666 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 11.06.2026 at 14:31:46
+     2000 steps completed on 11.06.2026 at 14:31:49
+     3000 steps completed on 11.06.2026 at 14:31:52
+     4000 steps completed on 11.06.2026 at 14:31:56
+     5000 steps completed on 11.06.2026 at 14:31:59
+     6000 steps completed on 11.06.2026 at 14:32:02
+     7000 steps completed on 11.06.2026 at 14:32:05
+     8000 steps completed on 11.06.2026 at 14:32:08
+     9000 steps completed on 11.06.2026 at 14:32:10
+    10000 steps completed on 11.06.2026 at 14:32:13
+    11000 steps completed on 11.06.2026 at 14:32:16
+    12000 steps completed on 11.06.2026 at 14:32:20
+    13000 steps completed on 11.06.2026 at 14:32:23
+    14000 steps completed on 11.06.2026 at 14:32:26
+    15000 steps completed on 11.06.2026 at 14:32:28
+    16000 steps completed on 11.06.2026 at 14:32:31
+    17000 steps completed on 11.06.2026 at 14:32:34
+    18000 steps completed on 11.06.2026 at 14:32:37
+    19000 steps completed on 11.06.2026 at 14:32:40
+    20000 steps completed on 11.06.2026 at 14:32:43
+------------------------------------------------------------------------
+Duration:
+ NPT equilibration wtime        diff:  60.2616250    -  60.2616750
+                             <=    0h  1min  0.26167sec (+- 0.10E-05sec)
+NPT equilibration timer stop: 11.06.2026, 14:32:43.928 (UTC+120)
+========================================================================
+
+NPT equilibration completed on 11.06.2026 at 14:32:43
+
+
+========================================================================
+simulation timer start: 11.06.2026, 14:32:43.928 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 11.06.2026 at 14:32:46
+     2000 steps completed on 11.06.2026 at 14:32:49
+     3000 steps completed on 11.06.2026 at 14:32:52
+     4000 steps completed on 11.06.2026 at 14:32:55
+     5000 steps completed on 11.06.2026 at 14:32:58
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+     6000 steps completed on 11.06.2026 at 14:33:01
+     7000 steps completed on 11.06.2026 at 14:33:04
+     8000 steps completed on 11.06.2026 at 14:33:07
+     9000 steps completed on 11.06.2026 at 14:33:10
+    10000 steps completed on 11.06.2026 at 14:33:13
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    11000 steps completed on 11.06.2026 at 14:33:16
+    12000 steps completed on 11.06.2026 at 14:33:19
+    13000 steps completed on 11.06.2026 at 14:33:22
+    14000 steps completed on 11.06.2026 at 14:33:25
+    15000 steps completed on 11.06.2026 at 14:33:28
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    16000 steps completed on 11.06.2026 at 14:33:31
+    17000 steps completed on 11.06.2026 at 14:33:34
+    18000 steps completed on 11.06.2026 at 14:33:36
+    19000 steps completed on 11.06.2026 at 14:33:40
+    20000 steps completed on 11.06.2026 at 14:33:42
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    21000 steps completed on 11.06.2026 at 14:33:45
+    22000 steps completed on 11.06.2026 at 14:33:48
+    23000 steps completed on 11.06.2026 at 14:33:51
+    24000 steps completed on 11.06.2026 at 14:33:54
+    25000 steps completed on 11.06.2026 at 14:33:57
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    26000 steps completed on 11.06.2026 at 14:34:00
+    27000 steps completed on 11.06.2026 at 14:34:03
+    28000 steps completed on 11.06.2026 at 14:34:06
+    29000 steps completed on 11.06.2026 at 14:34:09
+    30000 steps completed on 11.06.2026 at 14:34:12
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    31000 steps completed on 11.06.2026 at 14:34:15
+    32000 steps completed on 11.06.2026 at 14:34:18
+    33000 steps completed on 11.06.2026 at 14:34:21
+    34000 steps completed on 11.06.2026 at 14:34:24
+    35000 steps completed on 11.06.2026 at 14:34:27
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    36000 steps completed on 11.06.2026 at 14:34:29
+    37000 steps completed on 11.06.2026 at 14:34:32
+    38000 steps completed on 11.06.2026 at 14:34:35
+    39000 steps completed on 11.06.2026 at 14:34:38
+    40000 steps completed on 11.06.2026 at 14:34:41
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    41000 steps completed on 11.06.2026 at 14:34:44
+    42000 steps completed on 11.06.2026 at 14:34:47
+    43000 steps completed on 11.06.2026 at 14:34:50
+    44000 steps completed on 11.06.2026 at 14:34:53
+    45000 steps completed on 11.06.2026 at 14:34:56
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    46000 steps completed on 11.06.2026 at 14:34:59
+    47000 steps completed on 11.06.2026 at 14:35:02
+    48000 steps completed on 11.06.2026 at 14:35:05
+    49000 steps completed on 11.06.2026 at 14:35:08
+    50000 steps completed on 11.06.2026 at 14:35:11
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    51000 steps completed on 11.06.2026 at 14:35:14
+    52000 steps completed on 11.06.2026 at 14:35:17
+    53000 steps completed on 11.06.2026 at 14:35:20
+    54000 steps completed on 11.06.2026 at 14:35:23
+    55000 steps completed on 11.06.2026 at 14:35:26
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    56000 steps completed on 11.06.2026 at 14:35:28
+    57000 steps completed on 11.06.2026 at 14:35:31
+    58000 steps completed on 11.06.2026 at 14:35:34
+    59000 steps completed on 11.06.2026 at 14:35:37
+    60000 steps completed on 11.06.2026 at 14:35:40
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    61000 steps completed on 11.06.2026 at 14:35:43
+    62000 steps completed on 11.06.2026 at 14:35:46
+    63000 steps completed on 11.06.2026 at 14:35:49
+    64000 steps completed on 11.06.2026 at 14:35:52
+    65000 steps completed on 11.06.2026 at 14:35:55
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    66000 steps completed on 11.06.2026 at 14:35:58
+    67000 steps completed on 11.06.2026 at 14:36:01
+    68000 steps completed on 11.06.2026 at 14:36:04
+    69000 steps completed on 11.06.2026 at 14:36:07
+    70000 steps completed on 11.06.2026 at 14:36:10
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    71000 steps completed on 11.06.2026 at 14:36:13
+    72000 steps completed on 11.06.2026 at 14:36:16
+    73000 steps completed on 11.06.2026 at 14:36:19
+    74000 steps completed on 11.06.2026 at 14:36:22
+    75000 steps completed on 11.06.2026 at 14:36:25
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    76000 steps completed on 11.06.2026 at 14:36:28
+    77000 steps completed on 11.06.2026 at 14:36:31
+    78000 steps completed on 11.06.2026 at 14:36:34
+    79000 steps completed on 11.06.2026 at 14:36:37
+    80000 steps completed on 11.06.2026 at 14:36:40
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    81000 steps completed on 11.06.2026 at 14:36:43
+    82000 steps completed on 11.06.2026 at 14:36:46
+    83000 steps completed on 11.06.2026 at 14:36:49
+    84000 steps completed on 11.06.2026 at 14:36:52
+    85000 steps completed on 11.06.2026 at 14:36:55
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    86000 steps completed on 11.06.2026 at 14:36:58
+    87000 steps completed on 11.06.2026 at 14:37:01
+    88000 steps completed on 11.06.2026 at 14:37:04
+    89000 steps completed on 11.06.2026 at 14:37:07
+    90000 steps completed on 11.06.2026 at 14:37:10
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    91000 steps completed on 11.06.2026 at 14:37:13
+    92000 steps completed on 11.06.2026 at 14:37:16
+    93000 steps completed on 11.06.2026 at 14:37:19
+    94000 steps completed on 11.06.2026 at 14:37:22
+    95000 steps completed on 11.06.2026 at 14:37:25
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+    96000 steps completed on 11.06.2026 at 14:37:27
+    97000 steps completed on 11.06.2026 at 14:37:30
+    98000 steps completed on 11.06.2026 at 14:37:33
+    99000 steps completed on 11.06.2026 at 14:37:36
+   100000 steps completed on 11.06.2026 at 14:37:39
+Saving simulation results
+Opening file <NPT_MC_RF_1.res> for writing (unit 1017)
+File <NPT_MC_RF_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  295.696520    -  295.696554
+                             <=    0h  4min 55.69655sec (+- 0.10E-05sec)
+simulation timer stop: 11.06.2026, 14:37:39.625 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NPT_MC_RF.rst on 11.06.2026 at 14:37:39
+Opening file <NPT_MC_RF.rst> for writing (unit 1005)
+saving restart data at step    100000 /    130000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 11.06.2026 at 14:37:39
+File <NPT_MC_RF.rst> closed (unit 1005)
+Finished saving restart file NPT_MC_RF.rst on 11.06.2026 at 14:37:39
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  386.553986    sec
+                 =    0h  6min 26.55399sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  386.553957
+                              =    0h  6min 26.55396sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 11.06.2026, 14:37:39.638 (UTC+120)
+========================================================================
+
+
+File <NPT_MC_RF_1.rav> closed (unit 1016)
+File <NPT_MC_RF_1.run> closed (unit 1015)
+
+************************************************************************
+Program terminated on 11.06.2026 at 14:37:39
+************************************************************************

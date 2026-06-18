@@ -1,0 +1,484 @@
+ms2 logfile NPT_MD_spme.log created by PE0 on 11.06.2026 at 15:28:24
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi_spme version 5.019
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran150200
+Compiler flags       : MPI=1 SPME=1 MPI_USE_MODULE=1
+Compile time         : Jun 11 2026,15:17:59
+Real Kind            : 8
+
+Hostname             : Stephen.local
+started by user Isabel on 11.06.2026 at 15:28:24
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Stephen.local
+    1   +   Stephen.local
+    2   +   Stephen.local
+    3   +   Stephen.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NPT_MD_spme.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NPT_MD_spme
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         SI
+Unit of length:          3.500 A
+Unit of energy:        100.000 K
+Unit of mass:           40.000 a.u.
+
+Simulation type:         Molecular Dynamics
+Integrator type:         Gear predictor-corrector
+Time step:                1.213807 fs
+Reduced time step:        0.000500
+
+Ensemble type:           NPT
+
+Number of MC overlap reduction steps:      100
+Number of NVT equilibration steps:       10000
+Number of NPT equilibration steps:       20000
+Number of production steps:             100000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+Long Range Correction: Smooth Particle Mesh Ewald Summation
+Ewald: KappaL:   5.100
+Grid Space SPME:     21
+order of SPME Spline:      5
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:               298.150 K
+Pressure:                    0.100 MPa
+Density:                    30.000 mol/l
+Reduced temperature:         2.981500
+Reduced pressure:            0.003105
+Reduced density:             0.774597
+Mass of piston (reduced):    0.000010000
+Mass of piston:              4.42626E+07 kg/m^4
+setting ResidTime to default value no
+Calculation of residence time: no
+setting CommonEqui to default value no
+MD simulation: Logical CommonEqui no is invalid, set to yes
+Number of components:        3
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component SPCE.pm:  0.848000
+Chemical potential of SPCE.pm will be calculated by:
+         -> no calculation
+Opening file <SPCE.pm> for reading (unit 1003)
+File <SPCE.pm> closed (unit 1003)
+Opening file <NPT_MD_spme.SPCE.nrm> for writing (unit 1004)
+File <NPT_MD_spme.SPCE.nrm> closed (unit 1004)
+Normalized potential model for SPCE.pm saved to file <NPT_MD_spme.SPCE.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+            Reading component  2 for ensemble
+Mole fraction of component Reiser_Na.pm:  0.076000
+Chemical potential of Reiser_Na.pm will be calculated by:
+         -> no calculation
+Opening file <Reiser_Na.pm> for reading (unit 1003)
+File <Reiser_Na.pm> closed (unit 1003)
+Opening file <NPT_MD_spme.Reiser_Na.nrm> for writing (unit 1004)
+File <NPT_MD_spme.Reiser_Na.nrm> closed (unit 1004)
+Normalized potential model for Reiser_Na.pm saved to file <NPT_MD_spme.Reiser_Na.nrm>
+       Reading component  2 for ensemble successful
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+            Reading component  3 for ensemble
+Mole fraction of component Reiser_Cl.pm:  0.076000
+Chemical potential of Reiser_Cl.pm will be calculated by:
+         -> no calculation
+Opening file <Reiser_Cl.pm> for reading (unit 1003)
+File <Reiser_Cl.pm> closed (unit 1003)
+Opening file <NPT_MD_spme.Reiser_Cl.nrm> for writing (unit 1004)
+File <NPT_MD_spme.Reiser_Cl.nrm> closed (unit 1004)
+Normalized potential model for Reiser_Cl.pm saved to file <NPT_MD_spme.Reiser_Cl.nrm>
+       Reading component  3 for ensemble successful
+------------------------------------------------------------------------
+Warning: Mole fraction sum of the considered fluid is not unity
+Mole fraction of SPCE.pm was set to:         0.848
+Mole fraction of Reiser_Na.pm was set to:    0.076
+Mole fraction of Reiser_Cl.pm was set to:    0.076
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       500
+Mole fraction of SPCE.pm:                    0.848
+         ->  number of particles:          424
+Mole fraction of Reiser_Na.pm:               0.076
+         ->  number of particles:           38
+Mole fraction of Reiser_Cl.pm:               0.076
+         ->  number of particles:           38
+Memory for SPCE.pm allocated successfully
+Memory for Reiser_Na.pm allocated successfully
+Memory for Reiser_Cl.pm allocated successfully
+SPCE.pm-Reiser_Na.pm LJ interaction:  eta = 1.000, xi = 1.000
+SPCE.pm-Reiser_Cl.pm LJ interaction:  eta = 1.000, xi = 1.000
+Reiser_Na.pm-Reiser_Cl.pm LJ interaction:  eta = 1.000, xi = 1.000
+
+Reduced center of mass cutoff radius:        4.000
+
+Characteristic dielectric constant:          0.10000E+11
+
+Cutoff correction to
+- potential energy from LJ                  -0.08492706
+- pressure from LJ                          -0.16984250
+- chem. pot. of SPCE.pm from LJ             -0.13863459
+- chem. pot. of Reiser_Na.pm from LJ        -0.06155682
+- chem. pot. of Reiser_Cl.pm from LJ        -0.62649557
+- potential energy from reaction field (RF) -0.00000000
+- pressure from reaction field:             -0.00000000
+- chem. pot. of SPCE.pm from RF             -0.00000000
+- chem. pot. of Reiser_Na.pm from RF        -0.00000000
+- chem. pot. of Reiser_Cl.pm from RF        -0.00000000
+
+Initialize positions:
+         FCC lattice:   4 *   5x   5x   5 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NPT_MD_spme.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+Opening file <NPT_MD_spme_1.run> for writing (unit 1015)
+Opening file <NPT_MD_spme_1.rav> for writing (unit 1016)
+
+========================================================================
+TSimulation_Run timer start: 11.06.2026, 15:28:24.105 (UTC+120)
+------------------------------------------------------------------------
+
+
+========================================================================
+MC overlap reduction timer start: 11.06.2026, 15:28:24.106 (UTC+120)
+------------------------------------------------------------------------
+      100 steps completed on 11.06.2026 at 15:28:33
+------------------------------------------------------------------------
+Duration:
+ MC overlap reduction wtime        diff:  9.28693300    -  9.28693800
+                             <=    0h  0min  9.28694sec (+- 0.10E-05sec)
+MC overlap reduction timer stop: 11.06.2026, 15:28:33.393 (UTC+120)
+========================================================================
+
+MC overlap reduction completed on 11.06.2026 at 15:28:33
+
+
+========================================================================
+NVT equilibration timer start: 11.06.2026, 15:28:33.393 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 11.06.2026 at 15:28:34
+     2000 steps completed on 11.06.2026 at 15:28:36
+     3000 steps completed on 11.06.2026 at 15:28:37
+     4000 steps completed on 11.06.2026 at 15:28:38
+     5000 steps completed on 11.06.2026 at 15:28:40
+     6000 steps completed on 11.06.2026 at 15:28:41
+     7000 steps completed on 11.06.2026 at 15:28:43
+     8000 steps completed on 11.06.2026 at 15:28:44
+     9000 steps completed on 11.06.2026 at 15:28:45
+    10000 steps completed on 11.06.2026 at 15:28:47
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  14.0894980    -  14.0895030
+                             <=    0h  0min 14.08950sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 11.06.2026, 15:28:47.482 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 11.06.2026 at 15:28:47
+
+
+========================================================================
+NPT equilibration timer start: 11.06.2026, 15:28:47.482 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 11.06.2026 at 15:28:48
+     2000 steps completed on 11.06.2026 at 15:28:50
+     3000 steps completed on 11.06.2026 at 15:28:52
+     4000 steps completed on 11.06.2026 at 15:28:53
+     5000 steps completed on 11.06.2026 at 15:28:55
+     6000 steps completed on 11.06.2026 at 15:28:57
+     7000 steps completed on 11.06.2026 at 15:28:59
+     8000 steps completed on 11.06.2026 at 15:29:01
+     9000 steps completed on 11.06.2026 at 15:29:03
+    10000 steps completed on 11.06.2026 at 15:29:05
+    11000 steps completed on 11.06.2026 at 15:29:07
+    12000 steps completed on 11.06.2026 at 15:29:09
+    13000 steps completed on 11.06.2026 at 15:29:11
+    14000 steps completed on 11.06.2026 at 15:29:13
+    15000 steps completed on 11.06.2026 at 15:29:15
+    16000 steps completed on 11.06.2026 at 15:29:17
+    17000 steps completed on 11.06.2026 at 15:29:19
+    18000 steps completed on 11.06.2026 at 15:29:21
+    19000 steps completed on 11.06.2026 at 15:29:23
+    20000 steps completed on 11.06.2026 at 15:29:25
+------------------------------------------------------------------------
+Duration:
+ NPT equilibration wtime        diff:  37.9793110    -  37.9793260
+                             <=    0h  0min 37.97933sec (+- 0.10E-05sec)
+NPT equilibration timer stop: 11.06.2026, 15:29:25.462 (UTC+120)
+========================================================================
+
+NPT equilibration completed on 11.06.2026 at 15:29:25
+
+
+========================================================================
+simulation timer start: 11.06.2026, 15:29:25.462 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 11.06.2026 at 15:29:27
+     2000 steps completed on 11.06.2026 at 15:29:29
+     3000 steps completed on 11.06.2026 at 15:29:31
+     4000 steps completed on 11.06.2026 at 15:29:33
+     5000 steps completed on 11.06.2026 at 15:29:35
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+     6000 steps completed on 11.06.2026 at 15:29:37
+     7000 steps completed on 11.06.2026 at 15:29:39
+     8000 steps completed on 11.06.2026 at 15:29:41
+     9000 steps completed on 11.06.2026 at 15:29:43
+    10000 steps completed on 11.06.2026 at 15:29:45
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    11000 steps completed on 11.06.2026 at 15:29:47
+    12000 steps completed on 11.06.2026 at 15:29:49
+    13000 steps completed on 11.06.2026 at 15:29:51
+    14000 steps completed on 11.06.2026 at 15:29:53
+    15000 steps completed on 11.06.2026 at 15:29:55
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    16000 steps completed on 11.06.2026 at 15:29:58
+    17000 steps completed on 11.06.2026 at 15:30:00
+    18000 steps completed on 11.06.2026 at 15:30:02
+    19000 steps completed on 11.06.2026 at 15:30:04
+    20000 steps completed on 11.06.2026 at 15:30:06
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    21000 steps completed on 11.06.2026 at 15:30:08
+    22000 steps completed on 11.06.2026 at 15:30:10
+    23000 steps completed on 11.06.2026 at 15:30:12
+    24000 steps completed on 11.06.2026 at 15:30:14
+    25000 steps completed on 11.06.2026 at 15:30:16
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    26000 steps completed on 11.06.2026 at 15:30:18
+    27000 steps completed on 11.06.2026 at 15:30:20
+    28000 steps completed on 11.06.2026 at 15:30:22
+    29000 steps completed on 11.06.2026 at 15:30:24
+    30000 steps completed on 11.06.2026 at 15:30:26
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    31000 steps completed on 11.06.2026 at 15:30:28
+    32000 steps completed on 11.06.2026 at 15:30:30
+    33000 steps completed on 11.06.2026 at 15:30:32
+    34000 steps completed on 11.06.2026 at 15:30:34
+    35000 steps completed on 11.06.2026 at 15:30:36
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    36000 steps completed on 11.06.2026 at 15:30:38
+    37000 steps completed on 11.06.2026 at 15:30:40
+    38000 steps completed on 11.06.2026 at 15:30:42
+    39000 steps completed on 11.06.2026 at 15:30:44
+    40000 steps completed on 11.06.2026 at 15:30:46
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    41000 steps completed on 11.06.2026 at 15:30:48
+    42000 steps completed on 11.06.2026 at 15:30:50
+    43000 steps completed on 11.06.2026 at 15:30:52
+    44000 steps completed on 11.06.2026 at 15:30:54
+    45000 steps completed on 11.06.2026 at 15:30:56
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    46000 steps completed on 11.06.2026 at 15:30:58
+    47000 steps completed on 11.06.2026 at 15:31:00
+    48000 steps completed on 11.06.2026 at 15:31:02
+    49000 steps completed on 11.06.2026 at 15:31:04
+    50000 steps completed on 11.06.2026 at 15:31:06
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    51000 steps completed on 11.06.2026 at 15:31:08
+    52000 steps completed on 11.06.2026 at 15:31:10
+    53000 steps completed on 11.06.2026 at 15:31:12
+    54000 steps completed on 11.06.2026 at 15:31:14
+    55000 steps completed on 11.06.2026 at 15:31:16
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    56000 steps completed on 11.06.2026 at 15:31:18
+    57000 steps completed on 11.06.2026 at 15:31:20
+    58000 steps completed on 11.06.2026 at 15:31:22
+    59000 steps completed on 11.06.2026 at 15:31:24
+    60000 steps completed on 11.06.2026 at 15:31:26
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    61000 steps completed on 11.06.2026 at 15:31:28
+    62000 steps completed on 11.06.2026 at 15:31:30
+    63000 steps completed on 11.06.2026 at 15:31:32
+    64000 steps completed on 11.06.2026 at 15:31:34
+    65000 steps completed on 11.06.2026 at 15:31:36
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    66000 steps completed on 11.06.2026 at 15:31:38
+    67000 steps completed on 11.06.2026 at 15:31:40
+    68000 steps completed on 11.06.2026 at 15:31:42
+    69000 steps completed on 11.06.2026 at 15:31:44
+    70000 steps completed on 11.06.2026 at 15:31:46
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    71000 steps completed on 11.06.2026 at 15:31:48
+    72000 steps completed on 11.06.2026 at 15:31:50
+    73000 steps completed on 11.06.2026 at 15:31:52
+    74000 steps completed on 11.06.2026 at 15:31:54
+    75000 steps completed on 11.06.2026 at 15:31:56
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    76000 steps completed on 11.06.2026 at 15:31:58
+    77000 steps completed on 11.06.2026 at 15:32:00
+    78000 steps completed on 11.06.2026 at 15:32:02
+    79000 steps completed on 11.06.2026 at 15:32:04
+    80000 steps completed on 11.06.2026 at 15:32:06
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    81000 steps completed on 11.06.2026 at 15:32:08
+    82000 steps completed on 11.06.2026 at 15:32:10
+    83000 steps completed on 11.06.2026 at 15:32:12
+    84000 steps completed on 11.06.2026 at 15:32:14
+    85000 steps completed on 11.06.2026 at 15:32:16
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    86000 steps completed on 11.06.2026 at 15:32:18
+    87000 steps completed on 11.06.2026 at 15:32:20
+    88000 steps completed on 11.06.2026 at 15:32:22
+    89000 steps completed on 11.06.2026 at 15:32:24
+    90000 steps completed on 11.06.2026 at 15:32:26
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    91000 steps completed on 11.06.2026 at 15:32:28
+    92000 steps completed on 11.06.2026 at 15:32:30
+    93000 steps completed on 11.06.2026 at 15:32:32
+    94000 steps completed on 11.06.2026 at 15:32:34
+    95000 steps completed on 11.06.2026 at 15:32:36
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+    96000 steps completed on 11.06.2026 at 15:32:39
+    97000 steps completed on 11.06.2026 at 15:32:41
+    98000 steps completed on 11.06.2026 at 15:32:43
+    99000 steps completed on 11.06.2026 at 15:32:45
+   100000 steps completed on 11.06.2026 at 15:32:47
+Saving simulation results
+Opening file <NPT_MD_spme_1.res> for writing (unit 1017)
+File <NPT_MD_spme_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  202.076468    -  202.076481
+                             <=    0h  3min 22.07648sec (+- 0.10E-05sec)
+simulation timer stop: 11.06.2026, 15:32:47.538 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NPT_MD_spme.rst on 11.06.2026 at 15:32:47
+Opening file <NPT_MD_spme.rst> for writing (unit 1005)
+saving restart data at step    100000 /    130100
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 11.06.2026 at 15:32:47
+File <NPT_MD_spme.rst> closed (unit 1005)
+Finished saving restart file NPT_MD_spme.rst on 11.06.2026 at 15:32:47
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  263.440002    sec
+                 =    0h  4min 23.44000sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  263.439568
+                              =    0h  4min 23.43957sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 11.06.2026, 15:32:47.545 (UTC+120)
+========================================================================
+
+
+File <NPT_MD_spme_1.rav> closed (unit 1016)
+File <NPT_MD_spme_1.run> closed (unit 1015)
+
+************************************************************************
+Program terminated on 11.06.2026 at 15:32:47
+************************************************************************

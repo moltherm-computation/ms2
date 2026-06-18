@@ -1,0 +1,486 @@
+ms2 logfile NPT_MD_ewald.log created by PE0 on 11.06.2026 at 15:06:57
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.019
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran150200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jun 11 2026,15:06:10
+Real Kind            : 8
+
+Hostname             : Stephen.local
+started by user Isabel on 11.06.2026 at 15:06:57
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Stephen.local
+    1   +   Stephen.local
+    2   +   Stephen.local
+    3   +   Stephen.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NPT_MD_ewald.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NPT_MD_ewald
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         SI
+Unit of length:          3.500 A
+Unit of energy:        100.000 K
+Unit of mass:           40.000 a.u.
+
+Simulation type:         Molecular Dynamics
+Integrator type:         Gear predictor-corrector
+Time step:                1.213807 fs
+Reduced time step:        0.000500
+
+Ensemble type:           NPT
+
+Number of MC overlap reduction steps:      100
+Number of NVT equilibration steps:       10000
+Number of NPT equilibration steps:       20000
+Number of production steps:             100000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+Long Range Correction: EwaldSum
+Ewald: KappaL:           5.600
+Ewald: NsqMax:          27
+Ewald: NVecMax:       1000
+Ewald: NMax:             5
+Ewald: NMax:             5
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:               298.150 K
+Pressure:                    0.100 MPa
+Density:                    30.000 mol/l
+Reduced temperature:         2.981500
+Reduced pressure:            0.003105
+Reduced density:             0.774597
+Mass of piston (reduced):    0.000010000
+Mass of piston:              4.42626E+07 kg/m^4
+setting ResidTime to default value no
+Calculation of residence time: no
+setting CommonEqui to default value no
+MD simulation: Logical CommonEqui no is invalid, set to yes
+Number of components:        3
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component SPCE.pm:  0.848000
+Chemical potential of SPCE.pm will be calculated by:
+         -> no calculation
+Opening file <SPCE.pm> for reading (unit 1003)
+File <SPCE.pm> closed (unit 1003)
+Opening file <NPT_MD_ewald.SPCE.nrm> for writing (unit 1004)
+File <NPT_MD_ewald.SPCE.nrm> closed (unit 1004)
+Normalized potential model for SPCE.pm saved to file <NPT_MD_ewald.SPCE.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+            Reading component  2 for ensemble
+Mole fraction of component Reiser_Na.pm:  0.076000
+Chemical potential of Reiser_Na.pm will be calculated by:
+         -> no calculation
+Opening file <Reiser_Na.pm> for reading (unit 1003)
+File <Reiser_Na.pm> closed (unit 1003)
+Opening file <NPT_MD_ewald.Reiser_Na.nrm> for writing (unit 1004)
+File <NPT_MD_ewald.Reiser_Na.nrm> closed (unit 1004)
+Normalized potential model for Reiser_Na.pm saved to file <NPT_MD_ewald.Reiser_Na.nrm>
+       Reading component  2 for ensemble successful
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+            Reading component  3 for ensemble
+Mole fraction of component Reiser_Cl.pm:  0.076000
+Chemical potential of Reiser_Cl.pm will be calculated by:
+         -> no calculation
+Opening file <Reiser_Cl.pm> for reading (unit 1003)
+File <Reiser_Cl.pm> closed (unit 1003)
+Opening file <NPT_MD_ewald.Reiser_Cl.nrm> for writing (unit 1004)
+File <NPT_MD_ewald.Reiser_Cl.nrm> closed (unit 1004)
+Normalized potential model for Reiser_Cl.pm saved to file <NPT_MD_ewald.Reiser_Cl.nrm>
+       Reading component  3 for ensemble successful
+------------------------------------------------------------------------
+Warning: Mole fraction sum of the considered fluid is not unity
+Mole fraction of SPCE.pm was set to:         0.848
+Mole fraction of Reiser_Na.pm was set to:    0.076
+Mole fraction of Reiser_Cl.pm was set to:    0.076
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       500
+Mole fraction of SPCE.pm:                    0.848
+         ->  number of particles:          424
+Mole fraction of Reiser_Na.pm:               0.076
+         ->  number of particles:           38
+Mole fraction of Reiser_Cl.pm:               0.076
+         ->  number of particles:           38
+Memory for SPCE.pm allocated successfully
+Memory for Reiser_Na.pm allocated successfully
+Memory for Reiser_Cl.pm allocated successfully
+SPCE.pm-Reiser_Na.pm LJ interaction:  eta = 1.000, xi = 1.000
+SPCE.pm-Reiser_Cl.pm LJ interaction:  eta = 1.000, xi = 1.000
+Reiser_Na.pm-Reiser_Cl.pm LJ interaction:  eta = 1.000, xi = 1.000
+
+Reduced center of mass cutoff radius:        4.000
+
+Characteristic dielectric constant:          0.10000E+11
+
+Cutoff correction to
+- potential energy from LJ                  -0.08492706
+- pressure from LJ                          -0.16984250
+- chem. pot. of SPCE.pm from LJ             -0.13863459
+- chem. pot. of Reiser_Na.pm from LJ        -0.06155682
+- chem. pot. of Reiser_Cl.pm from LJ        -0.62649557
+- potential energy from reaction field (RF) -0.00000000
+- pressure from reaction field:             -0.00000000
+- chem. pot. of SPCE.pm from RF             -0.00000000
+- chem. pot. of Reiser_Na.pm from RF        -0.00000000
+- chem. pot. of Reiser_Cl.pm from RF        -0.00000000
+
+Initialize positions:
+         FCC lattice:   4 *   5x   5x   5 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NPT_MD_ewald.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+Opening file <NPT_MD_ewald_1.run> for writing (unit 1015)
+Opening file <NPT_MD_ewald_1.rav> for writing (unit 1016)
+
+========================================================================
+TSimulation_Run timer start: 11.06.2026, 15:06:57.364 (UTC+120)
+------------------------------------------------------------------------
+
+
+========================================================================
+MC overlap reduction timer start: 11.06.2026, 15:06:57.364 (UTC+120)
+------------------------------------------------------------------------
+      100 steps completed on 11.06.2026 at 15:07:00
+------------------------------------------------------------------------
+Duration:
+ MC overlap reduction wtime        diff:  3.00965800    -  3.00966300
+                             <=    0h  0min  3.00966sec (+- 0.10E-05sec)
+MC overlap reduction timer stop: 11.06.2026, 15:07:00.373 (UTC+120)
+========================================================================
+
+MC overlap reduction completed on 11.06.2026 at 15:07:00
+
+
+========================================================================
+NVT equilibration timer start: 11.06.2026, 15:07:00.374 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 11.06.2026 at 15:07:03
+     2000 steps completed on 11.06.2026 at 15:07:07
+     3000 steps completed on 11.06.2026 at 15:07:11
+     4000 steps completed on 11.06.2026 at 15:07:14
+     5000 steps completed on 11.06.2026 at 15:07:18
+     6000 steps completed on 11.06.2026 at 15:07:22
+     7000 steps completed on 11.06.2026 at 15:07:26
+     8000 steps completed on 11.06.2026 at 15:07:29
+     9000 steps completed on 11.06.2026 at 15:07:33
+    10000 steps completed on 11.06.2026 at 15:07:37
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  37.1803740    -  37.1803790
+                             <=    0h  0min 37.18038sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 11.06.2026, 15:07:37.554 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 11.06.2026 at 15:07:37
+
+
+========================================================================
+NPT equilibration timer start: 11.06.2026, 15:07:37.554 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 11.06.2026 at 15:07:41
+     2000 steps completed on 11.06.2026 at 15:07:45
+     3000 steps completed on 11.06.2026 at 15:07:49
+     4000 steps completed on 11.06.2026 at 15:07:53
+     5000 steps completed on 11.06.2026 at 15:07:57
+     6000 steps completed on 11.06.2026 at 15:08:01
+     7000 steps completed on 11.06.2026 at 15:08:06
+     8000 steps completed on 11.06.2026 at 15:08:10
+     9000 steps completed on 11.06.2026 at 15:08:14
+    10000 steps completed on 11.06.2026 at 15:08:19
+    11000 steps completed on 11.06.2026 at 15:08:23
+    12000 steps completed on 11.06.2026 at 15:08:27
+    13000 steps completed on 11.06.2026 at 15:08:31
+    14000 steps completed on 11.06.2026 at 15:08:36
+    15000 steps completed on 11.06.2026 at 15:08:40
+    16000 steps completed on 11.06.2026 at 15:08:44
+    17000 steps completed on 11.06.2026 at 15:08:48
+    18000 steps completed on 11.06.2026 at 15:08:53
+    19000 steps completed on 11.06.2026 at 15:08:57
+    20000 steps completed on 11.06.2026 at 15:09:01
+------------------------------------------------------------------------
+Duration:
+ NPT equilibration wtime        diff:  84.2978740    -  84.2978870
+                             <=    0h  1min 24.29789sec (+- 0.10E-05sec)
+NPT equilibration timer stop: 11.06.2026, 15:09:01.852 (UTC+120)
+========================================================================
+
+NPT equilibration completed on 11.06.2026 at 15:09:01
+
+
+========================================================================
+simulation timer start: 11.06.2026, 15:09:01.852 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 11.06.2026 at 15:09:06
+     2000 steps completed on 11.06.2026 at 15:09:10
+     3000 steps completed on 11.06.2026 at 15:09:14
+     4000 steps completed on 11.06.2026 at 15:09:19
+     5000 steps completed on 11.06.2026 at 15:09:23
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+     6000 steps completed on 11.06.2026 at 15:09:27
+     7000 steps completed on 11.06.2026 at 15:09:31
+     8000 steps completed on 11.06.2026 at 15:09:36
+     9000 steps completed on 11.06.2026 at 15:09:40
+    10000 steps completed on 11.06.2026 at 15:09:44
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    11000 steps completed on 11.06.2026 at 15:09:49
+    12000 steps completed on 11.06.2026 at 15:09:53
+    13000 steps completed on 11.06.2026 at 15:09:57
+    14000 steps completed on 11.06.2026 at 15:10:02
+    15000 steps completed on 11.06.2026 at 15:10:06
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    16000 steps completed on 11.06.2026 at 15:10:10
+    17000 steps completed on 11.06.2026 at 15:10:14
+    18000 steps completed on 11.06.2026 at 15:10:19
+    19000 steps completed on 11.06.2026 at 15:10:23
+    20000 steps completed on 11.06.2026 at 15:10:27
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    21000 steps completed on 11.06.2026 at 15:10:31
+    22000 steps completed on 11.06.2026 at 15:10:36
+    23000 steps completed on 11.06.2026 at 15:10:40
+    24000 steps completed on 11.06.2026 at 15:10:44
+    25000 steps completed on 11.06.2026 at 15:10:49
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    26000 steps completed on 11.06.2026 at 15:10:53
+    27000 steps completed on 11.06.2026 at 15:10:57
+    28000 steps completed on 11.06.2026 at 15:11:02
+    29000 steps completed on 11.06.2026 at 15:11:06
+    30000 steps completed on 11.06.2026 at 15:11:10
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    31000 steps completed on 11.06.2026 at 15:11:14
+    32000 steps completed on 11.06.2026 at 15:11:19
+    33000 steps completed on 11.06.2026 at 15:11:23
+    34000 steps completed on 11.06.2026 at 15:11:27
+    35000 steps completed on 11.06.2026 at 15:11:32
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    36000 steps completed on 11.06.2026 at 15:11:36
+    37000 steps completed on 11.06.2026 at 15:11:40
+    38000 steps completed on 11.06.2026 at 15:11:44
+    39000 steps completed on 11.06.2026 at 15:11:49
+    40000 steps completed on 11.06.2026 at 15:11:53
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    41000 steps completed on 11.06.2026 at 15:11:57
+    42000 steps completed on 11.06.2026 at 15:12:02
+    43000 steps completed on 11.06.2026 at 15:12:06
+    44000 steps completed on 11.06.2026 at 15:12:10
+    45000 steps completed on 11.06.2026 at 15:12:14
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    46000 steps completed on 11.06.2026 at 15:12:19
+    47000 steps completed on 11.06.2026 at 15:12:23
+    48000 steps completed on 11.06.2026 at 15:12:27
+    49000 steps completed on 11.06.2026 at 15:12:32
+    50000 steps completed on 11.06.2026 at 15:12:36
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    51000 steps completed on 11.06.2026 at 15:12:40
+    52000 steps completed on 11.06.2026 at 15:12:44
+    53000 steps completed on 11.06.2026 at 15:12:49
+    54000 steps completed on 11.06.2026 at 15:12:53
+    55000 steps completed on 11.06.2026 at 15:12:57
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    56000 steps completed on 11.06.2026 at 15:13:02
+    57000 steps completed on 11.06.2026 at 15:13:06
+    58000 steps completed on 11.06.2026 at 15:13:10
+    59000 steps completed on 11.06.2026 at 15:13:15
+    60000 steps completed on 11.06.2026 at 15:13:19
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    61000 steps completed on 11.06.2026 at 15:13:26
+    62000 steps completed on 11.06.2026 at 15:13:33
+    63000 steps completed on 11.06.2026 at 15:13:40
+    64000 steps completed on 11.06.2026 at 15:13:45
+    65000 steps completed on 11.06.2026 at 15:13:49
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    66000 steps completed on 11.06.2026 at 15:13:54
+    67000 steps completed on 11.06.2026 at 15:13:58
+    68000 steps completed on 11.06.2026 at 15:14:02
+    69000 steps completed on 11.06.2026 at 15:14:07
+    70000 steps completed on 11.06.2026 at 15:14:11
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    71000 steps completed on 11.06.2026 at 15:14:15
+    72000 steps completed on 11.06.2026 at 15:14:19
+    73000 steps completed on 11.06.2026 at 15:14:24
+    74000 steps completed on 11.06.2026 at 15:14:28
+    75000 steps completed on 11.06.2026 at 15:14:32
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    76000 steps completed on 11.06.2026 at 15:14:37
+    77000 steps completed on 11.06.2026 at 15:14:41
+    78000 steps completed on 11.06.2026 at 15:14:45
+    79000 steps completed on 11.06.2026 at 15:14:50
+    80000 steps completed on 11.06.2026 at 15:14:54
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    81000 steps completed on 11.06.2026 at 15:14:58
+    82000 steps completed on 11.06.2026 at 15:15:03
+    83000 steps completed on 11.06.2026 at 15:15:07
+    84000 steps completed on 11.06.2026 at 15:15:11
+    85000 steps completed on 11.06.2026 at 15:15:16
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    86000 steps completed on 11.06.2026 at 15:15:20
+    87000 steps completed on 11.06.2026 at 15:15:24
+    88000 steps completed on 11.06.2026 at 15:15:29
+    89000 steps completed on 11.06.2026 at 15:15:33
+    90000 steps completed on 11.06.2026 at 15:15:37
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    91000 steps completed on 11.06.2026 at 15:15:41
+    92000 steps completed on 11.06.2026 at 15:15:46
+    93000 steps completed on 11.06.2026 at 15:15:50
+    94000 steps completed on 11.06.2026 at 15:15:54
+    95000 steps completed on 11.06.2026 at 15:15:59
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+    96000 steps completed on 11.06.2026 at 15:16:03
+    97000 steps completed on 11.06.2026 at 15:16:07
+    98000 steps completed on 11.06.2026 at 15:16:11
+    99000 steps completed on 11.06.2026 at 15:16:16
+   100000 steps completed on 11.06.2026 at 15:16:20
+Saving simulation results
+Opening file <NPT_MD_ewald_1.res> for writing (unit 1017)
+File <NPT_MD_ewald_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  438.719920    -  438.719932
+                             <=    0h  7min 18.71993sec (+- 0.10E-05sec)
+simulation timer stop: 11.06.2026, 15:16:20.572 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NPT_MD_ewald.rst on 11.06.2026 at 15:16:20
+Opening file <NPT_MD_ewald.rst> for writing (unit 1005)
+saving restart data at step    100000 /    130100
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 11.06.2026 at 15:16:20
+File <NPT_MD_ewald.rst> closed (unit 1005)
+Finished saving restart file NPT_MD_ewald.rst on 11.06.2026 at 15:16:20
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  563.213989    sec
+                 =    0h  9min 23.21399sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  563.214646
+                              =    0h  9min 23.21465sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 11.06.2026, 15:16:20.578 (UTC+120)
+========================================================================
+
+
+File <NPT_MD_ewald_1.rav> closed (unit 1016)
+File <NPT_MD_ewald_1.run> closed (unit 1015)
+
+************************************************************************
+Program terminated on 11.06.2026 at 15:16:20
+************************************************************************

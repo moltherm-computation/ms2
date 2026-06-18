@@ -1,0 +1,32 @@
+Units       	= Reduced
+LengthUnit  	= 1.0
+EnergyUnit  	= 1.0
+MassUnit    	= 1.0
+Simulation  	= MD
+Integrator 		= Gear
+TimeStep 		= 0.0005
+Ensemble      	= NPT
+NVTSteps      	= 10000
+NPTSteps      	= 20000
+RunSteps      	= 100000
+ResultFreq    	= 1000
+ErrorsFreq    	= 5000
+VisualFreq    	= 0
+CutoffMode  	= COM
+NEnsembles    	= 1
+mpiMCCommonGroups = 2
+
+Temperature 	= 4.0
+Pressure		= 3.522
+Density 		= 0.5
+PistonMass  	= 5.0E-4
+NParticles    	= 1372
+NComponents   	= 1
+
+PotModel   	    = 1CLJ.pm
+MolarFract 	   	= 1.0
+ChemPotMethod.  = Widom
+NTest        	= 2000
+
+Cutoff       	= 2.5
+Epsilon      	= 1.0E10

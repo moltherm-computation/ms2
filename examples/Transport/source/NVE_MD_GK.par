@@ -1,0 +1,40 @@
+Units = Reduced
+LengthUnit = 1.0
+EnergyUnit = 1.0
+MassUnit = 1.0
+Simulation = MD
+Integrator = Gear
+TimeStep = 0.0005
+Ensemble = NVE
+NVTSteps = 10000
+NVESteps = 20000
+RunSteps = 200000
+ResultFreq = 1000
+ErrorsFreq = 5000
+VisualFreq = 0
+CutoffMode = COM
+NEnsembles = 1
+mpiEnsembleGroups = 1
+CorrfunMode = yes
+TransMethod = GK
+
+Temperature = 1.188
+Hamiltonian = -1.7238
+Density = 0.6061
+NParticles = 1372
+NComponents = 1
+
+StepsCorrfun = 2
+Corrlength = 25000
+SpanCorrfun = 100
+ViewCorrfun = 5
+ResultFreqCF = 5
+
+PotModel = 1CLJ.pm
+MolarFract = 1.000
+ChemPotMethod = None
+NTest = 2500
+
+Cutoff = 3.0
+Epsilon = 1.0E10
+

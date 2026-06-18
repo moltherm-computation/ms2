@@ -1,8 +1,6 @@
 !==============================================================!
 !  MOLECULAR SIMULATION PROGRAM ms2 Version 5.0                !
-!  (c) 2025 by RPTU Kaiserslautern / TU Berlin                 !
-!      P.O. Box 67653                                          !
-!      67653 Kaiserslautern                                    !
+!  (c) 2026 by OVGU Magdeburg / TU Berlin                      !
 !==============================================================!
 !  Program ms2                                                 !
 !  This file contains the main routine                         !

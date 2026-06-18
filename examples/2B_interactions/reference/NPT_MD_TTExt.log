@@ -1,0 +1,426 @@
+ms2 logfile NPT_MD_TTExt.log created by PE0 on 08.06.2026 at 13:33:18
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi_shifted version 5.019
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran140200
+Compiler flags       : MPI=1 SHIFTED=1 MPI_USE_MODULE=1
+Compile time         : Jun  8 2026,13:06:50
+Real Kind            : 8
+
+Hostname             : Francis-1897.local
+started by user Isabel on 08.06.2026 at 13:33:18
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Francis-1897.local
+    1   +   Francis-1897.local
+    2   +   Francis-1897.local
+    3   +   Francis-1897.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NPT_MD_TTExt.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NPT_MD_TTExt
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         SI
+Unit of length:          3.500 A
+Unit of energy:        100.000 K
+Unit of mass:           40.000 a.u.
+
+Simulation type:         Molecular Dynamics
+Integrator type:         Gear predictor-corrector
+Time step:                1.213807 fs
+Reduced time step:        0.000500
+
+Ensemble type:           NPT
+
+setting MCORSteps to default value       0
+No MC overlap reduction
+Number of NVT equilibration steps:       10000
+Number of NPT equilibration steps:       20000
+Number of production steps:             100000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:               200.000 K
+Pressure:                   10.000 MPa
+Density:                    23.742 mol/l
+Reduced temperature:         2.000000
+Reduced pressure:            0.310540
+Reduced density:             0.613003
+Mass of piston (reduced):    0.000100000
+Mass of piston:              4.42626E+08 kg/m^4
+setting ResidTime to default value no
+Calculation of residence time: no
+setting CommonEqui to default value no
+MD simulation: Logical CommonEqui no is invalid, set to yes
+Number of components:        1
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component TTExt.pm:  1.000000
+Chemical potential of TTExt.pm will be calculated by:
+         -> no calculation
+Opening file <TTExt.pm> for reading (unit 1003)
+File <TTExt.pm> closed (unit 1003)
+Opening file <NPT_MD_TTExt.TTExt.nrm> for writing (unit 1004)
+File <NPT_MD_TTExt.TTExt.nrm> closed (unit 1004)
+Normalized potential model for TTExt.pm saved to file <NPT_MD_TTExt.TTExt.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       864
+Mole fraction of TTExt.pm:                   1.000
+         ->  number of particles:          864
+Memory for TTExt.pm allocated successfully
+
+Reduced center of mass cutoff radius:        4.000
+
+Cutoff correction to
+- potential energy from TTExt               -0.16468719
+- pressure from TTExt                       -0.33226212
+- chem. pot. of TTExt.pm from TTExt         -0.32937437
+- potential energy from reaction field (RF)  0.00000000
+- pressure from reaction field:              0.00000000
+- chem. pot. of TTExt.pm from RF             0.00000000
+
+Initialize positions:
+         FCC lattice:   4 *   6x   6x   6 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NPT_MD_TTExt.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+Opening file <NPT_MD_TTExt_1.run> for writing (unit 1015)
+Opening file <NPT_MD_TTExt_1.rav> for writing (unit 1016)
+
+========================================================================
+TSimulation_Run timer start: 08.06.2026, 13:33:18.211 (UTC+120)
+------------------------------------------------------------------------
+
+
+========================================================================
+NVT equilibration timer start: 08.06.2026, 13:33:18.211 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 08.06.2026 at 13:33:19
+     2000 steps completed on 08.06.2026 at 13:33:19
+     3000 steps completed on 08.06.2026 at 13:33:20
+     4000 steps completed on 08.06.2026 at 13:33:21
+     5000 steps completed on 08.06.2026 at 13:33:22
+     6000 steps completed on 08.06.2026 at 13:33:23
+     7000 steps completed on 08.06.2026 at 13:33:24
+     8000 steps completed on 08.06.2026 at 13:33:25
+     9000 steps completed on 08.06.2026 at 13:33:26
+    10000 steps completed on 08.06.2026 at 13:33:27
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  9.17469200    -  9.17470000
+                             <=    0h  0min  9.17470sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 08.06.2026, 13:33:27.386 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 08.06.2026 at 13:33:27
+
+
+========================================================================
+NPT equilibration timer start: 08.06.2026, 13:33:27.386 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 08.06.2026 at 13:33:28
+     2000 steps completed on 08.06.2026 at 13:33:29
+     3000 steps completed on 08.06.2026 at 13:33:30
+     4000 steps completed on 08.06.2026 at 13:33:31
+     5000 steps completed on 08.06.2026 at 13:33:32
+     6000 steps completed on 08.06.2026 at 13:33:33
+     7000 steps completed on 08.06.2026 at 13:33:34
+     8000 steps completed on 08.06.2026 at 13:33:35
+     9000 steps completed on 08.06.2026 at 13:33:36
+    10000 steps completed on 08.06.2026 at 13:33:37
+    11000 steps completed on 08.06.2026 at 13:33:38
+    12000 steps completed on 08.06.2026 at 13:33:39
+    13000 steps completed on 08.06.2026 at 13:33:40
+    14000 steps completed on 08.06.2026 at 13:33:41
+    15000 steps completed on 08.06.2026 at 13:33:42
+    16000 steps completed on 08.06.2026 at 13:33:43
+    17000 steps completed on 08.06.2026 at 13:33:44
+    18000 steps completed on 08.06.2026 at 13:33:45
+    19000 steps completed on 08.06.2026 at 13:33:46
+    20000 steps completed on 08.06.2026 at 13:33:47
+------------------------------------------------------------------------
+Duration:
+ NPT equilibration wtime        diff:  19.6925290    -  19.6925630
+                             <=    0h  0min 19.69256sec (+- 0.10E-05sec)
+NPT equilibration timer stop: 08.06.2026, 13:33:47.079 (UTC+120)
+========================================================================
+
+NPT equilibration completed on 08.06.2026 at 13:33:47
+
+
+========================================================================
+simulation timer start: 08.06.2026, 13:33:47.079 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 08.06.2026 at 13:33:48
+     2000 steps completed on 08.06.2026 at 13:33:49
+     3000 steps completed on 08.06.2026 at 13:33:50
+     4000 steps completed on 08.06.2026 at 13:33:51
+     5000 steps completed on 08.06.2026 at 13:33:52
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+     6000 steps completed on 08.06.2026 at 13:33:53
+     7000 steps completed on 08.06.2026 at 13:33:54
+     8000 steps completed on 08.06.2026 at 13:33:55
+     9000 steps completed on 08.06.2026 at 13:33:56
+    10000 steps completed on 08.06.2026 at 13:33:57
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    11000 steps completed on 08.06.2026 at 13:33:58
+    12000 steps completed on 08.06.2026 at 13:33:59
+    13000 steps completed on 08.06.2026 at 13:34:00
+    14000 steps completed on 08.06.2026 at 13:34:01
+    15000 steps completed on 08.06.2026 at 13:34:02
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    16000 steps completed on 08.06.2026 at 13:34:03
+    17000 steps completed on 08.06.2026 at 13:34:04
+    18000 steps completed on 08.06.2026 at 13:34:05
+    19000 steps completed on 08.06.2026 at 13:34:06
+    20000 steps completed on 08.06.2026 at 13:34:07
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    21000 steps completed on 08.06.2026 at 13:34:08
+    22000 steps completed on 08.06.2026 at 13:34:09
+    23000 steps completed on 08.06.2026 at 13:34:10
+    24000 steps completed on 08.06.2026 at 13:34:11
+    25000 steps completed on 08.06.2026 at 13:34:12
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    26000 steps completed on 08.06.2026 at 13:34:13
+    27000 steps completed on 08.06.2026 at 13:34:14
+    28000 steps completed on 08.06.2026 at 13:34:15
+    29000 steps completed on 08.06.2026 at 13:34:16
+    30000 steps completed on 08.06.2026 at 13:34:17
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    31000 steps completed on 08.06.2026 at 13:34:18
+    32000 steps completed on 08.06.2026 at 13:34:19
+    33000 steps completed on 08.06.2026 at 13:34:20
+    34000 steps completed on 08.06.2026 at 13:34:21
+    35000 steps completed on 08.06.2026 at 13:34:22
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    36000 steps completed on 08.06.2026 at 13:34:23
+    37000 steps completed on 08.06.2026 at 13:34:24
+    38000 steps completed on 08.06.2026 at 13:34:25
+    39000 steps completed on 08.06.2026 at 13:34:26
+    40000 steps completed on 08.06.2026 at 13:34:27
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    41000 steps completed on 08.06.2026 at 13:34:28
+    42000 steps completed on 08.06.2026 at 13:34:29
+    43000 steps completed on 08.06.2026 at 13:34:30
+    44000 steps completed on 08.06.2026 at 13:34:31
+    45000 steps completed on 08.06.2026 at 13:34:32
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    46000 steps completed on 08.06.2026 at 13:34:33
+    47000 steps completed on 08.06.2026 at 13:34:34
+    48000 steps completed on 08.06.2026 at 13:34:35
+    49000 steps completed on 08.06.2026 at 13:34:36
+    50000 steps completed on 08.06.2026 at 13:34:37
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    51000 steps completed on 08.06.2026 at 13:34:38
+    52000 steps completed on 08.06.2026 at 13:34:39
+    53000 steps completed on 08.06.2026 at 13:34:40
+    54000 steps completed on 08.06.2026 at 13:34:41
+    55000 steps completed on 08.06.2026 at 13:34:42
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    56000 steps completed on 08.06.2026 at 13:34:43
+    57000 steps completed on 08.06.2026 at 13:34:44
+    58000 steps completed on 08.06.2026 at 13:34:45
+    59000 steps completed on 08.06.2026 at 13:34:46
+    60000 steps completed on 08.06.2026 at 13:34:47
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    61000 steps completed on 08.06.2026 at 13:34:48
+    62000 steps completed on 08.06.2026 at 13:34:49
+    63000 steps completed on 08.06.2026 at 13:34:50
+    64000 steps completed on 08.06.2026 at 13:34:51
+    65000 steps completed on 08.06.2026 at 13:34:52
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    66000 steps completed on 08.06.2026 at 13:34:53
+    67000 steps completed on 08.06.2026 at 13:34:54
+    68000 steps completed on 08.06.2026 at 13:34:55
+    69000 steps completed on 08.06.2026 at 13:34:56
+    70000 steps completed on 08.06.2026 at 13:34:57
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    71000 steps completed on 08.06.2026 at 13:34:58
+    72000 steps completed on 08.06.2026 at 13:34:59
+    73000 steps completed on 08.06.2026 at 13:35:00
+    74000 steps completed on 08.06.2026 at 13:35:01
+    75000 steps completed on 08.06.2026 at 13:35:02
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    76000 steps completed on 08.06.2026 at 13:35:03
+    77000 steps completed on 08.06.2026 at 13:35:04
+    78000 steps completed on 08.06.2026 at 13:35:05
+    79000 steps completed on 08.06.2026 at 13:35:06
+    80000 steps completed on 08.06.2026 at 13:35:07
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    81000 steps completed on 08.06.2026 at 13:35:08
+    82000 steps completed on 08.06.2026 at 13:35:09
+    83000 steps completed on 08.06.2026 at 13:35:10
+    84000 steps completed on 08.06.2026 at 13:35:11
+    85000 steps completed on 08.06.2026 at 13:35:12
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    86000 steps completed on 08.06.2026 at 13:35:13
+    87000 steps completed on 08.06.2026 at 13:35:14
+    88000 steps completed on 08.06.2026 at 13:35:15
+    89000 steps completed on 08.06.2026 at 13:35:16
+    90000 steps completed on 08.06.2026 at 13:35:17
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    91000 steps completed on 08.06.2026 at 13:35:18
+    92000 steps completed on 08.06.2026 at 13:35:19
+    93000 steps completed on 08.06.2026 at 13:35:20
+    94000 steps completed on 08.06.2026 at 13:35:21
+    95000 steps completed on 08.06.2026 at 13:35:22
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+    96000 steps completed on 08.06.2026 at 13:35:23
+    97000 steps completed on 08.06.2026 at 13:35:24
+    98000 steps completed on 08.06.2026 at 13:35:25
+    99000 steps completed on 08.06.2026 at 13:35:26
+   100000 steps completed on 08.06.2026 at 13:35:27
+Saving simulation results
+Opening file <NPT_MD_TTExt_1.res> for writing (unit 1017)
+File <NPT_MD_TTExt_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  100.269293    -  100.269338
+                             <=    0h  1min 40.26934sec (+- 0.10E-05sec)
+simulation timer stop: 08.06.2026, 13:35:27.348 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NPT_MD_TTExt.rst on 08.06.2026 at 13:35:27
+Opening file <NPT_MD_TTExt.rst> for writing (unit 1005)
+saving restart data at step    100000 /    130000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 08.06.2026 at 13:35:27
+File <NPT_MD_TTExt.rst> closed (unit 1005)
+Finished saving restart file NPT_MD_TTExt.rst on 08.06.2026 at 13:35:27
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  129.147003    sec
+                 =    0h  2min  9.14700sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  129.146098
+                              =    0h  2min  9.14610sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 08.06.2026, 13:35:27.358 (UTC+120)
+========================================================================
+
+
+File <NPT_MD_TTExt_1.rav> closed (unit 1016)
+File <NPT_MD_TTExt_1.run> closed (unit 1015)
+
+************************************************************************
+Program terminated on 08.06.2026 at 13:35:27
+************************************************************************

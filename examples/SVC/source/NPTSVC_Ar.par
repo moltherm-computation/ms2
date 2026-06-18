@@ -1,0 +1,32 @@
+Units           = SI
+LengthUnit      = 3.5
+EnergyUnit      = 100.0
+MassUnit        = 40.0
+Simulation      = MC
+Acceptance      = 0.5
+Ensemble        = NPTSVC
+NVTSteps        = 10000
+NPTSteps        = 10000
+RunSteps        = 50000
+NOrient         = 1000
+RSteps      	= 200
+RMinRadius  	= 2.0
+RMaxRadius  	= 20.0
+ResultFreq      = 1000
+ErrorsFreq      = 5000
+VisualFreq      = 0
+CutoffMode      = COM
+
+Temperature     = 500
+Pressure        = 1.0
+Density         = 0.25
+NParticles      = 500
+NComponents     = 1
+
+PotModel        = Ar.pm
+MolarFract      = 1.0
+ChemPotMethod   = Widom
+NTest 			= 1000
+
+Cutoff          = 4.0
+Epsilon         = 1.0E10

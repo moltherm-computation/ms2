@@ -1,0 +1,32 @@
+Units       	= SI
+LengthUnit  	= 3.5
+EnergyUnit  	= 100.0
+MassUnit    	= 40.0
+Simulation  	= MD
+Integrator 		= Gear
+TimeStep 		= 0.0005
+Ensemble      	= NPT
+NVTSteps      	= 10000
+NPTSteps      	= 20000
+RunSteps      	= 100000
+ResultFreq    	= 1000
+ErrorsFreq    	= 5000
+VisualFreq    	= 0
+CutoffMode  	= COM
+NEnsembles    	= 1
+
+Temperature  = 303.15
+Pressure	 = 0.1
+Density      = 55.2656506
+PistonMass   = 0.00001
+NParticles   = 864
+NComponents  = 1
+
+PotModel     = tip4p_p.pm
+MolarFract   = 1.0
+ChemPotMethod = none
+
+# Cutoff-Radien
+Cutoff       = 4.0
+Epsilon      = 1.E+10
+

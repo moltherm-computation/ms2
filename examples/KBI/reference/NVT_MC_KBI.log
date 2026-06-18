@@ -1,0 +1,409 @@
+ms2 logfile NVT_MC_KBI.log created by PE0 on 09.06.2026 at 15:43:50
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.019
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran140200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jun  9 2026,15:19:02
+Real Kind            : 8
+
+Hostname             : Francis-1897.local
+started by user Isabel on 09.06.2026 at 15:43:50
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Francis-1897.local
+    1   +   Francis-1897.local
+    2   +   Francis-1897.local
+    3   +   Francis-1897.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NVT_MC_KBI.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NVT_MC_KBI
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         reduced
+Unit of length:          1.000 A
+Unit of energy:          1.000 K
+Unit of mass:            1.000 a.u.
+
+Simulation type:         Monte-Carlo
+Acceptance rate:        50.00%
+
+Ensemble type:           NVT
+
+mpiMCCommonGroups:       2
+splitting communicator with   4 PEs to   2 subcommunicators
+
+File <NVT_MC_KBI.par> closed (unit 1002)
+Opening file <NVT_MC_KBI.par> for reading (unit 1002)
+
+Number of NVT equilibration steps:       20000
+Number of production steps:             100000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+RDF for KBI will be updated each             1 time steps
+RDF for KBI will be reset each            5000 time steps
+RDF for KBI will operate with    200 shells
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:                 0.850 K
+Density:                   384.600 mol/l
+Reduced temperature:         0.850000
+Reduced density:             0.231611
+setting CommonEqui to default value no
+Common equilibration:        no
+Number of components:        2
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component 1CLJ.pm:  0.200000
+Chemical potential of 1CLJ.pm will be calculated by:
+         -> Widom's test particle method
+Opening file <1CLJ.pm> for reading (unit 1003)
+File <1CLJ.pm> closed (unit 1003)
+Opening file <NVT_MC_KBI.1CLJ.nrm> for writing (unit 1004)
+File <NVT_MC_KBI.1CLJ.nrm> closed (unit 1004)
+Normalized potential model for 1CLJ.pm saved to file <NVT_MC_KBI.1CLJ.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+            Reading component  2 for ensemble
+Mole fraction of component 1CLJ_1.pm:  0.800000
+Chemical potential of 1CLJ_1.pm will be calculated by:
+         -> Widom's test particle method
+Opening file <1CLJ_1.pm> for reading (unit 1003)
+File <1CLJ_1.pm> closed (unit 1003)
+Opening file <NVT_MC_KBI.1CLJ_1.nrm> for writing (unit 1004)
+File <NVT_MC_KBI.1CLJ_1.nrm> closed (unit 1004)
+Normalized potential model for 1CLJ_1.pm saved to file <NVT_MC_KBI.1CLJ_1.nrm>
+       Reading component  2 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       500
+Mole fraction of 1CLJ.pm:                    0.200
+         ->  number of particles:          100
+Number of test particles:                  250
+Mole fraction of 1CLJ_1.pm:                  0.800
+         ->  number of particles:          400
+Number of test particles:                  250
+
+Memory for test particles allocated successfully
+Memory for 1CLJ.pm allocated successfully
+Memory for 1CLJ_1.pm allocated successfully
+1CLJ.pm-1CLJ_1.pm LJ interaction:  eta = 1.000, xi = 1.000
+
+Reduced center of mass cutoff radius:        4.000
+
+Cutoff correction to
+- potential energy from LJ                  -0.85860517
+- pressure from LJ                          -1.71579671
+- chem. pot. of 1CLJ.pm from LJ             -0.74405038
+- chem. pot. of 1CLJ_1.pm from LJ           -1.96050033
+- potential energy from reaction field (RF)  0.00000000
+- pressure from reaction field:              0.00000000
+- chem. pot. of 1CLJ.pm from RF              0.00000000
+- chem. pot. of 1CLJ_1.pm from RF            0.00000000
+
+Initialize positions:
+         FCC lattice:   4 *   5x   5x   5 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NVT_MC_KBI.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+opening file <NVT_MC_KBI_1.run> for writing
+opening file <NVT_MC_KBI_1.rav> for writing
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for writing (unit 1025)
+File <NVT_MC_KBI_1.kbirav> closed (unit 1025)
+
+========================================================================
+TSimulation_Run timer start: 09.06.2026, 15:43:50.949 (UTC+120)
+------------------------------------------------------------------------
+Random number generator initialized
+------------------------------------------------------------------------
+
+
+
+========================================================================
+NVT equilibration timer start: 09.06.2026, 15:43:50.950 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 09.06.2026 at 15:43:53
+     2000 steps completed on 09.06.2026 at 15:43:56
+     3000 steps completed on 09.06.2026 at 15:43:58
+     4000 steps completed on 09.06.2026 at 15:44:01
+     5000 steps completed on 09.06.2026 at 15:44:04
+     6000 steps completed on 09.06.2026 at 15:44:06
+     7000 steps completed on 09.06.2026 at 15:44:09
+     8000 steps completed on 09.06.2026 at 15:44:12
+     9000 steps completed on 09.06.2026 at 15:44:14
+    10000 steps completed on 09.06.2026 at 15:44:17
+    11000 steps completed on 09.06.2026 at 15:44:19
+    12000 steps completed on 09.06.2026 at 15:44:22
+    13000 steps completed on 09.06.2026 at 15:44:25
+    14000 steps completed on 09.06.2026 at 15:44:27
+    15000 steps completed on 09.06.2026 at 15:44:30
+    16000 steps completed on 09.06.2026 at 15:44:33
+    17000 steps completed on 09.06.2026 at 15:44:36
+    18000 steps completed on 09.06.2026 at 15:44:38
+    19000 steps completed on 09.06.2026 at 15:44:41
+    20000 steps completed on 09.06.2026 at 15:44:44
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  53.1436130    -  53.1436140
+                             <=    0h  0min 53.14361sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 09.06.2026, 15:44:44.093 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 09.06.2026 at 15:44:44
+
+
+========================================================================
+simulation timer start: 09.06.2026, 15:44:44.093 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 09.06.2026 at 15:44:48
+     2000 steps completed on 09.06.2026 at 15:44:52
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+     3000 steps completed on 09.06.2026 at 15:44:57
+     4000 steps completed on 09.06.2026 at 15:45:01
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+     5000 steps completed on 09.06.2026 at 15:45:06
+Saving simulation results
+Opening file <NVT_MC_KBI_1.res> for writing (unit 1017)
+File <NVT_MC_KBI_1.res> closed (unit 1017)
+     6000 steps completed on 09.06.2026 at 15:45:10
+     7000 steps completed on 09.06.2026 at 15:45:14
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+     8000 steps completed on 09.06.2026 at 15:45:19
+     9000 steps completed on 09.06.2026 at 15:45:23
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    10000 steps completed on 09.06.2026 at 15:45:28
+Saving simulation results
+Opening file <NVT_MC_KBI_1.res> for writing (unit 1017)
+File <NVT_MC_KBI_1.res> closed (unit 1017)
+    11000 steps completed on 09.06.2026 at 15:45:32
+    12000 steps completed on 09.06.2026 at 15:45:37
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    13000 steps completed on 09.06.2026 at 15:45:41
+    14000 steps completed on 09.06.2026 at 15:45:45
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    15000 steps completed on 09.06.2026 at 15:45:50
+Saving simulation results
+Opening file <NVT_MC_KBI_1.res> for writing (unit 1017)
+File <NVT_MC_KBI_1.res> closed (unit 1017)
+    16000 steps completed on 09.06.2026 at 15:45:54
+    17000 steps completed on 09.06.2026 at 15:45:59
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    18000 steps completed on 09.06.2026 at 15:46:03
+    19000 steps completed on 09.06.2026 at 15:46:07
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    20000 steps completed on 09.06.2026 at 15:46:12
+Saving simulation results
+Opening file <NVT_MC_KBI_1.res> for writing (unit 1017)
+File <NVT_MC_KBI_1.res> closed (unit 1017)
+    21000 steps completed on 09.06.2026 at 15:46:16
+    22000 steps completed on 09.06.2026 at 15:46:21
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    23000 steps completed on 09.06.2026 at 15:46:25
+    24000 steps completed on 09.06.2026 at 15:46:29
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    25000 steps completed on 09.06.2026 at 15:46:34
+Saving simulation results
+Opening file <NVT_MC_KBI_1.res> for writing (unit 1017)
+File <NVT_MC_KBI_1.res> closed (unit 1017)
+    26000 steps completed on 09.06.2026 at 15:46:38
+    27000 steps completed on 09.06.2026 at 15:46:43
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    28000 steps completed on 09.06.2026 at 15:46:47
+    29000 steps completed on 09.06.2026 at 15:46:51
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    30000 steps completed on 09.06.2026 at 15:46:56
+Saving simulation results
+Opening file <NVT_MC_KBI_1.res> for writing (unit 1017)
+File <NVT_MC_KBI_1.res> closed (unit 1017)
+    31000 steps completed on 09.06.2026 at 15:47:00
+    32000 steps completed on 09.06.2026 at 15:47:05
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    33000 steps completed on 09.06.2026 at 15:47:09
+    34000 steps completed on 09.06.2026 at 15:47:13
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    35000 steps completed on 09.06.2026 at 15:47:18
+Saving simulation results
+Opening file <NVT_MC_KBI_1.res> for writing (unit 1017)
+File <NVT_MC_KBI_1.res> closed (unit 1017)
+    36000 steps completed on 09.06.2026 at 15:47:22
+    37000 steps completed on 09.06.2026 at 15:47:27
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    38000 steps completed on 09.06.2026 at 15:47:31
+    39000 steps completed on 09.06.2026 at 15:47:36
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    40000 steps completed on 09.06.2026 at 15:47:40
+Saving simulation results
+Opening file <NVT_MC_KBI_1.res> for writing (unit 1017)
+File <NVT_MC_KBI_1.res> closed (unit 1017)
+    41000 steps completed on 09.06.2026 at 15:47:44
+    42000 steps completed on 09.06.2026 at 15:47:49
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    43000 steps completed on 09.06.2026 at 15:47:53
+    44000 steps completed on 09.06.2026 at 15:47:58
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    45000 steps completed on 09.06.2026 at 15:48:02
+Saving simulation results
+Opening file <NVT_MC_KBI_1.res> for writing (unit 1017)
+File <NVT_MC_KBI_1.res> closed (unit 1017)
+    46000 steps completed on 09.06.2026 at 15:48:06
+    47000 steps completed on 09.06.2026 at 15:48:11
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    48000 steps completed on 09.06.2026 at 15:48:15
+    49000 steps completed on 09.06.2026 at 15:48:20
+Opening file <NVT_MC_KBI_1.kbirdf> for writing (unit 1024)
+File <NVT_MC_KBI_1.kbirdf> closed (unit 1024)
+Opening file <NVT_MC_KBI_1.kbirav> for appending (unit 1025)
+    50000 steps completed on 09.06.2026 at 15:48:24
+Saving simulation results
+Opening file <NVT_MC_KBI_1.res> for writing (unit 1017)
+File <NVT_MC_KBI_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  220.434648    -  220.434680
+                             <=    0h  3min 40.43468sec (+- 0.10E-05sec)
+simulation timer stop: 09.06.2026, 15:48:24.528 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NVT_MC_KBI_1.rst up to *_2.rst on 09.06.2026 at 15:48:24
+Opening file <NVT_MC_KBI_1.rst> for writing (unit 1005)
+saving restart data at step     50000 /     70000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 09.06.2026 at 15:48:24
+File <NVT_MC_KBI_1.rst> closed (unit 1005)
+Finished saving restart file NVT_MC_KBI_1.rst up to *_2.rst on 09.06.2026 at 15:48:24
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  273.584015    sec
+                 =    0h  4min 33.58401sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  273.583033
+                              =    0h  4min 33.58303sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 09.06.2026, 15:48:24.533 (UTC+120)
+========================================================================
+
+
+File <*.run or *.rav> closed
+File <*.run or *.rav> closed
+File <NVT_MC_KBI_1.kbirav> closed (unit 1025)
+
+************************************************************************
+Program terminated on 09.06.2026 at 15:48:24
+************************************************************************

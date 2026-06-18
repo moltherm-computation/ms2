@@ -1,0 +1,327 @@
+ms2 logfile NVT_MC_LJ_ATM.log created by PE0 on 05.06.2026 at 15:41:41
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.018
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran150200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jun  5 2026,15:22:15
+Real Kind            : 8
+
+Hostname             : Stephen.local
+started by user Isabel on 05.06.2026 at 15:41:41
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Stephen.local
+    1   +   Stephen.local
+    2   +   Stephen.local
+    3   +   Stephen.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NVT_MC_LJ_ATM.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NVT_MC_LJ_ATM
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         SI
+Unit of length:          3.405 A
+Unit of energy:        120.000 K
+Unit of mass:           40.000 a.u.
+
+Simulation type:         Monte-Carlo
+Acceptance rate:        50.00%
+
+Ensemble type:           NVT
+
+mpiMCCommonGroups:       2
+splitting communicator with   4 PEs to   2 subcommunicators
+
+File <NVT_MC_LJ_ATM.par> closed (unit 1002)
+Opening file <NVT_MC_LJ_ATM.par> for reading (unit 1002)
+
+Number of NVT equilibration steps:       20000
+Number of production steps:             100000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+setting NEnsembles to default value       1
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:               500.000 K
+Density:                     2.000 mol/l
+Reduced temperature:         4.166667
+Reduced density:             0.047548
+setting CommonEqui to default value no
+Common equilibration:        no
+Number of components:        1
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component LJ_ATM.pm:  1.000000
+Chemical potential of LJ_ATM.pm will be calculated by:
+         -> Widom's test particle method
+Opening file <LJ_ATM.pm> for reading (unit 1003)
+File <LJ_ATM.pm> closed (unit 1003)
+Opening file <NVT_MC_LJ_ATM.LJ_ATM.nrm> for writing (unit 1004)
+File <NVT_MC_LJ_ATM.LJ_ATM.nrm> closed (unit 1004)
+Normalized potential model for LJ_ATM.pm saved to file <NVT_MC_LJ_ATM.LJ_ATM.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       500
+Mole fraction of LJ_ATM.pm:                  1.000
+         ->  number of particles:          500
+Number of test particles:                  500
+
+Memory for test particles allocated successfully
+Memory for LJ_ATM.pm allocated successfully
+
+Reduced center of mass cutoff radius:        4.000
+
+Reduced EATM cutoff radius:                  4.000
+
+Cutoff correction to
+- potential energy from LJ                  -0.13088904
+- pressure from LJ                          -0.26175678
+- chem. pot. of LJ_ATM.pm from LJ           -0.26177809
+- potential energy from reaction field (RF)  0.00000000
+- pressure from reaction field:              0.00000000
+- chem. pot. of LJ_ATM.pm from RF            0.00000000
+
+Initialize positions:
+         FCC lattice:   4 *   5x   5x   5 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NVT_MC_LJ_ATM.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+opening file <NVT_MC_LJ_ATM_1.run> for writing
+opening file <NVT_MC_LJ_ATM_1.rav> for writing
+
+========================================================================
+TSimulation_Run timer start: 05.06.2026, 15:41:41.524 (UTC+120)
+------------------------------------------------------------------------
+Random number generator initialized
+------------------------------------------------------------------------
+
+
+
+========================================================================
+NVT equilibration timer start: 05.06.2026, 15:41:41.524 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 05.06.2026 at 15:41:44
+     2000 steps completed on 05.06.2026 at 15:41:46
+     3000 steps completed on 05.06.2026 at 15:41:49
+     4000 steps completed on 05.06.2026 at 15:41:51
+     5000 steps completed on 05.06.2026 at 15:41:54
+     6000 steps completed on 05.06.2026 at 15:41:56
+     7000 steps completed on 05.06.2026 at 15:41:59
+     8000 steps completed on 05.06.2026 at 15:42:02
+     9000 steps completed on 05.06.2026 at 15:42:04
+    10000 steps completed on 05.06.2026 at 15:42:07
+    11000 steps completed on 05.06.2026 at 15:42:10
+    12000 steps completed on 05.06.2026 at 15:42:12
+    13000 steps completed on 05.06.2026 at 15:42:15
+    14000 steps completed on 05.06.2026 at 15:42:18
+    15000 steps completed on 05.06.2026 at 15:42:20
+    16000 steps completed on 05.06.2026 at 15:42:23
+    17000 steps completed on 05.06.2026 at 15:42:26
+    18000 steps completed on 05.06.2026 at 15:42:29
+    19000 steps completed on 05.06.2026 at 15:42:31
+    20000 steps completed on 05.06.2026 at 15:42:34
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  53.0509000    -  53.0509000
+                             <=    0h  0min 53.05090sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 05.06.2026, 15:42:34.575 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 05.06.2026 at 15:42:34
+
+
+========================================================================
+simulation timer start: 05.06.2026, 15:42:34.575 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 05.06.2026 at 15:42:38
+     2000 steps completed on 05.06.2026 at 15:42:42
+     3000 steps completed on 05.06.2026 at 15:42:45
+     4000 steps completed on 05.06.2026 at 15:42:49
+     5000 steps completed on 05.06.2026 at 15:42:53
+Saving simulation results
+Opening file <NVT_MC_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MC_LJ_ATM_1.res> closed (unit 1017)
+     6000 steps completed on 05.06.2026 at 15:42:56
+     7000 steps completed on 05.06.2026 at 15:43:00
+     8000 steps completed on 05.06.2026 at 15:43:04
+     9000 steps completed on 05.06.2026 at 15:43:07
+    10000 steps completed on 05.06.2026 at 15:43:11
+Saving simulation results
+Opening file <NVT_MC_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MC_LJ_ATM_1.res> closed (unit 1017)
+    11000 steps completed on 05.06.2026 at 15:43:15
+    12000 steps completed on 05.06.2026 at 15:43:18
+    13000 steps completed on 05.06.2026 at 15:43:22
+    14000 steps completed on 05.06.2026 at 15:43:26
+    15000 steps completed on 05.06.2026 at 15:43:29
+Saving simulation results
+Opening file <NVT_MC_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MC_LJ_ATM_1.res> closed (unit 1017)
+    16000 steps completed on 05.06.2026 at 15:43:33
+    17000 steps completed on 05.06.2026 at 15:43:36
+    18000 steps completed on 05.06.2026 at 15:43:40
+    19000 steps completed on 05.06.2026 at 15:43:44
+    20000 steps completed on 05.06.2026 at 15:43:47
+Saving simulation results
+Opening file <NVT_MC_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MC_LJ_ATM_1.res> closed (unit 1017)
+    21000 steps completed on 05.06.2026 at 15:43:51
+    22000 steps completed on 05.06.2026 at 15:43:55
+    23000 steps completed on 05.06.2026 at 15:43:58
+    24000 steps completed on 05.06.2026 at 15:44:02
+    25000 steps completed on 05.06.2026 at 15:44:06
+Saving simulation results
+Opening file <NVT_MC_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MC_LJ_ATM_1.res> closed (unit 1017)
+    26000 steps completed on 05.06.2026 at 15:44:09
+    27000 steps completed on 05.06.2026 at 15:44:13
+    28000 steps completed on 05.06.2026 at 15:44:17
+    29000 steps completed on 05.06.2026 at 15:44:20
+    30000 steps completed on 05.06.2026 at 15:44:24
+Saving simulation results
+Opening file <NVT_MC_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MC_LJ_ATM_1.res> closed (unit 1017)
+    31000 steps completed on 05.06.2026 at 15:44:28
+    32000 steps completed on 05.06.2026 at 15:44:32
+    33000 steps completed on 05.06.2026 at 15:44:35
+    34000 steps completed on 05.06.2026 at 15:44:39
+    35000 steps completed on 05.06.2026 at 15:44:43
+Saving simulation results
+Opening file <NVT_MC_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MC_LJ_ATM_1.res> closed (unit 1017)
+    36000 steps completed on 05.06.2026 at 15:44:46
+    37000 steps completed on 05.06.2026 at 15:44:50
+    38000 steps completed on 05.06.2026 at 15:44:54
+    39000 steps completed on 05.06.2026 at 15:44:57
+    40000 steps completed on 05.06.2026 at 15:45:01
+Saving simulation results
+Opening file <NVT_MC_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MC_LJ_ATM_1.res> closed (unit 1017)
+    41000 steps completed on 05.06.2026 at 15:45:05
+    42000 steps completed on 05.06.2026 at 15:45:08
+    43000 steps completed on 05.06.2026 at 15:45:12
+    44000 steps completed on 05.06.2026 at 15:45:16
+    45000 steps completed on 05.06.2026 at 15:45:19
+Saving simulation results
+Opening file <NVT_MC_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MC_LJ_ATM_1.res> closed (unit 1017)
+    46000 steps completed on 05.06.2026 at 15:45:23
+    47000 steps completed on 05.06.2026 at 15:45:27
+    48000 steps completed on 05.06.2026 at 15:45:31
+    49000 steps completed on 05.06.2026 at 15:45:34
+    50000 steps completed on 05.06.2026 at 15:45:38
+Saving simulation results
+Opening file <NVT_MC_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MC_LJ_ATM_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  183.723844    -  183.723852
+                             <=    0h  3min  3.72385sec (+- 0.10E-05sec)
+simulation timer stop: 05.06.2026, 15:45:38.299 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NVT_MC_LJ_ATM_1.rst up to *_2.rst on 05.06.2026 at 15:45:38
+Opening file <NVT_MC_LJ_ATM_1.rst> for writing (unit 1005)
+saving restart data at step     50000 /     70000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 05.06.2026 at 15:45:38
+File <NVT_MC_LJ_ATM_1.rst> closed (unit 1005)
+Finished saving restart file NVT_MC_LJ_ATM_1.rst up to *_2.rst on 05.06.2026 at 15:45:38
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  236.776001    sec
+                 =    0h  3min 56.77600sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  236.775958
+                              =    0h  3min 56.77596sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 05.06.2026, 15:45:38.300 (UTC+120)
+========================================================================
+
+
+File <*.run or *.rav> closed
+File <*.run or *.rav> closed
+
+************************************************************************
+Program terminated on 05.06.2026 at 15:45:38
+************************************************************************

@@ -1,0 +1,51 @@
+Units       =       SI
+LengthUnit  =       3.50
+EnergyUnit  =       100.0
+MassUnit    =       40.0
+Simulation  =       MD
+Integrator  =       Gear
+TimeStep    =       5.0E-4
+Ensemble    =       NPT
+MCORSteps   =       100 
+NVTSteps    =       10000
+NPTSteps    =       20000
+RunSteps    =       100000
+ResultFreq  =       1000
+ErrorsFreq  =       5000
+VisualFreq  =       0
+CutoffMode  =       COM
+LongRange   =       SPME
+Kappa       =       5.1
+Grid        =       21
+Spline      =       5
+NEnsembles  =       1
+
+Temperature = 298.15
+Pressure    = 0.1
+Density     = 30
+PistonMass  = 1.0E-5
+NParticles  = 500
+NComponents = 3
+
+# Solvent
+PotModel    = SPCE.pm
+MoleFract  = 0.848
+ChemPotMethod= none
+# Kation #1
+PotModel    = Reiser_Na.pm
+MoleFract  = 0.076
+ChemPotMethod= none
+# Anion #1
+PotModel    = Reiser_Cl.pm
+MoleFract  = 0.076
+ChemPotMethod= none
+
+eta         = 1.0
+xi          = 1.0
+eta         = 1.0
+xi          = 1.0
+eta         = 1.0
+xi          = 1.0
+
+Cutoff      = 4.0
+Epsilon     = 1.0E10

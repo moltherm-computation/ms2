@@ -1,0 +1,27 @@
+Units       	= SI
+LengthUnit  	= 3.5
+EnergyUnit  	= 100.0
+MassUnit    	= 40.0
+Simulation  	= MD
+Integrator 		= Gear
+TimeStep 		= 0.0005
+Ensemble      	= NVT
+NVTSteps      	= 30000
+RunSteps      	= 100000
+ResultFreq    	= 1000
+ErrorsFreq    	= 5000
+VisualFreq    	= 0
+CutoffMode  	= COM
+NEnsembles    	= 1
+
+Temperature 	= 500
+Density 		= 2.0
+NParticles    	= 1372
+NComponents   	= 1
+
+PotModel   	    = acetone.pm
+MolarFract 	   	= 1.0
+ChemPotMethod.  = None
+
+Cutoff       	= 4.0
+Epsilon      	= 1.0E10

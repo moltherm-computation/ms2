@@ -1,0 +1,32 @@
+Units       =       SI
+LengthUnit  =       3.5
+EnergyUnit  =       100.0
+MassUnit    =       40.0
+Simulation  =       MD
+Integrator 	= 		Gear
+TimeStep 	= 		0.0005
+Ensemble    =       NPT
+NVTSteps    =       10000
+NPTSteps    =       20000
+RunSteps    =       100000
+ResultFreq  =       1000
+ErrorsFreq  =       5000
+VisualFreq  =       0
+CutoffMode  =       COM
+LongRange   =       RF
+NEnsembles  =       1
+
+Temperature = 400.0
+Pressure    = 2.94
+Density     = 11.4
+PistonMass  = 5.0E-4
+NParticles  = 500
+NComponents = 1
+
+
+PotModel    = aceton.pm
+MoleFract  = 1.0
+ChemPotMethod= None
+
+Cutoff      = 4.0
+Epsilon     = 1.0E10

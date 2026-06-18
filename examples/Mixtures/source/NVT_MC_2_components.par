@@ -1,0 +1,35 @@
+Units = SI
+LengthUnit = 3.5
+EnergyUnit = 100.0
+MassUnit = 40.0
+Simulation = MC
+Acceptance = 0.5
+Ensemble = NVT
+NVTSteps = 20000
+RunSteps = 100000
+ResultFreq = 1000
+ErrorsFreq = 5000
+VisualFreq = 0
+CutoffMode = COM
+NEnsembles = 1
+mpiMCCommonGroups = 2
+
+Temperature = 250
+Density= 15.606886496
+NParticles = 500
+NComponents = 2
+
+PotModel = CH4.pm
+MolarFract = 0.3
+ChemPotMethod = None
+
+PotModel = C2H6.pm
+MolarFract = 0.7
+ChemPotMethod = None
+
+eta = 1.0014
+xi = 0.99923
+
+Cutoff = 4.0
+Epsilon = 1.0E10
+

@@ -1,0 +1,644 @@
+ms2 logfile NVT_MD_LJ_ATM.log created by PE0 on 05.06.2026 at 15:45:46
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.018
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran150200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jun  5 2026,15:22:15
+Real Kind            : 8
+
+Hostname             : Stephen.local
+started by user Isabel on 05.06.2026 at 15:45:46
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Stephen.local
+    1   +   Stephen.local
+    2   +   Stephen.local
+    3   +   Stephen.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NVT_MD_LJ_ATM.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NVT_MD_LJ_ATM
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         SI
+Unit of length:          3.405 A
+Unit of energy:        120.000 K
+Unit of mass:           40.000 a.u.
+
+Simulation type:         Molecular Dynamics
+Integrator type:         Gear predictor-corrector
+Time step:                1.077974 fs
+Reduced time step:        0.000500
+
+Ensemble type:           NVT
+
+setting MCORSteps to default value       0
+No MC overlap reduction
+Number of NVT equilibration steps:      100000
+Number of production steps:             200000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+setting NEnsembles to default value       1
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:               500.000 K
+Density:                     2.000 mol/l
+Reduced temperature:         4.166667
+Reduced density:             0.047548
+setting ResidTime to default value no
+Calculation of residence time: no
+setting CommonEqui to default value no
+MD simulation: Logical CommonEqui no is invalid, set to yes
+Number of components:        1
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component LJ_ATM.pm:  1.000000
+Chemical potential of LJ_ATM.pm will be calculated by:
+         -> Widom's test particle method
+Opening file <LJ_ATM.pm> for reading (unit 1003)
+File <LJ_ATM.pm> closed (unit 1003)
+Opening file <NVT_MD_LJ_ATM.LJ_ATM.nrm> for writing (unit 1004)
+File <NVT_MD_LJ_ATM.LJ_ATM.nrm> closed (unit 1004)
+Normalized potential model for LJ_ATM.pm saved to file <NVT_MD_LJ_ATM.LJ_ATM.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       500
+Mole fraction of LJ_ATM.pm:                  1.000
+         ->  number of particles:          500
+Number of test particles:                 1000
+
+Memory for test particles allocated successfully
+Memory for LJ_ATM.pm allocated successfully
+
+Reduced center of mass cutoff radius:        4.000
+
+Reduced EATM cutoff radius:                  4.000
+
+Cutoff correction to
+- potential energy from LJ                  -0.13088904
+- pressure from LJ                          -0.26175678
+- chem. pot. of LJ_ATM.pm from LJ           -0.26177809
+- potential energy from reaction field (RF)  0.00000000
+- pressure from reaction field:              0.00000000
+- chem. pot. of LJ_ATM.pm from RF            0.00000000
+
+Initialize positions:
+         FCC lattice:   4 *   5x   5x   5 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NVT_MD_LJ_ATM.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+Opening file <NVT_MD_LJ_ATM_1.run> for writing (unit 1015)
+Opening file <NVT_MD_LJ_ATM_1.rav> for writing (unit 1016)
+
+========================================================================
+TSimulation_Run timer start: 05.06.2026, 15:45:46.830 (UTC+120)
+------------------------------------------------------------------------
+
+
+========================================================================
+NVT equilibration timer start: 05.06.2026, 15:45:46.831 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 05.06.2026 at 15:45:47
+     2000 steps completed on 05.06.2026 at 15:45:47
+     3000 steps completed on 05.06.2026 at 15:45:47
+     4000 steps completed on 05.06.2026 at 15:45:47
+     5000 steps completed on 05.06.2026 at 15:45:48
+     6000 steps completed on 05.06.2026 at 15:45:48
+     7000 steps completed on 05.06.2026 at 15:45:48
+     8000 steps completed on 05.06.2026 at 15:45:48
+     9000 steps completed on 05.06.2026 at 15:45:49
+    10000 steps completed on 05.06.2026 at 15:45:49
+    11000 steps completed on 05.06.2026 at 15:45:49
+    12000 steps completed on 05.06.2026 at 15:45:49
+    13000 steps completed on 05.06.2026 at 15:45:50
+    14000 steps completed on 05.06.2026 at 15:45:50
+    15000 steps completed on 05.06.2026 at 15:45:50
+    16000 steps completed on 05.06.2026 at 15:45:50
+    17000 steps completed on 05.06.2026 at 15:45:51
+    18000 steps completed on 05.06.2026 at 15:45:51
+    19000 steps completed on 05.06.2026 at 15:45:51
+    20000 steps completed on 05.06.2026 at 15:45:51
+    21000 steps completed on 05.06.2026 at 15:45:52
+    22000 steps completed on 05.06.2026 at 15:45:52
+    23000 steps completed on 05.06.2026 at 15:45:52
+    24000 steps completed on 05.06.2026 at 15:45:52
+    25000 steps completed on 05.06.2026 at 15:45:53
+    26000 steps completed on 05.06.2026 at 15:45:53
+    27000 steps completed on 05.06.2026 at 15:45:53
+    28000 steps completed on 05.06.2026 at 15:45:53
+    29000 steps completed on 05.06.2026 at 15:45:54
+    30000 steps completed on 05.06.2026 at 15:45:54
+    31000 steps completed on 05.06.2026 at 15:45:54
+    32000 steps completed on 05.06.2026 at 15:45:54
+    33000 steps completed on 05.06.2026 at 15:45:55
+    34000 steps completed on 05.06.2026 at 15:45:55
+    35000 steps completed on 05.06.2026 at 15:45:55
+    36000 steps completed on 05.06.2026 at 15:45:55
+    37000 steps completed on 05.06.2026 at 15:45:56
+    38000 steps completed on 05.06.2026 at 15:45:56
+    39000 steps completed on 05.06.2026 at 15:45:56
+    40000 steps completed on 05.06.2026 at 15:45:56
+    41000 steps completed on 05.06.2026 at 15:45:57
+    42000 steps completed on 05.06.2026 at 15:45:57
+    43000 steps completed on 05.06.2026 at 15:45:57
+    44000 steps completed on 05.06.2026 at 15:45:57
+    45000 steps completed on 05.06.2026 at 15:45:58
+    46000 steps completed on 05.06.2026 at 15:45:58
+    47000 steps completed on 05.06.2026 at 15:45:58
+    48000 steps completed on 05.06.2026 at 15:45:59
+    49000 steps completed on 05.06.2026 at 15:45:59
+    50000 steps completed on 05.06.2026 at 15:45:59
+    51000 steps completed on 05.06.2026 at 15:45:59
+    52000 steps completed on 05.06.2026 at 15:46:00
+    53000 steps completed on 05.06.2026 at 15:46:00
+    54000 steps completed on 05.06.2026 at 15:46:00
+    55000 steps completed on 05.06.2026 at 15:46:00
+    56000 steps completed on 05.06.2026 at 15:46:01
+    57000 steps completed on 05.06.2026 at 15:46:01
+    58000 steps completed on 05.06.2026 at 15:46:01
+    59000 steps completed on 05.06.2026 at 15:46:01
+    60000 steps completed on 05.06.2026 at 15:46:02
+    61000 steps completed on 05.06.2026 at 15:46:02
+    62000 steps completed on 05.06.2026 at 15:46:02
+    63000 steps completed on 05.06.2026 at 15:46:02
+    64000 steps completed on 05.06.2026 at 15:46:03
+    65000 steps completed on 05.06.2026 at 15:46:03
+    66000 steps completed on 05.06.2026 at 15:46:03
+    67000 steps completed on 05.06.2026 at 15:46:03
+    68000 steps completed on 05.06.2026 at 15:46:04
+    69000 steps completed on 05.06.2026 at 15:46:04
+    70000 steps completed on 05.06.2026 at 15:46:04
+    71000 steps completed on 05.06.2026 at 15:46:05
+    72000 steps completed on 05.06.2026 at 15:46:05
+    73000 steps completed on 05.06.2026 at 15:46:05
+    74000 steps completed on 05.06.2026 at 15:46:05
+    75000 steps completed on 05.06.2026 at 15:46:06
+    76000 steps completed on 05.06.2026 at 15:46:06
+    77000 steps completed on 05.06.2026 at 15:46:06
+    78000 steps completed on 05.06.2026 at 15:46:06
+    79000 steps completed on 05.06.2026 at 15:46:07
+    80000 steps completed on 05.06.2026 at 15:46:07
+    81000 steps completed on 05.06.2026 at 15:46:07
+    82000 steps completed on 05.06.2026 at 15:46:07
+    83000 steps completed on 05.06.2026 at 15:46:08
+    84000 steps completed on 05.06.2026 at 15:46:08
+    85000 steps completed on 05.06.2026 at 15:46:08
+    86000 steps completed on 05.06.2026 at 15:46:08
+    87000 steps completed on 05.06.2026 at 15:46:09
+    88000 steps completed on 05.06.2026 at 15:46:09
+    89000 steps completed on 05.06.2026 at 15:46:09
+    90000 steps completed on 05.06.2026 at 15:46:09
+    91000 steps completed on 05.06.2026 at 15:46:10
+    92000 steps completed on 05.06.2026 at 15:46:10
+    93000 steps completed on 05.06.2026 at 15:46:10
+    94000 steps completed on 05.06.2026 at 15:46:10
+    95000 steps completed on 05.06.2026 at 15:46:11
+    96000 steps completed on 05.06.2026 at 15:46:11
+    97000 steps completed on 05.06.2026 at 15:46:11
+    98000 steps completed on 05.06.2026 at 15:46:12
+    99000 steps completed on 05.06.2026 at 15:46:12
+   100000 steps completed on 05.06.2026 at 15:46:12
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  25.6836450    -  25.6836490
+                             <=    0h  0min 25.68365sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 05.06.2026, 15:46:12.514 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 05.06.2026 at 15:46:12
+
+
+========================================================================
+simulation timer start: 05.06.2026, 15:46:12.514 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 05.06.2026 at 15:46:13
+     2000 steps completed on 05.06.2026 at 15:46:13
+     3000 steps completed on 05.06.2026 at 15:46:14
+     4000 steps completed on 05.06.2026 at 15:46:15
+     5000 steps completed on 05.06.2026 at 15:46:16
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+     6000 steps completed on 05.06.2026 at 15:46:16
+     7000 steps completed on 05.06.2026 at 15:46:17
+     8000 steps completed on 05.06.2026 at 15:46:18
+     9000 steps completed on 05.06.2026 at 15:46:19
+    10000 steps completed on 05.06.2026 at 15:46:19
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    11000 steps completed on 05.06.2026 at 15:46:20
+    12000 steps completed on 05.06.2026 at 15:46:21
+    13000 steps completed on 05.06.2026 at 15:46:22
+    14000 steps completed on 05.06.2026 at 15:46:22
+    15000 steps completed on 05.06.2026 at 15:46:23
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    16000 steps completed on 05.06.2026 at 15:46:24
+    17000 steps completed on 05.06.2026 at 15:46:25
+    18000 steps completed on 05.06.2026 at 15:46:25
+    19000 steps completed on 05.06.2026 at 15:46:26
+    20000 steps completed on 05.06.2026 at 15:46:27
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    21000 steps completed on 05.06.2026 at 15:46:28
+    22000 steps completed on 05.06.2026 at 15:46:28
+    23000 steps completed on 05.06.2026 at 15:46:29
+    24000 steps completed on 05.06.2026 at 15:46:30
+    25000 steps completed on 05.06.2026 at 15:46:30
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    26000 steps completed on 05.06.2026 at 15:46:31
+    27000 steps completed on 05.06.2026 at 15:46:32
+    28000 steps completed on 05.06.2026 at 15:46:33
+    29000 steps completed on 05.06.2026 at 15:46:33
+    30000 steps completed on 05.06.2026 at 15:46:34
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    31000 steps completed on 05.06.2026 at 15:46:35
+    32000 steps completed on 05.06.2026 at 15:46:36
+    33000 steps completed on 05.06.2026 at 15:46:36
+    34000 steps completed on 05.06.2026 at 15:46:37
+    35000 steps completed on 05.06.2026 at 15:46:38
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    36000 steps completed on 05.06.2026 at 15:46:39
+    37000 steps completed on 05.06.2026 at 15:46:39
+    38000 steps completed on 05.06.2026 at 15:46:40
+    39000 steps completed on 05.06.2026 at 15:46:41
+    40000 steps completed on 05.06.2026 at 15:46:41
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    41000 steps completed on 05.06.2026 at 15:46:42
+    42000 steps completed on 05.06.2026 at 15:46:43
+    43000 steps completed on 05.06.2026 at 15:46:44
+    44000 steps completed on 05.06.2026 at 15:46:44
+    45000 steps completed on 05.06.2026 at 15:46:45
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    46000 steps completed on 05.06.2026 at 15:46:46
+    47000 steps completed on 05.06.2026 at 15:46:47
+    48000 steps completed on 05.06.2026 at 15:46:47
+    49000 steps completed on 05.06.2026 at 15:46:48
+    50000 steps completed on 05.06.2026 at 15:46:49
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    51000 steps completed on 05.06.2026 at 15:46:50
+    52000 steps completed on 05.06.2026 at 15:46:50
+    53000 steps completed on 05.06.2026 at 15:46:51
+    54000 steps completed on 05.06.2026 at 15:46:52
+    55000 steps completed on 05.06.2026 at 15:46:52
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    56000 steps completed on 05.06.2026 at 15:46:53
+    57000 steps completed on 05.06.2026 at 15:46:54
+    58000 steps completed on 05.06.2026 at 15:46:55
+    59000 steps completed on 05.06.2026 at 15:46:55
+    60000 steps completed on 05.06.2026 at 15:46:56
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    61000 steps completed on 05.06.2026 at 15:46:57
+    62000 steps completed on 05.06.2026 at 15:46:58
+    63000 steps completed on 05.06.2026 at 15:46:58
+    64000 steps completed on 05.06.2026 at 15:46:59
+    65000 steps completed on 05.06.2026 at 15:47:00
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    66000 steps completed on 05.06.2026 at 15:47:01
+    67000 steps completed on 05.06.2026 at 15:47:01
+    68000 steps completed on 05.06.2026 at 15:47:02
+    69000 steps completed on 05.06.2026 at 15:47:03
+    70000 steps completed on 05.06.2026 at 15:47:03
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    71000 steps completed on 05.06.2026 at 15:47:04
+    72000 steps completed on 05.06.2026 at 15:47:05
+    73000 steps completed on 05.06.2026 at 15:47:06
+    74000 steps completed on 05.06.2026 at 15:47:06
+    75000 steps completed on 05.06.2026 at 15:47:07
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    76000 steps completed on 05.06.2026 at 15:47:08
+    77000 steps completed on 05.06.2026 at 15:47:09
+    78000 steps completed on 05.06.2026 at 15:47:09
+    79000 steps completed on 05.06.2026 at 15:47:10
+    80000 steps completed on 05.06.2026 at 15:47:11
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    81000 steps completed on 05.06.2026 at 15:47:12
+    82000 steps completed on 05.06.2026 at 15:47:12
+    83000 steps completed on 05.06.2026 at 15:47:13
+    84000 steps completed on 05.06.2026 at 15:47:14
+    85000 steps completed on 05.06.2026 at 15:47:14
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    86000 steps completed on 05.06.2026 at 15:47:15
+    87000 steps completed on 05.06.2026 at 15:47:16
+    88000 steps completed on 05.06.2026 at 15:47:17
+    89000 steps completed on 05.06.2026 at 15:47:17
+    90000 steps completed on 05.06.2026 at 15:47:18
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    91000 steps completed on 05.06.2026 at 15:47:19
+    92000 steps completed on 05.06.2026 at 15:47:20
+    93000 steps completed on 05.06.2026 at 15:47:20
+    94000 steps completed on 05.06.2026 at 15:47:21
+    95000 steps completed on 05.06.2026 at 15:47:22
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+    96000 steps completed on 05.06.2026 at 15:47:23
+    97000 steps completed on 05.06.2026 at 15:47:23
+    98000 steps completed on 05.06.2026 at 15:47:24
+    99000 steps completed on 05.06.2026 at 15:47:25
+   100000 steps completed on 05.06.2026 at 15:47:26
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   101000 steps completed on 05.06.2026 at 15:47:26
+   102000 steps completed on 05.06.2026 at 15:47:27
+   103000 steps completed on 05.06.2026 at 15:47:28
+   104000 steps completed on 05.06.2026 at 15:47:28
+   105000 steps completed on 05.06.2026 at 15:47:29
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   106000 steps completed on 05.06.2026 at 15:47:30
+   107000 steps completed on 05.06.2026 at 15:47:31
+   108000 steps completed on 05.06.2026 at 15:47:31
+   109000 steps completed on 05.06.2026 at 15:47:32
+   110000 steps completed on 05.06.2026 at 15:47:33
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   111000 steps completed on 05.06.2026 at 15:47:34
+   112000 steps completed on 05.06.2026 at 15:47:34
+   113000 steps completed on 05.06.2026 at 15:47:35
+   114000 steps completed on 05.06.2026 at 15:47:36
+   115000 steps completed on 05.06.2026 at 15:47:37
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   116000 steps completed on 05.06.2026 at 15:47:37
+   117000 steps completed on 05.06.2026 at 15:47:38
+   118000 steps completed on 05.06.2026 at 15:47:39
+   119000 steps completed on 05.06.2026 at 15:47:39
+   120000 steps completed on 05.06.2026 at 15:47:40
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   121000 steps completed on 05.06.2026 at 15:47:41
+   122000 steps completed on 05.06.2026 at 15:47:42
+   123000 steps completed on 05.06.2026 at 15:47:42
+   124000 steps completed on 05.06.2026 at 15:47:43
+   125000 steps completed on 05.06.2026 at 15:47:44
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   126000 steps completed on 05.06.2026 at 15:47:45
+   127000 steps completed on 05.06.2026 at 15:47:45
+   128000 steps completed on 05.06.2026 at 15:47:46
+   129000 steps completed on 05.06.2026 at 15:47:47
+   130000 steps completed on 05.06.2026 at 15:47:47
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   131000 steps completed on 05.06.2026 at 15:47:48
+   132000 steps completed on 05.06.2026 at 15:47:49
+   133000 steps completed on 05.06.2026 at 15:47:50
+   134000 steps completed on 05.06.2026 at 15:47:50
+   135000 steps completed on 05.06.2026 at 15:47:51
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   136000 steps completed on 05.06.2026 at 15:47:52
+   137000 steps completed on 05.06.2026 at 15:47:53
+   138000 steps completed on 05.06.2026 at 15:47:53
+   139000 steps completed on 05.06.2026 at 15:47:54
+   140000 steps completed on 05.06.2026 at 15:47:55
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   141000 steps completed on 05.06.2026 at 15:47:56
+   142000 steps completed on 05.06.2026 at 15:47:56
+   143000 steps completed on 05.06.2026 at 15:47:57
+   144000 steps completed on 05.06.2026 at 15:47:58
+   145000 steps completed on 05.06.2026 at 15:47:59
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   146000 steps completed on 05.06.2026 at 15:47:59
+   147000 steps completed on 05.06.2026 at 15:48:00
+   148000 steps completed on 05.06.2026 at 15:48:01
+   149000 steps completed on 05.06.2026 at 15:48:02
+   150000 steps completed on 05.06.2026 at 15:48:02
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   151000 steps completed on 05.06.2026 at 15:48:03
+   152000 steps completed on 05.06.2026 at 15:48:04
+   153000 steps completed on 05.06.2026 at 15:48:05
+   154000 steps completed on 05.06.2026 at 15:48:05
+   155000 steps completed on 05.06.2026 at 15:48:06
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   156000 steps completed on 05.06.2026 at 15:48:07
+   157000 steps completed on 05.06.2026 at 15:48:07
+   158000 steps completed on 05.06.2026 at 15:48:08
+   159000 steps completed on 05.06.2026 at 15:48:09
+   160000 steps completed on 05.06.2026 at 15:48:10
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   161000 steps completed on 05.06.2026 at 15:48:10
+   162000 steps completed on 05.06.2026 at 15:48:11
+   163000 steps completed on 05.06.2026 at 15:48:12
+   164000 steps completed on 05.06.2026 at 15:48:13
+   165000 steps completed on 05.06.2026 at 15:48:13
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   166000 steps completed on 05.06.2026 at 15:48:14
+   167000 steps completed on 05.06.2026 at 15:48:15
+   168000 steps completed on 05.06.2026 at 15:48:16
+   169000 steps completed on 05.06.2026 at 15:48:16
+   170000 steps completed on 05.06.2026 at 15:48:17
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   171000 steps completed on 05.06.2026 at 15:48:18
+   172000 steps completed on 05.06.2026 at 15:48:19
+   173000 steps completed on 05.06.2026 at 15:48:19
+   174000 steps completed on 05.06.2026 at 15:48:20
+   175000 steps completed on 05.06.2026 at 15:48:21
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   176000 steps completed on 05.06.2026 at 15:48:21
+   177000 steps completed on 05.06.2026 at 15:48:22
+   178000 steps completed on 05.06.2026 at 15:48:23
+   179000 steps completed on 05.06.2026 at 15:48:24
+   180000 steps completed on 05.06.2026 at 15:48:24
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   181000 steps completed on 05.06.2026 at 15:48:25
+   182000 steps completed on 05.06.2026 at 15:48:26
+   183000 steps completed on 05.06.2026 at 15:48:27
+   184000 steps completed on 05.06.2026 at 15:48:27
+   185000 steps completed on 05.06.2026 at 15:48:28
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   186000 steps completed on 05.06.2026 at 15:48:29
+   187000 steps completed on 05.06.2026 at 15:48:30
+   188000 steps completed on 05.06.2026 at 15:48:30
+   189000 steps completed on 05.06.2026 at 15:48:31
+   190000 steps completed on 05.06.2026 at 15:48:32
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   191000 steps completed on 05.06.2026 at 15:48:33
+   192000 steps completed on 05.06.2026 at 15:48:33
+   193000 steps completed on 05.06.2026 at 15:48:34
+   194000 steps completed on 05.06.2026 at 15:48:35
+   195000 steps completed on 05.06.2026 at 15:48:36
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+   196000 steps completed on 05.06.2026 at 15:48:36
+   197000 steps completed on 05.06.2026 at 15:48:37
+   198000 steps completed on 05.06.2026 at 15:48:38
+   199000 steps completed on 05.06.2026 at 15:48:39
+   200000 steps completed on 05.06.2026 at 15:48:39
+Saving simulation results
+Opening file <NVT_MD_LJ_ATM_1.res> for writing (unit 1017)
+File <NVT_MD_LJ_ATM_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  147.227902    -  147.227913
+                             <=    0h  2min 27.22791sec (+- 0.10E-05sec)
+simulation timer stop: 05.06.2026, 15:48:39.742 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NVT_MD_LJ_ATM.rst on 05.06.2026 at 15:48:39
+Opening file <NVT_MD_LJ_ATM.rst> for writing (unit 1005)
+saving restart data at step    200000 /    300000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 05.06.2026 at 15:48:39
+File <NVT_MD_LJ_ATM.rst> closed (unit 1005)
+Finished saving restart file NVT_MD_LJ_ATM.rst on 05.06.2026 at 15:48:39
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  172.917007    sec
+                 =    0h  2min 52.91701sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  172.916531
+                              =    0h  2min 52.91653sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 05.06.2026, 15:48:39.747 (UTC+120)
+========================================================================
+
+
+File <NVT_MD_LJ_ATM_1.rav> closed (unit 1016)
+File <NVT_MD_LJ_ATM_1.run> closed (unit 1015)
+
+************************************************************************
+Program terminated on 05.06.2026 at 15:48:39
+************************************************************************

@@ -1,0 +1,579 @@
+ms2 logfile NVT_MD_ODF.log created by PE0 on 09.06.2026 at 09:47:57
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.019
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran140200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jun  9 2026,09:47:00
+Real Kind            : 8
+
+Hostname             : Francis-1897.local
+started by user Isabel on 09.06.2026 at 09:47:57
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Francis-1897.local
+    1   +   Francis-1897.local
+    2   +   Francis-1897.local
+    3   +   Francis-1897.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NVT_MD_ODF.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NVT_MD_ODF
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         SI
+Unit of length:          3.500 A
+Unit of energy:        100.000 K
+Unit of mass:           40.000 a.u.
+
+Simulation type:         Molecular Dynamics
+setting Integrator to default value GEAR
+Integrator type:         Gear predictor-corrector
+Time step:                1.213807 fs
+Reduced time step:        0.000500
+
+Ensemble type:           NVT
+
+setting MCORSteps to default value       0
+No MC overlap reduction
+Number of NVT equilibration steps:       30000
+Number of production steps:             200000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+ODF files will be updated each               1 time steps
+ODF will operate with      3 shells
+ODF will operate with     40 angular increments in phi-direction
+ODF will operate with     36 angular increments in gamma-direction
+ODF output will be generated every 100000 steps
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:               300.000 K
+Density:                    10.000 mol/l
+Reduced temperature:         3.000000
+Reduced density:             0.258199
+setting ResidTime to default value no
+Calculation of residence time: no
+setting CommonEqui to default value no
+MD simulation: Logical CommonEqui no is invalid, set to yes
+Number of components:        1
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component CH2F2.pm:  1.000000
+setting ChemPotMethod to default value NONE
+Chemical potential of CH2F2.pm will be calculated by:
+         -> no calculation
+Opening file <CH2F2.pm> for reading (unit 1003)
+File <CH2F2.pm> closed (unit 1003)
+Opening file <NVT_MD_ODF.CH2F2.nrm> for writing (unit 1004)
+File <NVT_MD_ODF.CH2F2.nrm> closed (unit 1004)
+Normalized potential model for CH2F2.pm saved to file <NVT_MD_ODF.CH2F2.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                      1374
+Mole fraction of CH2F2.pm:                   1.000
+         ->  number of particles:         1374
+Memory for CH2F2.pm allocated successfully
+
+Reduced center of mass cutoff radius:        4.500
+
+Characteristic dielectric constant:          0.10000E+11
+
+Cutoff correction to
+- potential energy from LJ                  -0.27323099
+- pressure from LJ                          -0.54642017
+- chem. pot. of CH2F2.pm from LJ            -0.54646197
+- potential energy from reaction field (RF) -0.00354729
+- pressure from reaction field:             -0.17027010
+- chem. pot. of CH2F2.pm from RF            -0.11351340
+
+Initialize positions:
+         FCC lattice:   4 *   7x   7x   8 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NVT_MD_ODF.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+Opening file <NVT_MD_ODF_1.run> for writing (unit 1015)
+Opening file <NVT_MD_ODF_1.rav> for writing (unit 1016)
+Opening file <NVT_MD_ODF_1.odf> for writing (unit    0)
+File <NVT_MD_ODF_1.odf> closed (unit    0)
+
+========================================================================
+TSimulation_Run timer start: 09.06.2026, 09:47:57.767 (UTC+120)
+------------------------------------------------------------------------
+
+
+========================================================================
+NVT equilibration timer start: 09.06.2026, 09:47:57.767 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 09.06.2026 at 09:47:59
+     2000 steps completed on 09.06.2026 at 09:48:00
+     3000 steps completed on 09.06.2026 at 09:48:02
+     4000 steps completed on 09.06.2026 at 09:48:03
+     5000 steps completed on 09.06.2026 at 09:48:05
+     6000 steps completed on 09.06.2026 at 09:48:07
+     7000 steps completed on 09.06.2026 at 09:48:08
+     8000 steps completed on 09.06.2026 at 09:48:10
+     9000 steps completed on 09.06.2026 at 09:48:12
+    10000 steps completed on 09.06.2026 at 09:48:13
+    11000 steps completed on 09.06.2026 at 09:48:15
+    12000 steps completed on 09.06.2026 at 09:48:16
+    13000 steps completed on 09.06.2026 at 09:48:18
+    14000 steps completed on 09.06.2026 at 09:48:20
+    15000 steps completed on 09.06.2026 at 09:48:21
+    16000 steps completed on 09.06.2026 at 09:48:23
+    17000 steps completed on 09.06.2026 at 09:48:25
+    18000 steps completed on 09.06.2026 at 09:48:26
+    19000 steps completed on 09.06.2026 at 09:48:28
+    20000 steps completed on 09.06.2026 at 09:48:30
+    21000 steps completed on 09.06.2026 at 09:48:31
+    22000 steps completed on 09.06.2026 at 09:48:33
+    23000 steps completed on 09.06.2026 at 09:48:35
+    24000 steps completed on 09.06.2026 at 09:48:36
+    25000 steps completed on 09.06.2026 at 09:48:38
+    26000 steps completed on 09.06.2026 at 09:48:40
+    27000 steps completed on 09.06.2026 at 09:48:41
+    28000 steps completed on 09.06.2026 at 09:48:43
+    29000 steps completed on 09.06.2026 at 09:48:45
+    30000 steps completed on 09.06.2026 at 09:48:47
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  49.2929660    -  49.2929730
+                             <=    0h  0min 49.29297sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 09.06.2026, 09:48:47.060 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 09.06.2026 at 09:48:47
+
+
+========================================================================
+simulation timer start: 09.06.2026, 09:48:47.060 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 09.06.2026 at 09:48:49
+     2000 steps completed on 09.06.2026 at 09:48:52
+     3000 steps completed on 09.06.2026 at 09:48:54
+     4000 steps completed on 09.06.2026 at 09:48:57
+     5000 steps completed on 09.06.2026 at 09:49:00
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+     6000 steps completed on 09.06.2026 at 09:49:02
+     7000 steps completed on 09.06.2026 at 09:49:05
+     8000 steps completed on 09.06.2026 at 09:49:07
+     9000 steps completed on 09.06.2026 at 09:49:10
+    10000 steps completed on 09.06.2026 at 09:49:12
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    11000 steps completed on 09.06.2026 at 09:49:15
+    12000 steps completed on 09.06.2026 at 09:49:17
+    13000 steps completed on 09.06.2026 at 09:49:20
+    14000 steps completed on 09.06.2026 at 09:49:23
+    15000 steps completed on 09.06.2026 at 09:49:25
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    16000 steps completed on 09.06.2026 at 09:49:28
+    17000 steps completed on 09.06.2026 at 09:49:30
+    18000 steps completed on 09.06.2026 at 09:49:33
+    19000 steps completed on 09.06.2026 at 09:49:35
+    20000 steps completed on 09.06.2026 at 09:49:38
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    21000 steps completed on 09.06.2026 at 09:49:41
+    22000 steps completed on 09.06.2026 at 09:49:43
+    23000 steps completed on 09.06.2026 at 09:49:46
+    24000 steps completed on 09.06.2026 at 09:49:48
+    25000 steps completed on 09.06.2026 at 09:49:51
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    26000 steps completed on 09.06.2026 at 09:49:53
+    27000 steps completed on 09.06.2026 at 09:49:56
+    28000 steps completed on 09.06.2026 at 09:49:58
+    29000 steps completed on 09.06.2026 at 09:50:01
+    30000 steps completed on 09.06.2026 at 09:50:03
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    31000 steps completed on 09.06.2026 at 09:50:06
+    32000 steps completed on 09.06.2026 at 09:50:09
+    33000 steps completed on 09.06.2026 at 09:50:11
+    34000 steps completed on 09.06.2026 at 09:50:14
+    35000 steps completed on 09.06.2026 at 09:50:17
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    36000 steps completed on 09.06.2026 at 09:50:19
+    37000 steps completed on 09.06.2026 at 09:50:22
+    38000 steps completed on 09.06.2026 at 09:50:24
+    39000 steps completed on 09.06.2026 at 09:50:27
+    40000 steps completed on 09.06.2026 at 09:50:30
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    41000 steps completed on 09.06.2026 at 09:50:32
+    42000 steps completed on 09.06.2026 at 09:50:35
+    43000 steps completed on 09.06.2026 at 09:50:37
+    44000 steps completed on 09.06.2026 at 09:50:40
+    45000 steps completed on 09.06.2026 at 09:50:43
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    46000 steps completed on 09.06.2026 at 09:50:45
+    47000 steps completed on 09.06.2026 at 09:50:48
+    48000 steps completed on 09.06.2026 at 09:50:51
+    49000 steps completed on 09.06.2026 at 09:50:53
+    50000 steps completed on 09.06.2026 at 09:50:56
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    51000 steps completed on 09.06.2026 at 09:50:58
+    52000 steps completed on 09.06.2026 at 09:51:01
+    53000 steps completed on 09.06.2026 at 09:51:04
+    54000 steps completed on 09.06.2026 at 09:51:06
+    55000 steps completed on 09.06.2026 at 09:51:09
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    56000 steps completed on 09.06.2026 at 09:51:11
+    57000 steps completed on 09.06.2026 at 09:51:14
+    58000 steps completed on 09.06.2026 at 09:51:17
+    59000 steps completed on 09.06.2026 at 09:51:19
+    60000 steps completed on 09.06.2026 at 09:51:22
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    61000 steps completed on 09.06.2026 at 09:51:25
+    62000 steps completed on 09.06.2026 at 09:51:27
+    63000 steps completed on 09.06.2026 at 09:51:30
+    64000 steps completed on 09.06.2026 at 09:51:32
+    65000 steps completed on 09.06.2026 at 09:51:35
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    66000 steps completed on 09.06.2026 at 09:51:38
+    67000 steps completed on 09.06.2026 at 09:51:40
+    68000 steps completed on 09.06.2026 at 09:51:43
+    69000 steps completed on 09.06.2026 at 09:51:45
+    70000 steps completed on 09.06.2026 at 09:51:48
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    71000 steps completed on 09.06.2026 at 09:51:51
+    72000 steps completed on 09.06.2026 at 09:51:53
+    73000 steps completed on 09.06.2026 at 09:51:56
+    74000 steps completed on 09.06.2026 at 09:51:58
+    75000 steps completed on 09.06.2026 at 09:52:01
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    76000 steps completed on 09.06.2026 at 09:52:04
+    77000 steps completed on 09.06.2026 at 09:52:06
+    78000 steps completed on 09.06.2026 at 09:52:09
+    79000 steps completed on 09.06.2026 at 09:52:12
+    80000 steps completed on 09.06.2026 at 09:52:14
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    81000 steps completed on 09.06.2026 at 09:52:17
+    82000 steps completed on 09.06.2026 at 09:52:20
+    83000 steps completed on 09.06.2026 at 09:52:22
+    84000 steps completed on 09.06.2026 at 09:52:25
+    85000 steps completed on 09.06.2026 at 09:52:28
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    86000 steps completed on 09.06.2026 at 09:52:30
+    87000 steps completed on 09.06.2026 at 09:52:33
+    88000 steps completed on 09.06.2026 at 09:52:36
+    89000 steps completed on 09.06.2026 at 09:52:39
+    90000 steps completed on 09.06.2026 at 09:52:41
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    91000 steps completed on 09.06.2026 at 09:52:44
+    92000 steps completed on 09.06.2026 at 09:52:47
+    93000 steps completed on 09.06.2026 at 09:52:49
+    94000 steps completed on 09.06.2026 at 09:52:52
+    95000 steps completed on 09.06.2026 at 09:52:55
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+    96000 steps completed on 09.06.2026 at 09:52:57
+    97000 steps completed on 09.06.2026 at 09:53:00
+    98000 steps completed on 09.06.2026 at 09:53:03
+    99000 steps completed on 09.06.2026 at 09:53:05
+   100000 steps completed on 09.06.2026 at 09:53:08
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+Opening file <NVT_MD_ODF_1.odf> for writing (unit    0)
+File <NVT_MD_ODF_1.odf> closed (unit    0)
+   101000 steps completed on 09.06.2026 at 09:53:11
+   102000 steps completed on 09.06.2026 at 09:53:14
+   103000 steps completed on 09.06.2026 at 09:53:17
+   104000 steps completed on 09.06.2026 at 09:53:19
+   105000 steps completed on 09.06.2026 at 09:53:22
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   106000 steps completed on 09.06.2026 at 09:53:25
+   107000 steps completed on 09.06.2026 at 09:53:27
+   108000 steps completed on 09.06.2026 at 09:53:30
+   109000 steps completed on 09.06.2026 at 09:53:33
+   110000 steps completed on 09.06.2026 at 09:53:36
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   111000 steps completed on 09.06.2026 at 09:53:38
+   112000 steps completed on 09.06.2026 at 09:53:41
+   113000 steps completed on 09.06.2026 at 09:53:44
+   114000 steps completed on 09.06.2026 at 09:53:47
+   115000 steps completed on 09.06.2026 at 09:53:49
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   116000 steps completed on 09.06.2026 at 09:53:52
+   117000 steps completed on 09.06.2026 at 09:53:55
+   118000 steps completed on 09.06.2026 at 09:53:58
+   119000 steps completed on 09.06.2026 at 09:54:01
+   120000 steps completed on 09.06.2026 at 09:54:03
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   121000 steps completed on 09.06.2026 at 09:54:06
+   122000 steps completed on 09.06.2026 at 09:54:09
+   123000 steps completed on 09.06.2026 at 09:54:12
+   124000 steps completed on 09.06.2026 at 09:54:14
+   125000 steps completed on 09.06.2026 at 09:54:17
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   126000 steps completed on 09.06.2026 at 09:54:20
+   127000 steps completed on 09.06.2026 at 09:54:22
+   128000 steps completed on 09.06.2026 at 09:54:25
+   129000 steps completed on 09.06.2026 at 09:54:28
+   130000 steps completed on 09.06.2026 at 09:54:30
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   131000 steps completed on 09.06.2026 at 09:54:33
+   132000 steps completed on 09.06.2026 at 09:54:36
+   133000 steps completed on 09.06.2026 at 09:54:38
+   134000 steps completed on 09.06.2026 at 09:54:41
+   135000 steps completed on 09.06.2026 at 09:54:43
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   136000 steps completed on 09.06.2026 at 09:54:46
+   137000 steps completed on 09.06.2026 at 09:54:49
+   138000 steps completed on 09.06.2026 at 09:54:51
+   139000 steps completed on 09.06.2026 at 09:54:54
+   140000 steps completed on 09.06.2026 at 09:54:57
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   141000 steps completed on 09.06.2026 at 09:54:59
+   142000 steps completed on 09.06.2026 at 09:55:02
+   143000 steps completed on 09.06.2026 at 09:55:05
+   144000 steps completed on 09.06.2026 at 09:55:07
+   145000 steps completed on 09.06.2026 at 09:55:10
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   146000 steps completed on 09.06.2026 at 09:55:12
+   147000 steps completed on 09.06.2026 at 09:55:15
+   148000 steps completed on 09.06.2026 at 09:55:18
+   149000 steps completed on 09.06.2026 at 09:55:20
+   150000 steps completed on 09.06.2026 at 09:55:23
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   151000 steps completed on 09.06.2026 at 09:55:26
+   152000 steps completed on 09.06.2026 at 09:55:29
+   153000 steps completed on 09.06.2026 at 09:55:31
+   154000 steps completed on 09.06.2026 at 09:55:34
+   155000 steps completed on 09.06.2026 at 09:55:37
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   156000 steps completed on 09.06.2026 at 09:55:39
+   157000 steps completed on 09.06.2026 at 09:55:42
+   158000 steps completed on 09.06.2026 at 09:55:45
+   159000 steps completed on 09.06.2026 at 09:55:47
+   160000 steps completed on 09.06.2026 at 09:55:50
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   161000 steps completed on 09.06.2026 at 09:55:53
+   162000 steps completed on 09.06.2026 at 09:55:55
+   163000 steps completed on 09.06.2026 at 09:55:58
+   164000 steps completed on 09.06.2026 at 09:56:01
+   165000 steps completed on 09.06.2026 at 09:56:03
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   166000 steps completed on 09.06.2026 at 09:56:06
+   167000 steps completed on 09.06.2026 at 09:56:08
+   168000 steps completed on 09.06.2026 at 09:56:11
+   169000 steps completed on 09.06.2026 at 09:56:14
+   170000 steps completed on 09.06.2026 at 09:56:16
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   171000 steps completed on 09.06.2026 at 09:56:19
+   172000 steps completed on 09.06.2026 at 09:56:21
+   173000 steps completed on 09.06.2026 at 09:56:24
+   174000 steps completed on 09.06.2026 at 09:56:27
+   175000 steps completed on 09.06.2026 at 09:56:29
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   176000 steps completed on 09.06.2026 at 09:56:32
+   177000 steps completed on 09.06.2026 at 09:56:34
+   178000 steps completed on 09.06.2026 at 09:56:37
+   179000 steps completed on 09.06.2026 at 09:56:40
+   180000 steps completed on 09.06.2026 at 09:56:42
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   181000 steps completed on 09.06.2026 at 09:56:45
+   182000 steps completed on 09.06.2026 at 09:56:48
+   183000 steps completed on 09.06.2026 at 09:56:50
+   184000 steps completed on 09.06.2026 at 09:56:53
+   185000 steps completed on 09.06.2026 at 09:56:55
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   186000 steps completed on 09.06.2026 at 09:56:58
+   187000 steps completed on 09.06.2026 at 09:57:01
+   188000 steps completed on 09.06.2026 at 09:57:03
+   189000 steps completed on 09.06.2026 at 09:57:06
+   190000 steps completed on 09.06.2026 at 09:57:08
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   191000 steps completed on 09.06.2026 at 09:57:11
+   192000 steps completed on 09.06.2026 at 09:57:14
+   193000 steps completed on 09.06.2026 at 09:57:16
+   194000 steps completed on 09.06.2026 at 09:57:19
+   195000 steps completed on 09.06.2026 at 09:57:21
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+   196000 steps completed on 09.06.2026 at 09:57:24
+   197000 steps completed on 09.06.2026 at 09:57:27
+   198000 steps completed on 09.06.2026 at 09:57:29
+   199000 steps completed on 09.06.2026 at 09:57:32
+   200000 steps completed on 09.06.2026 at 09:57:35
+Saving simulation results
+Opening file <NVT_MD_ODF_1.res> for writing (unit 1017)
+File <NVT_MD_ODF_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  527.973097    -  527.973113
+                             <=    0h  8min 47.97311sec (+- 0.10E-05sec)
+simulation timer stop: 09.06.2026, 09:57:35.033 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NVT_MD_ODF.rst on 09.06.2026 at 09:57:35
+Opening file <NVT_MD_ODF.rst> for writing (unit 1005)
+saving restart data at step    200000 /    230000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 09.06.2026 at 09:57:35
+File <NVT_MD_ODF.rst> closed (unit 1005)
+Finished saving restart file NVT_MD_ODF.rst on 09.06.2026 at 09:57:35
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  577.398987    sec
+                 =    0h  9min 37.39899sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  577.398890
+                              =    0h  9min 37.39889sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 09.06.2026, 09:57:35.166 (UTC+120)
+========================================================================
+
+
+File <NVT_MD_ODF_1.rav> closed (unit 1016)
+File <NVT_MD_ODF_1.run> closed (unit 1015)
+
+************************************************************************
+Program terminated on 09.06.2026 at 09:57:35
+************************************************************************

@@ -1,0 +1,317 @@
+ms2 logfile NVT_MD_widom.log created by PE0 on 08.06.2026 at 09:20:08
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.018
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran140200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jun  5 2026,15:21:21
+Real Kind            : 8
+
+Hostname             : Francis-1897.local
+started by user Isabel on 08.06.2026 at 09:20:08
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Francis-1897.local
+    1   +   Francis-1897.local
+    2   +   Francis-1897.local
+    3   +   Francis-1897.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+Restarting NVT_MD_widom.par using NVT_MD_widom_*.rst files
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NVT_MD_widom.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NVT_MD_widom
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         SI
+Unit of length:          3.500 A
+Unit of energy:        100.000 K
+Unit of mass:           40.000 a.u.
+
+Simulation type:         Molecular Dynamics
+Integrator type:         Gear predictor-corrector
+Time step:                1.213807 fs
+Reduced time step:        0.000500
+
+Ensemble type:           NVT
+
+setting MCORSteps to default value       0
+No MC overlap reduction
+Number of NVT equilibration steps:       30000
+Number of production steps:             100000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:               400.000 K
+Density:                    11.400 mol/l
+Reduced temperature:         4.000000
+Reduced density:             0.294347
+setting ResidTime to default value no
+Calculation of residence time: no
+setting CommonEqui to default value no
+MD simulation: Logical CommonEqui no is invalid, set to yes
+Number of components:        1
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component aceton.pm:  1.000000
+Chemical potential of aceton.pm will be calculated by:
+         -> Widom's test particle method
+Opening file <aceton.pm> for reading (unit 1003)
+File <aceton.pm> closed (unit 1003)
+Opening file <NVT_MD_widom.aceton.nrm> for writing (unit 1004)
+File <NVT_MD_widom.aceton.nrm> closed (unit 1004)
+Normalized potential model for aceton.pm saved to file <NVT_MD_widom.aceton.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       500
+Mole fraction of aceton.pm:                  1.000
+         ->  number of particles:          500
+Number of test particles:                 2000
+
+Memory for test particles allocated successfully
+Memory for aceton.pm allocated successfully
+
+Reduced center of mass cutoff radius:        4.000
+
+Characteristic dielectric constant:          0.10000E+11
+
+Cutoff correction to
+- potential energy from LJ                  -1.66569359
+- pressure from LJ                          -3.39952390
+- chem. pot. of aceton.pm from LJ           -3.33138718
+- potential energy from reaction field (RF) -0.00978854
+- pressure from reaction field:             -0.46984987
+- chem. pot. of aceton.pm from RF           -0.31323324
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NVT_MD_widom.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+Opening file <NVT_MD_widom_1.run> for appending (unit 1015)
+Opening file <NVT_MD_widom_1.rav> for appending (unit 1016)
+
+========================================================================
+TSimulation_Run timer start: 08.06.2026, 09:20:08.297 (UTC+120)
+------------------------------------------------------------------------
+Reading restart file on 08.06.2026 at 09:20:08
+Opening file <NVT_MD_widom.rst> for reading (unit 1005)
+restarting at step     36774 /     66774
+run: (NVT)Equilibration  F F
+reading ensemble     1 (marker ENSEMBLE:1) on 08.06.2026 at 09:20:08
+File <NVT_MD_widom.rst> closed (unit 1005)
+Finished reading restart file NVT_MD_widom.rst on 08.06.2026 at 09:20:08
+
+
+========================================================================
+simulation timer start: 08.06.2026, 09:20:08.304 (UTC+120)
+------------------------------------------------------------------------
+    37000 steps completed on 08.06.2026 at 09:20:12
+    38000 steps completed on 08.06.2026 at 09:20:32
+    39000 steps completed on 08.06.2026 at 09:20:51
+    40000 steps completed on 08.06.2026 at 09:21:11
+Saving simulation results
+Opening file <NVT_MD_widom_1.res> for writing (unit 1017)
+File <NVT_MD_widom_1.res> closed (unit 1017)
+    41000 steps completed on 08.06.2026 at 09:21:30
+    42000 steps completed on 08.06.2026 at 09:21:50
+    43000 steps completed on 08.06.2026 at 09:22:09
+    44000 steps completed on 08.06.2026 at 09:22:29
+    45000 steps completed on 08.06.2026 at 09:22:49
+Saving simulation results
+Opening file <NVT_MD_widom_1.res> for writing (unit 1017)
+File <NVT_MD_widom_1.res> closed (unit 1017)
+    46000 steps completed on 08.06.2026 at 09:23:08
+    47000 steps completed on 08.06.2026 at 09:23:28
+    48000 steps completed on 08.06.2026 at 09:23:47
+    49000 steps completed on 08.06.2026 at 09:24:07
+    50000 steps completed on 08.06.2026 at 09:24:27
+Saving simulation results
+Opening file <NVT_MD_widom_1.res> for writing (unit 1017)
+File <NVT_MD_widom_1.res> closed (unit 1017)
+    51000 steps completed on 08.06.2026 at 09:24:46
+    52000 steps completed on 08.06.2026 at 09:25:06
+    53000 steps completed on 08.06.2026 at 09:25:25
+    54000 steps completed on 08.06.2026 at 09:25:45
+    55000 steps completed on 08.06.2026 at 09:26:04
+Saving simulation results
+Opening file <NVT_MD_widom_1.res> for writing (unit 1017)
+File <NVT_MD_widom_1.res> closed (unit 1017)
+    56000 steps completed on 08.06.2026 at 09:26:24
+    57000 steps completed on 08.06.2026 at 09:26:43
+    58000 steps completed on 08.06.2026 at 09:27:03
+    59000 steps completed on 08.06.2026 at 09:27:23
+    60000 steps completed on 08.06.2026 at 09:27:42
+Saving simulation results
+Opening file <NVT_MD_widom_1.res> for writing (unit 1017)
+File <NVT_MD_widom_1.res> closed (unit 1017)
+    61000 steps completed on 08.06.2026 at 09:28:02
+    62000 steps completed on 08.06.2026 at 09:28:21
+    63000 steps completed on 08.06.2026 at 09:28:41
+    64000 steps completed on 08.06.2026 at 09:29:00
+    65000 steps completed on 08.06.2026 at 09:29:20
+Saving simulation results
+Opening file <NVT_MD_widom_1.res> for writing (unit 1017)
+File <NVT_MD_widom_1.res> closed (unit 1017)
+    66000 steps completed on 08.06.2026 at 09:29:39
+    67000 steps completed on 08.06.2026 at 09:29:59
+    68000 steps completed on 08.06.2026 at 09:30:18
+    69000 steps completed on 08.06.2026 at 09:30:38
+    70000 steps completed on 08.06.2026 at 09:30:57
+Saving simulation results
+Opening file <NVT_MD_widom_1.res> for writing (unit 1017)
+File <NVT_MD_widom_1.res> closed (unit 1017)
+    71000 steps completed on 08.06.2026 at 09:31:17
+    72000 steps completed on 08.06.2026 at 09:31:37
+    73000 steps completed on 08.06.2026 at 09:31:56
+    74000 steps completed on 08.06.2026 at 09:32:16
+    75000 steps completed on 08.06.2026 at 09:32:36
+Saving simulation results
+Opening file <NVT_MD_widom_1.res> for writing (unit 1017)
+File <NVT_MD_widom_1.res> closed (unit 1017)
+    76000 steps completed on 08.06.2026 at 09:32:55
+    77000 steps completed on 08.06.2026 at 09:33:15
+    78000 steps completed on 08.06.2026 at 09:33:34
+    79000 steps completed on 08.06.2026 at 09:33:54
+    80000 steps completed on 08.06.2026 at 09:34:13
+Saving simulation results
+Opening file <NVT_MD_widom_1.res> for writing (unit 1017)
+File <NVT_MD_widom_1.res> closed (unit 1017)
+    81000 steps completed on 08.06.2026 at 09:34:33
+    82000 steps completed on 08.06.2026 at 09:34:52
+    83000 steps completed on 08.06.2026 at 09:35:12
+    84000 steps completed on 08.06.2026 at 09:35:32
+    85000 steps completed on 08.06.2026 at 09:35:51
+Saving simulation results
+Opening file <NVT_MD_widom_1.res> for writing (unit 1017)
+File <NVT_MD_widom_1.res> closed (unit 1017)
+    86000 steps completed on 08.06.2026 at 09:36:11
+    87000 steps completed on 08.06.2026 at 09:36:30
+    88000 steps completed on 08.06.2026 at 09:36:50
+    89000 steps completed on 08.06.2026 at 09:37:09
+    90000 steps completed on 08.06.2026 at 09:37:29
+Saving simulation results
+Opening file <NVT_MD_widom_1.res> for writing (unit 1017)
+File <NVT_MD_widom_1.res> closed (unit 1017)
+    91000 steps completed on 08.06.2026 at 09:37:48
+    92000 steps completed on 08.06.2026 at 09:38:08
+    93000 steps completed on 08.06.2026 at 09:38:28
+    94000 steps completed on 08.06.2026 at 09:38:47
+    95000 steps completed on 08.06.2026 at 09:39:07
+Saving simulation results
+Opening file <NVT_MD_widom_1.res> for writing (unit 1017)
+File <NVT_MD_widom_1.res> closed (unit 1017)
+    96000 steps completed on 08.06.2026 at 09:39:26
+    97000 steps completed on 08.06.2026 at 09:39:46
+    98000 steps completed on 08.06.2026 at 09:40:05
+    99000 steps completed on 08.06.2026 at 09:40:25
+   100000 steps completed on 08.06.2026 at 09:40:44
+Saving simulation results
+Opening file <NVT_MD_widom_1.res> for writing (unit 1017)
+File <NVT_MD_widom_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  1236.61195    -  1236.61196
+                             <=    0h 20min 36.61196sec (+- 0.10E-05sec)
+simulation timer stop: 08.06.2026, 09:40:44.916 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NVT_MD_widom.rst on 08.06.2026 at 09:40:44
+Opening file <NVT_MD_widom.rst> for writing (unit 1005)
+saving restart data at step    100000 /    130000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 08.06.2026 at 09:40:44
+File <NVT_MD_widom.rst> closed (unit 1005)
+Finished saving restart file NVT_MD_widom.rst on 08.06.2026 at 09:40:44
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  1236.63306    sec
+                 =    0h 20min 36.63306sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  1236.63208
+                              =    0h 20min 36.63208sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 08.06.2026, 09:40:44.930 (UTC+120)
+========================================================================
+
+
+File <NVT_MD_widom_1.rav> closed (unit 1016)
+File <NVT_MD_widom_1.run> closed (unit 1015)
+
+************************************************************************
+Program terminated on 08.06.2026 at 09:40:44
+************************************************************************

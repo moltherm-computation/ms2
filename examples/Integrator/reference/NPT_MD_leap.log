@@ -1,0 +1,441 @@
+ms2 logfile NPT_MD_leap.log created by PE0 on 10.06.2026 at 17:19:55
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.019
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran140200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jun 10 2026,16:13:25
+Real Kind            : 8
+
+Hostname             : Francis-1897.local
+started by user Isabel on 10.06.2026 at 17:19:55
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Francis-1897.local
+    1   +   Francis-1897.local
+    2   +   Francis-1897.local
+    3   +   Francis-1897.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NPT_MD_leap.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NPT_MD_leap
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         SI
+Unit of length:          3.500 A
+Unit of energy:        100.000 K
+Unit of mass:           40.000 a.u.
+
+Simulation type:         Molecular Dynamics
+Integrator type:         LeapFrog
+Time step:                0.971046 fs
+Reduced time step:        0.000400
+
+Ensemble type:           NPT
+
+Number of MC overlap reduction steps:       10
+Number of NVT equilibration steps:       10000
+Number of NPT equilibration steps:       20000
+Number of production steps:             100000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:               405.000 K
+Pressure:                    1.000 MPa
+Density:                    15.000 mol/l
+Reduced temperature:         4.050000
+Reduced pressure:            0.031054
+Reduced density:             0.387299
+Mass of piston (reduced):    0.000500000
+Mass of piston:              2.21313E+09 kg/m^4
+setting ResidTime to default value no
+Calculation of residence time: no
+setting CommonEqui to default value no
+MD simulation: Logical CommonEqui no is invalid, set to yes
+Number of components:        1
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component MeOH.pm:  1.000000
+Chemical potential of MeOH.pm will be calculated by:
+         -> no calculation
+Opening file <MeOH.pm> for reading (unit 1003)
+File <MeOH.pm> closed (unit 1003)
+Opening file <NPT_MD_leap.MeOH.nrm> for writing (unit 1004)
+File <NPT_MD_leap.MeOH.nrm> closed (unit 1004)
+Normalized potential model for MeOH.pm saved to file <NPT_MD_leap.MeOH.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       864
+Mole fraction of MeOH.pm:                    1.000
+         ->  number of particles:          864
+Memory for MeOH.pm allocated successfully
+
+Reduced center of mass cutoff radius:        4.000
+
+Characteristic dielectric constant:          0.10000E+11
+
+Cutoff correction to
+- potential energy from LJ                  -0.52080030
+- pressure from LJ                          -1.04730410
+- chem. pot. of MeOH.pm from LJ             -1.04160061
+- potential energy from reaction field (RF) -0.00378868
+- pressure from reaction field:             -0.18185661
+- chem. pot. of MeOH.pm from RF             -0.12123774
+
+Initialize positions:
+         FCC lattice:   4 *   6x   6x   6 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NPT_MD_leap.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+Opening file <NPT_MD_leap_1.run> for writing (unit 1015)
+Opening file <NPT_MD_leap_1.rav> for writing (unit 1016)
+
+========================================================================
+TSimulation_Run timer start: 10.06.2026, 17:19:55.913 (UTC+120)
+------------------------------------------------------------------------
+
+
+========================================================================
+MC overlap reduction timer start: 10.06.2026, 17:19:55.913 (UTC+120)
+------------------------------------------------------------------------
+       10 steps completed on 10.06.2026 at 17:19:56
+------------------------------------------------------------------------
+Duration:
+ MC overlap reduction wtime        diff: 0.230545000    - 0.230551000
+                             <=    0h  0min  0.23055sec (+- 0.10E-05sec)
+MC overlap reduction timer stop: 10.06.2026, 17:19:56.143 (UTC+120)
+========================================================================
+
+MC overlap reduction completed on 10.06.2026 at 17:19:56
+
+
+========================================================================
+NVT equilibration timer start: 10.06.2026, 17:19:56.144 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 10.06.2026 at 17:19:58
+     2000 steps completed on 10.06.2026 at 17:20:01
+     3000 steps completed on 10.06.2026 at 17:20:03
+     4000 steps completed on 10.06.2026 at 17:20:06
+     5000 steps completed on 10.06.2026 at 17:20:08
+     6000 steps completed on 10.06.2026 at 17:20:11
+     7000 steps completed on 10.06.2026 at 17:20:14
+     8000 steps completed on 10.06.2026 at 17:20:16
+     9000 steps completed on 10.06.2026 at 17:20:19
+    10000 steps completed on 10.06.2026 at 17:20:22
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  26.0149010    -  26.0149070
+                             <=    0h  0min 26.01491sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 10.06.2026, 17:20:22.158 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 10.06.2026 at 17:20:22
+
+
+========================================================================
+NPT equilibration timer start: 10.06.2026, 17:20:22.158 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 10.06.2026 at 17:20:24
+     2000 steps completed on 10.06.2026 at 17:20:27
+     3000 steps completed on 10.06.2026 at 17:20:30
+     4000 steps completed on 10.06.2026 at 17:20:33
+     5000 steps completed on 10.06.2026 at 17:20:37
+     6000 steps completed on 10.06.2026 at 17:20:40
+     7000 steps completed on 10.06.2026 at 17:20:43
+     8000 steps completed on 10.06.2026 at 17:20:47
+     9000 steps completed on 10.06.2026 at 17:20:50
+    10000 steps completed on 10.06.2026 at 17:20:53
+    11000 steps completed on 10.06.2026 at 17:20:57
+    12000 steps completed on 10.06.2026 at 17:21:00
+    13000 steps completed on 10.06.2026 at 17:21:04
+    14000 steps completed on 10.06.2026 at 17:21:07
+    15000 steps completed on 10.06.2026 at 17:21:10
+    16000 steps completed on 10.06.2026 at 17:21:14
+    17000 steps completed on 10.06.2026 at 17:21:17
+    18000 steps completed on 10.06.2026 at 17:21:20
+    19000 steps completed on 10.06.2026 at 17:21:24
+    20000 steps completed on 10.06.2026 at 17:21:27
+------------------------------------------------------------------------
+Duration:
+ NPT equilibration wtime        diff:  65.2367890    -  65.2368210
+                             <=    0h  1min  5.23682sec (+- 0.10E-05sec)
+NPT equilibration timer stop: 10.06.2026, 17:21:27.395 (UTC+120)
+========================================================================
+
+NPT equilibration completed on 10.06.2026 at 17:21:27
+
+
+========================================================================
+simulation timer start: 10.06.2026, 17:21:27.395 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 10.06.2026 at 17:21:30
+     2000 steps completed on 10.06.2026 at 17:21:34
+     3000 steps completed on 10.06.2026 at 17:21:37
+     4000 steps completed on 10.06.2026 at 17:21:40
+     5000 steps completed on 10.06.2026 at 17:21:44
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+     6000 steps completed on 10.06.2026 at 17:21:47
+     7000 steps completed on 10.06.2026 at 17:21:50
+     8000 steps completed on 10.06.2026 at 17:21:54
+     9000 steps completed on 10.06.2026 at 17:21:57
+    10000 steps completed on 10.06.2026 at 17:22:01
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    11000 steps completed on 10.06.2026 at 17:22:04
+    12000 steps completed on 10.06.2026 at 17:22:07
+    13000 steps completed on 10.06.2026 at 17:22:11
+    14000 steps completed on 10.06.2026 at 17:22:14
+    15000 steps completed on 10.06.2026 at 17:22:17
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    16000 steps completed on 10.06.2026 at 17:22:21
+    17000 steps completed on 10.06.2026 at 17:22:24
+    18000 steps completed on 10.06.2026 at 17:22:27
+    19000 steps completed on 10.06.2026 at 17:22:31
+    20000 steps completed on 10.06.2026 at 17:22:34
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    21000 steps completed on 10.06.2026 at 17:22:38
+    22000 steps completed on 10.06.2026 at 17:22:41
+    23000 steps completed on 10.06.2026 at 17:22:44
+    24000 steps completed on 10.06.2026 at 17:22:48
+    25000 steps completed on 10.06.2026 at 17:22:51
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    26000 steps completed on 10.06.2026 at 17:22:55
+    27000 steps completed on 10.06.2026 at 17:22:58
+    28000 steps completed on 10.06.2026 at 17:23:01
+    29000 steps completed on 10.06.2026 at 17:23:05
+    30000 steps completed on 10.06.2026 at 17:23:08
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    31000 steps completed on 10.06.2026 at 17:23:11
+    32000 steps completed on 10.06.2026 at 17:23:15
+    33000 steps completed on 10.06.2026 at 17:23:18
+    34000 steps completed on 10.06.2026 at 17:23:21
+    35000 steps completed on 10.06.2026 at 17:23:25
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    36000 steps completed on 10.06.2026 at 17:23:28
+    37000 steps completed on 10.06.2026 at 17:23:31
+    38000 steps completed on 10.06.2026 at 17:23:35
+    39000 steps completed on 10.06.2026 at 17:23:38
+    40000 steps completed on 10.06.2026 at 17:23:41
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    41000 steps completed on 10.06.2026 at 17:23:45
+    42000 steps completed on 10.06.2026 at 17:23:48
+    43000 steps completed on 10.06.2026 at 17:23:52
+    44000 steps completed on 10.06.2026 at 17:23:55
+    45000 steps completed on 10.06.2026 at 17:23:58
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    46000 steps completed on 10.06.2026 at 17:24:02
+    47000 steps completed on 10.06.2026 at 17:24:05
+    48000 steps completed on 10.06.2026 at 17:24:08
+    49000 steps completed on 10.06.2026 at 17:24:12
+    50000 steps completed on 10.06.2026 at 17:24:15
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    51000 steps completed on 10.06.2026 at 17:24:18
+    52000 steps completed on 10.06.2026 at 17:24:22
+    53000 steps completed on 10.06.2026 at 17:24:25
+    54000 steps completed on 10.06.2026 at 17:24:29
+    55000 steps completed on 10.06.2026 at 17:24:32
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    56000 steps completed on 10.06.2026 at 17:24:35
+    57000 steps completed on 10.06.2026 at 17:24:39
+    58000 steps completed on 10.06.2026 at 17:24:42
+    59000 steps completed on 10.06.2026 at 17:24:45
+    60000 steps completed on 10.06.2026 at 17:24:49
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    61000 steps completed on 10.06.2026 at 17:24:52
+    62000 steps completed on 10.06.2026 at 17:24:55
+    63000 steps completed on 10.06.2026 at 17:24:59
+    64000 steps completed on 10.06.2026 at 17:25:02
+    65000 steps completed on 10.06.2026 at 17:25:05
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    66000 steps completed on 10.06.2026 at 17:25:09
+    67000 steps completed on 10.06.2026 at 17:25:12
+    68000 steps completed on 10.06.2026 at 17:25:15
+    69000 steps completed on 10.06.2026 at 17:25:19
+    70000 steps completed on 10.06.2026 at 17:25:22
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    71000 steps completed on 10.06.2026 at 17:25:25
+    72000 steps completed on 10.06.2026 at 17:25:29
+    73000 steps completed on 10.06.2026 at 17:25:32
+    74000 steps completed on 10.06.2026 at 17:25:35
+    75000 steps completed on 10.06.2026 at 17:25:39
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    76000 steps completed on 10.06.2026 at 17:25:42
+    77000 steps completed on 10.06.2026 at 17:25:46
+    78000 steps completed on 10.06.2026 at 17:25:49
+    79000 steps completed on 10.06.2026 at 17:25:52
+    80000 steps completed on 10.06.2026 at 17:25:56
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    81000 steps completed on 10.06.2026 at 17:25:59
+    82000 steps completed on 10.06.2026 at 17:26:02
+    83000 steps completed on 10.06.2026 at 17:26:06
+    84000 steps completed on 10.06.2026 at 17:26:09
+    85000 steps completed on 10.06.2026 at 17:26:12
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    86000 steps completed on 10.06.2026 at 17:26:16
+    87000 steps completed on 10.06.2026 at 17:26:19
+    88000 steps completed on 10.06.2026 at 17:26:22
+    89000 steps completed on 10.06.2026 at 17:26:26
+    90000 steps completed on 10.06.2026 at 17:26:29
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    91000 steps completed on 10.06.2026 at 17:26:32
+    92000 steps completed on 10.06.2026 at 17:26:35
+    93000 steps completed on 10.06.2026 at 17:26:39
+    94000 steps completed on 10.06.2026 at 17:26:42
+    95000 steps completed on 10.06.2026 at 17:26:45
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+    96000 steps completed on 10.06.2026 at 17:26:49
+    97000 steps completed on 10.06.2026 at 17:26:52
+    98000 steps completed on 10.06.2026 at 17:26:55
+    99000 steps completed on 10.06.2026 at 17:26:59
+   100000 steps completed on 10.06.2026 at 17:27:02
+Saving simulation results
+Opening file <NPT_MD_leap_1.res> for writing (unit 1017)
+File <NPT_MD_leap_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  334.925119    -  334.925138
+                             <=    0h  5min 34.92514sec (+- 0.10E-05sec)
+simulation timer stop: 10.06.2026, 17:27:02.320 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NPT_MD_leap.rst on 10.06.2026 at 17:27:02
+Opening file <NPT_MD_leap.rst> for writing (unit 1005)
+saving restart data at step    100000 /    130010
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 10.06.2026 at 17:27:02
+File <NPT_MD_leap.rst> closed (unit 1005)
+Finished saving restart file NPT_MD_leap.rst on 10.06.2026 at 17:27:02
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  426.419006    sec
+                 =    0h  7min  6.41901sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  426.418857
+                              =    0h  7min  6.41886sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 10.06.2026, 17:27:02.332 (UTC+120)
+========================================================================
+
+
+File <NPT_MD_leap_1.rav> closed (unit 1016)
+File <NPT_MD_leap_1.run> closed (unit 1015)
+
+************************************************************************
+Program terminated on 10.06.2026 at 17:27:02
+************************************************************************

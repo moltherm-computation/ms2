@@ -1,0 +1,350 @@
+ms2 logfile NVE_MC_1LCJ.log created by PE0 on 04.06.2026 at 16:28:18
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by TU Kaiserslautern / TU Berlin                                   *
+*     P.O. Box 67653                                                     *
+*     67653 Kaiserslautern                                               *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* http://www.ms-2.de                                                     *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.017
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran150200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jun  4 2026,16:15:45
+Real Kind            : 8
+
+Hostname             : Stephen.local
+started by user Isabel on 04.06.2026 at 16:28:18
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Stephen.local
+    1   +   Stephen.local
+    2   +   Stephen.local
+    3   +   Stephen.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NVE_MC_1LCJ.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NVE_MC_1LCJ
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         reduced
+Unit of length:          1.000 A
+Unit of energy:          1.000 K
+Unit of mass:            1.000 a.u.
+
+Simulation type:         Monte-Carlo
+Acceptance rate:        50.00%
+
+Ensemble type:           NVE
+
+mpiMCCommonGroups:       2
+splitting communicator with   4 PEs to   2 subcommunicators
+
+File <NVE_MC_1LCJ.par> closed (unit 1002)
+Opening file <NVE_MC_1LCJ.par> for reading (unit 1002)
+
+Number of NVT equilibration steps:       10000
+Number of NVE equilibration steps:       20000
+Number of production steps:             100000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:                 4.000 K
+Density:                   830.270 mol/l
+Hamiltonian:                28.236 J/mol
+Reduced temperature:         4.000000
+Reduced density:             0.500000
+Reduced Hamiltonian:         3.396 J/mol
+setting CommonEqui to default value no
+Common equilibration:        no
+Number of components:        1
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component 1CLJ.pm:  1.000000
+Chemical potential of 1CLJ.pm will be calculated by:
+         -> Widom's test particle method
+Opening file <1CLJ.pm> for reading (unit 1003)
+File <1CLJ.pm> closed (unit 1003)
+Opening file <NVE_MC_1LCJ.1CLJ.nrm> for writing (unit 1004)
+File <NVE_MC_1LCJ.1CLJ.nrm> closed (unit 1004)
+Normalized potential model for 1CLJ.pm saved to file <NVE_MC_1LCJ.1CLJ.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                      1372
+Mole fraction of 1CLJ.pm:                    1.000
+         ->  number of particles:         1372
+Number of test particles:                 1000
+
+Memory for test particles allocated successfully
+Memory for 1CLJ.pm allocated successfully
+
+Reduced center of mass cutoff radius:        4.000
+
+Cutoff correction to
+- potential energy from LJ                  -0.13088904
+- pressure from LJ                          -0.26175678
+- chem. pot. of 1CLJ.pm from LJ             -0.26177809
+- potential energy from reaction field (RF)  0.00000000
+- pressure from reaction field:              0.00000000
+- chem. pot. of 1CLJ.pm from RF              0.00000000
+
+Initialize positions:
+         FCC lattice:   4 *   7x   7x   7 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NVE_MC_1LCJ.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+opening file <NVE_MC_1LCJ_1.run> for writing
+opening file <NVE_MC_1LCJ_1.rav> for writing
+
+========================================================================
+TSimulation_Run timer start: 04.06.2026, 16:28:18.624 (UTC+120)
+------------------------------------------------------------------------
+Random number generator initialized
+------------------------------------------------------------------------
+
+
+
+========================================================================
+NVT equilibration timer start: 04.06.2026, 16:28:18.624 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 04.06.2026 at 16:28:27
+     2000 steps completed on 04.06.2026 at 16:28:35
+     3000 steps completed on 04.06.2026 at 16:28:44
+     4000 steps completed on 04.06.2026 at 16:28:53
+     5000 steps completed on 04.06.2026 at 16:29:02
+     6000 steps completed on 04.06.2026 at 16:29:11
+     7000 steps completed on 04.06.2026 at 16:29:20
+     8000 steps completed on 04.06.2026 at 16:29:29
+     9000 steps completed on 04.06.2026 at 16:29:38
+    10000 steps completed on 04.06.2026 at 16:29:47
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  89.1851120    -  89.1851130
+                             <=    0h  1min 29.18511sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 04.06.2026, 16:29:47.809 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 04.06.2026 at 16:29:47
+
+
+========================================================================
+NVE equilibration timer start: 04.06.2026, 16:29:47.809 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 04.06.2026 at 16:29:56
+     2000 steps completed on 04.06.2026 at 16:30:05
+     3000 steps completed on 04.06.2026 at 16:30:14
+     4000 steps completed on 04.06.2026 at 16:30:23
+     5000 steps completed on 04.06.2026 at 16:30:32
+     6000 steps completed on 04.06.2026 at 16:30:41
+     7000 steps completed on 04.06.2026 at 16:30:50
+     8000 steps completed on 04.06.2026 at 16:30:59
+     9000 steps completed on 04.06.2026 at 16:31:08
+    10000 steps completed on 04.06.2026 at 16:31:17
+    11000 steps completed on 04.06.2026 at 16:31:26
+    12000 steps completed on 04.06.2026 at 16:31:35
+    13000 steps completed on 04.06.2026 at 16:31:44
+    14000 steps completed on 04.06.2026 at 16:31:53
+    15000 steps completed on 04.06.2026 at 16:32:02
+    16000 steps completed on 04.06.2026 at 16:32:11
+    17000 steps completed on 04.06.2026 at 16:32:20
+    18000 steps completed on 04.06.2026 at 16:32:29
+    19000 steps completed on 04.06.2026 at 16:32:38
+    20000 steps completed on 04.06.2026 at 16:32:47
+------------------------------------------------------------------------
+Duration:
+ NVE equilibration wtime        diff:  179.457212    -  179.457231
+                             <=    0h  2min 59.45723sec (+- 0.10E-05sec)
+NVE equilibration timer stop: 04.06.2026, 16:32:47.266 (UTC+120)
+========================================================================
+
+NVE equilibration completed on 04.06.2026 at 16:32:47
+
+
+========================================================================
+simulation timer start: 04.06.2026, 16:32:47.266 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 04.06.2026 at 16:33:00
+     2000 steps completed on 04.06.2026 at 16:33:13
+     3000 steps completed on 04.06.2026 at 16:33:26
+     4000 steps completed on 04.06.2026 at 16:33:41
+     5000 steps completed on 04.06.2026 at 16:33:54
+Saving simulation results
+Opening file <NVE_MC_1LCJ_1.res> for writing (unit 1017)
+File <NVE_MC_1LCJ_1.res> closed (unit 1017)
+     6000 steps completed on 04.06.2026 at 16:34:07
+     7000 steps completed on 04.06.2026 at 16:34:20
+     8000 steps completed on 04.06.2026 at 16:34:34
+     9000 steps completed on 04.06.2026 at 16:34:47
+    10000 steps completed on 04.06.2026 at 16:35:00
+Saving simulation results
+Opening file <NVE_MC_1LCJ_1.res> for writing (unit 1017)
+File <NVE_MC_1LCJ_1.res> closed (unit 1017)
+    11000 steps completed on 04.06.2026 at 16:35:13
+    12000 steps completed on 04.06.2026 at 16:35:26
+    13000 steps completed on 04.06.2026 at 16:35:39
+    14000 steps completed on 04.06.2026 at 16:35:53
+    15000 steps completed on 04.06.2026 at 16:36:06
+Saving simulation results
+Opening file <NVE_MC_1LCJ_1.res> for writing (unit 1017)
+File <NVE_MC_1LCJ_1.res> closed (unit 1017)
+    16000 steps completed on 04.06.2026 at 16:36:19
+    17000 steps completed on 04.06.2026 at 16:36:32
+    18000 steps completed on 04.06.2026 at 16:36:46
+    19000 steps completed on 04.06.2026 at 16:36:59
+    20000 steps completed on 04.06.2026 at 16:37:12
+Saving simulation results
+Opening file <NVE_MC_1LCJ_1.res> for writing (unit 1017)
+File <NVE_MC_1LCJ_1.res> closed (unit 1017)
+    21000 steps completed on 04.06.2026 at 16:37:25
+    22000 steps completed on 04.06.2026 at 16:37:38
+    23000 steps completed on 04.06.2026 at 16:37:51
+    24000 steps completed on 04.06.2026 at 16:38:05
+    25000 steps completed on 04.06.2026 at 16:38:18
+Saving simulation results
+Opening file <NVE_MC_1LCJ_1.res> for writing (unit 1017)
+File <NVE_MC_1LCJ_1.res> closed (unit 1017)
+    26000 steps completed on 04.06.2026 at 16:38:31
+    27000 steps completed on 04.06.2026 at 16:38:44
+    28000 steps completed on 04.06.2026 at 16:38:57
+    29000 steps completed on 04.06.2026 at 16:39:10
+    30000 steps completed on 04.06.2026 at 16:39:24
+Saving simulation results
+Opening file <NVE_MC_1LCJ_1.res> for writing (unit 1017)
+File <NVE_MC_1LCJ_1.res> closed (unit 1017)
+    31000 steps completed on 04.06.2026 at 16:39:37
+    32000 steps completed on 04.06.2026 at 16:39:50
+    33000 steps completed on 04.06.2026 at 16:40:03
+    34000 steps completed on 04.06.2026 at 16:40:16
+    35000 steps completed on 04.06.2026 at 16:40:30
+Saving simulation results
+Opening file <NVE_MC_1LCJ_1.res> for writing (unit 1017)
+File <NVE_MC_1LCJ_1.res> closed (unit 1017)
+    36000 steps completed on 04.06.2026 at 16:40:43
+    37000 steps completed on 04.06.2026 at 16:40:56
+    38000 steps completed on 04.06.2026 at 16:41:09
+    39000 steps completed on 04.06.2026 at 16:41:22
+    40000 steps completed on 04.06.2026 at 16:41:36
+Saving simulation results
+Opening file <NVE_MC_1LCJ_1.res> for writing (unit 1017)
+File <NVE_MC_1LCJ_1.res> closed (unit 1017)
+    41000 steps completed on 04.06.2026 at 16:41:49
+    42000 steps completed on 04.06.2026 at 16:42:02
+    43000 steps completed on 04.06.2026 at 16:42:15
+    44000 steps completed on 04.06.2026 at 16:42:28
+    45000 steps completed on 04.06.2026 at 16:42:42
+Saving simulation results
+Opening file <NVE_MC_1LCJ_1.res> for writing (unit 1017)
+File <NVE_MC_1LCJ_1.res> closed (unit 1017)
+    46000 steps completed on 04.06.2026 at 16:42:55
+    47000 steps completed on 04.06.2026 at 16:43:08
+    48000 steps completed on 04.06.2026 at 16:43:22
+    49000 steps completed on 04.06.2026 at 16:43:35
+    50000 steps completed on 04.06.2026 at 16:43:49
+Saving simulation results
+Opening file <NVE_MC_1LCJ_1.res> for writing (unit 1017)
+File <NVE_MC_1LCJ_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  662.106867    -  662.106878
+                             <=    0h 11min  2.10688sec (+- 0.10E-05sec)
+simulation timer stop: 04.06.2026, 16:43:49.373 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NVE_MC_1LCJ_1.rst up to *_2.rst on 04.06.2026 at 16:43:49
+Opening file <NVE_MC_1LCJ_1.rst> for writing (unit 1005)
+saving restart data at step     50000 /     80000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 04.06.2026 at 16:43:49
+File <NVE_MC_1LCJ_1.rst> closed (unit 1005)
+Finished saving restart file NVE_MC_1LCJ_1.rst up to *_2.rst on 04.06.2026 at 16:43:49
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  930.750977    sec
+                 =    0h 15min 30.75098sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  930.751512
+                              =    0h 15min 30.75151sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 04.06.2026, 16:43:49.375 (UTC+120)
+========================================================================
+
+
+File <*.run or *.rav> closed
+File <*.run or *.rav> closed
+
+************************************************************************
+Program terminated on 04.06.2026 at 16:43:49
+************************************************************************
