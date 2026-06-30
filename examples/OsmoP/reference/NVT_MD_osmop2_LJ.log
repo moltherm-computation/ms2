@@ -1,0 +1,977 @@
+ms2 logfile NVT_MD_osmop2_LJ.log created by PE0 on 23.06.2026 at 10:27:39
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by OVGU Magdeburg / TU Berlin                                      *
+**************************************************************************
+
+**************************************************************************
+* Updates and auxiliary routines are available from                      *
+* https://github.com/moltherm-computation/ms2                            *
+**************************************************************************
+
+Program ms2_GNU_mpi_osmop2 version 5.021
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran140200
+Compiler flags       : MPI=1 OSMOP=2 MPI_USE_MODULE=1
+Compile time         : Jun 23 2026,10:03:10
+Real Kind            : 8
+
+Hostname             : Francis-1897.local
+started by user Isabel on 23.06.2026 at 10:27:39
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Francis-1897.local
+    1   +   Francis-1897.local
+    2   +   Francis-1897.local
+    3   +   Francis-1897.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NVT_MD_osmop2_LJ.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NVT_MD_osmop2_LJ
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         reduced
+Unit of length:          1.000 A
+Unit of energy:          1.000 K
+Unit of mass:            1.000 a.u.
+
+Simulation type:         Molecular Dynamics
+Integrator type:         Gear predictor-corrector
+Time step:                0.548342 fs
+Reduced time step:        0.000500
+
+Ensemble type:           NVT
+
+setting MCORSteps to default value       0
+No MC overlap reduction
+Number of NVT equilibration steps:       30000
+Number of production steps:             100000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Osmotic Pressure calculation with     160 Bins
+setting Wallforce to default value   41868.0000
+Forceconstant of the wall********** ?
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+setting ClusterIsCriteria to default value no
+Cluster Criteria evaluation:    .false.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:                 1.200 K
+Density:                   996.324 mol/l
+Reduced temperature:         1.200000
+Reduced density:             0.600000
+setting ResidTime to default value no
+Calculation of residence time: no
+setting CommonEqui to default value no
+MD simulation: Logical CommonEqui no is invalid, set to yes
+Number of components:        2
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component 1CLJ.pm:  0.900000
+Chemical potential of 1CLJ.pm will be calculated by:
+         -> Widom's test particle method
+component 1CLJ.pm is permeable.
+Opening file <1CLJ.pm> for reading (unit 1003)
+File <1CLJ.pm> closed (unit 1003)
+Opening file <NVT_MD_osmop2_LJ.1CLJ.nrm> for writing (unit 1004)
+File <NVT_MD_osmop2_LJ.1CLJ.nrm> closed (unit 1004)
+Normalized potential model for 1CLJ.pm saved to file <NVT_MD_osmop2_LJ.1CLJ.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+            Reading component  2 for ensemble
+Mole fraction of component 1CLJ.pm:  0.100000
+Chemical potential of 1CLJ.pm will be calculated by:
+         -> Widom's test particle method
+component 1CLJ.pm is not permeable.
+Opening file <1CLJ.pm> for reading (unit 1003)
+File <1CLJ.pm> closed (unit 1003)
+Opening file <NVT_MD_osmop2_LJ.1CLJ.nrm> for writing (unit 1004)
+File <NVT_MD_osmop2_LJ.1CLJ.nrm> closed (unit 1004)
+Normalized potential model for 1CLJ.pm saved to file <NVT_MD_osmop2_LJ.1CLJ.nrm>
+       Reading component  2 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       500
+Mole fraction of 1CLJ.pm:                    0.900
+         ->  number of particles:          450
+Number of test particles:                 1000
+Mole fraction of 1CLJ.pm:                    0.100
+         ->  number of particles:           50
+Number of test particles:                 1000
+
+Memory for test particles allocated successfully
+Memory for 1CLJ.pm allocated successfully
+Memory for 1CLJ.pm allocated successfully
+1CLJ.pm-1CLJ.pm LJ interaction:  eta = 1.000, xi = 1.000
+
+Reduced center of mass cutoff radius:        3.500
+
+Cutoff correction to
+- potential energy from LJ                  -0.19536003
+- pressure from LJ                          -0.39064920
+- chem. pot. of 1CLJ.pm from LJ             -0.39072007
+- chem. pot. of 1CLJ.pm from LJ             -0.39072007
+- potential energy from reaction field (RF)  0.00000000
+- pressure from reaction field:              0.00000000
+- chem. pot. of 1CLJ.pm from RF              0.00000000
+- chem. pot. of 1CLJ.pm from RF              0.00000000
+
+Initialize positions:
+         FCC lattice:   4 *   5x   5x   5 cells
+         with  4 molecules/cell
+           1     0.950     0.950     0.850
+           1     0.950     0.950     0.650
+           1     0.950     0.950     0.450
+           1     0.950     0.950     0.250
+           1     0.950     0.950     0.050
+           1     0.950     0.750     0.850
+           1     0.950     0.750     0.650
+           1     0.950     0.750     0.450
+           1     0.950     0.750     0.250
+           1     0.950     0.750     0.050
+           1     0.950     0.550     0.850
+           1     0.950     0.550     0.650
+           1     0.950     0.550     0.450
+           1     0.950     0.550     0.250
+           1     0.950     0.550     0.050
+           1     0.950     0.350     0.850
+           1     0.950     0.350     0.650
+           1     0.950     0.350     0.450
+           1     0.950     0.350     0.250
+           1     0.950     0.350     0.050
+           1     0.950     0.150     0.850
+           1     0.950     0.150     0.650
+           1     0.950     0.150     0.450
+           1     0.950     0.150     0.250
+           1     0.950     0.150     0.050
+           1     0.750     0.950     0.850
+           1     0.750     0.950     0.450
+           1     0.750     0.950     0.250
+           1     0.750     0.950     0.050
+           1     0.750     0.750     0.850
+           1     0.750     0.750     0.650
+           1     0.750     0.750     0.450
+           1     0.750     0.750     0.250
+           1     0.750     0.750     0.050
+           1     0.750     0.550     0.850
+           1     0.750     0.550     0.650
+           1     0.750     0.550     0.450
+           1     0.750     0.550     0.250
+           1     0.750     0.550     0.050
+           1     0.750     0.350     0.850
+           1     0.750     0.350     0.650
+           1     0.750     0.350     0.450
+           1     0.750     0.350     0.250
+           1     0.750     0.150     0.850
+           1     0.750     0.150     0.450
+           1     0.750     0.150     0.050
+           1     0.550     0.950     0.850
+           1     0.550     0.950     0.650
+           1     0.550     0.950     0.450
+           1     0.550     0.950     0.250
+           1     0.550     0.950     0.050
+           1     0.150     0.150     0.250
+           1     0.550     0.750     0.650
+           1     0.050     0.450     0.850
+           1     0.550     0.750     0.250
+           1     0.550     0.750     0.050
+           1     0.250     0.550     0.350
+           1     0.250     0.050     0.050
+           1     0.550     0.550     0.050
+           1     0.550     0.350     0.850
+           1     0.550     0.350     0.650
+           1     0.550     0.350     0.450
+           1     0.150     0.350     0.250
+           1     0.250     0.750     0.150
+           1     0.750     0.450     0.150
+           1     0.550     0.150     0.650
+           1     0.550     0.150     0.450
+           1     0.550     0.150     0.250
+           1     0.550     0.150     0.050
+           1     0.350     0.950     0.850
+           1     0.750     0.950     0.650
+           1     0.850     0.050     0.450
+           1     0.350     0.950     0.250
+           1     0.350     0.950     0.050
+           1     0.350     0.750     0.850
+           1     0.350     0.750     0.650
+           1     0.350     0.750     0.450
+           1     0.050     0.150     0.950
+           1     0.350     0.750     0.050
+           1     0.350     0.550     0.850
+           1     0.350     0.550     0.650
+           1     0.350     0.550     0.450
+           1     0.350     0.550     0.250
+           1     0.350     0.550     0.050
+           1     0.350     0.350     0.850
+           1     0.850     0.350     0.350
+           1     0.350     0.350     0.450
+           1     0.350     0.350     0.250
+           1     0.950     0.850     0.750
+           1     0.350     0.150     0.850
+           1     0.350     0.150     0.650
+           1     0.350     0.150     0.450
+           1     0.350     0.150     0.050
+           1     0.150     0.950     0.850
+           1     0.150     0.950     0.650
+           1     0.150     0.950     0.450
+           1     0.150     0.950     0.050
+           1     0.150     0.750     0.850
+           1     0.150     0.750     0.650
+           1     0.150     0.750     0.450
+           1     0.150     0.750     0.250
+           1     0.150     0.750     0.050
+           1     0.150     0.550     0.850
+           1     0.150     0.550     0.650
+           1     0.150     0.550     0.450
+           1     0.150     0.550     0.250
+           1     0.150     0.550     0.050
+           1     0.150     0.350     0.850
+           1     0.150     0.350     0.650
+           1     0.150     0.350     0.450
+           1     0.150     0.350     0.050
+           1     0.150     0.150     0.850
+           1     0.150     0.150     0.650
+           1     0.150     0.150     0.450
+           1     0.150     0.150     0.050
+           1     0.950     0.850     0.950
+           1     0.950     0.850     0.550
+           1     0.950     0.850     0.350
+           1     0.950     0.850     0.150
+           1     0.950     0.650     0.750
+           1     0.950     0.650     0.350
+           1     0.950     0.650     0.150
+           1     0.950     0.450     0.950
+           1     0.950     0.450     0.750
+           1     0.950     0.450     0.350
+           1     0.950     0.450     0.150
+           1     0.950     0.250     0.950
+           1     0.950     0.250     0.550
+           1     0.950     0.250     0.350
+           1     0.950     0.050     0.750
+           1     0.950     0.050     0.550
+           1     0.950     0.050     0.350
+           1     0.750     0.850     0.950
+           1     0.750     0.850     0.550
+           1     0.750     0.850     0.350
+           1     0.750     0.850     0.150
+           1     0.750     0.650     0.950
+           1     0.750     0.650     0.750
+           1     0.750     0.650     0.550
+           1     0.750     0.650     0.350
+           1     0.750     0.650     0.150
+           1     0.750     0.450     0.950
+           1     0.750     0.450     0.750
+           1     0.750     0.450     0.550
+           1     0.750     0.450     0.350
+           1     0.750     0.250     0.950
+           1     0.750     0.250     0.750
+           1     0.750     0.250     0.550
+           1     0.750     0.250     0.350
+           1     0.750     0.250     0.150
+           1     0.750     0.050     0.950
+           1     0.750     0.050     0.750
+           1     0.750     0.050     0.550
+           1     0.750     0.050     0.350
+           1     0.750     0.050     0.150
+           1     0.550     0.850     0.950
+           1     0.050     0.650     0.050
+           1     0.550     0.850     0.550
+           1     0.550     0.850     0.350
+           1     0.550     0.850     0.150
+           1     0.550     0.650     0.950
+           1     0.550     0.650     0.750
+           1     0.750     0.850     0.750
+           1     0.750     0.150     0.650
+           1     0.550     0.650     0.150
+           1     0.250     0.450     0.650
+           1     0.550     0.450     0.750
+           1     0.550     0.450     0.550
+           1     0.550     0.450     0.350
+           1     0.550     0.450     0.150
+           1     0.550     0.250     0.950
+           1     0.550     0.250     0.750
+           1     0.550     0.250     0.350
+           1     0.550     0.250     0.150
+           1     0.550     0.050     0.950
+           1     0.550     0.050     0.750
+           1     0.550     0.050     0.550
+           1     0.550     0.050     0.350
+           1     0.550     0.050     0.150
+           1     0.350     0.850     0.950
+           1     0.350     0.850     0.750
+           1     0.350     0.850     0.550
+           1     0.150     0.950     0.250
+           1     0.950     0.650     0.550
+           1     0.350     0.650     0.750
+           1     0.350     0.650     0.550
+           1     0.350     0.650     0.350
+           1     0.350     0.650     0.150
+           1     0.250     0.450     0.250
+           1     0.350     0.450     0.750
+           1     0.350     0.450     0.550
+           1     0.350     0.450     0.350
+           1     0.350     0.450     0.150
+           1     0.350     0.250     0.950
+           1     0.350     0.250     0.550
+           1     0.350     0.250     0.350
+           1     0.350     0.250     0.150
+           1     0.950     0.450     0.550
+           1     0.350     0.050     0.750
+           1     0.350     0.050     0.550
+           1     0.350     0.050     0.350
+           1     0.950     0.050     0.950
+           1     0.150     0.850     0.950
+           1     0.150     0.850     0.750
+           1     0.150     0.850     0.550
+           1     0.150     0.850     0.350
+           1     0.150     0.850     0.150
+           1     0.150     0.650     0.950
+           1     0.150     0.650     0.750
+           1     0.150     0.650     0.550
+           1     0.150     0.650     0.350
+           1     0.150     0.650     0.150
+           1     0.150     0.450     0.950
+           1     0.150     0.450     0.750
+           1     0.150     0.450     0.550
+           1     0.150     0.450     0.150
+           1     0.150     0.250     0.950
+           1     0.150     0.250     0.750
+           1     0.150     0.250     0.550
+           1     0.150     0.250     0.350
+           1     0.150     0.250     0.150
+           1     0.150     0.050     0.950
+           1     0.150     0.050     0.750
+           1     0.150     0.050     0.550
+           1     0.150     0.050     0.350
+           1     0.150     0.050     0.150
+           1     0.850     0.950     0.950
+           1     0.850     0.950     0.750
+           1     0.850     0.950     0.550
+           1     0.850     0.950     0.350
+           1     0.850     0.750     0.950
+           1     0.850     0.750     0.750
+           1     0.850     0.750     0.550
+           1     0.850     0.750     0.350
+           1     0.850     0.750     0.150
+           1     0.850     0.550     0.950
+           1     0.850     0.550     0.750
+           1     0.850     0.550     0.550
+           1     0.850     0.550     0.350
+           1     0.850     0.550     0.150
+           1     0.850     0.350     0.950
+           1     0.850     0.350     0.750
+           1     0.850     0.350     0.550
+           1     0.850     0.350     0.150
+           1     0.850     0.150     0.950
+           1     0.850     0.150     0.750
+           1     0.850     0.150     0.550
+           1     0.850     0.150     0.350
+           1     0.850     0.150     0.150
+           1     0.250     0.050     0.850
+           1     0.650     0.950     0.750
+           1     0.650     0.950     0.550
+           1     0.650     0.950     0.350
+           1     0.650     0.950     0.150
+           1     0.650     0.750     0.750
+           1     0.650     0.750     0.550
+           1     0.650     0.750     0.350
+           1     0.650     0.750     0.150
+           1     0.650     0.550     0.950
+           1     0.650     0.550     0.750
+           1     0.650     0.550     0.550
+           1     0.650     0.550     0.350
+           1     0.850     0.950     0.150
+           1     0.650     0.350     0.750
+           1     0.650     0.350     0.550
+           1     0.250     0.750     0.950
+           1     0.650     0.350     0.150
+           1     0.650     0.150     0.950
+           1     0.650     0.150     0.750
+           1     0.650     0.150     0.550
+           1     0.250     0.450     0.450
+           1     0.650     0.150     0.150
+           1     0.450     0.950     0.950
+           1     0.450     0.950     0.750
+           1     0.450     0.950     0.550
+           1     0.450     0.950     0.350
+           1     0.450     0.950     0.150
+           1     0.050     0.850     0.850
+           1     0.450     0.750     0.750
+           1     0.750     0.150     0.250
+           1     0.450     0.750     0.350
+           1     0.450     0.750     0.150
+           1     0.450     0.550     0.950
+           1     0.450     0.550     0.750
+           1     0.450     0.550     0.550
+           1     0.450     0.550     0.150
+           1     0.450     0.350     0.950
+           1     0.450     0.350     0.750
+           1     0.450     0.350     0.550
+           1     0.450     0.350     0.350
+           1     0.450     0.350     0.150
+           1     0.450     0.150     0.950
+           1     0.750     0.350     0.050
+           1     0.450     0.150     0.350
+           1     0.950     0.050     0.150
+           1     0.250     0.950     0.950
+           1     0.250     0.950     0.750
+           1     0.250     0.950     0.550
+           1     0.250     0.950     0.350
+           1     0.250     0.950     0.150
+           1     0.250     0.750     0.750
+           1     0.250     0.750     0.550
+           1     0.250     0.750     0.350
+           1     0.250     0.550     0.950
+           1     0.250     0.550     0.750
+           1     0.250     0.550     0.550
+           1     0.250     0.550     0.150
+           1     0.250     0.350     0.950
+           1     0.250     0.350     0.750
+           1     0.250     0.350     0.550
+           1     0.250     0.350     0.350
+           1     0.250     0.350     0.150
+           1     0.250     0.150     0.950
+           1     0.250     0.150     0.750
+           1     0.250     0.150     0.550
+           1     0.250     0.150     0.350
+           1     0.250     0.150     0.150
+           1     0.050     0.950     0.950
+           1     0.050     0.950     0.750
+           1     0.050     0.950     0.550
+           1     0.050     0.950     0.350
+           1     0.050     0.950     0.150
+           1     0.050     0.750     0.950
+           1     0.050     0.750     0.750
+           1     0.050     0.750     0.550
+           1     0.050     0.750     0.350
+           1     0.050     0.550     0.950
+           1     0.050     0.550     0.750
+           1     0.050     0.550     0.550
+           1     0.050     0.550     0.350
+           1     0.050     0.550     0.150
+           1     0.050     0.350     0.950
+           1     0.050     0.350     0.750
+           1     0.050     0.350     0.550
+           1     0.050     0.350     0.350
+           1     0.050     0.350     0.150
+           1     0.050     0.150     0.750
+           1     0.050     0.150     0.550
+           1     0.050     0.150     0.350
+           1     0.050     0.150     0.150
+           1     0.850     0.850     0.850
+           1     0.850     0.850     0.650
+           1     0.850     0.850     0.450
+           1     0.850     0.850     0.250
+           1     0.850     0.850     0.050
+           1     0.850     0.650     0.850
+           1     0.850     0.650     0.650
+           1     0.850     0.650     0.450
+           1     0.850     0.650     0.250
+           1     0.850     0.650     0.050
+           1     0.850     0.450     0.850
+           1     0.850     0.450     0.650
+           1     0.850     0.450     0.450
+           1     0.850     0.450     0.250
+           1     0.850     0.450     0.050
+           1     0.850     0.250     0.850
+           1     0.850     0.250     0.650
+           1     0.850     0.250     0.450
+           1     0.850     0.250     0.250
+           1     0.850     0.250     0.050
+           1     0.850     0.050     0.850
+           1     0.850     0.050     0.650
+           1     0.850     0.050     0.250
+           1     0.850     0.050     0.050
+           1     0.650     0.850     0.850
+           1     0.650     0.850     0.650
+           1     0.650     0.850     0.450
+           1     0.650     0.850     0.250
+           1     0.650     0.850     0.050
+           1     0.650     0.650     0.850
+           1     0.650     0.650     0.650
+           1     0.650     0.650     0.450
+           1     0.650     0.650     0.250
+           1     0.950     0.250     0.750
+           1     0.650     0.450     0.850
+           1     0.650     0.450     0.650
+           1     0.650     0.450     0.450
+           1     0.650     0.450     0.250
+           1     0.650     0.450     0.050
+           1     0.650     0.250     0.850
+           1     0.650     0.250     0.650
+           1     0.650     0.250     0.450
+           1     0.650     0.250     0.250
+           1     0.650     0.050     0.850
+           1     0.650     0.050     0.450
+           1     0.950     0.250     0.150
+           1     0.650     0.050     0.050
+           1     0.450     0.850     0.850
+           1     0.050     0.750     0.150
+           1     0.450     0.850     0.450
+           1     0.450     0.850     0.250
+           1     0.450     0.850     0.050
+           1     0.450     0.650     0.650
+           1     0.450     0.650     0.450
+           1     0.450     0.650     0.050
+           1     0.450     0.450     0.850
+           1     0.450     0.450     0.650
+           1     0.450     0.450     0.450
+           1     0.450     0.450     0.250
+           1     0.450     0.450     0.050
+           1     0.150     0.450     0.350
+           1     0.450     0.250     0.650
+           1     0.450     0.250     0.450
+           1     0.450     0.250     0.250
+           1     0.950     0.650     0.950
+           1     0.450     0.050     0.850
+           1     0.450     0.050     0.650
+           1     0.450     0.050     0.050
+           1     0.250     0.850     0.850
+           1     0.250     0.850     0.650
+           1     0.250     0.850     0.450
+           1     0.250     0.850     0.250
+           1     0.250     0.850     0.050
+           1     0.250     0.650     0.850
+           1     0.250     0.650     0.650
+           1     0.250     0.650     0.450
+           1     0.250     0.650     0.250
+           1     0.250     0.650     0.050
+           1     0.250     0.450     0.850
+           1     0.250     0.450     0.050
+           1     0.250     0.250     0.850
+           1     0.250     0.250     0.650
+           1     0.250     0.250     0.450
+           1     0.250     0.250     0.250
+           1     0.250     0.250     0.050
+           1     0.250     0.050     0.650
+           1     0.250     0.050     0.450
+           1     0.250     0.050     0.250
+           1     0.050     0.850     0.650
+           1     0.050     0.850     0.450
+           1     0.050     0.850     0.250
+           1     0.050     0.850     0.050
+           1     0.050     0.650     0.850
+           1     0.050     0.650     0.650
+           1     0.050     0.650     0.450
+           1     0.050     0.650     0.250
+           1     0.050     0.450     0.650
+           1     0.050     0.450     0.450
+           1     0.050     0.450     0.250
+           1     0.050     0.450     0.050
+           1     0.050     0.250     0.850
+           1     0.050     0.250     0.650
+           1     0.050     0.250     0.450
+           1     0.050     0.250     0.250
+           1     0.050     0.250     0.050
+           1     0.050     0.050     0.850
+           1     0.050     0.050     0.650
+           1     0.050     0.050     0.450
+           1     0.050     0.050     0.250
+           1     0.050     0.050     0.050
+           2     0.350     0.950     0.650
+           2     0.450     0.150     0.550
+           2     0.550     0.650     0.350
+           2     0.450     0.750     0.550
+           2     0.550     0.550     0.450
+           2     0.550     0.550     0.250
+           2     0.350     0.150     0.250
+           2     0.350     0.850     0.350
+           2     0.550     0.350     0.250
+           2     0.550     0.750     0.850
+           2     0.350     0.350     0.050
+           2     0.450     0.250     0.050
+           2     0.350     0.650     0.950
+           2     0.350     0.050     0.950
+           2     0.650     0.650     0.050
+           2     0.650     0.050     0.250
+           2     0.350     0.050     0.150
+           2     0.450     0.150     0.150
+           2     0.550     0.650     0.550
+           2     0.550     0.150     0.850
+           2     0.550     0.250     0.550
+           2     0.350     0.850     0.150
+           2     0.350     0.250     0.750
+           2     0.450     0.250     0.850
+           2     0.650     0.550     0.150
+           2     0.350     0.350     0.650
+           2     0.650     0.750     0.950
+           2     0.650     0.350     0.950
+           2     0.450     0.550     0.350
+           2     0.450     0.150     0.750
+           2     0.650     0.350     0.350
+           2     0.550     0.350     0.050
+           2     0.550     0.550     0.850
+           2     0.450     0.850     0.650
+           2     0.350     0.750     0.250
+           2     0.350     0.950     0.450
+           2     0.650     0.250     0.050
+           2     0.650     0.050     0.650
+           2     0.450     0.650     0.850
+           2     0.450     0.650     0.250
+           2     0.450     0.050     0.450
+           2     0.450     0.050     0.250
+           2     0.550     0.450     0.950
+           2     0.650     0.150     0.350
+           2     0.350     0.450     0.950
+           2     0.650     0.950     0.950
+           2     0.550     0.550     0.650
+           2     0.450     0.750     0.950
+           2     0.550     0.850     0.750
+           2     0.550     0.750     0.450
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+File <NVT_MD_osmop2_LJ.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+Opening file <NVT_MD_osmop2_LJ_1.run> for writing (unit 1015)
+Opening file <NVT_MD_osmop2_LJ_1.rav> for writing (unit 1016)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+
+========================================================================
+TSimulation_Run timer start: 23.06.2026, 10:27:39.203 (UTC+120)
+------------------------------------------------------------------------
+
+
+========================================================================
+NVT equilibration timer start: 23.06.2026, 10:27:39.204 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 23.06.2026 at 10:27:40
+     2000 steps completed on 23.06.2026 at 10:27:42
+     3000 steps completed on 23.06.2026 at 10:27:43
+     4000 steps completed on 23.06.2026 at 10:27:45
+     5000 steps completed on 23.06.2026 at 10:27:46
+     6000 steps completed on 23.06.2026 at 10:27:48
+     7000 steps completed on 23.06.2026 at 10:27:49
+     8000 steps completed on 23.06.2026 at 10:27:51
+     9000 steps completed on 23.06.2026 at 10:27:52
+    10000 steps completed on 23.06.2026 at 10:27:54
+    11000 steps completed on 23.06.2026 at 10:27:55
+    12000 steps completed on 23.06.2026 at 10:27:57
+    13000 steps completed on 23.06.2026 at 10:27:58
+    14000 steps completed on 23.06.2026 at 10:27:59
+    15000 steps completed on 23.06.2026 at 10:28:01
+    16000 steps completed on 23.06.2026 at 10:28:02
+    17000 steps completed on 23.06.2026 at 10:28:04
+    18000 steps completed on 23.06.2026 at 10:28:05
+    19000 steps completed on 23.06.2026 at 10:28:07
+    20000 steps completed on 23.06.2026 at 10:28:08
+    21000 steps completed on 23.06.2026 at 10:28:10
+    22000 steps completed on 23.06.2026 at 10:28:11
+    23000 steps completed on 23.06.2026 at 10:28:13
+    24000 steps completed on 23.06.2026 at 10:28:14
+    25000 steps completed on 23.06.2026 at 10:28:16
+    26000 steps completed on 23.06.2026 at 10:28:17
+    27000 steps completed on 23.06.2026 at 10:28:18
+    28000 steps completed on 23.06.2026 at 10:28:20
+    29000 steps completed on 23.06.2026 at 10:28:21
+    30000 steps completed on 23.06.2026 at 10:28:23
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  44.2160290    -  44.2160390
+                             <=    0h  0min 44.21604sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 23.06.2026, 10:28:23.420 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 23.06.2026 at 10:28:23
+
+
+========================================================================
+simulation timer start: 23.06.2026, 10:28:23.420 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 23.06.2026 at 10:28:27
+     2000 steps completed on 23.06.2026 at 10:28:31
+     3000 steps completed on 23.06.2026 at 10:28:36
+     4000 steps completed on 23.06.2026 at 10:28:40
+     5000 steps completed on 23.06.2026 at 10:28:44
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+     6000 steps completed on 23.06.2026 at 10:28:49
+     7000 steps completed on 23.06.2026 at 10:28:53
+     8000 steps completed on 23.06.2026 at 10:28:57
+     9000 steps completed on 23.06.2026 at 10:29:01
+    10000 steps completed on 23.06.2026 at 10:29:06
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    11000 steps completed on 23.06.2026 at 10:29:10
+    12000 steps completed on 23.06.2026 at 10:29:14
+    13000 steps completed on 23.06.2026 at 10:29:18
+    14000 steps completed on 23.06.2026 at 10:29:23
+    15000 steps completed on 23.06.2026 at 10:29:27
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    16000 steps completed on 23.06.2026 at 10:29:31
+    17000 steps completed on 23.06.2026 at 10:29:36
+    18000 steps completed on 23.06.2026 at 10:29:40
+    19000 steps completed on 23.06.2026 at 10:29:44
+    20000 steps completed on 23.06.2026 at 10:29:48
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    21000 steps completed on 23.06.2026 at 10:29:53
+    22000 steps completed on 23.06.2026 at 10:29:57
+    23000 steps completed on 23.06.2026 at 10:30:01
+    24000 steps completed on 23.06.2026 at 10:30:05
+    25000 steps completed on 23.06.2026 at 10:30:10
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    26000 steps completed on 23.06.2026 at 10:30:14
+    27000 steps completed on 23.06.2026 at 10:30:18
+    28000 steps completed on 23.06.2026 at 10:30:22
+    29000 steps completed on 23.06.2026 at 10:30:27
+    30000 steps completed on 23.06.2026 at 10:30:31
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    31000 steps completed on 23.06.2026 at 10:30:35
+    32000 steps completed on 23.06.2026 at 10:30:39
+    33000 steps completed on 23.06.2026 at 10:30:44
+    34000 steps completed on 23.06.2026 at 10:30:48
+    35000 steps completed on 23.06.2026 at 10:30:53
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    36000 steps completed on 23.06.2026 at 10:30:57
+    37000 steps completed on 23.06.2026 at 10:31:01
+    38000 steps completed on 23.06.2026 at 10:31:06
+    39000 steps completed on 23.06.2026 at 10:31:10
+    40000 steps completed on 23.06.2026 at 10:31:14
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    41000 steps completed on 23.06.2026 at 10:31:18
+    42000 steps completed on 23.06.2026 at 10:31:23
+    43000 steps completed on 23.06.2026 at 10:31:27
+    44000 steps completed on 23.06.2026 at 10:31:31
+    45000 steps completed on 23.06.2026 at 10:31:36
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    46000 steps completed on 23.06.2026 at 10:31:40
+    47000 steps completed on 23.06.2026 at 10:31:44
+    48000 steps completed on 23.06.2026 at 10:31:48
+    49000 steps completed on 23.06.2026 at 10:31:53
+    50000 steps completed on 23.06.2026 at 10:31:57
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    51000 steps completed on 23.06.2026 at 10:32:01
+    52000 steps completed on 23.06.2026 at 10:32:05
+    53000 steps completed on 23.06.2026 at 10:32:10
+    54000 steps completed on 23.06.2026 at 10:32:14
+    55000 steps completed on 23.06.2026 at 10:32:18
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    56000 steps completed on 23.06.2026 at 10:32:22
+    57000 steps completed on 23.06.2026 at 10:32:27
+    58000 steps completed on 23.06.2026 at 10:32:31
+    59000 steps completed on 23.06.2026 at 10:32:35
+    60000 steps completed on 23.06.2026 at 10:32:39
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    61000 steps completed on 23.06.2026 at 10:32:44
+    62000 steps completed on 23.06.2026 at 10:32:48
+    63000 steps completed on 23.06.2026 at 10:32:52
+    64000 steps completed on 23.06.2026 at 10:32:56
+    65000 steps completed on 23.06.2026 at 10:33:01
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    66000 steps completed on 23.06.2026 at 10:33:05
+    67000 steps completed on 23.06.2026 at 10:33:09
+    68000 steps completed on 23.06.2026 at 10:33:13
+    69000 steps completed on 23.06.2026 at 10:33:17
+    70000 steps completed on 23.06.2026 at 10:33:22
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    71000 steps completed on 23.06.2026 at 10:33:26
+    72000 steps completed on 23.06.2026 at 10:33:30
+    73000 steps completed on 23.06.2026 at 10:33:34
+    74000 steps completed on 23.06.2026 at 10:33:39
+    75000 steps completed on 23.06.2026 at 10:33:43
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    76000 steps completed on 23.06.2026 at 10:33:47
+    77000 steps completed on 23.06.2026 at 10:33:51
+    78000 steps completed on 23.06.2026 at 10:33:56
+    79000 steps completed on 23.06.2026 at 10:34:00
+    80000 steps completed on 23.06.2026 at 10:34:04
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    81000 steps completed on 23.06.2026 at 10:34:08
+    82000 steps completed on 23.06.2026 at 10:34:13
+    83000 steps completed on 23.06.2026 at 10:34:17
+    84000 steps completed on 23.06.2026 at 10:34:21
+    85000 steps completed on 23.06.2026 at 10:34:25
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    86000 steps completed on 23.06.2026 at 10:34:30
+    87000 steps completed on 23.06.2026 at 10:34:34
+    88000 steps completed on 23.06.2026 at 10:34:38
+    89000 steps completed on 23.06.2026 at 10:34:42
+    90000 steps completed on 23.06.2026 at 10:34:47
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    91000 steps completed on 23.06.2026 at 10:34:51
+    92000 steps completed on 23.06.2026 at 10:34:55
+    93000 steps completed on 23.06.2026 at 10:35:00
+    94000 steps completed on 23.06.2026 at 10:35:04
+    95000 steps completed on 23.06.2026 at 10:35:08
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+    96000 steps completed on 23.06.2026 at 10:35:13
+    97000 steps completed on 23.06.2026 at 10:35:17
+    98000 steps completed on 23.06.2026 at 10:35:21
+    99000 steps completed on 23.06.2026 at 10:35:26
+   100000 steps completed on 23.06.2026 at 10:35:30
+Saving simulation results
+Opening file <NVT_MD_osmop2_LJ_1.res> for writing (unit 1017)
+File <NVT_MD_osmop2_LJ_1.res> closed (unit 1017)
+Opening file <NVT_MD_osmop2_LJ_1.dcp> for writing (unit 1023)
+File <NVT_MD_osmop2_LJ_1.dcp> closed (unit 1023)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  427.104479    -  427.104496
+                             <=    0h  7min  7.10450sec (+- 0.10E-05sec)
+simulation timer stop: 23.06.2026, 10:35:30.524 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NVT_MD_osmop2_LJ.rst on 23.06.2026 at 10:35:30
+Opening file <NVT_MD_osmop2_LJ.rst> for writing (unit 1005)
+saving restart data at step    100000 /    130000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 23.06.2026 at 10:35:30
+File <NVT_MD_osmop2_LJ.rst> closed (unit 1005)
+Finished saving restart file NVT_MD_osmop2_LJ.rst on 23.06.2026 at 10:35:30
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  471.328003    sec
+                 =    0h  7min 51.32800sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  471.327244
+                              =    0h  7min 51.32724sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 23.06.2026, 10:35:30.531 (UTC+120)
+========================================================================
+
+
+File <NVT_MD_osmop2_LJ_1.rav> closed (unit 1016)
+File <NVT_MD_osmop2_LJ_1.run> closed (unit 1015)
+File <fort.1023> closed (unit 1023)
+
+************************************************************************
+Program terminated on 23.06.2026 at 10:35:30
+************************************************************************

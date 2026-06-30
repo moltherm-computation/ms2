@@ -1,0 +1,39 @@
+Units       =       Reduced
+LengthUnit  =       1.0
+EnergyUnit  =       1.0
+MassUnit    =       1.0
+Simulation  =       MD
+Integrator  =       Gear
+TimeStep    =       0.0005
+Ensemble    =       NVT
+NVTSteps    =       30000
+RunSteps    =       100000
+NumDenBins  =       160
+ResultFreq  =       1000
+ErrorsFreq  =       5000
+VisualFreq  =       0
+CutoffMode  =       COM
+NEnsembles  =       1
+
+Temperature = 1.2
+Density     = 0.6
+NParticles  = 500
+NComponents = 2
+
+PotModel    = 1CLJ.pm
+MolarFract  = 0.9
+ChemPotMethod= Widom
+NTest        = 1000
+Permeability = yes
+
+PotModel    = 1CLJ.pm
+MolarFract  = 0.1
+ChemPotMethod= Widom
+NTest        = 1000
+Permeability = no
+
+eta         = 1.0
+xi          = 1.0
+
+Cutoff      = 3.5
+Epsilon     = 1.0E10

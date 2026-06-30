@@ -1,3 +1,0 @@
-Manifest-Version: 1.0
-Main-Class: ms_newcharts/Ms2charts
-

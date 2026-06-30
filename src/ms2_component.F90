@@ -7,8 +7,8 @@
 !==============================================================!
 
 !****************************************************************
-!* Updates and auxiliary routines are available from            *
-!* http://www.ms-2.de                                           *
+!* Source code and latest version:                              *
+!* https://github.com/moltherm-computation/ms2                  *
 !****************************************************************
 
 #ifndef ARCH

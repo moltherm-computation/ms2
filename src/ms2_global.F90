@@ -7,8 +7,8 @@
 !==============================================================!
 
 !****************************************************************
-!* Updates and auxiliary routines are available from            *
-!* http://www.ms-2.de                                           *
+!* Source code and latest version:                              *
+!* https://github.com/moltherm-computation/ms2                  *
 !****************************************************************
 
 #ifndef ARCH
@@ -1533,9 +1533,9 @@ contains
     call LogWriteBlank
     write( IOBuffer, '(74("*"))')
     call LogWrite
-    write( IOBuffer, '("* Updates and auxiliary routines are available from                      *")')
+    write( IOBuffer, '("* Source code and latest version:                                        *")')
     call LogWrite
-    write( IOBuffer, '("* http://www.ms-2.de                                                     *")')
+    write( IOBuffer, '("* https://github.com/moltherm-computation/ms2                            *")')
     call LogWrite
     write( IOBuffer, '(74("*"))')
     call LogWrite

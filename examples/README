@@ -47,7 +47,8 @@ new_tests/
 |    └── NVT MD
 ├── OsmoP/                  		# osmotic pressure
 |    ├── NPT MD	osmop1	    	        # (compiler flag OSMOP=1)
-|    └── NPT MD osmop2                  # calculation of additional profiles (compiler flag OSMOP=2)
+|    ├── NPT MD	osmop2                  # calculation of additional profiles (compiler flag OSMOP=2)
+|    └── NVT MD osmop2 LJ               # calculation of additional profiles (compiler flag OSMOP=2)
 ├── Statistical_ensembles/    		# 1CLJ sampled in eight statistical ensembles
 |    ├── NVE MC							# microcanonical ensemble
 |    ├── NVT MC							# canonical ensemble
