@@ -1,0 +1,66 @@
+ms2 Overview
+=========================
+ms2 is a molecular simulation software developed to calculate thermodynamic equilibrium properties of homogenous pure fluids or mixtures. This software is designed to provide a user-friendly molecular modeling and simulation package for both academic institutions and the chemical industry. 
+
+Quickstart quide
+=========================
+Requirements: 	
+- FORTRAN compiler, e.g. GNU Fortran or Intel oneAPI
+- for parallel execution: Open MPI or openMP
+				
+Compile the source code: 	
+- change into the directory "src" containing all source code files
+
+Execute either of the following commands for compiling: 
+- with Intel ifx: make COMPILER=INTEL
+- with Intel ifx using MPI: make COMPILER=INTEL MPI=1
+- with GNU Fortran: make COMPILER=GNU
+- with GNU Fortran using MPI: make COMPILER=GNU MPI=1
+
+to create the respective executables:		
+- with Intel ifx: ms2_INTEL
+- with Intel ifx using MPI: ms2_INTEL_mpi
+- with GNU Fortran: ms2_GNU
+- with GNU Fortran using MPI: ms2_GNU_mpi
+
+	
+Execution instructions
+=========================		
+To run the program, use the following command format:
+/path/to/executable [options] input_file.par
+- input_file.par: input file containing general simulation parameters, ensemble specific boundary conditions and specification of state point
+- input_file.pm: specified in input_file.par, contains force field model of molecular species
+- [options]: -r restart simulation from the state saved in *.rst 
+
+Documentation
+=========================	
+A detailed documentation can be found at https://github.com/moltherm-computation/ms2_documentation.		
+
+Directory structure
+=========================
+ms2/
+- src/     					# source code files
+- ms2.F90 				# main routine
+- ms2_accumulator.F90    # contains TAccumulator object for ensemble averages
+- ms2_component.F90 		# data and functions dealing with all molecules of a given molecular type	
+- ms2_ensemble.F90 		# ensemble is set up and initialized.
+- ms2_global.F90 		# declarations of global constants and functions 
+- ms2_interaction.F90 	# determines interaction partners
+- ms2_molecule.F90 		# data regarding the basic structure of a molecule
+- ms2_potential.F90 		# force and potential energy calculations according to intermolecular potential
+- ms2_simulation.F90		# setup and control of the simulation    
+- ms2_site.F90  			# position of a site with respect to the center of mass of a molecule
+- ms2_stopwatch.F90		# measures execution time of program segments
+- ms2_version.F90    	# declarations of version string and variable 
+- Makefile		    	# taget build rules, module dependencies
+- makefiles/	    		# contains compiler-related makefiles
+
+
+
+	
+
+ 							
+ 							
+ 							
+ 							
+ 							
