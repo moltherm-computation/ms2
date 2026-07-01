@@ -553,9 +553,6 @@ module ms2_ensemble
     real(RK),pointer, contiguous:: EPotPME(:), VirialPME(:), mm2(:)
 #endif
 
-    ! Extended ReactionField Method
-    real(RK)        :: DebyeLen
-
     ! Residence Time
     integer         :: ResidPairs
     integer         :: ResidComp1, ResidSite1
@@ -2055,12 +2052,6 @@ contains
 ! Setup SPME calculation
          call PMESetup (this)
 #endif
-      else if (LongRange .eq. ExtRField) then
-         do i=1,this%NComponents
-           do j=1,this%NComponents
-             this%Interaction(i,j)%DebyeLen = this%DebyeLen
-           end do
-         end do
       end if
 
       if( SimulationType .eq. MolecularDynamics .and. .not. MCOverlapReduction ) then
@@ -2665,8 +2656,6 @@ contains
     else
       do i = 1, this%NComponents
         do j = 1, this%NComponents
-
-          if (LongRange .eq. ExtRField) this%Interaction(i,j)%DebyeLen = this%DebyeLen
           call Construct(this%Interaction(i, j), i, j, &
 &           this%Component(i), this%Component(j), &
 &           this%RCutoffMIEnmMIEnm, &
@@ -5384,13 +5373,7 @@ if (associated (this%EinsteinTCondInt_kk_x) ) then
     ! Assign local variables
     NPartInv = 1._RK / this%NPart
 
-    if (LongRange .eq. ExtRField) then
-      fac = this%DebyeLen*this%RCutoffDipoleDipole
-      RFConst = -1._RK / this%RCutoffDipoleDipole**3 * ((this%RFEpsilon - 1._RK)*(1._RK+fac) + 0.5*this%RFEpsilon*(fac)**2) &
-&               / ( (2._RK * this%RFEpsilon+1._RK)*(1._RK+fac) + this%RFEpsilon*(fac)**2 )
-    else
-      RFConst = -1._RK / this%RCutoffDipoleDipole**3 * (this%RFEpsilon - 1._RK) / (2._RK * this%RFEpsilon + 1._RK)
-    endif
+    RFConst = -1._RK / this%RCutoffDipoleDipole**3 * (this%RFEpsilon - 1._RK) / (2._RK * this%RFEpsilon + 1._RK)
 
     ! Set maximum cutoff radius
     this%NRCutoffMax = 0
