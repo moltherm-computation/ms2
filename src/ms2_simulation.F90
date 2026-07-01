@@ -1089,16 +1089,6 @@ contains
             LongRangeString = 'Reaction Field'
             write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
 
-        case( 'ExtReactionField', 'ExtRF', 'extreactionfield', 'extrf' )
-            LongRange = ExtRField
-            LongRangeString = 'Extended Reaction Field by Tironi et al.'
-            write( IOBuffer, '("Long Range Correction: ", A)' ) trim( LongRangeString )
-            call LogWrite
-            ! Read extended Reaction Field Parameters
-            call FileReadParameter( debyelen_h, paramsFile%iounit , IdDebyeLen, .true.)
-            write( IOBuffer, '("Debye Length [A]:", F8.3)' )debyelen_h
-            call LogWrite
-
       case default
         call Error( trim( str )//' is not a valid longrange correction' )
       end select
@@ -1303,8 +1293,6 @@ contains
             if(stat >0) write(*,*) 'Allocation Error gridb'
 #endif
 
-      else if (LongRange .eq. ExtRField) then
-            this%Ensemble(i)%DebyeLen = debyelen_h / Angstroem * UnitLength
       end if
       if( SimulationType .eq. SecondVirialCoeff ) then
         call ConstructSVC( this%Ensemble(i), i )

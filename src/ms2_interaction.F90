@@ -264,16 +264,7 @@ contains
     real    :: fac
     real    :: scaleRC_shifted
 
-
-    ! RFConst2
-    if (LongRange .eq. ExtRField) then
-      fac = this%DebyeLen*RCutoffDipoleDipole
-      this%RFConst2 = - 2._RK / RCutoffDipoleDipole**3 &
-&                     * ( (RFEpsilon - 1._RK)*(1._RK+fac)+ 0.5*RFEpsilon*(fac)**2 )   &
-&                     / ( (2._RK * RFEpsilon+1._RK)*(1._RK+fac) + RFEpsilon*(fac)**2 )
-    else
-      this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
-    end if
+    this%RFConst2 = -2._RK / RCutoffDipoleDipole**3 * (RFEpsilon - 1._RK) / (2._RK * RFEpsilon + 1._RK)
 
     ! Set SameComponent flag
     this%SameComponent = i1 == i2
@@ -607,7 +598,7 @@ contains
     end if
 
     ! Set reaction field flag
-    if ( (LongRange .eq. RField) .or. (LongRange .eq. ExtRField) ) then
+    if (LongRange .eq. RField) then
     this%ReactionField = ( CutoffMode .eq. CenterofMass ) .and. &
 &                        ((this%N1Charge > 0) .or. (this%N1Dipole > 0)) .and. &
 &                        ((this%N2Charge > 0) .or. (this%N2Dipole > 0)) .and. &
