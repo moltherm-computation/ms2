@@ -35,6 +35,7 @@ MolarFract  = 0.1
 ChemPotMethod= Widom
 NTest        = 864
 Permeability = no
+Wallforce = 42000
 
 eta         = 1.0
 xi          = 1.0

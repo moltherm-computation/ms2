@@ -27,5 +27,5 @@ PotModel     = 		 2CLJ.pm
 MolarFract   = 		 1
 ChemPotMethod= 		 none
 
-CutoffMIE    = 		 4.0
+Cutoff       = 		 4.0
 Epsilon      = 		 1.0E10

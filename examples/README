@@ -16,9 +16,13 @@ new_tests/
 ├── ChemPot/         				# chemical potential
 |    ├── NVT MD	Widom	 				# Widom's particle insertion method   	
 |    └── NVT MD ThermoInt				# Thermodynamic Integration
+├── ClusterCriteria/         		# cluster criteria for nucleation
+|    ├── NVT MD	liq	 					# vapor clusters in liquid  	
+|    └── NVT MD vap						# liquid clusters in vapor
 ├── Cutoff/         				# cutoff mode
 |    ├── NVT MD	com	 					# center of mass	
-|    └── NVT MD site					# site-site
+|    ├── NVT MD site acetone			# site-site Mie, dipole and quadrupole
+|    └── NPT MD site TT					# site-site Tang-Toennies 
 ├── DF/         			   		# distribution function
 |    ├── NVT MD	ODF	    				# Oriental distribution function
 |    └── NPT MD RDF						# Radial distribution function
@@ -43,6 +47,8 @@ new_tests/
 |    ├── NVT MC 2 components	    	# methane + ethane
 |    ├── NVT MC 3 components			# methane + ethane + propane
 |    └── NVT MC 4 components			# methane + ethane + propane + nitrogen
+├── MSD/         			   		# mean-squared displacement 				
+|    └── NVT MC							# calculation of non-gaussian parameter alpha2(t)
 ├── Multiensemble/             		# 4 ensembles in one simulation
 |    └── NVT MD
 ├── OsmoP/                  		# osmotic pressure
@@ -68,7 +74,8 @@ new_tests/
 ├── Transport/                 		# transport properties (compiler flag TRANS=1)
 |    ├── NVT MD Einstein				# Einstein formalism
 |    ├── NVE MD Green-Kubo	    		# Green-Kubo formalism
-|    └── NVT MD GKEinstein 				# Green-Kubo and Einstein formalism
+|    ├── NVT MD GKEinstein 				# Green-Kubo and Einstein formalism
+|    └── NVT MD Separation 				# Green-Kubo and Einstein with separate contributions
 └──README.md               			# this README file
 
 
