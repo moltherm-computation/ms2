@@ -1450,7 +1450,7 @@ contains
 
     if( this%NComponents > 999 ) call Error( 'Cannot work with more than 999 components on '//Hardware )
 
-    !DC NOTE- Enasemble reading of parameters if not CC valid skip the reading
+    !DC NOTE- Ensemble reading of parameters if not CC valid skip the reading
     this%isStopSimulation = .false.
     if (this%isCCSimulation .eqv. .true.) then
     !DC NOTE- if the visualization frequency is nonsense skip it is not valid CC case
@@ -1481,7 +1481,7 @@ contains
         end select
 
         call LogWriteBlank
-        write( IOBuffer, '("Cluster Criteria options for enasemble:",T49, I3)' ) this%EnsembleNumber
+        write( IOBuffer, '("Cluster Criteria options for ensemble:",T49, I3)' ) this%EnsembleNumber
         call LogWrite
 
         write( IOBuffer, '("Cluster criteria type: ",T51, A)' ) trim( str )
@@ -15782,13 +15782,13 @@ end if
         call FileRewrite(this%a2ravFile, trim( OutputNameTag )//'_'//trim( adjustl( IOBuffer ) )//ALPHA2ravFileExtension )
         write(IOBuffer, '(T8,"t*")')
         call FileWriteNoAdvance(this%a2ravFile)
-        write(IOBuffer, '(T11,"t/fs")')
+        write(IOBuffer, '(T12,"t/fs")')
         call FileWriteNoAdvance(this%a2ravFile)
-        write(IOBuffer, '(T11,"msd/sig^2")') !msd
+        write(IOBuffer, '(T10,"msd/sig^2")') !msd
         call FileWriteNoAdvance(this%a2ravFile)
         write(IOBuffer, '(T5,"alpha2")') !alpha2
         call FileWriteNoAdvance(this%a2ravFile)
-        write(IOBuffer, '(T5,"gamma")') !gamma
+        write(IOBuffer, '(T12,"gamma")') !gamma
         call FileWriteNoAdvance(this%a2ravFile)
         call FileWriteBlank(this%a2ravFile)
         do i=1,ALPHA2Length/ALPHA2UpdateFrequency

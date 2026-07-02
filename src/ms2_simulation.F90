@@ -269,7 +269,6 @@ contains
     integer                     :: i
     integer                     :: stat
     real(RK)                    :: KappaL_h
-    real(RK)                    :: debyelen_h
     integer                     :: grid_h,spline_h
     integer                     :: nvecmax_h,nsqmax_h,nmax_h
     integer                     :: maxNComp, thisNComp
@@ -1017,7 +1016,7 @@ contains
         if( .not. UseReducedUnits ) then
           kForceOsmoticPressure = kForceOsmoticPressure/(NAvogadro*Angstroem**2)*(UnitLength**2)/UnitEnergy
         end if
-        write( IOBuffer, '("Forceconstant of the wall: ",T26, F10.5, " ?")' ) kForceOsmoticPressure
+        write( IOBuffer, '("Reduced Wallforce constant: ",T30, F10.5)' ) kForceOsmoticPressure
         call LogWrite
         call LogWriteBlank
       end if

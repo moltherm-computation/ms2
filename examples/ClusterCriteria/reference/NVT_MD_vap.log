@@ -1,0 +1,416 @@
+ms2 logfile NVT_MD_vap.log created by PE0 on 02.07.2026 at 09:53:06
+
+**************************************************************************
+*                         Molecular Simulation 2                         *
+**************************************************************************
+
+============================================================================
+*                         Publishing with ms2                              *
+* Every user agrees to cite ms2 upon usage as follows                      *
+* ------------------------------------------------------------------------ *
+* I. Nitzke, G. Guevara-Carrion, D. Saric, S. Homes, S. Stephan,           *
+* R. Fingerhut, M. Bernreuther, H. Hasse, J. Vrabec                        *
+* Computer Physics Communications (2025)                                   *
+============================================================================
+
+**************************************************************************
+* (c) by OVGU Magdeburg / TU Berlin                                      *
+**************************************************************************
+
+**************************************************************************
+* Source code and latest version:                                        *
+* https://github.com/moltherm-computation/ms2                            *
+**************************************************************************
+
+Program ms2_GNU_mpi version 5.023
+Hardware architecture: pc/gfortran
+Compiler version     : GNU gfortran140200
+Compiler flags       : MPI=1 MPI_USE_MODULE=1
+Compile time         : Jul  2 2026,09:52:04
+Real Kind            : 8
+
+Hostname             : Francis-1897.local
+started by user Isabel on 02.07.2026 at 09:53:06
+
+------------------------------------------------------------------------
+Parallelization:
+MPI version        : 3.1
+Number of processes:   4
+Root process rank  :   0
+rank:  I/O: processor name:
+    0   +   Francis-1897.local
+    1   +   Francis-1897.local
+    2   +   Francis-1897.local
+    3   +   Francis-1897.local
+
+
+------------------------------------------------------------------------
+Signal handler set successfully
+Random number generator initialized
+------------------------------------------------------------------------
+
+************************************************************************
+                       Reading Simulation Input
+************************************************************************
+Opening file <NVT_MD_vap.par> for reading (unit 1002)
+
+------------------------------------------------------------------------
+                   Reading parameters of simulation
+Name tag for output (default):             NVT_MD_vap
+
+setting WallTime to default value   20160
+Specified walltime:   20160 m
+setting TimeLimit to default value      60
+Specified time limit:    60 m
+
+System of units:         reduced
+Unit of length:          1.000 A
+Unit of energy:          1.000 K
+Unit of mass:            1.000 a.u.
+
+Simulation type:         Molecular Dynamics
+Integrator type:         Gear predictor-corrector
+Time step:                0.548342 fs
+Reduced time step:        0.000500
+
+Ensemble type:           NVT
+
+setting MCORSteps to default value       0
+No MC overlap reduction
+Number of NVT equilibration steps:       30000
+Number of production steps:             100000
+
+Result files will be updated each         1000 time steps
+Final result files will be updated each   5000 time steps
+Visualization files will not be created
+
+setting RDFFreq to default value       0
+RDF files will not be created
+
+setting ODFRecordingFreq to default value       0
+ODF files will not be created
+
+setting KBIFreq to default value       0
+KBI files will not be created
+
+setting ALPHA2Freq to default value       0
+
+Cutoff mode:             Center of Mass
+
+setting LongRange to default value rf
+Long Range Correction: Reaction Field
+Number of ensembles:     1
+setting mpiEnsembleGroups to default value       0
+Cluster Criteria evaluation:    .true.
+setting TransMethod to default value None
+
+------------------------------------------------------------------------
+             Reading parameters of ensemble  1
+Temperature:                 1.220 K
+Density:                   232.476 mol/l
+Reduced temperature:         1.220000
+Reduced density:             0.140000
+setting ResidTime to default value no
+Calculation of residence time: no
+setting CommonEqui to default value no
+MD simulation: Logical CommonEqui no is invalid, set to yes
+Number of components:        1
+Calculate Cluster Criteria and update each    100 time steps
+
+Cluster Criteria options for ensemble:            1
+Cluster criteria type:                            Grid vapor
+Reading Cluster criteria dist:                    1.00000000
+Reading molecule count for cluster                5
+Reading maximal allowed cluster count             0.5000E+01 %
+------------------------------------------------------------------------
+            Reading component  1 for ensemble
+Mole fraction of component 1CLJ.pm:  1.000000
+Chemical potential of 1CLJ.pm will be calculated by:
+         -> no calculation
+Opening file <1CLJ.pm> for reading (unit 1003)
+File <1CLJ.pm> closed (unit 1003)
+Opening file <NVT_MD_vap.1CLJ.nrm> for writing (unit 1004)
+File <NVT_MD_vap.1CLJ.nrm> closed (unit 1004)
+Normalized potential model for 1CLJ.pm saved to file <NVT_MD_vap.1CLJ.nrm>
+       Reading component  1 for ensemble successful
+------------------------------------------------------------------------
+The mole fraction(s) may be slightly changed due to the number of particle(s).
+Number of particles:                       864
+Mole fraction of 1CLJ.pm:                    1.000
+         ->  number of particles:          864
+Memory for 1CLJ.pm allocated successfully
+
+Reduced center of mass cutoff radius:        3.500
+
+Cutoff correction to
+- potential energy from LJ                  -0.19536003
+- pressure from LJ                          -0.39064920
+- chem. pot. of 1CLJ.pm from LJ             -0.39072007
+- potential energy from reaction field (RF)  0.00000000
+- pressure from reaction field:              0.00000000
+- chem. pot. of 1CLJ.pm from RF              0.00000000
+
+Initialize positions:
+         FCC lattice:   4 *   6x   6x   6 cells
+         with  4 molecules/cell
+              Reading ensemble   1 successful
+------------------------------------------------------------------------
+Opening file <NVT_MD_vap_CC_1.grid> for writing (unit 1030)
+File <NVT_MD_vap_CC_1.grid> closed (unit 1030)
+File <NVT_MD_vap.par> closed (unit 1002)
+                 Reading Simulation Input successful
+************************************************************************
+
+
+
+************************************************************************
+                           Start Simulation
+************************************************************************
+Opening file <NVT_MD_vap_1.run> for writing (unit 1015)
+Opening file <NVT_MD_vap_1.rav> for writing (unit 1016)
+Opening file <NVT_MD_vap_CC_1.clust> for writing (unit 1029)
+
+========================================================================
+TSimulation_Run timer start: 02.07.2026, 09:53:06.279 (UTC+120)
+------------------------------------------------------------------------
+
+
+========================================================================
+NVT equilibration timer start: 02.07.2026, 09:53:06.279 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 02.07.2026 at 09:53:06
+     2000 steps completed on 02.07.2026 at 09:53:06
+     3000 steps completed on 02.07.2026 at 09:53:07
+     4000 steps completed on 02.07.2026 at 09:53:07
+     5000 steps completed on 02.07.2026 at 09:53:07
+     6000 steps completed on 02.07.2026 at 09:53:07
+     7000 steps completed on 02.07.2026 at 09:53:08
+     8000 steps completed on 02.07.2026 at 09:53:08
+     9000 steps completed on 02.07.2026 at 09:53:08
+    10000 steps completed on 02.07.2026 at 09:53:09
+    11000 steps completed on 02.07.2026 at 09:53:09
+    12000 steps completed on 02.07.2026 at 09:53:09
+    13000 steps completed on 02.07.2026 at 09:53:09
+    14000 steps completed on 02.07.2026 at 09:53:10
+    15000 steps completed on 02.07.2026 at 09:53:10
+    16000 steps completed on 02.07.2026 at 09:53:10
+    17000 steps completed on 02.07.2026 at 09:53:11
+    18000 steps completed on 02.07.2026 at 09:53:11
+    19000 steps completed on 02.07.2026 at 09:53:11
+    20000 steps completed on 02.07.2026 at 09:53:12
+    21000 steps completed on 02.07.2026 at 09:53:12
+    22000 steps completed on 02.07.2026 at 09:53:12
+    23000 steps completed on 02.07.2026 at 09:53:12
+    24000 steps completed on 02.07.2026 at 09:53:13
+    25000 steps completed on 02.07.2026 at 09:53:13
+    26000 steps completed on 02.07.2026 at 09:53:13
+    27000 steps completed on 02.07.2026 at 09:53:14
+    28000 steps completed on 02.07.2026 at 09:53:14
+    29000 steps completed on 02.07.2026 at 09:53:14
+    30000 steps completed on 02.07.2026 at 09:53:14
+------------------------------------------------------------------------
+Duration:
+ NVT equilibration wtime        diff:  8.70659100    -  8.70660400
+                             <=    0h  0min  8.70660sec (+- 0.10E-05sec)
+NVT equilibration timer stop: 02.07.2026, 09:53:14.986 (UTC+120)
+========================================================================
+
+NVT equilibration completed on 02.07.2026 at 09:53:14
+
+
+========================================================================
+simulation timer start: 02.07.2026, 09:53:14.986 (UTC+120)
+------------------------------------------------------------------------
+     1000 steps completed on 02.07.2026 at 09:53:15
+     2000 steps completed on 02.07.2026 at 09:53:15
+     3000 steps completed on 02.07.2026 at 09:53:15
+     4000 steps completed on 02.07.2026 at 09:53:16
+     5000 steps completed on 02.07.2026 at 09:53:16
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+     6000 steps completed on 02.07.2026 at 09:53:16
+     7000 steps completed on 02.07.2026 at 09:53:17
+     8000 steps completed on 02.07.2026 at 09:53:17
+     9000 steps completed on 02.07.2026 at 09:53:17
+    10000 steps completed on 02.07.2026 at 09:53:18
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    11000 steps completed on 02.07.2026 at 09:53:18
+    12000 steps completed on 02.07.2026 at 09:53:18
+    13000 steps completed on 02.07.2026 at 09:53:19
+    14000 steps completed on 02.07.2026 at 09:53:19
+    15000 steps completed on 02.07.2026 at 09:53:19
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    16000 steps completed on 02.07.2026 at 09:53:20
+    17000 steps completed on 02.07.2026 at 09:53:20
+    18000 steps completed on 02.07.2026 at 09:53:20
+    19000 steps completed on 02.07.2026 at 09:53:21
+    20000 steps completed on 02.07.2026 at 09:53:21
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    21000 steps completed on 02.07.2026 at 09:53:22
+    22000 steps completed on 02.07.2026 at 09:53:22
+    23000 steps completed on 02.07.2026 at 09:53:22
+    24000 steps completed on 02.07.2026 at 09:53:23
+    25000 steps completed on 02.07.2026 at 09:53:23
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    26000 steps completed on 02.07.2026 at 09:53:23
+    27000 steps completed on 02.07.2026 at 09:53:24
+    28000 steps completed on 02.07.2026 at 09:53:24
+    29000 steps completed on 02.07.2026 at 09:53:24
+    30000 steps completed on 02.07.2026 at 09:53:25
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    31000 steps completed on 02.07.2026 at 09:53:25
+    32000 steps completed on 02.07.2026 at 09:53:25
+    33000 steps completed on 02.07.2026 at 09:53:26
+    34000 steps completed on 02.07.2026 at 09:53:26
+    35000 steps completed on 02.07.2026 at 09:53:26
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    36000 steps completed on 02.07.2026 at 09:53:27
+    37000 steps completed on 02.07.2026 at 09:53:27
+    38000 steps completed on 02.07.2026 at 09:53:27
+    39000 steps completed on 02.07.2026 at 09:53:27
+    40000 steps completed on 02.07.2026 at 09:53:28
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    41000 steps completed on 02.07.2026 at 09:53:28
+    42000 steps completed on 02.07.2026 at 09:53:28
+    43000 steps completed on 02.07.2026 at 09:53:29
+    44000 steps completed on 02.07.2026 at 09:53:29
+    45000 steps completed on 02.07.2026 at 09:53:29
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    46000 steps completed on 02.07.2026 at 09:53:30
+    47000 steps completed on 02.07.2026 at 09:53:30
+    48000 steps completed on 02.07.2026 at 09:53:30
+    49000 steps completed on 02.07.2026 at 09:53:31
+    50000 steps completed on 02.07.2026 at 09:53:31
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    51000 steps completed on 02.07.2026 at 09:53:31
+    52000 steps completed on 02.07.2026 at 09:53:32
+    53000 steps completed on 02.07.2026 at 09:53:32
+    54000 steps completed on 02.07.2026 at 09:53:33
+    55000 steps completed on 02.07.2026 at 09:53:33
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    56000 steps completed on 02.07.2026 at 09:53:33
+    57000 steps completed on 02.07.2026 at 09:53:33
+    58000 steps completed on 02.07.2026 at 09:53:34
+    59000 steps completed on 02.07.2026 at 09:53:34
+    60000 steps completed on 02.07.2026 at 09:53:34
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    61000 steps completed on 02.07.2026 at 09:53:35
+    62000 steps completed on 02.07.2026 at 09:53:35
+    63000 steps completed on 02.07.2026 at 09:53:35
+    64000 steps completed on 02.07.2026 at 09:53:36
+    65000 steps completed on 02.07.2026 at 09:53:36
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    66000 steps completed on 02.07.2026 at 09:53:36
+    67000 steps completed on 02.07.2026 at 09:53:37
+    68000 steps completed on 02.07.2026 at 09:53:37
+    69000 steps completed on 02.07.2026 at 09:53:37
+    70000 steps completed on 02.07.2026 at 09:53:38
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    71000 steps completed on 02.07.2026 at 09:53:38
+    72000 steps completed on 02.07.2026 at 09:53:38
+    73000 steps completed on 02.07.2026 at 09:53:39
+    74000 steps completed on 02.07.2026 at 09:53:39
+    75000 steps completed on 02.07.2026 at 09:53:39
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    76000 steps completed on 02.07.2026 at 09:53:40
+    77000 steps completed on 02.07.2026 at 09:53:40
+    78000 steps completed on 02.07.2026 at 09:53:40
+    79000 steps completed on 02.07.2026 at 09:53:41
+    80000 steps completed on 02.07.2026 at 09:53:41
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    81000 steps completed on 02.07.2026 at 09:53:41
+    82000 steps completed on 02.07.2026 at 09:53:42
+    83000 steps completed on 02.07.2026 at 09:53:42
+    84000 steps completed on 02.07.2026 at 09:53:42
+    85000 steps completed on 02.07.2026 at 09:53:43
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    86000 steps completed on 02.07.2026 at 09:53:43
+    87000 steps completed on 02.07.2026 at 09:53:43
+    88000 steps completed on 02.07.2026 at 09:53:44
+    89000 steps completed on 02.07.2026 at 09:53:44
+    90000 steps completed on 02.07.2026 at 09:53:44
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    91000 steps completed on 02.07.2026 at 09:53:45
+    92000 steps completed on 02.07.2026 at 09:53:45
+    93000 steps completed on 02.07.2026 at 09:53:45
+    94000 steps completed on 02.07.2026 at 09:53:46
+    95000 steps completed on 02.07.2026 at 09:53:46
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+    96000 steps completed on 02.07.2026 at 09:53:46
+    97000 steps completed on 02.07.2026 at 09:53:47
+    98000 steps completed on 02.07.2026 at 09:53:47
+    99000 steps completed on 02.07.2026 at 09:53:47
+   100000 steps completed on 02.07.2026 at 09:53:48
+Saving simulation results
+Opening file <NVT_MD_vap_1.res> for writing (unit 1017)
+File <NVT_MD_vap_1.res> closed (unit 1017)
+------------------------------------------------------------------------
+Duration:
+ simulation wtime        diff:  33.2134870    -  33.2135020
+                             <=    0h  0min 33.21350sec (+- 0.10E-05sec)
+simulation timer stop: 02.07.2026, 09:53:48.199 (UTC+120)
+========================================================================
+
+
+Saving simulation restart file
+Saving restart file NVT_MD_vap.rst on 02.07.2026 at 09:53:48
+Opening file <NVT_MD_vap.rst> for writing (unit 1005)
+saving restart data at step    100000 /    130000
+still to be done: (NVT)Equilibration  F F
+writing ensemble      1 on 02.07.2026 at 09:53:48
+File <NVT_MD_vap.rst> closed (unit 1005)
+Finished saving restart file NVT_MD_vap.rst on 02.07.2026 at 09:53:48
+------------------------------------------------------------------------
+Duration:
+ TSimulation_Run system_clock diff:  41.9300003    sec
+                 =    0h  0min 41.93000sec (+i*  596h 31min 23.75000sec)
+ TSimulation_Run wtime   root diff:  41.9294540
+                              =    0h  0min 41.92945sec (+- 0.10E-05sec)
+TSimulation_Run timer stop: 02.07.2026, 09:53:48.209 (UTC+120)
+========================================================================
+
+
+File <NVT_MD_vap_1.rav> closed (unit 1016)
+File <NVT_MD_vap_1.run> closed (unit 1015)
+File <NVT_MD_vap_CC_1.clust> closed (unit 1029)
+
+************************************************************************
+Program terminated on 02.07.2026 at 09:53:48
+************************************************************************

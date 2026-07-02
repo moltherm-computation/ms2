@@ -57,76 +57,76 @@ Quadrupole-quadrupole cutoff radius:        10.500000000 A
 VALUE                         UNITS          AVERAGE             ERROR
 -----                         -----          -------             -----
 
-Pressure                    reduced:         0.140429361         0.003564181
-                             in MPa:         4.522097263         0.114773541
+Pressure                    reduced:         0.139692631         0.004811856
+                             in MPa:         4.498373150         0.154951077
 
-Density                     reduced:         0.585182712         0.000813971
-                           in mol/l:        22.664008432         0.031524918
+Density                     reduced:         0.583345946         0.001148059
+                           in mol/l:        22.592870845         0.044464111
 
-Temperature                 reduced:         2.499999873         0.000007116
-                               in K:       249.999987258         0.000711558
+Temperature                 reduced:         2.500001112         0.000008500
+                               in K:       250.000111158         0.000849987
 
-OsmoticPressure             reduced:         0.300771804         0.009155804
-                             in MPa:         9.685434346         0.294834628
+OsmoticPressure             reduced:         0.298703147         0.018029804
+                             in MPa:         9.618819594         0.580594607
 
-Potential energy            reduced:       -13.758086230         0.018715109
-                           in J/mol:    -11439.176791387        15.560699529
+Potential energy            reduced:       -13.732346593         0.031091473
+                           in J/mol:    -11417.775540251        25.851041333
 
-Enthalpy                    reduced:       -16.019225545         0.019029559
-                           in J/mol:    -13319.203703724        15.822148938
+Enthalpy                    reduced:       -15.992703488         0.031542967
+                           in J/mol:    -13297.151908341        26.226436263
 
-Chemical potential of CO2_3lj.pmr`d:        -4.036736312         0.037174437
-Chemical potential of CH4.pm    r`d:        -3.838851742         0.012386364
+Chemical potential of CO2_3lj.pmr`d:        -4.027843077         0.021534332
+Chemical potential of CH4.pm    r`d:        -3.865369347         0.022509820
 
-Partial molar volume of CO2_3lj.r`d:         2.278722148         1.289518975
-                           in l/mol:         0.058836406         0.033295267
-Partial molar enthalpy of CO2_3lr`d:       -16.947016644         7.725395021
-                           in J/mol:    -14090.616691272      6423.288672149
-Partial molar volume of CH4.pm  r`d:         2.541775467         0.379462522
-                           in l/mol:         0.065628420         0.009797689
-Partial molar enthalpy of CH4.pmr`d:         0.980452277         3.426824127
-                           in J/mol:       815.198185900      2849.236904153
+Partial molar volume of CO2_3lj.r`d:         2.151295022         0.681962898
+                           in l/mol:         0.055546249         0.017608222
+Partial molar enthalpy of CO2_3lr`d:       -14.665132547         5.563491100
+                           in J/mol:    -12193.341506056      4625.771143582
+Partial molar volume of CH4.pm  r`d:         3.657714168         0.738666066
+                           in l/mol:         0.094441859         0.019072293
+Partial molar enthalpy of CH4.pmr`d:         9.828578988         6.425227554
+                           in J/mol:      8171.983426471      5342.262919444
 
-dH/dP                       reduced:        -0.308972203         0.243696757
-                           in l/mol:        -0.007977635         0.006292229
+dH/dP                       reduced:        -1.412235150         0.501299042
+                           in l/mol:        -0.036463788         0.012943497
 
-Speed of sound              reduced:         4.861391314         0.719083479
-                             in m/s:       700.888537559       103.673482564
+Speed of sound              reduced:         4.432631760         2.260361492
+                             in m/s:       639.072354193       325.886430050
 
 ============================================================================
 
-Isochoric heat capacity     reduced:         1.520348488         0.054668007
-                       in J/(mol K):        12.640955176         0.454537780
+Isochoric heat capacity     reduced:         1.728065519         0.076363385
+                       in J/(mol K):        14.368020847         0.634924249
 
-Thermal pressure coefficient   red.:         3.285604069         0.086496985
-                          in MPa/ K:         1.058028115         0.027853704
+Thermal pressure coefficient   red.:         3.324884463         0.107113318
+                          in MPa/ K:         1.070677162         0.034492562
 
-Isothermal compressibility  reduced:         0.143749666         0.016042230
-                           in 1/MPa:         0.004464007         0.000498176
+Isothermal compressibility  reduced:         0.219378099         0.035540318
+                           in 1/MPa:         0.006812575         0.001103670
 
-Thermal expansion coefficient  red.:         0.472304489         0.054155141
-                            in 1/ K:         0.004723045         0.000541551
+Thermal expansion coefficient  red.:         0.729406832         0.120481189
+                            in 1/ K:         0.007294068         0.001204812
 
-Isobaric heat capacity      reduced:         7.151538151         0.890761795
-                       in J/(mol K):        59.461547105         7.406249299
+Isobaric heat capacity      reduced:        11.125370889         1.666404223
+                       in J/(mol K):        92.502025602        13.855337284
 
-Speed of sound              reduced:         5.531284191         0.070311331
-                             in m/s:       797.469990891        10.137099124
+Speed of sound              reduced:         5.119484347         0.099684981
+                             in m/s:       738.098964850        14.372029783
 
-Joule Thomson coefficient   reduced:         0.028846149         0.022903809
-                           in K/MPa:         0.089578928         0.071125566
+Joule Thomson coefficient   reduced:         0.095466047         0.035565720
+                           in K/MPa:         0.296460583         0.110445907
 
-G00         Dimensionless, residual:        -0.808735015         0.039183680
+G00         Dimensionless, residual:        -0.803366470         0.031151556
 
-G10         Dimensionless, residual:       -13.768068138         0.019029559
+G10         Dimensionless, residual:       -13.741546080         0.031542967
 
-G01         Dimensionless, residual:        -6.472272284         0.000947610
+G01         Dimensionless, residual:        -6.470032689         0.001371523
 
-G20         Dimensionless, residual:       -50.325006965         5.567261217
+G20         Dimensionless, residual:       -75.161461575        10.415026392
 
-G02         Dimensionless, residual:        51.109848424         0.010951834
+G02         Dimensionless, residual:        51.057648929         0.024515044
 
-G11         Dimensionless, residual:        -0.308972203         0.243696757
+G11         Dimensionless, residual:        -1.412235150         0.501299042
 
 ============================================================================
 

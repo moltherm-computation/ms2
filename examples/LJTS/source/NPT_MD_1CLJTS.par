@@ -25,7 +25,7 @@ NComponents   	= 1
 
 PotModel   	    = 1CLJ.pm
 MolarFract 	   	= 1.0
-ChemPotMethod.  = Widom
+ChemPotMethod   = Widom
 NTest        	= 2000
 
 Cutoff       	= 2.5

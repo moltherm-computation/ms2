@@ -134,9 +134,6 @@ module ms2_interaction
     ! Flag for reaction field
     logical :: ReactionField
 
-    ! Extended reaction field
-     real(RK) :: DebyeLen
-
     ! (2*eps-1)/(2*eps+1)
     real(RK) :: RFConst2
 

@@ -353,7 +353,6 @@ module ms2_global
   character(*), parameter :: IdNMax                        = 'NMax'
   character(*), parameter :: IdGrid                        = 'Grid'
   character(*), parameter :: IdSpline                      = 'Spline'
-  character(*), parameter :: IdDebyeLen                    = 'DebyeLen'
   character(*), parameter :: IdNOrient                     = 'NOrient'
   character(*), parameter :: IdRSteps                      = 'RSteps'
   character(*), parameter :: IdMinRadius                   = 'RMinRadius'
@@ -384,7 +383,7 @@ module ms2_global
   character(*), parameter :: IdNHBonds                     = 'NHBondCriteria'
 
   !DC NOTE- cluster criteria relevant global Id
-  character(*), parameter :: IdIsClusterCriteria           = 'ClusterIsCriteria'
+  character(*), parameter :: IdIsClusterCriteria           = 'ClusterCriteria'
   character(*), parameter :: IdCCUpdateFrequency           = 'ClusterCriteriaFreq'
   character(*), parameter :: IdCcrittype                   = 'ClusterCriteriaType'
   character(*), parameter :: IdCcritdist                   = 'ClusterCriteriaDistance'
@@ -409,8 +408,6 @@ module ms2_global
   character(*), parameter :: IdRCutoffDipoleQuadrupole     = 'CutoffDQ'
   character(*), parameter :: IdRCutoffQuadrupoleQuadrupole = 'CutoffQQ'
   character(*), parameter :: IdRFEpsilon                   = 'Epsilon'
-  character(*), parameter :: IdFluctFreq                   = 'FluctFreq'
-  character(*), parameter :: IdNFullFluct                  = 'NFullFluct'
 
   character(*), parameter :: IdLambdaMin                   = 'LambdaMin'
   character(*), parameter :: IdLambdaMax                   = 'LambdaMax'
