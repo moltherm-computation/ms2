@@ -1,0 +1,40 @@
+Units        =       SI
+LengthUnit   =       3.5
+EnergyUnit   =       100.0
+MassUnit     =       40.0
+Simulation   =       MD
+Integrator   =       Gear
+TimeStep     =       5E-4
+Ensemble     =       NVT
+MCORSteps    =       10
+NVTSteps     =       10000
+RunSteps     =       200000
+ResultFreq   =       1000
+ErrorsFreq   =       5000
+VisualFreq   =       0
+CutoffMode   =       COM
+NEnsembles   =       1
+mpiEnsembleGroups =  1
+CorrfunMode  =       yes
+TransMethod  =       GKEinstein
+ContributionMode = Separation
+
+Temperature  =       270.0
+Density      =       32.0
+NParticles   =       500
+NComponents  =       1
+
+StepsCorrfun =       5
+Corrlength   =       10000
+SpanCorrfun  =       1000
+ViewCorrfun  =       50
+ResultFreqCF =       50
+
+PotModel     = CO2_3lj.pm
+MoleFract    = 1.00
+ChemPotMethod= none
+
+Cutoff       = 4
+Epsilon      = 1.0E10
+
+    

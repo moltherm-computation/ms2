@@ -1,0 +1,33 @@
+Units       	= Reduced
+LengthUnit  	= 1.0
+EnergyUnit  	= 1.0
+MassUnit    	= 1.0
+Simulation  	= MD
+Integrator 		= Gear
+TimeStep 		= 0.0005
+Ensemble      	= NVT
+NVTSteps      	= 30000
+RunSteps      	= 100000
+ResultFreq    	= 1000
+ErrorsFreq    	= 5000
+VisualFreq    	= 0
+CutoffMode  	= COM
+NEnsembles    	= 1
+ClusterCriteria = Yes
+
+Temperature 	= 1.22
+Density 		= 0.53
+NParticles    	= 864
+NComponents   	= 1
+ClusterCriteriaFreq = 100
+ClusterCriteriaType = gridliq
+ClusterCriteriaDistance = 1.2
+ClusterMoleculeCount = 4
+ClusterMaximumAllowed = 10.0
+
+PotModel   	    = 1CLJ.pm
+MolarFract 	   	= 1.0
+ChemPotMethod.  = None
+
+Cutoff       	= 3.5
+Epsilon      	= 1.0E10
