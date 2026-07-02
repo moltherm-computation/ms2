@@ -383,7 +383,7 @@ module ms2_global
   character(*), parameter :: IdNHBonds                     = 'NHBondCriteria'
 
   !DC NOTE- cluster criteria relevant global Id
-  character(*), parameter :: IdIsClusterCriteria           = 'ClusterIsCriteria'
+  character(*), parameter :: IdIsClusterCriteria           = 'ClusterCriteria'
   character(*), parameter :: IdCCUpdateFrequency           = 'ClusterCriteriaFreq'
   character(*), parameter :: IdCcrittype                   = 'ClusterCriteriaType'
   character(*), parameter :: IdCcritdist                   = 'ClusterCriteriaDistance'
